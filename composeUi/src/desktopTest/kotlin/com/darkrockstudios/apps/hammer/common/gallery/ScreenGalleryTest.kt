@@ -103,10 +103,18 @@ class ScreenGalleryTest {
 
 	private data class StudyStyle(val label: String, val grouping: HdGrouping, val texture: HdTexture = HdTexture.None)
 
-	private class Capture(val image: BufferedImage, val overflowPx: Int, val textInventory: String)
+	/** [scrollerHeightPx] is the height of the scroll container holding the most hidden content. */
+	private class Capture(
+		val image: BufferedImage,
+		val overflowPx: Int,
+		val scrollerHeightPx: Int,
+		val textInventory: String,
+	)
 
 	/** [full] is the grown-canvas capture; null when the screen fits its viewport. */
-	private data class Shot(val viewport: String, val full: String?, val fullComplete: Boolean)
+	private data class Shot(val viewport: String, val full: String?, val hiddenPx: Int) {
+		val fullComplete get() = hiddenPx <= 0
+	}
 
 	private fun screen(name: String, note: String? = null, content: @Composable () -> Unit) =
 		Screen(name, note) { content() }
@@ -198,15 +206,21 @@ class ScreenGalleryTest {
 		File(outDir, "grouping.html").writeText(groupingHtml(study))
 		val fullCount = rendered.values.count { it.full != null }
 		println("Screen gallery: ${rendered.size} viewports, $fullCount full-length, ${study.size} grouping shots, ${failures.size} failures -> ${outDir.absolutePath}/index.html")
+		val partial = rendered.filterValues { !it.fullComplete }
+		File(outDir, "capture-report.txt").writeText(
+			partial.entries.joinToString("\n") { (key, shot) -> "${key.first} (${key.second}): ${shot.hiddenPx / SCALE} dp still hidden" }
+		)
+		partial.forEach { (key, shot) -> println("  PARTIAL ${key.first} (${key.second}): ${shot.hiddenPx / SCALE} dp still hidden") }
 		failures.forEach { println("  FAILED $it") }
 		assertTrue(rendered.isNotEmpty(), "no screens rendered")
 	}
 
 	/**
 	 * Captures the viewport, then, if anything scrolls vertically, re-renders on a canvas
-	 * grown by the remaining scroll range until nothing scrolls. Lazy lists only estimate
-	 * their range, hence the passes. A scroller whose range doesn't shrink as the canvas
-	 * grows has a fixed height, so growing stops there.
+	 * grown by the remaining scroll range until nothing scrolls. Lazy lists don't report
+	 * their real range, only a small constant while more items remain, so when the range
+	 * stalls but the scroller itself grew, growth continues in bigger steps. A scroller that
+	 * neither shrinks its range nor grows has a fixed height, so growing stops there.
 	 */
 	private fun renderShot(
 		screen: Screen,
@@ -222,21 +236,25 @@ class ScreenGalleryTest {
 
 		var height = viewportHeight
 		var overflow = viewport.overflowPx
+		var scrollerHeight = viewport.scrollerHeightPx
 		var fullCapture: Capture? = null
 		for (pass in 0 until MAX_GROW_PASSES) {
 			if (overflow <= 0) break
-			val nextHeight = minOf(height + overflow, MAX_HEIGHT_DP * SCALE)
+			val step = if (fullCapture == null && pass == 0) overflow else maxOf(overflow, viewportHeight / 2)
+			val nextHeight = minOf(height + step, MAX_HEIGHT_DP * SCALE)
 			if (nextHeight == height) break
 			val grown = capture(screen, variant, nextHeight, style)
-			if (grown.overflowPx >= overflow) break
+			val stalled = grown.overflowPx >= overflow && grown.scrollerHeightPx <= scrollerHeight
+			if (stalled) break
 			fullCapture = grown
 			height = nextHeight
 			overflow = grown.overflowPx
+			scrollerHeight = grown.scrollerHeightPx
 		}
 
 		val full = fullCapture?.let { "$base.full.png".also { path -> write(it.image, File(outDir, path)) } }
 		File(outDir, "$base.text.tsv").writeText((fullCapture ?: viewport).textInventory)
-		return Shot("$base.png", full, fullComplete = overflow <= 0)
+		return Shot("$base.png", full, hiddenPx = maxOf(overflow, 0))
 	}
 
 	/**
@@ -265,14 +283,17 @@ class ScreenGalleryTest {
 			mainClock.advanceTimeBy(1_000)
 			waitForIdle()
 
-			val overflow = onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange), useUnmergedTree = true)
+			val scroller = onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange), useUnmergedTree = true)
 				.fetchSemanticsNodes()
-				.maxOfOrNull { node ->
+				.map { node ->
 					val range = node.config[SemanticsProperties.VerticalScrollAxisRange]
 					val remaining = range.maxValue() - range.value()
-					if (remaining.isFinite()) ceil(remaining).toInt() else heightPx
-				} ?: 0
-			result = Capture(onRoot().captureToImage().toAwtImage(), overflow, textInventory())
+					node to (if (remaining.isFinite()) ceil(remaining).toInt() else heightPx)
+				}
+				.maxByOrNull { it.second }
+			val overflow = scroller?.second ?: 0
+			val scrollerHeight = scroller?.first?.boundsInRoot?.height?.roundToInt() ?: 0
+			result = Capture(onRoot().captureToImage().toAwtImage(), overflow, scrollerHeight, textInventory())
 		}
 		return result
 	}
@@ -325,7 +346,7 @@ class ScreenGalleryTest {
 		)
 		appendLine("</style></head><body><h1>Hammer screen gallery</h1>")
 		appendLine("<p><a href=\"grouping.html\">Grouping study</a></p>")
-		appendLine("<p>Rendered from fake preview data at ${SCALE}x. Viewport shows what fits on screen; full length grows the canvas until nothing scrolls. Click an image for full size.</p>")
+		appendLine("<p>Rendered from fake preview data at ${SCALE}x. Whole screen grows the canvas until nothing scrolls, so tall screens show in full; screens that still hide content say how much. As it first appears is the plain viewport. Click an image for full size.</p>")
 		if (failures.isNotEmpty()) {
 			appendLine("<h2>Failed renders</h2><ul>")
 			failures.forEach { appendLine("<li>${esc(it)}</li>") }
@@ -337,11 +358,11 @@ class ScreenGalleryTest {
 		for (screen in screens) {
 			appendLine("<section id=\"${slug(screen.name)}\"><h2>${esc(screen.name)}</h2>")
 			screen.note?.let { appendLine("<p class=\"note\">${esc(it)}</p>") }
-			appendLine("<h3>Viewport</h3>")
-			appendFigures(screen, rendered) { it.viewport }
+			appendLine("<h3>Whole screen</h3>")
+			appendFigures(screen, rendered, fullLength = true) { it.full ?: it.viewport }
 			if (variants.any { rendered[screen.name to it.dir]?.full != null }) {
-				appendLine("<h3>Full length</h3>")
-				appendFigures(screen, rendered, fullLength = true) { it.full }
+				appendLine("<h3>As it first appears</h3>")
+				appendFigures(screen, rendered) { it.viewport }
 			}
 			appendLine("</section>")
 		}
@@ -395,7 +416,11 @@ class ScreenGalleryTest {
 		for (variant in variants) {
 			val shot = rendered[screen.name to variant.dir] ?: continue
 			val src = path(shot) ?: continue
-			val caption = if (fullLength && !shot.fullComplete) "${variant.label} (still scrolls)" else variant.label
+			val caption = if (fullLength && !shot.fullComplete) {
+				"${variant.label} (${shot.hiddenPx / SCALE} dp still hidden)"
+			} else {
+				variant.label
+			}
 			val cls = variant.formFactor.name.lowercase()
 			appendLine("<figure><figcaption>${esc(caption)}</figcaption><a href=\"$src\"><img class=\"$cls\" loading=\"lazy\" src=\"$src\"></a></figure>")
 		}
@@ -422,7 +447,7 @@ class ScreenGalleryTest {
 			"Project settings", "Account settings", "Project stats", "View encyclopedia entry",
 			"Browse notes", "Scene editor", "Timeline",
 		)
-		private const val MAX_GROW_PASSES = 4
+		private const val MAX_GROW_PASSES = 12
 		private const val MAX_HEIGHT_DP = 8000
 	}
 }
