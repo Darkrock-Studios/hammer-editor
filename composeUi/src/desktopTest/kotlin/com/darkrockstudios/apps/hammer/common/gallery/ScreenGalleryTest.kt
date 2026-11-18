@@ -31,6 +31,16 @@ import com.darkrockstudios.apps.hammer.common.preview.SceneConflictPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenCreateEntryPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiGroupedTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ImportStoryDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.SceneMetadataPanelUiTimelinesPreview
+import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenViewEntryUiImagesPreview
+import com.darkrockstudios.apps.hammer.common.preview.ScreenViewEntryTimelinesPreview
+import com.darkrockstudios.apps.hammer.common.preview.images.ImageGalleryBrowsePreview
+import com.darkrockstudios.apps.hammer.common.preview.images.ImageGalleryPickTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.timeline.MoveToTimelineDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiSharedPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.TimelineSettingsUiThreeTimelinesPreview
 import com.darkrockstudios.apps.hammer.common.preview.duplicateids.DuplicateIdsDialogDarkPreview
 import com.darkrockstudios.apps.hammer.common.preview.duplicateids.DuplicateIdsDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenBrowseEntriesUiTabletPreview
@@ -107,11 +117,14 @@ class ScreenGalleryTest {
 
 	private val screens = listOf(
 		screen("Project list") { ScreenProjectListUiTabletPreview() },
+		screen("Project list, grouped") { ScreenProjectListUiGroupedTabletPreview() },
+		screen("Import story dialog", note = "Preview hardcodes the dark theme.") { ImportStoryDialogPreview() },
 		screen("Create project dialog", note = "Preview hardcodes the dark theme.") { ScreenProjectCreateDialogPreview() },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
 		screen("Account settings") { ScreenAccountSettingsUiTabletPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
+		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
 		screen("Focus mode") { ScreenFocusModeUiTabletPreview() },
 		screen("Drafts list") { ScreenDraftsListUiTabletPreview() },
 		screen("Reader mode") { ScreenReaderModeUiTabletPreview() },
@@ -122,14 +135,21 @@ class ScreenGalleryTest {
 		surfaced("Create note") { ScreenCreateNoteUiPreview() },
 		screen("Browse encyclopedia") { ScreenBrowseEntriesUiTabletPreview() },
 		screen("View encyclopedia entry") { ScreenViewEntryUiTabletPreview() },
+		screen("View encyclopedia entry, images") { ScreenViewEntryUiImagesPreview() },
+		surfaced("View encyclopedia entry, timelines") { ScreenViewEntryTimelinesPreview() },
+		surfaced("Image gallery") { ImageGalleryBrowsePreview() },
+		surfaced("Image picker") { ImageGalleryPickTabletPreview() },
 		surfaced("Create encyclopedia entry") { ScreenCreateEntryPreview() },
 		screen("Timeline") { ScreenTimeLineOverviewUiTabletPreview() },
 		screen("View timeline event") { ScreenViewTimeLineEventUiTabletPreview() },
+		surfaced("Move to timeline dialog") { MoveToTimelineDialogPreview() },
 		surfaced("Create timeline event") { ScreenCreateTimeLineEventUiPreview() },
 		screen("Story ideas") { ScreenStoryIdeasUiTabletPreview() },
 		screen("Story idea") { ScreenStoryIdeasViewTabletPreview() },
 		screen("Project stats") { ScreenProjectStatsUiTabletPreview() },
 		screen("Project settings") { ScreenProjectSettingsUiTabletPreview() },
+		screen("Project settings, shared") { ScreenProjectSettingsUiSharedPreview() },
+		surfaced("Timeline settings") { TimelineSettingsUiThreeTimelinesPreview() },
 		surfaced("Export options dialog") { ExportOptionsDialogPreview() },
 		screen("Duplicate IDs dialog") {
 			if (isSystemInDarkTheme()) DuplicateIdsDialogDarkPreview() else DuplicateIdsDialogPreview()
