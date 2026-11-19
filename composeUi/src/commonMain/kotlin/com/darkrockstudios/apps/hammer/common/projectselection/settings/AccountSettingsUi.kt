@@ -6,20 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,29 +17,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabPill
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabbedPage
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.compose.theme.oledBlackThemeAvailable
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
@@ -97,68 +79,26 @@ internal fun AccountSettingsUi(
 	initialTab: SettingsTab = SettingsTab.General,
 ) {
 	val scope = rememberCoroutineScope()
-	val screen = LocalScreenCharacteristic.current
-	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
-	val horizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
 	val tabs = SettingsTab.entries.filter { it != SettingsTab.Plugins || runtimePlugins != null }
 	var tab by rememberSaveable { mutableStateOf(initialTab) }
 
 	Toaster(component, rootSnackbar)
 
-	Column(
-		modifier = modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.surface),
-	) {
-		Masthead(horizontal)
-		HdFolioDivider()
-
-		Box(modifier = Modifier.fillMaxWidth().padding(horizontal = horizontal)) {
-			Row(
-				modifier = Modifier
-					.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
-					.fillMaxWidth()
-					.align(Alignment.TopCenter),
-			) {
-				tabs.forEach { option ->
-					HdTabPill(
-						label = tabLabel(option),
-						active = option == tab,
-						onClick = { tab = option },
-						modifier = Modifier.weight(1f),
-					)
-				}
-			}
-		}
-
-		// A fresh scroll position per tab, so switching tabs always starts at the top.
-		key(tab) {
-			val scrollState = rememberScrollState()
-			Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-				Column(
-					modifier = Modifier
-						.fillMaxSize()
-						.verticalScroll(scrollState)
-						.padding(horizontal = horizontal, vertical = if (isCompact) Ui.Padding.XL else 32.dp),
-				) {
-					Column(
-						modifier = Modifier
-							.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
-							.fillMaxWidth()
-							.align(Alignment.CenterHorizontally),
-						verticalArrangement = Arrangement.spacedBy(56.dp),
-					) {
-						when (tab) {
-							SettingsTab.General -> GeneralTab(component, rootSnackbar)
-							SettingsTab.Writing -> WritingTab(component)
-							SettingsTab.Sync -> SyncSettingsTab(component, scope)
-							SettingsTab.Plugins -> runtimePlugins?.let { PluginsTab(it) }
-						}
-						Spacer(Modifier.height(8.dp))
-					}
-				}
-				MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
-			}
+	HdTabbedPage(
+		title = Res.string.project_select_nav_account_settings.get(),
+		tabs = tabs,
+		selected = tab,
+		label = { tabLabel(it) },
+		onSelect = { tab = it },
+		maxWidth = hdColumnMaxWidth(MaxColumnWidth),
+		modifier = modifier.background(MaterialTheme.colorScheme.surface),
+		trailing = { AutosaveBadge() },
+	) { _ ->
+		when (tab) {
+			SettingsTab.General -> GeneralTab(component, rootSnackbar)
+			SettingsTab.Writing -> WritingTab(component)
+			SettingsTab.Sync -> SyncSettingsTab(component, scope)
+			SettingsTab.Plugins -> runtimePlugins?.let { PluginsTab(it) }
 		}
 	}
 
@@ -166,27 +106,6 @@ internal fun AccountSettingsUi(
 	ServerSetupDialog(component, scope)
 	MergeProjectsDialog(component)
 	TermsOfServiceDialog(component)
-}
-
-@Composable
-private fun Masthead(horizontal: Dp) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.height(Ui.TOP_BAR_HEIGHT)
-			.padding(horizontal = horizontal),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
-		Text(
-			text = Res.string.project_select_nav_account_settings.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			color = MaterialTheme.colorScheme.onSurface,
-			maxLines = 1,
-			overflow = TextOverflow.Ellipsis,
-			modifier = Modifier.weight(1f),
-		)
-		AutosaveBadge()
-	}
 }
 
 /** Says there is no Save button: every change applies as it's made. */

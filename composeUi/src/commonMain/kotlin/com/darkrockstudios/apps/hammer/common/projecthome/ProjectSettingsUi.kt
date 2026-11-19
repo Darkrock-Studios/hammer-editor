@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -17,7 +16,7 @@ import com.darkrockstudios.apps.hammer.project_settings_plugins_empty_title
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabPill
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabbedPage
 import com.darkrockstudios.apps.hammer.project_settings_dictionary_title
 import com.darkrockstudios.apps.hammer.project_settings_enter_to_add_word
 import com.darkrockstudios.apps.hammer.project_settings_tab_plugins
@@ -25,51 +24,30 @@ import com.darkrockstudios.apps.hammer.project_settings_tab_project
 import com.darkrockstudios.apps.hammer.project_settings_tab_timelines
 import com.darkrockstudios.apps.hammer.project_settings_tab_writing
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSectionGap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineWordListField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.ManagePluginsButton
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsContent
@@ -81,14 +59,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.project_settings_autosaved
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_home
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_root
-import com.darkrockstudios.apps.hammer.project_settings_dictionary_hint
-import com.darkrockstudios.apps.hammer.project_settings_dictionary_label
 import com.darkrockstudios.apps.hammer.project_settings_dictionary_placeholder
-import com.darkrockstudios.apps.hammer.project_settings_folio_caption
-import com.darkrockstudios.apps.hammer.project_settings_folio_section_count
-import com.darkrockstudios.apps.hammer.project_settings_hero_by
-import com.darkrockstudios.apps.hammer.project_settings_hero_marker
-import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
 import com.darkrockstudios.apps.hammer.project_settings_plugins_caption
 import com.darkrockstudios.apps.hammer.project_settings_plugins_pick_none
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable
@@ -97,7 +68,6 @@ import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_capt
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
 import androidx.compose.ui.platform.testTag
 import com.darkrockstudios.apps.hammer.common.projectselection.sharedByLabel
-import com.darkrockstudios.apps.hammer.project_settings_sync_section_title
 import com.darkrockstudios.apps.hammer.project_settings_sync_shared_off
 import com.darkrockstudios.apps.hammer.project_settings_sync_shared_syncing
 import com.darkrockstudios.apps.hammer.project_settings_sync_own_hint
@@ -128,103 +98,63 @@ fun ProjectSettingsUi(
 	val plugins = koinInject<PluginUiRegistry>().plugins()
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
 	val syncState by component.syncState.subscribeAsState()
-	val screen = LocalScreenCharacteristic.current
-	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
-	val horizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
 	val tabs = ProjectSettingsTab.entries
 	var tab by rememberSaveable { mutableStateOf(initialTab) }
 
-	Column(
-		modifier = modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.surface),
-	) {
-		Masthead(horizontal = horizontal, onClose = onClose)
-		HdFolioDivider()
-
-		Box(modifier = Modifier.fillMaxWidth().padding(horizontal = horizontal)) {
-			Row(
-				modifier = Modifier
-					.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
-					.fillMaxWidth()
-					.align(Alignment.TopCenter),
-			) {
-				tabs.forEach { option ->
-					HdTabPill(
-						label = tabLabel(option),
-						active = option == tab,
-						onClick = { tab = option },
-						modifier = Modifier.weight(1f),
+	HdTabbedPage(
+		title = Res.string.project_settings_breadcrumb_root.get(),
+		tabs = tabs,
+		selected = tab,
+		label = { tabLabel(it) },
+		onSelect = { tab = it },
+		maxWidth = hdColumnMaxWidth(MaxColumnWidth),
+		modifier = modifier.background(MaterialTheme.colorScheme.surface),
+		back = { HomeButton(onClose) },
+		trailing = { AutosaveBadge() },
+	) { _ ->
+		if (state.isLoaded) {
+			when (tab) {
+				ProjectSettingsTab.Project -> {
+					ProjectDetailsGroup(component, component.projectName) {
+						if (syncState.serverConfigured) ProjectSyncRow(syncState)
+					}
+					CoverImageSection(
+						coverImageId = state.data.coverImageId,
+						coverImage = state.coverImage,
+						pickPending = state.pendingCoverPick,
+						onPick = component::pickCoverImage,
+						onClear = component::clearCoverImage,
 					)
+					ProjectTagsGroup(
+						tags = state.data.tags,
+						onChange = component::setTags,
+						suggest = component::suggestProjectTags,
+					)
+					CustomThemeGroup(theme = state.data.theme, onChange = component::setTheme)
 				}
-			}
-		}
 
-		key(tab) {
-			val scrollState = rememberScrollState()
-			Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-				Column(
-					modifier = Modifier
-						.fillMaxSize()
-						.verticalScroll(scrollState)
-						.padding(horizontal = horizontal, vertical = if (isCompact) Ui.Padding.XL else 32.dp),
-				) {
-					Column(
-						modifier = Modifier
-							.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
-							.fillMaxWidth()
-							.align(Alignment.CenterHorizontally),
-						verticalArrangement = Arrangement.spacedBy(56.dp),
-					) {
-						if (state.isLoaded) {
-							when (tab) {
-								ProjectSettingsTab.Project -> {
-									ProjectDetailsGroup(component, component.projectName) {
-										if (syncState.serverConfigured) ProjectSyncRow(syncState)
-									}
-									CoverImageSection(
-										coverImageId = state.data.coverImageId,
-										coverImage = state.coverImage,
-										pickPending = state.pendingCoverPick,
-										onPick = component::pickCoverImage,
-										onClear = component::clearCoverImage,
-									)
-									ProjectTagsGroup(
-										tags = state.data.tags,
-										onChange = component::setTags,
-										suggest = component::suggestProjectTags,
-									)
-									CustomThemeGroup(theme = state.data.theme, onChange = component::setTheme)
-								}
-
-								ProjectSettingsTab.Writing -> {
-									WordCountGoalGroup(goal = state.data.wordCountGoal, onChange = component::setWordCountGoal)
-									HdSettingGroup(title = Res.string.project_settings_spellcheck_section_title.get()) {
-										SpellCheckSettingsContent(component.spellCheckSettings, showEncyclopediaToggle = false)
-										ProjectDictionaryToggle(enabled = state.data.encyclopediaDictionary, component = component)
-										SpellCheckMismatchCaption(
-											projectLanguageTag = state.data.language,
-											spellCheckSettings = component.spellCheckSettings,
-										)
-									}
-									HdSettingGroup(title = Res.string.project_settings_dictionary_title.get()) {
-										ProjectDictionaryWords(words = state.data.dictionaryWords, component = component)
-									}
-								}
-
-								ProjectSettingsTab.Timelines -> TimelineSettingsUi(component = component.timelineSettings)
-								ProjectSettingsTab.Plugins -> ProjectPlugins(
-									plugins = plugins,
-									disabled = disabledPlugins,
-									language = state.data.language,
-									component = component,
-								)
-							}
-						}
-						Spacer(Modifier.height(8.dp))
+				ProjectSettingsTab.Writing -> {
+					WordCountGoalGroup(goal = state.data.wordCountGoal, onChange = component::setWordCountGoal)
+					HdSettingGroup(title = Res.string.project_settings_spellcheck_section_title.get()) {
+						SpellCheckSettingsContent(component.spellCheckSettings, showEncyclopediaToggle = false)
+						ProjectDictionaryToggle(enabled = state.data.encyclopediaDictionary, component = component)
+						SpellCheckMismatchCaption(
+							projectLanguageTag = state.data.language,
+							spellCheckSettings = component.spellCheckSettings,
+						)
+					}
+					HdSettingGroup(title = Res.string.project_settings_dictionary_title.get()) {
+						ProjectDictionaryWords(words = state.data.dictionaryWords, component = component)
 					}
 				}
-				MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
+
+				ProjectSettingsTab.Timelines -> TimelineSettingsUi(component = component.timelineSettings)
+				ProjectSettingsTab.Plugins -> ProjectPlugins(
+					plugins = plugins,
+					disabled = disabledPlugins,
+					language = state.data.language,
+					component = component,
+				)
 			}
 		}
 	}
@@ -396,30 +326,13 @@ private fun SpellCheckMismatchCaption(
 }
 
 @Composable
-private fun Masthead(horizontal: Dp, onClose: () -> Unit) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.height(Ui.TOP_BAR_HEIGHT)
-			.padding(horizontal = horizontal),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdQuietButton(
-			onClick = onClose,
-			icon = Icons.AutoMirrored.Filled.ArrowBack,
-			label = Res.string.project_settings_breadcrumb_home.get(),
-		)
-		Text(
-			text = Res.string.project_settings_breadcrumb_root.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			color = MaterialTheme.colorScheme.onSurface,
-			maxLines = 1,
-			overflow = TextOverflow.Ellipsis,
-			modifier = Modifier.weight(1f),
-		)
-		AutosaveBadge()
-	}
+private fun HomeButton(onClose: () -> Unit, modifier: Modifier = Modifier) {
+	HdQuietButton(
+		onClick = onClose,
+		modifier = modifier,
+		icon = Icons.AutoMirrored.Filled.ArrowBack,
+		label = Res.string.project_settings_breadcrumb_home.get(),
+	)
 }
 
 /** Says there is no Save button: every change applies as it's made. */

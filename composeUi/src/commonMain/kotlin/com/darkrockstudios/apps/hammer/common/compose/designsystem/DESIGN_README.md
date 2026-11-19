@@ -482,6 +482,12 @@ a sort icon). Control labels are sentence case in the body face.
   in a dialog, a label over a 2dp rule that takes the accent when
   active. Used where a dialog's list splits into a few kinds, such as
   Add reference's entry groups and the entity picker's kinds.
+- **[`HdTabbedPage`](HdTabbedPage.kt)**: a page split into tabs
+  (settings screens). Wide screens list the tabs down a side column
+  under the back button, an accent bar beside the active one, and the
+  title and content share the next edge. Phones put an even row of tabs
+  under the masthead, seated on its folio rule. Nothing is centered
+  against a left-pinned masthead.
 - **[`HdResizeHandle`](HdResizeHandle.kt)**: full-height 16dp gutter
   on the start edge of a centered, width-capped column (the scene
   editor, focus mode) that drags the column wider or narrower. Shows
@@ -871,7 +877,7 @@ one line; a long label ellipsizes.
 App Settings ([`AccountSettingsUi`](../../projectselection/settings/AccountSettingsUi.kt))
 is the model for any page of options.
 
-- **Split by job, not by length.** Tabs ([`HdTabPill`](HdTabPill.kt))
+- **Split by job, not by length.** Tabs ([`HdTabbedPage`](HdTabbedPage.kt))
   when a screen mixes unrelated jobs, each tab named for its job
   (General, Writing, Sync, Plugins). A tab fits about one screen; if it
   doesn't, the grouping is wrong. Each tab opens at the top.
