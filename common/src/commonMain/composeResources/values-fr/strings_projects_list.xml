@@ -52,7 +52,6 @@
 	<string name="account_sync_dialog_status_canceled">Annulé</string>
 	<string name="delete_project_title">Supprimer le projet</string>
 	<string name="delete_project_warning">Cette action est irréversible. Toutes les données du projet seront définitivement supprimées.</string>
-	<string name="delete_project_confirm_hint">Saisissez « %1$s » pour confirmer</string>
 	<string name="delete_project_confirm">Supprimer</string>
 	<string name="delete_project_cancel">Annuler</string>
 	<string name="rename_project_title">Renommer le projet</string>

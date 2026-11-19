@@ -52,7 +52,6 @@
 	<string name="account_sync_dialog_status_canceled">Скасовано</string>
 	<string name="delete_project_title">Видалити проєкт</string>
 	<string name="delete_project_warning">Цю дію неможливо скасувати. Усі дані проєкту буде остаточно видалено.</string>
-	<string name="delete_project_confirm_hint">Введіть «%1$s» для підтвердження</string>
 	<string name="delete_project_confirm">Видалити</string>
 	<string name="delete_project_cancel">Скасувати</string>
 	<string name="rename_project_title">Перейменувати проєкт</string>

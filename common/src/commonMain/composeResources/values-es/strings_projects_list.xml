@@ -52,7 +52,6 @@
 	<string name="account_sync_dialog_status_canceled">Cancelada</string>
 	<string name="delete_project_title">Eliminar proyecto</string>
 	<string name="delete_project_warning">Esta acción no se puede deshacer. Todos los datos del proyecto se eliminarán de forma permanente.</string>
-	<string name="delete_project_confirm_hint">Escribe «%1$s» para confirmar</string>
 	<string name="delete_project_confirm">Eliminar</string>
 	<string name="delete_project_cancel">Cancelar</string>
 	<string name="rename_project_title">Renombrar proyecto</string>

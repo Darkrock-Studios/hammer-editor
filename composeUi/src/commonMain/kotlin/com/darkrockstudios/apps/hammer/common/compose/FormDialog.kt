@@ -197,6 +197,7 @@ fun FormField(
 	imeAction: ImeAction = ImeAction.Done,
 	onImeAction: (() -> Unit)? = null,
 	testTag: String? = null,
+	autoCorrectEnabled: Boolean? = null,
 ) {
 	val isError = !error.isNullOrEmpty()
 	val underlineColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
@@ -234,7 +235,7 @@ fun FormField(
 				singleLine = singleLine,
 				textStyle = textStyle,
 				cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-				keyboardOptions = KeyboardOptions(imeAction = imeAction),
+				keyboardOptions = KeyboardOptions(imeAction = imeAction, autoCorrectEnabled = autoCorrectEnabled),
 				keyboardActions = KeyboardActions(
 					onDone = { onImeAction?.invoke() },
 					onGo = { onImeAction?.invoke() },
