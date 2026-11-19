@@ -163,6 +163,7 @@ class ScreenGalleryTest {
 		surfaced("Move to group dialog") { MoveToGroupDialogPreview() },
 		surfaced("Account sync dialog") { ProjectsSyncDialogPreview() },
 		surfaced("Account sync log") { ProjectsSyncDialogPreview(showLog = true) },
+		surfaced("Story idea conflict") { ProjectsSyncDialogPreview(ideaConflict = true) },
 		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("About") { ScreenAboutAppUiTabletPreview() },

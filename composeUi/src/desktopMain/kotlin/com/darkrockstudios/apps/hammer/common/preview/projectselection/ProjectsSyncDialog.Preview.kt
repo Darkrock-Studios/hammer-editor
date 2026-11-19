@@ -8,7 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.darkrockstudios.apps.hammer.base.IdeaId
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectsSyncContent
@@ -40,9 +43,26 @@ private fun previewSyncState(): ProjectsList.SyncState {
 	)
 }
 
+private fun previewIdeaConflict(): IdeaConflict {
+	val local = StoryIdea(
+		id = IdeaId("00000000-0000-0000-0000-000000000001"),
+		created = Instant.parse("2026-11-02T12:00:00Z"),
+		updated = Instant.parse("2026-11-18T09:00:00Z"),
+		title = "The lighthouse keeper",
+		content = "A lighthouse keeper who has never seen the ship she keeps the light for.",
+		tags = setOf("short", "sea"),
+	)
+	val server = local.copy(
+		title = "The last lighthouse keeper",
+		content = "A lighthouse keeper who has never once seen the ship she keeps the light burning for.",
+		tags = setOf("short", "sea", "grief"),
+	)
+	return IdeaConflict(local = local, server = server)
+}
+
 @Preview(widthDp = 600, heightDp = 800)
 @Composable
-fun ProjectsSyncDialogPreview(showLog: Boolean = false) {
+fun ProjectsSyncDialogPreview(showLog: Boolean = false, ideaConflict: Boolean = false) {
 	Box(
 		modifier = Modifier
 			.fillMaxSize()
@@ -50,7 +70,7 @@ fun ProjectsSyncDialogPreview(showLog: Boolean = false) {
 		contentAlignment = Alignment.Center,
 	) {
 		ProjectsSyncContent(
-			syncState = previewSyncState(),
+			syncState = previewSyncState().let { if (ideaConflict) it.copy(ideaConflict = previewIdeaConflict()) else it },
 			showLog = showLog,
 			onToggleLog = {},
 			logProjectFilter = null,

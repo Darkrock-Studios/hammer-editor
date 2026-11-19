@@ -73,6 +73,7 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.account_sync_log_toggle
 import com.darkrockstudios.apps.hammer.account_sync_stop
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.FormDialogSubject
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.ideas_conflict_title
 import kotlinx.coroutines.launch
@@ -146,6 +147,7 @@ fun ProjectsSyncContent(
 	onClose: () -> Unit,
 ) {
 	val allProjectsLabel = Res.string.account_sync_log_filter_all.get()
+	val ideaConflict = syncState.ideaConflict
 
 	Surface(
 		modifier = Modifier
@@ -163,13 +165,21 @@ fun ProjectsSyncContent(
 		Column {
 			TitleAndToolbar(
 				inLogView = showLog,
-				inConflictView = syncState.ideaConflict != null,
+				inConflictView = ideaConflict != null,
 				syncComplete = syncState.syncComplete,
 				onStop = onStop,
 				onToggleLog = onToggleLog,
 			)
 
-			if (showLog) {
+			if (ideaConflict != null) {
+				val ideaTitle = ideaConflict.local.title ?: ideaConflict.server.title
+				if (ideaTitle != null) {
+					FormDialogSubject(
+						text = ideaTitle,
+						modifier = Modifier.padding(start = Gutter, end = Gutter, top = Ui.Padding.L, bottom = Ui.Padding.XL),
+					)
+				}
+			} else if (showLog) {
 				val projectNames = remember(syncState.projectsStatus) {
 					syncState.projectsStatus.keys.sorted()
 				}
@@ -193,7 +203,6 @@ fun ProjectsSyncContent(
 					.fillMaxWidth()
 					.heightIn(min = DialogBodyMinHeight, max = DialogBodyMaxHeight),
 			) {
-				val ideaConflict = syncState.ideaConflict
 				if (ideaConflict != null) {
 					// The dialog is too narrow for side-by-side panes; use the tabbed layout.
 					IdeaConflictUi(
@@ -262,6 +271,8 @@ private fun TitleAndToolbar(
 			color = MaterialTheme.colorScheme.onSurface,
 			modifier = Modifier.weight(1f),
 		)
+
+		if (inConflictView) return@Row
 
 		if (!syncComplete) {
 			HdToolButton(
