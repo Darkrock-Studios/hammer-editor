@@ -59,19 +59,16 @@ fun ScreenProjectCreateDialogPreview() {
 	}
 }
 
+/** The import help over a scrim, as it shows over the create-project dialog. */
 @Preview(widthDp = 600, heightDp = 460)
 @Composable
 fun ImportHelpDialogPreview() {
-	KoinApplicationPreview {
-		AppTheme(globalSettingsPreview, true) {
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.background(MaterialTheme.colorScheme.background),
-				contentAlignment = Alignment.Center,
-			) {
-				ImportHelpContent(onDismiss = {})
-			}
-		}
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		ImportHelpContent(onDismiss = {})
 	}
 }

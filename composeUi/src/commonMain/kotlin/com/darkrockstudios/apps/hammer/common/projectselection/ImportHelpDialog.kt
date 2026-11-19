@@ -1,15 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,17 +15,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-
-private val DialogMaxWidth = 480.dp
 
 /** Animated wrapper around [ImportHelpContent]. Preview [ImportHelpContent] directly for a static frame. */
 @Composable
@@ -51,75 +45,43 @@ internal fun ImportHelpDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-internal fun ImportHelpContent(onDismiss: () -> Unit) {
-	Surface(
-		modifier = Modifier
-			.padding(Ui.Padding.XL)
-			.widthIn(max = DialogMaxWidth)
-			.fillMaxWidth(),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
+fun ImportHelpContent(onDismiss: () -> Unit) {
+	HdHairlineDialogShell(
+		title = Res.string.create_project_import_help_title.get(),
+		onClose = onDismiss,
+		closeContentDescription = Res.string.create_project_import_help_close.get(),
 	) {
-		Column(modifier = Modifier.fillMaxWidth()) {
-			HdMasthead(
-				section = "HELP · IMPORT",
-				trailing = { HdMastheadAction(label = "× CLOSE", onClick = onDismiss) },
-			)
-			HdFolioDivider()
-
-			Column(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(Ui.Padding.XL),
-				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			) {
-				Text(
-					text = Res.string.create_project_import_help_title.get(),
-					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onSurface,
-				)
-				Text(
-					text = Res.string.create_project_import_help_intro.get(),
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-
-				Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
-					HdMonoLabel(
-						text = Res.string.create_project_import_help_formats_header.get(),
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-					Text(
-						text = Res.string.create_project_import_help_format_markdown.get(),
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurface,
-					)
-					Text(
-						text = Res.string.create_project_import_help_format_rtf.get(),
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurface,
-					)
-				}
-			}
-
-			HdFolioDivider()
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-				horizontalArrangement = Arrangement.End,
-			) {
-				HdHairlineButton(
-					label = Res.string.create_project_import_help_dismiss.get(),
-					onClick = onDismiss,
-					emphasised = true,
-				)
-			}
+		Text(
+			text = Res.string.create_project_import_help_intro.get(),
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Spacer(Modifier.height(24.dp))
+		HdMonoLabel(
+			text = Res.string.create_project_import_help_formats_header.get(),
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Spacer(Modifier.height(8.dp))
+		Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+			FormatLine(Res.string.create_project_import_help_format_markdown.get())
+			FormatLine(Res.string.create_project_import_help_format_rtf.get())
 		}
+	}
+}
+
+@Composable
+private fun FormatLine(text: String) {
+	Row {
+		Text(
+			text = "•",
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.width(18.dp),
+		)
+		Text(
+			text = text,
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
 	}
 }

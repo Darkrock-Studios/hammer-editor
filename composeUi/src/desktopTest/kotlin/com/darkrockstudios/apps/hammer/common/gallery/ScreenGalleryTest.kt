@@ -59,6 +59,7 @@ import com.darkrockstudios.apps.hammer.common.preview.projecthome.ExportOptionsD
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectStatsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectCreateDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ImportHelpDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenDraftsListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenFocusModeUiTabletPreview
@@ -140,6 +141,7 @@ class ScreenGalleryTest {
 		screen("Import story dialog", note = "Preview hardcodes the dark theme.") { ImportStoryDialogPreview() },
 		surfaced("What's New dialog") { ChangelogDialogPreview() },
 		screen("Create project dialog", note = "Preview hardcodes the dark theme.") { ScreenProjectCreateDialogPreview() },
+		surfaced("Import help dialog") { ImportHelpDialogPreview() },
 		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("About") { ScreenAboutAppUiTabletPreview() },

@@ -70,7 +70,6 @@
 	<string name="create_project_import_help_formats_header">Unterstützte Formate</string>
 	<string name="create_project_import_help_format_markdown">Markdown (.md)</string>
 	<string name="create_project_import_help_format_rtf">Rich Text (.rtf)</string>
-	<string name="create_project_import_help_dismiss">Verstanden</string>
 	<string name="create_project_error_already_exists">Projekt bereits vorhanden</string>
 	<string name="create_project_error_null_filename">Projektname fehlt</string>
 	<string name="create_project_error_too_long">Projektname zu lang</string>
