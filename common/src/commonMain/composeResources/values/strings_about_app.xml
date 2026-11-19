@@ -36,7 +36,9 @@
 	<string name="about_update_later_button">Later</string>
 	<string name="about_update_quit_notice">Hammer will quit to install the update, then reopen.</string>
 
-	<string name="changelog_dialog_title">What's New</string>
+	<string name="changelog_dialog_title">What's new</string>
+	<string name="changelog_dialog_title_version">What's new in %1$s</string>
+	<string name="changelog_dialog_close">Close</string>
 	<string name="update_dialog_release_notes_section">Release notes</string>
 	<string name="update_dialog_release_notes_empty">No release notes provided.</string>
 	<string name="update_dialog_open_release_button">Open Release</string>

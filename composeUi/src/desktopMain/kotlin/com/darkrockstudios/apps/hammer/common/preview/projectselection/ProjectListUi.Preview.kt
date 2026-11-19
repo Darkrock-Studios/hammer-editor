@@ -1,6 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.preview.projectselection
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
+import com.darkrockstudios.apps.hammer.common.projectselection.toHdBottomBarDestination
+import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
@@ -54,6 +70,42 @@ fun ScreenProjectListUiTabletPreview() {
 	KoinApplicationPreview {
 		TabletPreviewSurface {
 			ProjectListUi(previewComponent, rootSnackbar)
+		}
+	}
+}
+
+/** The project selection shell (rail or bottom bar) around the project list, as `ProjectSelectScaffold` lays it out. */
+@Composable
+fun ScreenProjectSelectShellTabletPreview(railExpanded: Boolean = false) {
+	val rootSnackbar = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			BoxWithConstraints(Modifier.fillMaxSize()) {
+				val compact = rememberWindowSizeClass(constraints).widthSizeClass == WindowWidthSizeClass.Compact
+				val selected = ProjectSelection.Locations.Projects
+				if (compact) {
+					Column(Modifier.fillMaxSize()) {
+						Box(Modifier.weight(1f).fillMaxWidth()) { ProjectListUi(previewComponent, rootSnackbar) }
+						HdBottomBar(
+							destinations = ProjectSelection.Locations.entries.map { it.toHdBottomBarDestination() },
+							selectedId = selected,
+							onSelect = {},
+						)
+					}
+				} else {
+					Row(Modifier.fillMaxSize()) {
+						HdNavRail(
+							destinations = ProjectSelection.Locations.entries.map { it.toHdNavRailDestination() },
+							selectedId = selected,
+							onSelect = {},
+							expanded = railExpanded,
+							onToggleExpanded = {},
+							footer = { HdMonoLabel(text = "v4.0.0", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+						)
+						ProjectListUi(previewComponent, rootSnackbar)
+					}
+				}
+			}
 		}
 	}
 }

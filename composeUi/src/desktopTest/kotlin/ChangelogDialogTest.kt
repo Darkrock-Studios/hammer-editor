@@ -1,6 +1,7 @@
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.arkivanov.decompose.router.stack.ChildStack
@@ -72,9 +73,10 @@ class ChangelogDialogTest {
 		)
 		compose.setContent(content(component))
 
-		compose.onNodeWithText("3.7.2").assertIsDisplayed()
-		compose.onNodeWithText("2026-7-27").assertIsDisplayed()
-		compose.onNodeWithText("[Improve]\n- Web: Redesign home page").assertIsDisplayed()
+		compose.onNodeWithText("What's new in 3.7.2").assertIsDisplayed()
+		compose.onNodeWithText("27 Jul 2026").assertIsDisplayed()
+		compose.onNodeWithText("[Improve]").assertIsDisplayed()
+		compose.onNodeWithText("Web: Redesign home page").assertIsDisplayed()
 	}
 
 	@Test
@@ -84,7 +86,7 @@ class ChangelogDialogTest {
 		)
 		compose.setContent(content(component))
 
-		compose.onNodeWithText("× CLOSE").performClick()
+		compose.onNodeWithContentDescription("Close").performClick()
 
 		assertEquals(1, component.dismissCount)
 	}
@@ -96,7 +98,7 @@ class ChangelogDialogTest {
 		)
 		compose.setContent(content(component))
 
-		compose.onNodeWithText("Open Release").performClick()
+		compose.onNodeWithText("Release on GitHub").performClick()
 
 		assertEquals(1, component.openReleaseCount)
 	}

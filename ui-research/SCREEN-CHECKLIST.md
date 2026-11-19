@@ -8,9 +8,9 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 
 ## 1. Project selection
 
-- [ ] Project selection shell: nav rail / bottom bar (`ProjectSelectScaffold`) **no gallery**
+- [x] Project selection shell: nav rail / bottom bar (`ProjectSelectScaffold`) g: Project selection shell, Project selection shell, rail expanded
 - [x] Projects (`ProjectListUi`) g: Project list, Project list, grouped, Project list, searching
-  - [ ] What's New, changelog (`ChangelogDialog`) **no gallery**
+  - [x] What's New, changelog (`ChangelogDialog`) g: What's New dialog
   - [ ] Create Project (`ProjectCreateDialog`) g: Create project dialog
   - [ ] Create from an Existing Story, import help (`ImportHelpDialog`) **no gallery**
   - [ ] Import Story (`ImportStoryDialog`) g: Import story dialog

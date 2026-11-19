@@ -71,6 +71,8 @@ import com.darkrockstudios.apps.hammer.common.preview.storyideas.ScreenStoryIdea
 import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenCreateTimeLineEventUiPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenTimeLineOverviewUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenViewTimeLineEventUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ChangelogDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectSelectShellTabletPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.about.ScreenAboutAppUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.about.ScreenAboutAppUiUpdateAvailableTabletPreview
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -136,7 +138,10 @@ class ScreenGalleryTest {
 		screen("Project list, grouped") { ScreenProjectListUiGroupedTabletPreview() },
 		screen("Project list, searching") { ScreenProjectListUiSearchingTabletPreview() },
 		screen("Import story dialog", note = "Preview hardcodes the dark theme.") { ImportStoryDialogPreview() },
+		surfaced("What's New dialog") { ChangelogDialogPreview() },
 		screen("Create project dialog", note = "Preview hardcodes the dark theme.") { ScreenProjectCreateDialogPreview() },
+		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
+		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
 		screen("About, update available") { ScreenAboutAppUiUpdateAvailableTabletPreview() },
 		screen("Account settings") { ScreenAccountSettingsUiTabletPreview() },
