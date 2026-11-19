@@ -114,7 +114,10 @@
 	<string name="project_home_import_preview_label">Aperçu</string>
 	<string name="project_home_import_preview_empty">Rien à importer</string>
 	<string name="project_home_import_preview_reading">Lecture de votre manuscrit</string>
-	<string name="project_home_import_preview_count">Créera %1$d scène(s)</string>
+	<plurals name="project_home_import_preview_scenes">
+		<item quantity="one">Créera %1$d scène(s)</item>
+		<item quantity="other">Créera %1$d scène(s)</item>
+	</plurals>
 	<string name="project_home_import_large_scene_label">Scène large</string>
 	<string name="project_home_import_large_scene_one">Une scène contient %1$s mots, donc la détection de chapitre a probablement manqué les titres de votre chapitre. Essayez un autre paramètre de détection</string>
 	<string name="project_home_import_large_scene_many">Les scènes %1$d contiennent des mots %2$s ou plus, donc la détection de chapitre a probablement manqué certains titres de chapitre. Essayez un autre paramètre de détection</string>

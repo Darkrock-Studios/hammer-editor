@@ -138,7 +138,7 @@ class ScreenGalleryTest {
 		screen("Project list") { ScreenProjectListUiTabletPreview() },
 		screen("Project list, grouped") { ScreenProjectListUiGroupedTabletPreview() },
 		screen("Project list, searching") { ScreenProjectListUiSearchingTabletPreview() },
-		screen("Import story dialog", note = "Preview hardcodes the dark theme.") { ImportStoryDialogPreview() },
+		surfaced("Import story dialog") { ImportStoryDialogPreview() },
 		surfaced("What's New dialog") { ChangelogDialogPreview() },
 		screen("Create project dialog", note = "Preview hardcodes the dark theme.") { ScreenProjectCreateDialogPreview() },
 		surfaced("Import help dialog") { ImportHelpDialogPreview() },

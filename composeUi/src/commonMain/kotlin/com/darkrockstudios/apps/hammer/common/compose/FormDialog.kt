@@ -127,6 +127,7 @@ fun FormDialogScaffold(
 			}
 			Spacer(Modifier.height(24.dp))
 			Column(
+				modifier = Modifier.weight(1f, fill = false),
 				verticalArrangement = Arrangement.spacedBy(20.dp),
 				content = body,
 			)

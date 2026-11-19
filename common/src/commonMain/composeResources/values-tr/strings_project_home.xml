@@ -114,7 +114,10 @@
 	<string name="project_home_import_preview_label">Preview</string>
 	<string name="project_home_import_preview_empty">Nothing to import</string>
 	<string name="project_home_import_preview_reading">Reading your manuscript</string>
-	<string name="project_home_import_preview_count">Will create %1$d scene(s)</string>
+	<plurals name="project_home_import_preview_scenes">
+		<item quantity="one">Will create %1$d scene(s)</item>
+		<item quantity="other">Will create %1$d scene(s)</item>
+	</plurals>
 	<string name="project_home_import_large_scene_label">Large scene</string>
 	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
 	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>
