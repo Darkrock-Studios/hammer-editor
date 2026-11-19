@@ -62,6 +62,7 @@ import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenPro
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ImportHelpDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectDeleteDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectLeaveDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectSyncOffDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectRenameDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenDraftsListUiTabletPreview
@@ -148,6 +149,7 @@ class ScreenGalleryTest {
 		surfaced("Rename project dialog") { ProjectRenameDialogPreview() },
 		surfaced("Delete project dialog") { ProjectDeleteDialogPreview() },
 		surfaced("Leave project dialog") { ProjectLeaveDialogPreview() },
+		surfaced("Stop syncing dialog") { ProjectSyncOffDialogPreview() },
 		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("About") { ScreenAboutAppUiTabletPreview() },

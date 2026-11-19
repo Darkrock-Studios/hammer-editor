@@ -17,7 +17,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Rename Project (`ProjectRenameDialog`) g: Rename project dialog
   - [x] Delete Project (`ProjectDeleteDialog`) g: Delete project dialog
   - [x] Leave Project (`ProjectLeaveDialog`) g: Leave project dialog
-  - [ ] Stop syncing this project? (`ProjectSyncOffDialog`) **no gallery**
+  - [x] Stop syncing this project? (`ProjectSyncOffDialog`) g: Stop syncing dialog
   - [ ] Create / Rename / Describe / Delete Group (`ProjectGroupDialogs.kt`) **no gallery**
   - [ ] Move to group (`MoveToGroupDialog`) **no gallery**
   - [ ] Account Sync, with Sync Log and Cancel Sync? (`ProjectsSyncDialog`) **no gallery**

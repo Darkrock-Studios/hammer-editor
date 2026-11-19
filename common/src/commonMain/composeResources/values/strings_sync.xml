@@ -88,7 +88,6 @@
 	<string name="project_settings_sync_off_delete">Deleting it on this device will not delete it on the server, and while the server still has it, the next sync brings it back here. When you delete it, you can choose to delete the server copy too.</string>
 	<string name="project_settings_sync_off_confirm">Stop syncing</string>
 	<string name="project_settings_sync_off_cancel">Keep syncing</string>
-	<string name="project_settings_sync_dialog_close">Close</string>
 	<string name="project_settings_sync_shared_syncing">It syncs while it is shared with you. To stop syncing it, leave it from the project list.</string>
 	<string name="project_settings_sync_shared_off">It is no longer shared with you, so this copy stays on this device and does not sync. It syncs again if you are invited back.</string>
 	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
