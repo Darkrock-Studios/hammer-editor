@@ -35,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.account_sync_confirm_cancel_message
@@ -52,16 +51,12 @@ import com.darkrockstudios.apps.hammer.account_sync_log_title
 import com.darkrockstudios.apps.hammer.account_sync_toast_canceled
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.hasActiveSync
-import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFilterMenu
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdLogGlyph
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatus
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusGlyph
@@ -70,6 +65,15 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.accentColor
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.projectsync.IdeaConflictUi
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.darkrockstudios.apps.hammer.account_sync_close
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.account_sync_log_toggle
+import com.darkrockstudios.apps.hammer.account_sync_stop
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.ideas_conflict_title
 import kotlinx.coroutines.launch
 
@@ -77,13 +81,15 @@ private val DialogMaxWidth = 580.dp
 private val DialogBodyMinHeight = 280.dp
 private val DialogBodyMaxHeight = 560.dp
 
+/** Matches the form dialog frame's 24dp inset, so titles and rows line up with the other dialogs. */
+private val Gutter = 24.dp
+
 @Composable
 fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 	val state by component.state.subscribeAsState()
 	var isOpen by remember { mutableStateOf(true) }
 	var confirmCancel by rememberSaveable { mutableStateOf(false) }
 	var showLog by rememberSaveable { mutableStateOf(false) }
-	val allProjectsLabel = Res.string.account_sync_log_filter_all.get()
 	// null == all projects; storing the project name (not the localized label) keeps the
 	// selection stable across locale changes.
 	var logProjectFilter by rememberSaveable { mutableStateOf<String?>(null) }
@@ -94,95 +100,23 @@ fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostSt
 		if (state.syncState.hasActiveSync) confirmCancel = true else isOpen = false
 	}
 
-	AnimatedDialogContainer(
-		isOpen = isOpen,
-		onDismissRequest = requestClose,
-		onClosed = { component.hideProjectsSync() },
-		properties = DialogProperties(usePlatformDefaultWidth = false),
+	AnimatedDialog(
+		visible = isOpen,
+		onCloseRequest = requestClose,
+		onDismissed = { component.hideProjectsSync() },
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center,
 	) {
-		Surface(
-			modifier = Modifier
-				.padding(Ui.Padding.M)
-				.widthIn(max = DialogMaxWidth)
-				.fillMaxWidth()
-				.predictiveBackTransform(),
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			border = BorderStroke(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			),
-		) {
-			Column {
-				Masthead(
-					inLogView = showLog,
-					state = state.syncState,
-					onClose = requestClose,
-				)
-				HdFolioDivider()
-
-				TitleAndToolbar(
-					inLogView = showLog,
-					inConflictView = state.syncState.ideaConflict != null,
-					syncComplete = state.syncState.syncComplete,
-					onStop = { component.cancelProjectsSync() },
-					onToggleLog = { showLog = !showLog },
-				)
-
-				if (showLog) {
-					val projectNames = remember(state.syncState.projectsStatus) {
-						state.syncState.projectsStatus.keys.sorted()
-					}
-					LogFilterStrip(
-						allProjectsLabel = allProjectsLabel,
-						projectNames = projectNames,
-						selected = logProjectFilter,
-						onSelect = { logProjectFilter = it },
-					)
-				} else {
-					OverallProgressStrip(state.syncState)
-				}
-
-				HorizontalDivider(
-					thickness = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-				)
-
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.heightIn(min = DialogBodyMinHeight, max = DialogBodyMaxHeight),
-				) {
-					val ideaConflict = state.syncState.ideaConflict
-					if (ideaConflict != null) {
-						// The dialog is too narrow for side-by-side panes; use the tabbed layout.
-						IdeaConflictUi(
-							conflict = ideaConflict,
-							compact = true,
-							onResolve = { component.resolveIdeaConflict(it) },
-						)
-					} else if (showLog) {
-						val showAll = logProjectFilter == null
-						val filteredLog = remember(state.syncState.syncLog, logProjectFilter) {
-							if (logProjectFilter == null) {
-								state.syncState.syncLog
-							} else {
-								state.syncState.syncLog.filter { it.projectName == logProjectFilter }
-							}
-						}
-						LogList(log = filteredLog, showProjectName = showAll)
-					} else {
-						val projects = remember(state.syncState.projectsStatus) {
-							state.syncState.projectsStatus.values.toList()
-						}
-						ProgressList(projects)
-					}
-				}
-
-				FooterBar(inLogView = showLog)
-			}
-		}
+		ProjectsSyncContent(
+			syncState = state.syncState,
+			showLog = showLog,
+			onToggleLog = { showLog = !showLog },
+			logProjectFilter = logProjectFilter,
+			onLogProjectFilterChange = { logProjectFilter = it },
+			onStop = { component.cancelProjectsSync() },
+			onResolveIdeaConflict = { component.resolveIdeaConflict(it) },
+			onClose = requestClose,
+		)
 	}
 
 	if (confirmCancel) {
@@ -201,26 +135,103 @@ fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostSt
 }
 
 @Composable
-private fun Masthead(
-	inLogView: Boolean,
-	state: ProjectsList.SyncState,
+fun ProjectsSyncContent(
+	syncState: ProjectsList.SyncState,
+	showLog: Boolean,
+	onToggleLog: () -> Unit,
+	logProjectFilter: String?,
+	onLogProjectFilterChange: (String?) -> Unit,
+	onStop: () -> Unit,
+	onResolveIdeaConflict: (StoryIdea) -> Unit,
 	onClose: () -> Unit,
 ) {
-	val total = state.projectsStatus.size
-	val done = remember(state.projectsStatus) {
-		state.projectsStatus.values.count { it.status == ProjectsList.Status.Complete }
-	}
-	val meta = when {
-		inLogView -> "${state.syncLog.size} ENTRIES"
-		state.syncComplete -> "$done / $total · DONE"
-		else -> "$done / $total · IN PROGRESS"
-	}
+	val allProjectsLabel = Res.string.account_sync_log_filter_all.get()
 
-	HdMasthead(
-		section = "ACCOUNT",
-		leadingMeta = listOf(meta),
-		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
-	)
+	Surface(
+		modifier = Modifier
+			.padding(horizontal = Ui.Padding.XL)
+			.widthIn(max = DialogMaxWidth)
+			.fillMaxWidth(),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(
+			width = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		),
+	) {
+		Column {
+			TitleAndToolbar(
+				inLogView = showLog,
+				inConflictView = syncState.ideaConflict != null,
+				syncComplete = syncState.syncComplete,
+				onStop = onStop,
+				onToggleLog = onToggleLog,
+			)
+
+			if (showLog) {
+				val projectNames = remember(syncState.projectsStatus) {
+					syncState.projectsStatus.keys.sorted()
+				}
+				LogFilterStrip(
+					allProjectsLabel = allProjectsLabel,
+					projectNames = projectNames,
+					selected = logProjectFilter,
+					onSelect = onLogProjectFilterChange,
+				)
+			} else {
+				OverallProgressStrip(syncState)
+			}
+
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.heightIn(min = DialogBodyMinHeight, max = DialogBodyMaxHeight),
+			) {
+				val ideaConflict = syncState.ideaConflict
+				if (ideaConflict != null) {
+					// The dialog is too narrow for side-by-side panes; use the tabbed layout.
+					IdeaConflictUi(
+						conflict = ideaConflict,
+						compact = true,
+						onResolve = onResolveIdeaConflict,
+					)
+				} else if (showLog) {
+					val filteredLog = remember(syncState.syncLog, logProjectFilter) {
+						if (logProjectFilter == null) {
+							syncState.syncLog
+						} else {
+							syncState.syncLog.filter { it.projectName == logProjectFilter }
+						}
+					}
+					LogList(log = filteredLog, showProjectName = logProjectFilter == null)
+				} else {
+					val projects = remember(syncState.projectsStatus) {
+						syncState.projectsStatus.values.toList()
+					}
+					ProgressList(projects)
+				}
+			}
+
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = Gutter, vertical = Ui.Padding.L),
+				horizontalArrangement = Arrangement.End,
+			) {
+				HdHairlineButton(label = Res.string.account_sync_close.get(), onClick = onClose)
+			}
+		}
+	}
 }
 
 @Composable
@@ -231,15 +242,13 @@ private fun TitleAndToolbar(
 	onStop: () -> Unit,
 	onToggleLog: () -> Unit,
 ) {
+	val stopDescription = Res.string.account_sync_stop.get()
+	val logDescription = Res.string.account_sync_log_toggle.get()
+
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
-				top = Ui.Padding.L,
-				bottom = Ui.Padding.M,
-			),
+			.padding(start = Gutter, end = Gutter, top = Gutter, bottom = Ui.Padding.M),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
@@ -249,13 +258,17 @@ private fun TitleAndToolbar(
 				inLogView -> Res.string.account_sync_log_title.get()
 				else -> Res.string.account_sync_dialog_header.get()
 			},
-			style = MaterialTheme.typography.headlineSmall,
+			style = MaterialTheme.typography.titleLarge,
 			color = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier.weight(1f),
 		)
-		Spacer(modifier = Modifier.weight(1f))
 
 		if (!syncComplete) {
-			HdToolButton(active = false, onClick = onStop) {
+			HdToolButton(
+				active = false,
+				onClick = onStop,
+				modifier = Modifier.semantics { contentDescription = stopDescription },
+			) {
 				Box(
 					modifier = Modifier
 						.size(9.dp)
@@ -264,7 +277,11 @@ private fun TitleAndToolbar(
 			}
 		}
 
-		HdToolButton(active = inLogView, onClick = onToggleLog) {
+		HdToolButton(
+			active = inLogView,
+			onClick = onToggleLog,
+			modifier = Modifier.semantics { contentDescription = logDescription },
+		) {
 			HdLogGlyph()
 		}
 	}
@@ -283,7 +300,7 @@ private fun LogFilterStrip(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+			.padding(horizontal = Gutter, vertical = Ui.Padding.M),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
 		HdFilterMenu(
@@ -313,7 +330,7 @@ private fun OverallProgressStrip(state: ProjectsList.SyncState) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+			.padding(horizontal = Gutter, vertical = Ui.Padding.M),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
@@ -371,8 +388,8 @@ internal fun SyncStatusRow(
 		modifier = Modifier
 			.fillMaxWidth()
 			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
+				start = Gutter,
+				end = Gutter,
 				top = Ui.Padding.L,
 				bottom = Ui.Padding.M,
 			),
@@ -415,7 +432,7 @@ private fun LogList(log: List<SyncLogMessage>, showProjectName: Boolean) {
 	LazyColumn(
 		state = listState,
 		modifier = Modifier.fillMaxWidth(),
-		contentPadding = PaddingValues(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+		contentPadding = PaddingValues(horizontal = Gutter, vertical = Ui.Padding.M),
 	) {
 		items(
 			count = log.size,
@@ -435,30 +452,5 @@ private fun LogList(log: List<SyncLogMessage>, showProjectName: Boolean) {
 		if (log.isNotEmpty() && pinnedToTail) {
 			listState.scrollToItem(log.size - 1)
 		}
-	}
-}
-
-@Composable
-private fun FooterBar(inLogView: Boolean) {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
-		HdMonoLabel(
-			text = if (inLogView) "LIVE · TAIL" else "AUTO · SYNC",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "ESC CLOSE",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 	}
 }

@@ -127,7 +127,7 @@
 	<string name="backup_manager_delete_button">Delete backup</string>
 	<string name="backup_manager_show_button">Show in Folder</string>
 	<string name="backup_manager_export_button">Export</string>
-	<string name="account_sync_confirm_cancel_title">Cancel Sync?</string>
+	<string name="account_sync_confirm_cancel_title">Cancel sync?</string>
 	<string name="account_sync_confirm_cancel_message">Are you sure you want to cancel the sync?</string>
 	<string name="account_sync_toast_canceled">Sync canceled</string>
 

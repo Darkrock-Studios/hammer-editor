@@ -68,6 +68,7 @@ import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupRena
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupDescriptionDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupDeleteDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.MoveToGroupDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectsSyncDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectRenameDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenDraftsListUiTabletPreview
@@ -160,6 +161,8 @@ class ScreenGalleryTest {
 		surfaced("Group description dialog") { GroupDescriptionDialogPreview() },
 		surfaced("Delete group dialog") { GroupDeleteDialogPreview() },
 		surfaced("Move to group dialog") { MoveToGroupDialogPreview() },
+		surfaced("Account sync dialog") { ProjectsSyncDialogPreview() },
+		surfaced("Account sync log") { ProjectsSyncDialogPreview(showLog = true) },
 		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
