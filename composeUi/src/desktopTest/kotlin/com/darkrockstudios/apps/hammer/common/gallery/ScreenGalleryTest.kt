@@ -36,6 +36,8 @@ import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPre
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiGroupedTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiSearchingTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiUpdateTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.AppUpdateBannerStates
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ImportStoryDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.SceneMetadataPanelUiTimelinesPreview
 import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenViewEntryUiImagesPreview
@@ -149,6 +151,8 @@ class ScreenGalleryTest {
 		screen("Project list") { ScreenProjectListUiTabletPreview() },
 		screen("Project list, grouped") { ScreenProjectListUiGroupedTabletPreview() },
 		screen("Project list, searching") { ScreenProjectListUiSearchingTabletPreview() },
+		screen("Project list, update available") { ScreenProjectListUiUpdateTabletPreview() },
+		surfaced("Update banner states") { AppUpdateBannerStates() },
 		surfaced("Import story dialog") { ImportStoryDialogPreview() },
 		surfaced("What's New dialog") { ChangelogDialogPreview() },
 		screen("Create project dialog", note = "Preview hardcodes the dark theme.") { ScreenProjectCreateDialogPreview() },

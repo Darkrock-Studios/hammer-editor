@@ -44,7 +44,9 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectMetadata
+import com.darkrockstudios.apps.hammer.common.projectselection.AppUpdateBanner
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectListUi
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -70,6 +72,29 @@ fun ScreenProjectListUiTabletPreview() {
 	KoinApplicationPreview {
 		TabletPreviewSurface {
 			ProjectListUi(previewComponent, rootSnackbar)
+		}
+	}
+}
+
+/** The list with the update notice under its masthead. */
+@Composable
+fun ScreenProjectListUiUpdateTabletPreview() {
+	val rootSnackbar = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectListUi(
+				previewComponent,
+				rootSnackbar,
+				notice = { padding ->
+					AppUpdateBanner(
+						state = AppUpdateState.Available(version = "9.9.9", installable = true),
+						onUpdate = {},
+						onOpenRelease = {},
+						onDismiss = {},
+						horizontalPadding = padding,
+					)
+				},
+			)
 		}
 	}
 }

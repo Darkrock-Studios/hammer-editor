@@ -181,8 +181,8 @@ fun ProjectListUi(
 	component: ProjectsList,
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
-	/** A slip laid under the masthead, given the page's inset; composes nothing when there is no notice. */
-	notice: @Composable (Modifier) -> Unit = {},
+	/** A full-width slip under the masthead rule, given the page's inset; composes nothing when there is no notice. */
+	notice: @Composable (horizontalPadding: Dp) -> Unit = {},
 	initialSearchOpen: Boolean = false,
 ) = BoxWithConstraints(modifier = modifier.fillMaxSize()) {
 	// Measured on the list's own pane: a window of any size can leave it narrow beside the nav rail.
@@ -261,7 +261,7 @@ fun ProjectListUi(
 
 		HdFolioDivider()
 
-		notice(Modifier.padding(start = horizontalPadding, end = horizontalPadding, top = 12.dp, bottom = 12.dp))
+		notice(horizontalPadding)
 
 		AnimatedVisibility(visible = showSearchBar) {
 			SearchStrip(

@@ -16,7 +16,6 @@
 	<string name="about_update_checking">Recherche de mises à jour&#8230;</string>
 	<string name="about_update_up_to_date">Hammer est à jour.</string>
 	<string name="about_update_available">Hammer %1$s est disponible.</string>
-	<string name="about_update_install_button">Mettre à jour ver %1$s</string>
 	<string name="about_update_downloading">Télécharger Hammer %1$s (%2$s)</string>
 	<string name="about_update_installing">Installation de Hammer %1$s. Hammer va redémarrer.</string>
 	<string name="about_update_failed">Impossible de mettre à jour vers la %1$s: %2$s</string>

@@ -37,7 +37,7 @@ fun AppUpdateStatus(
 				is AppUpdateState.Available ->
 					if (state.installable) {
 						HdHairlineButton(
-							label = Res.string.about_update_install_button.get(state.version),
+							label = Res.string.about_update_install_button.get(),
 							onClick = onUpdateApp,
 							emphasised = true,
 						)

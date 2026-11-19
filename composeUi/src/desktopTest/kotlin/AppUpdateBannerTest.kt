@@ -45,7 +45,7 @@ class AppUpdateBannerTest {
 		show(AppUpdateState.Available(version = "9.9.9", installable = true))
 
 		compose.onNodeWithText("Hammer 9.9.9 is available.").assertIsDisplayed()
-		compose.onNodeWithText("Update to 9.9.9").performClick()
+		compose.onNodeWithText("Update").performClick()
 		compose.onNodeWithText("Later").performClick()
 
 		assertEquals(1, updates)
@@ -56,8 +56,8 @@ class AppUpdateBannerTest {
 	fun `a release this install cannot apply links to the release page`() {
 		show(AppUpdateState.Available(version = "9.9.9", installable = false))
 
-		compose.onNodeWithText("Update to 9.9.9").assertDoesNotExist()
-		compose.onNodeWithText("Open Release").performClick()
+		compose.onNodeWithText("Update").assertDoesNotExist()
+		compose.onNodeWithText("Get the update").performClick()
 
 		assertEquals(1, releasePages)
 		assertEquals(0, updates)

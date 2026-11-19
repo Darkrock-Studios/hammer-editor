@@ -58,7 +58,7 @@ class AppUpdateStatusTest {
 		show(AppUpdateState.Available(version = "9.9.9", installable = true))
 
 		compose.onNodeWithText("Hammer 9.9.9 is available.").assertIsDisplayed()
-		compose.onNodeWithText("Update to 9.9.9").performClick()
+		compose.onNodeWithText("Update").performClick()
 		assertEquals(1, updates)
 	}
 
@@ -67,7 +67,7 @@ class AppUpdateStatusTest {
 		show(AppUpdateState.Available(version = "9.9.9", installable = false))
 
 		compose.onNodeWithText("Hammer 9.9.9 is available.").assertIsDisplayed()
-		compose.onNodeWithText("Update to 9.9.9").assertDoesNotExist()
+		compose.onNodeWithText("Update").assertDoesNotExist()
 	}
 
 	@Test
