@@ -14,7 +14,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Create Project (`ProjectCreateDialog`) g: Create project dialog
   - [x] Create from an Existing Story, import help (`ImportHelpDialog`) g: Import help dialog
   - [x] Import Story (`ImportStoryDialog`) g: Import story dialog
-  - [ ] Rename Project (`ProjectRenameDialog`) **no gallery**
+  - [x] Rename Project (`ProjectRenameDialog`) g: Rename project dialog
   - [ ] Delete Project (`ProjectDeleteDialog`) **no gallery**
   - [ ] Leave Project (`ProjectLeaveDialog`) **no gallery**
   - [ ] Stop syncing this project? (`ProjectSyncOffDialog`) **no gallery**

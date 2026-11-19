@@ -30,7 +30,6 @@ fun ProjectRenameDialog(
 
 	FormDialog(
 		visible = true,
-		meta = "PROJECT",
 		title = Res.string.rename_project_title.get(),
 		confirmLabel = Res.string.rename_project_button.get(),
 		cancelLabel = Res.string.rename_project_cancel_button.get(),

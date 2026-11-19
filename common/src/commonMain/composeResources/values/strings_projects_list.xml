@@ -73,9 +73,9 @@
 	<string name="leave_project_owner_untouched_unnamed">The owner's copy is not touched: the project stays on the server, and anyone else it is shared with keeps syncing it.</string>
 	<string name="leave_project_copy_kept">Your copy stays on this device and stops syncing. It syncs again if you are invited back. To remove it, delete it.</string>
 	<string name="leave_project_confirm">Leave</string>
-	<string name="rename_project_title">Rename Project</string>
-	<string name="rename_project_heading">New Project Name</string>
-	<string name="rename_project_button">Rename Project</string>
+	<string name="rename_project_title">Rename project</string>
+	<string name="rename_project_heading">Name</string>
+	<string name="rename_project_button">Rename</string>
 	<string name="rename_project_cancel_button">Cancel</string>
 	<string name="create_project_title">New project</string>
 	<string name="create_project_heading">Name</string>
