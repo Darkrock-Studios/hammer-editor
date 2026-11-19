@@ -33,24 +33,24 @@ class AppUpdateStatusTest {
 	@Test
 	fun `a build that cannot update shows nothing`() {
 		show(AppUpdateState.Unsupported)
-		compose.onNodeWithText("Check for Updates").assertDoesNotExist()
+		compose.onNodeWithText("Check for updates").assertDoesNotExist()
 	}
 
 	@Test
 	fun `check for updates is offered before and after a check`() {
 		show(AppUpdateState.Idle)
-		compose.onNodeWithText("Check for Updates").performClick()
+		compose.onNodeWithText("Check for updates").performClick()
 		assertEquals(1, checks)
 
 		show(AppUpdateState.UpToDate)
 		compose.onNodeWithText("Hammer is up to date.").assertIsDisplayed()
-		compose.onNodeWithText("Check for Updates").assertIsDisplayed()
+		compose.onNodeWithText("Check for updates").assertIsDisplayed()
 	}
 
 	@Test
 	fun `the button is disabled while checking`() {
 		show(AppUpdateState.Checking)
-		compose.onNodeWithText("Check for Updates").assertIsNotEnabled()
+		compose.onNodeWithText("Check for updates").assertIsNotEnabled()
 	}
 
 	@Test

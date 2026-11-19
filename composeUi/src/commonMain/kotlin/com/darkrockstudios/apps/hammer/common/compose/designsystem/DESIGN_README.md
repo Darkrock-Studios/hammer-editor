@@ -488,6 +488,9 @@ a sort icon). Control labels are sentence case in the body face.
   title and content share the next edge. Phones put an even row of tabs
   under the masthead, seated on its folio rule. Nothing is centered
   against a left-pinned masthead.
+- **`HdPage`** (in [`HdTabbedPage.kt`](HdTabbedPage.kt)): the same
+  masthead without tabs (About). On wide screens the title and the
+  content column are centered together, so they still share one edge.
 - **[`HdResizeHandle`](HdResizeHandle.kt)**: full-height 16dp gutter
   on the start edge of a centered, width-capped column (the scene
   editor, focus mode) that drags the column wider or narrower. Shows

@@ -8,16 +8,23 @@
 	<string name="about_community_header">Community</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
-	<string name="about_community_github_link">Github</string>
+	<string name="about_community_github_link">GitHub</string>
 
 	<string name="about_attribution_header">Attribution</string>
 	<string name="about_attribution_libraries_button">Libraries</string>
 	<string name="about_attribution_studio_button">Dark Rock Studios</string>
+	<string name="about_libraries_link">Open source libraries</string>
+	<string name="about_libraries_desc">The open source projects Hammer is built with.</string>
+	<string name="about_libraries_view_button">View</string>
+	<string name="about_group_credits">Credits</string>
+	<string name="about_studio_meet_button">Meet the studio</string>
 
-	<string name="about_version_changes_button">Changes</string>
-	<string name="about_version_github_button">GitHub Release</string>
+	<string name="about_version_changes_button">What's new</string>
+	<string name="about_version_github_button">Release on GitHub</string>
+	<string name="about_group_updates">Updates</string>
+	<string name="about_update_not_checked">Not checked yet.</string>
 
-	<string name="about_update_check_button">Check for Updates</string>
+	<string name="about_update_check_button">Check for updates</string>
 	<string name="about_update_checking">Checking for updates&#8230;</string>
 	<string name="about_update_up_to_date">Hammer is up to date.</string>
 	<string name="about_update_available">Hammer %1$s is available.</string>
@@ -34,6 +41,14 @@
 	<string name="update_dialog_release_notes_empty">No release notes provided.</string>
 	<string name="update_dialog_open_release_button">Open Release</string>
 
+	<string name="about_group_troubleshooting">Troubleshooting</string>
+	<string name="about_logs_row">Logs</string>
+	<string name="about_logs_row_share_desc">Share the log files when you report a problem.</string>
+	<string name="about_logs_open_button">Open folder</string>
+	<string name="about_logs_export_short_button">Export</string>
+	<string name="about_diagnostics_row">Diagnostics</string>
+	<string name="about_diagnostics_row_desc">Copies the startup details and recent log lines, ready to paste into a bug report.</string>
+	<string name="about_diagnostics_copy_button">Copy</string>
 	<string name="about_logs_header">Application Logs</string>
 	<string name="about_logs_directory_label">Log Directory:</string>
 	<string name="about_logs_export_button">Export Logs</string>

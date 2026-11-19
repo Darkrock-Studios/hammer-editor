@@ -67,35 +67,7 @@ fun <T> HdTabbedPage(
 	val side = !compact
 
 	Column(modifier = modifier.fillMaxSize()) {
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.height(Ui.TOP_BAR_HEIGHT)
-				.padding(horizontal = horizontal),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			if (side) {
-				Box(Modifier.width(SideNavWidth)) { back?.invoke() }
-				Spacer(Modifier.width(SideNavGap))
-			} else if (back != null) {
-				back()
-				Spacer(Modifier.width(Ui.Padding.L))
-			}
-			Row(
-				modifier = Modifier.weight(1f, fill = false).widthIn(max = maxWidth).fillMaxWidth(),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				Text(
-					text = title,
-					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onSurface,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis,
-					modifier = Modifier.weight(1f),
-				)
-				trailing?.invoke()
-			}
-		}
+		PageMasthead(title, maxWidth, horizontal, sideColumn = side, back = back, trailing = trailing)
 
 		if (side) {
 			HdFolioDivider()
@@ -120,12 +92,79 @@ fun <T> HdTabbedPage(
 	}
 }
 
+/**
+ * A page without tabs (About): the same masthead as [HdTabbedPage]. On wide screens the title
+ * and the content column are centered together, so they still share one edge.
+ */
+@Composable
+fun HdPage(
+	title: String,
+	maxWidth: Dp,
+	modifier: Modifier = Modifier,
+	back: (@Composable () -> Unit)? = null,
+	trailing: (@Composable () -> Unit)? = null,
+	content: @Composable ColumnScope.() -> Unit,
+) {
+	val compact = LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact
+	val horizontal = if (compact) Ui.Padding.XL else 56.dp
+	Column(modifier = modifier.fillMaxSize()) {
+		PageMasthead(title, maxWidth, horizontal, sideColumn = false, back = back, trailing = trailing, centered = !compact)
+		HdFolioDivider()
+		Box(Modifier.weight(1f).fillMaxWidth().padding(start = horizontal)) {
+			TabBody(Unit, maxWidth, endPadding = horizontal, top = if (compact) Ui.Padding.XL else 32.dp, centered = !compact) { content() }
+		}
+	}
+}
+
+@Composable
+private fun PageMasthead(
+	title: String,
+	maxWidth: Dp,
+	horizontal: Dp,
+	sideColumn: Boolean,
+	back: (@Composable () -> Unit)?,
+	trailing: (@Composable () -> Unit)?,
+	centered: Boolean = false,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = horizontal),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = if (centered) Arrangement.Center else Arrangement.Start,
+	) {
+		if (sideColumn) {
+			Box(Modifier.width(SideNavWidth)) { back?.invoke() }
+			Spacer(Modifier.width(SideNavGap))
+		} else if (back != null) {
+			back()
+			Spacer(Modifier.width(Ui.Padding.L))
+		}
+		Row(
+			modifier = Modifier.weight(1f, fill = false).widthIn(max = maxWidth).fillMaxWidth(),
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			Text(
+				text = title,
+				style = MaterialTheme.typography.headlineSmall,
+				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+				modifier = Modifier.weight(1f),
+			)
+			trailing?.invoke()
+		}
+	}
+}
+
 @Composable
 private fun <T> TabBody(
 	selected: T,
 	maxWidth: Dp,
 	endPadding: Dp,
 	top: Dp,
+	centered: Boolean = false,
 	content: @Composable ColumnScope.(T) -> Unit,
 ) {
 	// A fresh scroll position per tab, so switching tabs always starts at the top.
@@ -134,6 +173,7 @@ private fun <T> TabBody(
 		Box(modifier = Modifier.fillMaxSize()) {
 			Column(
 				modifier = Modifier
+					.align(if (centered) Alignment.TopCenter else Alignment.TopStart)
 					.fillMaxHeight()
 					.verticalScroll(scrollState)
 					.padding(end = endPadding, top = top, bottom = 40.dp)

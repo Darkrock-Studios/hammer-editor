@@ -36,6 +36,19 @@ fun ScreenAboutAppUiTabletPreview() {
 	}
 }
 
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenAboutAppUiUpdateAvailableTabletPreview() {
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			AboutAppUi(
+				previewComponent(AppUpdateState.Available(version = "4.0.1", installable = true)),
+				onShowStudio = {},
+			)
+		}
+	}
+}
+
 @Preview
 @Composable
 fun ScreenAboutAppUiUpdateAvailablePreview() {
@@ -80,7 +93,11 @@ fun AppUpdateStatusStatesPreview() {
 
 private fun previewComponent(appUpdate: AppUpdateState = AppUpdateState.Unsupported) = object : AboutApp {
 	override val state = MutableValue(
-		AboutApp.State(currentVersion = "v1.0.0", appUpdate = appUpdate)
+		AboutApp.State(
+			currentVersion = "v4.0.0",
+			logDirectoryPath = "/home/writer/.local/share/hammer/logs",
+			appUpdate = appUpdate,
+		)
 	)
 
 	override fun openDiscord() {}

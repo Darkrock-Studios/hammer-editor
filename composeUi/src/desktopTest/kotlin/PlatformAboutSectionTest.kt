@@ -36,14 +36,14 @@ class PlatformAboutSectionTest {
 		val logDir = "/home/someone/.config/DarkrockStudios/hammer/0/logs"
 		compose.setContent {
 			AppTheme(globalSettingsPreview) {
-				PlatformAboutSection(FakeAboutApp(logDir), section = 0)
+				PlatformAboutSection(FakeAboutApp(logDir))
 			}
 		}
 
-		compose.onNodeWithText("Application Logs").assertIsDisplayed()
+		compose.onNodeWithText("Troubleshooting").assertIsDisplayed()
 		compose.onNodeWithText(logDir).assertIsDisplayed()
-		compose.onNodeWithText("Open log directory").assertIsDisplayed()
-		compose.onNodeWithText("Export Logs").assertIsDisplayed()
-		compose.onNodeWithText("Copy Diagnostics").assertIsDisplayed()
+		compose.onNodeWithText("Open folder").assertIsDisplayed()
+		compose.onNodeWithText("Export").assertIsDisplayed()
+		compose.onNodeWithText("Copy").assertIsDisplayed()
 	}
 }

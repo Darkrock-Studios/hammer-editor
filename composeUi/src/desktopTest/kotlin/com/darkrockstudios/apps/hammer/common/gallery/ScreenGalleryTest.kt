@@ -72,6 +72,7 @@ import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenCreateTimeL
 import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenTimeLineOverviewUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenViewTimeLineEventUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.about.ScreenAboutAppUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.projectselection.about.ScreenAboutAppUiUpdateAvailableTabletPreview
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.awt.image.BufferedImage
 import java.io.File
@@ -137,6 +138,7 @@ class ScreenGalleryTest {
 		screen("Import story dialog", note = "Preview hardcodes the dark theme.") { ImportStoryDialogPreview() },
 		screen("Create project dialog", note = "Preview hardcodes the dark theme.") { ScreenProjectCreateDialogPreview() },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
+		screen("About, update available") { ScreenAboutAppUiUpdateAvailableTabletPreview() },
 		screen("Account settings") { ScreenAccountSettingsUiTabletPreview() },
 		screen("Account settings, writing") { ScreenAccountSettingsUiWritingTabletPreview() },
 		screen("Account settings, sync") { ScreenAccountSettingsUiSyncTabletPreview() },

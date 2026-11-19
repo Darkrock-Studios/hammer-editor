@@ -1,11 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.about
 
+import com.darkrockstudios.apps.hammer.about_diagnostics_copy_button
+import com.darkrockstudios.apps.hammer.about_diagnostics_row
+import com.darkrockstudios.apps.hammer.about_diagnostics_row_desc
+import com.darkrockstudios.apps.hammer.about_group_troubleshooting
+import com.darkrockstudios.apps.hammer.about_logs_export_short_button
+import com.darkrockstudios.apps.hammer.about_logs_open_button
+import com.darkrockstudios.apps.hammer.about_logs_row
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,17 +22,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.about_logs_directory_label
-import com.darkrockstudios.apps.hammer.about_logs_export_button
 import com.darkrockstudios.apps.hammer.about_logs_export_failed
 import com.darkrockstudios.apps.hammer.about_logs_export_success
-import com.darkrockstudios.apps.hammer.about_logs_header
 import com.darkrockstudios.apps.hammer.about_logs_no_logs
-import com.darkrockstudios.apps.hammer.about_logs_open_tooltip
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
@@ -46,7 +47,7 @@ private const val LOGS_ZIP_BASE_NAME = "hammer-logs"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-actual fun PlatformAboutSection(component: AboutApp, section: Int) {
+actual fun PlatformAboutSection(component: AboutApp) {
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
 	val logDir = state.logDirectoryPath
@@ -59,26 +60,15 @@ actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 	val failedMessage = Res.string.about_logs_export_failed.get()
 	val successMessage = Res.string.about_logs_export_success.get()
 
-	HdHairlineSection(
-		section = section,
-		title = Res.string.about_logs_header.get(),
-	) {
-		Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-			HdMetadataItem(
-				label = Res.string.about_logs_directory_label.get(),
-				value = displayedLogDir,
-				selectable = true,
-			)
-			FlowRow(
-				horizontalArrangement = Arrangement.spacedBy(12.dp),
-				verticalArrangement = Arrangement.spacedBy(12.dp),
-			) {
+	HdSettingGroup(title = Res.string.about_group_troubleshooting.get()) {
+		HdSettingRow(title = Res.string.about_logs_row.get(), meta = displayedLogDir) {
+			FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
 				HdHairlineButton(
-					label = Res.string.about_logs_open_tooltip.get(),
+					label = Res.string.about_logs_open_button.get(),
 					onClick = { openLogDirectory(displayedLogDir) },
 				)
 				HdHairlineButton(
-					label = Res.string.about_logs_export_button.get(),
+					label = Res.string.about_logs_export_short_button.get(),
 					enabled = !exporting,
 					onClick = {
 						exporting = true
@@ -94,19 +84,21 @@ actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 						}
 					},
 				)
-				CopyDiagnosticsButton(
-					logDirectoryPath = logDir,
-					onStatus = { status = it },
-				)
-			}
-			status?.let {
-				Text(text = it, style = MaterialTheme.typography.bodySmall)
 			}
 		}
+		HdSettingRow(
+			title = Res.string.about_diagnostics_row.get(),
+			description = Res.string.about_diagnostics_row_desc.get(),
+		) {
+			CopyDiagnosticsButton(
+				logDirectoryPath = logDir,
+				onStatus = { status = it },
+				label = Res.string.about_diagnostics_copy_button.get(),
+			)
+		}
+		status?.let { HdMetaText(text = it) }
 	}
 }
-
-actual val platformAboutSectionCount: Int = 1
 
 private enum class ExportResult { EXPORTED, NO_LOGS, FAILED, CANCELLED }
 

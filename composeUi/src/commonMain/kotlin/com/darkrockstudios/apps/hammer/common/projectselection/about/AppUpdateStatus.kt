@@ -2,29 +2,26 @@ package com.darkrockstudios.apps.hammer.common.projectselection.about
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.about_update_check_button
 import com.darkrockstudios.apps.hammer.about_update_install_button
+import com.darkrockstudios.apps.hammer.about_update_not_checked
 import com.darkrockstudios.apps.hammer.about_update_retry_button
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.projectselection.appUpdateDescription
 
 /**
- * The update row on the About screen's version card. Hidden on builds that cannot update, so
- * store builds show no trace of it. A release this install cannot install itself is only
- * announced; the card's existing release-page button covers the rest.
+ * Where this install stands on updates, as one setting row with the action that state needs.
+ * Hidden on builds that cannot update, so store builds show no trace of it. A release this
+ * install cannot install itself is only announced; the release link below it covers the rest.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppUpdateStatus(
 	state: AppUpdateState,
@@ -34,44 +31,25 @@ fun AppUpdateStatus(
 ) {
 	if (state is AppUpdateState.Unsupported) return
 
-	Column(
-		modifier = modifier,
-		verticalArrangement = Arrangement.spacedBy(12.dp),
-	) {
-		appUpdateDescription(state)?.let { text ->
-			Text(
-				text = text,
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
-		if (state is AppUpdateState.Downloading) {
-			HdHairlineProgressBar(progress = state.fraction)
-		}
-		FlowRow(
-			horizontalArrangement = Arrangement.spacedBy(14.dp),
-			verticalArrangement = Arrangement.spacedBy(14.dp),
-		) {
+	Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+		HdSettingRow(title = appUpdateDescription(state) ?: Res.string.about_update_not_checked.get()) {
 			when (state) {
-				is AppUpdateState.Available -> {
+				is AppUpdateState.Available ->
 					if (state.installable) {
 						HdHairlineButton(
 							label = Res.string.about_update_install_button.get(state.version),
 							onClick = onUpdateApp,
 							emphasised = true,
 						)
+					} else {
+						CheckButton(onCheckForUpdate)
 					}
-					CheckButton(onCheckForUpdate)
-				}
 
-				is AppUpdateState.Failed -> {
-					HdHairlineButton(
-						label = Res.string.about_update_retry_button.get(),
-						onClick = onUpdateApp,
-						emphasised = true,
-					)
-					CheckButton(onCheckForUpdate)
-				}
+				is AppUpdateState.Failed -> HdHairlineButton(
+					label = Res.string.about_update_retry_button.get(),
+					onClick = onUpdateApp,
+					emphasised = true,
+				)
 
 				AppUpdateState.Checking -> CheckButton(onCheckForUpdate, enabled = false)
 
@@ -82,6 +60,9 @@ fun AppUpdateStatus(
 				is AppUpdateState.Installing,
 				AppUpdateState.Unsupported -> Unit
 			}
+		}
+		if (state is AppUpdateState.Downloading) {
+			HdHairlineProgressBar(progress = state.fraction)
 		}
 	}
 }
