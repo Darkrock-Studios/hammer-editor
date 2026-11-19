@@ -70,7 +70,7 @@
 	<string name="delete_project_also_server_hint">Sync is off for this project on this device, so only this copy is deleted unless you turn this on. Deleting the server copy also removes it from your other devices when they next sync.</string>
 	<string name="delete_project_cancel">Cancel</string>
 	<string name="project_select_card_leave_button">Leave</string>
-	<string name="leave_project_title">Leave Project</string>
+	<string name="leave_project_title">Leave project</string>
 	<string name="leave_project_owner_untouched">%1$s's copy is not touched: the project stays on the server, and anyone else it is shared with keeps syncing it.</string>
 	<string name="leave_project_owner_untouched_unnamed">The owner's copy is not touched: the project stays on the server, and anyone else it is shared with keeps syncing it.</string>
 	<string name="leave_project_copy_kept">Your copy stays on this device and stops syncing. It syncs again if you are invited back. To remove it, delete it.</string>
