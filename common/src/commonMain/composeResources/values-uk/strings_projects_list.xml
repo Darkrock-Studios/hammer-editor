@@ -60,8 +60,6 @@
 	<string name="rename_project_button">Перейменувати проєкт</string>
 	<string name="rename_project_cancel_button">Скасувати</string>
 	<string name="create_project_title">Створити проєкт</string>
-	<string name="create_project_marker">Нове</string>
-	<string name="create_project_meta">Проєкт</string>
 	<string name="create_project_heading">Нова назва проєкту</string>
 	<string name="create_project_button">Створити проєкт</string>
 	<string name="create_project_cancel_button">Скасувати</string>

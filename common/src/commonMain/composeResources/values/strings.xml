@@ -68,5 +68,4 @@
 	<string name="markdown_format_bar_table_delete">Delete table</string>
 	<string name="markdown_format_bar_undo">Undo</string>
 	<string name="markdown_format_bar_redo">Redo</string>
-	<string name="form_dialog_keyboard_hint">ESC cancel</string>
 </resources>

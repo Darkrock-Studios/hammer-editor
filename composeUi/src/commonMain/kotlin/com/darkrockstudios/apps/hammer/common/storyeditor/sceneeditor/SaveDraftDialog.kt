@@ -68,7 +68,6 @@ internal fun SaveDraftDialog(
 
 	FormDialog(
 		visible = true,
-		marker = "§ SAVE",
 		meta = "DRAFT",
 		title = Res.string.save_draft_dialog_title.get(),
 		confirmLabel = Res.string.save_draft_dialog_save_button.get(),

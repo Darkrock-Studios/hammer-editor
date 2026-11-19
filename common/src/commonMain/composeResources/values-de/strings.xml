@@ -39,5 +39,4 @@
 	<string name="markdown_preview_image">Bild</string>
 	<string name="markdown_format_bar_undo">Rückgängig</string>
 	<string name="markdown_format_bar_redo">Wiederholen</string>
-	<string name="form_dialog_keyboard_hint">ESC Abbrechen</string>
 </resources>

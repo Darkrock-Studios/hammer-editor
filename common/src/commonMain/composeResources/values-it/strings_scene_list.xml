@@ -52,7 +52,6 @@
 	<string name="scene_move_dialog_dismiss_button">Annulla</string>
 	<string name="scene_group_scene_count_format">%1$d SCN</string>
 	<string name="scene_list_add_button">Aggiungi</string>
-	<string name="scene_move_dialog_marker">Sposta</string>
 	<string name="scene_type_meta_scene">Scena</string>
 	<string name="scene_type_meta_group">Gruppo</string>
 	<string name="scene_type_meta_root">Radice</string>

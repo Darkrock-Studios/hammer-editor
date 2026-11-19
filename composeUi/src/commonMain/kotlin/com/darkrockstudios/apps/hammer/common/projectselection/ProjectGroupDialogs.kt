@@ -18,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.create_group_button
 import com.darkrockstudios.apps.hammer.create_group_cancel_button
 import com.darkrockstudios.apps.hammer.create_group_description_heading
-import com.darkrockstudios.apps.hammer.create_group_marker
 import com.darkrockstudios.apps.hammer.create_group_meta
 import com.darkrockstudios.apps.hammer.create_group_name_heading
 import com.darkrockstudios.apps.hammer.create_group_title
@@ -30,7 +29,6 @@ import com.darkrockstudios.apps.hammer.delete_group_title
 import com.darkrockstudios.apps.hammer.group_description_cancel_button
 import com.darkrockstudios.apps.hammer.group_description_heading
 import com.darkrockstudios.apps.hammer.group_description_helper
-import com.darkrockstudios.apps.hammer.group_description_marker
 import com.darkrockstudios.apps.hammer.group_description_save_button
 import com.darkrockstudios.apps.hammer.group_description_title
 import com.darkrockstudios.apps.hammer.group_description_too_long
@@ -41,10 +39,10 @@ import com.darkrockstudios.apps.hammer.rename_group_title
 
 const val CreateGroupNameFieldTestTag = "create-group-name"
 
-/** The masthead meta for a dialog acting inside [parent]: "IN TRILOGY", or [topLevel]. */
+/** The line under a dialog title when it acts inside [parent]: "In Trilogy"; nothing at the top level. */
 @Composable
-internal fun groupMeta(parent: GroupDef?, topLevel: String): String =
-	(parent?.let { Res.string.create_project_meta_in_group.get(it.name) } ?: topLevel).uppercase()
+internal fun groupMeta(parent: GroupDef?): String? =
+	parent?.let { Res.string.create_project_meta_in_group.get(it.name) }
 
 @Composable
 fun GroupCreateDialog(
@@ -63,8 +61,7 @@ fun GroupCreateDialog(
 
 	FormDialog(
 		visible = true,
-		marker = "§ ${Res.string.create_group_marker.get().uppercase()}",
-		meta = groupMeta(parent, Res.string.create_group_meta.get()),
+		meta = groupMeta(parent),
 		title = Res.string.create_group_title.get(),
 		confirmLabel = Res.string.create_group_button.get(),
 		cancelLabel = Res.string.create_group_cancel_button.get(),
@@ -108,7 +105,6 @@ fun GroupRenameDialog(
 
 	FormDialog(
 		visible = true,
-		marker = "§ RENAME",
 		meta = Res.string.create_group_meta.get().uppercase(),
 		title = Res.string.rename_group_title.get(),
 		confirmLabel = Res.string.rename_group_button.get(),
@@ -144,7 +140,6 @@ fun GroupDescriptionDialog(
 
 	FormDialog(
 		visible = true,
-		marker = "§ ${Res.string.group_description_marker.get().uppercase()}",
 		meta = groupDef.name.uppercase(),
 		title = Res.string.group_description_title.get(),
 		confirmLabel = Res.string.group_description_save_button.get(),

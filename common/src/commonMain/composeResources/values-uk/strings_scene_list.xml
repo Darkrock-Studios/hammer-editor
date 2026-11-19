@@ -52,7 +52,6 @@
 	<string name="scene_move_dialog_dismiss_button">Скасувати</string>
 	<string name="scene_group_scene_count_format">%1$d СЦ</string>
 	<string name="scene_list_add_button">Додати</string>
-	<string name="scene_move_dialog_marker">Перемістити</string>
 	<string name="scene_type_meta_scene">Сцена</string>
 	<string name="scene_type_meta_group">Група</string>
 	<string name="scene_type_meta_root">Корінь</string>

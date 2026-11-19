@@ -38,7 +38,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.move_to_group_cancel_button
 import com.darkrockstudios.apps.hammer.move_to_group_destination_label
-import com.darkrockstudios.apps.hammer.move_to_group_marker
 import com.darkrockstudios.apps.hammer.move_to_group_meta_group
 import com.darkrockstudios.apps.hammer.move_to_group_meta_project
 import com.darkrockstudios.apps.hammer.move_to_group_move_button
@@ -116,7 +115,6 @@ fun MoveToGroupDialog(
 
 	FormDialog(
 		visible = true,
-		marker = "§ ${Res.string.move_to_group_marker.get().uppercase()}",
 		meta = when (target) {
 			is MoveTarget.Project -> Res.string.move_to_group_meta_project.get()
 			is MoveTarget.Group -> Res.string.move_to_group_meta_group.get()

@@ -158,7 +158,6 @@ private fun RenameSceneDialog(
 
 	FormDialog(
 		visible = state.isEditingName,
-		marker = "§ RENAME",
 		meta = meta,
 		title = Res.string.scene_editor_rename_dialog_title.get(),
 		confirmLabel = Res.string.scene_editor_rename_button.get(),

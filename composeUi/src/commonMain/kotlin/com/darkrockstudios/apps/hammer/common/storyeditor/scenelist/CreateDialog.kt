@@ -33,7 +33,6 @@ internal fun CreateDialog(
 
 	FormDialog(
 		visible = show,
-		marker = "§ NEW",
 		title = title,
 		confirmLabel = Res.string.create_sceneitem_dialog_create_button.get(),
 		cancelLabel = Res.string.create_sceneitem_dialog_dismiss_button.get(),

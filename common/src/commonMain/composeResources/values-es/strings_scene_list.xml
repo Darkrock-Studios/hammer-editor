@@ -52,7 +52,6 @@
 	<string name="scene_move_dialog_dismiss_button">Cancelar</string>
 	<string name="scene_group_scene_count_format">%1$d ESC</string>
 	<string name="scene_list_add_button">Añadir</string>
-	<string name="scene_move_dialog_marker">Mover</string>
 	<string name="scene_type_meta_scene">Escena</string>
 	<string name="scene_type_meta_group">Grupo</string>
 	<string name="scene_type_meta_root">Raíz</string>

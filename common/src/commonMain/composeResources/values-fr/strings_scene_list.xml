@@ -52,7 +52,6 @@
 	<string name="scene_move_dialog_dismiss_button">Annuler</string>
 	<string name="scene_group_scene_count_format">%1$d SCN</string>
 	<string name="scene_list_add_button">Ajouter</string>
-	<string name="scene_move_dialog_marker">Déplacer</string>
 	<string name="scene_type_meta_scene">Scène</string>
 	<string name="scene_type_meta_group">Groupe</string>
 	<string name="scene_type_meta_root">Racine</string>

@@ -58,7 +58,6 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
 import com.darkrockstudios.apps.hammer.scene_move_dialog_destination_label
 import com.darkrockstudios.apps.hammer.scene_move_dialog_dismiss_button
 import com.darkrockstudios.apps.hammer.scene_move_dialog_invalid_position
-import com.darkrockstudios.apps.hammer.scene_move_dialog_marker
 import com.darkrockstudios.apps.hammer.scene_move_dialog_move_button
 import com.darkrockstudios.apps.hammer.scene_move_dialog_no_results
 import com.darkrockstudios.apps.hammer.scene_move_dialog_position_label
@@ -167,7 +166,6 @@ internal fun MoveSceneDialog(
 
 	FormDialog(
 		visible = true,
-		marker = "§ ${Res.string.scene_move_dialog_marker.get().uppercase()}",
 		meta = sceneTypeMeta(item, isChapter = tree.isChapter(item)),
 		title = item.name,
 		confirmLabel = Res.string.scene_move_dialog_move_button.get(),

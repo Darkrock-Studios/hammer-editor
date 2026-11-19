@@ -60,8 +60,6 @@
 	<string name="rename_project_button">Ändern</string>
 	<string name="rename_project_cancel_button">Abbruch</string>
 	<string name="create_project_title">Projekt erstellen</string>
-	<string name="create_project_marker">Neu</string>
-	<string name="create_project_meta">Projekt</string>
 	<string name="create_project_heading">Bezeichnung für neues Projekt</string>
 	<string name="create_project_button">Erstellen</string>
 	<string name="create_project_cancel_button">Abbruch</string>

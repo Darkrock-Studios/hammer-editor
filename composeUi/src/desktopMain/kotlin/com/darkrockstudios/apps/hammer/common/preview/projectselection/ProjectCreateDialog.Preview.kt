@@ -16,18 +16,16 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.ImportHelpContent
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCreateMastheadActions
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCreateImportLine
 import com.darkrockstudios.apps.hammer.create_project_button
 import com.darkrockstudios.apps.hammer.create_project_cancel_button
 import com.darkrockstudios.apps.hammer.create_project_heading
-import com.darkrockstudios.apps.hammer.create_project_marker
-import com.darkrockstudios.apps.hammer.create_project_meta
 import com.darkrockstudios.apps.hammer.create_project_title
 
 /**
  * The create-project dialog renders inside an animated [androidx.compose.ui.window.Dialog], which
  * the Desktop preview renderer can't settle to a static frame. Preview its [FormDialogScaffold]
- * chrome directly so the masthead "Import" action and footer render opaque and deterministic.
+ * frame directly so it renders opaque and deterministic.
  */
 @Preview(widthDp = 720, heightDp = 460)
 @Composable
@@ -41,21 +39,19 @@ fun ScreenProjectCreateDialogPreview() {
 				contentAlignment = Alignment.Center,
 			) {
 				FormDialogScaffold(
-					marker = "§ ${Res.string.create_project_marker.get().uppercase()}",
-					meta = Res.string.create_project_meta.get().uppercase(),
 					title = Res.string.create_project_title.get(),
 					confirmLabel = Res.string.create_project_button.get(),
 					cancelLabel = Res.string.create_project_cancel_button.get(),
 					onConfirm = {},
 					onCancel = {},
 					confirmEnabled = true,
-					mastheadAction = { ProjectCreateMastheadActions(onHelp = {}, onImport = {}) },
 					body = {
 						FormField(
 							value = "Alice in Wonderland",
 							onValueChange = {},
 							label = Res.string.create_project_heading.get(),
 						)
+						ProjectCreateImportLine(onHelp = {}, onImport = {})
 					},
 				)
 			}

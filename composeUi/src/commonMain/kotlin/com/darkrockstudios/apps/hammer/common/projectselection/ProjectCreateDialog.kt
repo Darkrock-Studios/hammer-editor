@@ -1,7 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,15 +14,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.FormDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHelpButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
@@ -44,8 +48,7 @@ fun ProjectCreateDialog(
 
 	FormDialog(
 		visible = show,
-		marker = "§ ${Res.string.create_project_marker.get().uppercase()}",
-		meta = groupMeta(parent, Res.string.create_project_meta.get()),
+		meta = groupMeta(parent),
 		title = Res.string.create_project_title.get(),
 		confirmLabel = Res.string.create_project_button.get(),
 		cancelLabel = Res.string.create_project_cancel_button.get(),
@@ -53,12 +56,6 @@ fun ProjectCreateDialog(
 		onCancel = close,
 		onDismiss = close,
 		confirmEnabled = validation.isValid,
-		mastheadAction = {
-			ProjectCreateMastheadActions(
-				onHelp = { showImportHelp = true },
-				onImport = component::beginProjectImport,
-			)
-		},
 	) {
 		FormField(
 			value = projectName,
@@ -69,6 +66,10 @@ fun ProjectCreateDialog(
 			error = validation.fieldError(projectName),
 			onImeAction = ::submit,
 		)
+		ProjectCreateImportLine(
+			onHelp = { showImportHelp = true },
+			onImport = component::beginProjectImport,
+		)
 	}
 
 	if (showImportHelp) {
@@ -76,30 +77,32 @@ fun ProjectCreateDialog(
 	}
 }
 
-/**
- * The create-dialog masthead actions: a help affordance and the emphasised "Import" button.
- * Shared with the preview so both render the real affordances.
- */
+/** Importing is the other way to start a project, offered under the name. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun ProjectCreateMastheadActions(onHelp: () -> Unit, onImport: () -> Unit) {
-	Row(
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+internal fun ProjectCreateImportLine(onHelp: () -> Unit, onImport: () -> Unit) {
+	FlowRow(
+		horizontalArrangement = Arrangement.spacedBy(12.dp),
+		verticalArrangement = Arrangement.spacedBy(8.dp),
+		itemVerticalAlignment = Alignment.CenterVertically,
 	) {
-		HdHelpButton(
-			onClick = onHelp,
-			contentDescription = Res.string.create_project_import_help_icon_description.get(),
+		Text(
+			text = Res.string.create_project_import_prompt.get(),
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
-		ProjectCreateImportAction(onImport)
+		Row(
+			horizontalArrangement = Arrangement.spacedBy(8.dp),
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			HdHairlineButton(
+				label = Res.string.create_project_import_button.get(),
+				onClick = onImport,
+			)
+			HdHelpButton(
+				onClick = onHelp,
+				contentDescription = Res.string.create_project_import_help_icon_description.get(),
+			)
+		}
 	}
-}
-
-/** The "Import" masthead action shared by the create dialog and its preview. */
-@Composable
-internal fun ProjectCreateImportAction(onClick: () -> Unit) {
-	HdHairlineButton(
-		label = "↓  ${Res.string.create_project_import_button.get()}",
-		onClick = onClick,
-		emphasised = true,
-	)
 }

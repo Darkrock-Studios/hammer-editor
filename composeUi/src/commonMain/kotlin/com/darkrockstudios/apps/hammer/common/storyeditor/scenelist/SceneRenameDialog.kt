@@ -51,7 +51,6 @@ internal fun SceneRenameDialog(
 
 	FormDialog(
 		visible = true,
-		marker = "§ RENAME",
 		meta = meta,
 		title = title.get(),
 		confirmLabel = Res.string.scene_rename_dialog_rename_button.get(),
