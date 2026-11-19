@@ -696,13 +696,42 @@ reading column; below 720dp the rail collapses into a top dropdown
 above the same reading column. The reading content itself is
 identical — only the chapter-jump affordance reflows.
 
+### Form dialogs
+
+Forms and confirmations that act on one thing use
+[`FormDialogScaffold`](../FormDialog.kt) (or `FormDialog`, which animates
+it): a square hairline frame, title, optional meta line, body, and
+`[Cancel] [Confirm]` at the bottom right. No masthead and no close glyph;
+Cancel is the way out.
+
+```
+  Delete group
+  In Fantasy                     (meta: context, optional)
+
+  Trilogy                        (subject: large mono)
+
+  <body>
+                      [Cancel] [Delete]
+```
+
+- **Subject.** When the dialog acts on a named thing (a project, a
+  group), pass its name as `subject`. It is set large in mono by
+  `FormDialogSubject`, the one place that name appears. The title says
+  what is happening ("Leave project", "Move group"), never the name.
+  Use `FormDialogSubject` directly when the name sits deeper in the body,
+  such as the copyable name in the delete-project confirmation.
+- **Meta.** Small mono line under the title for context the title and
+  subject don't carry ("In Fantasy"). Not a type tag: `PROJECT` or
+  `GROUP` belongs in the title.
+- **Renames** show the current name as the subject and the field
+  labelled "New name" below it.
+
 ### Dialog masthead
 
-The standard masthead for any modal dialog —
-[`FormDialog`](../FormDialog.kt),
-[`ConfirmationDialog` / `IndexStripDialog`](../ConfirmationDialog.kt),
-and [`GlobalSearchUi`](../../globalsearch/GlobalSearchUi.kt) all use this
-shape, and any new dialog should too:
+The masthead for the remaining modal dialogs:
+[`ConfirmationDialog` / `IndexStripDialog`](../ConfirmationDialog.kt)
+and [`GlobalSearchUi`](../../globalsearch/GlobalSearchUi.kt) use this
+shape:
 
 ```
   § MARKER ──────────────── META  ×

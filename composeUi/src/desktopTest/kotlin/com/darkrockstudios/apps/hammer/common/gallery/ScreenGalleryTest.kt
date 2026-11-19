@@ -63,6 +63,11 @@ import com.darkrockstudios.apps.hammer.common.preview.projectselection.ImportHel
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectDeleteDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectLeaveDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectSyncOffDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupCreateDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupRenameDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupDescriptionDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupDeleteDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.MoveToGroupDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectRenameDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenDraftsListUiTabletPreview
@@ -150,6 +155,11 @@ class ScreenGalleryTest {
 		surfaced("Delete project dialog") { ProjectDeleteDialogPreview() },
 		surfaced("Leave project dialog") { ProjectLeaveDialogPreview() },
 		surfaced("Stop syncing dialog") { ProjectSyncOffDialogPreview() },
+		surfaced("Create group dialog") { GroupCreateDialogPreview() },
+		surfaced("Rename group dialog") { GroupRenameDialogPreview() },
+		surfaced("Group description dialog") { GroupDescriptionDialogPreview() },
+		surfaced("Delete group dialog") { GroupDeleteDialogPreview() },
+		surfaced("Move to group dialog") { MoveToGroupDialogPreview() },
 		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("About") { ScreenAboutAppUiTabletPreview() },

@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
+import com.darkrockstudios.apps.hammer.common.compose.FormDialogSubject
 import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -107,11 +108,7 @@ fun ProjectDeleteContent(
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 			SelectionContainer {
-				Text(
-					text = projectName,
-					style = MaterialTheme.typography.titleMedium,
-					color = MaterialTheme.colorScheme.onSurface,
-				)
+				FormDialogSubject(projectName)
 			}
 		}
 

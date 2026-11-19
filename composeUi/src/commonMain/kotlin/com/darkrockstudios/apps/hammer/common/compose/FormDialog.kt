@@ -36,6 +36,8 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
  *   Rename project
  *   In Fantasy                          (meta, optional)
  *
+ *   Trilogy                             (subject, optional)
+ *
  *   NAME
  *   <field>____________________________
  *
@@ -45,6 +47,7 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
  * Pair with [FormField] inside the body slot; the slot already spaces its children.
  *
  * @param meta optional line under the title, for context the title doesn't carry (a group name).
+ * @param subject optional thing the dialog acts on, set large above the body (see [FormDialogSubject]).
  * @param destructive paints the confirm button in the error color.
  * @param confirmEnabled gates the confirm button; flip to false while validation fails.
  */
@@ -59,6 +62,7 @@ fun FormDialog(
 	onDismiss: () -> Unit,
 	modifier: Modifier = Modifier,
 	meta: String? = null,
+	subject: String? = null,
 	destructive: Boolean = false,
 	confirmEnabled: Boolean = true,
 	implicitDismiss: Boolean = true,
@@ -80,6 +84,7 @@ fun FormDialog(
 			onCancel = onCancel,
 			modifier = modifier,
 			meta = meta,
+			subject = subject,
 			destructive = destructive,
 			confirmEnabled = confirmEnabled,
 			body = body,
@@ -101,6 +106,7 @@ fun FormDialogScaffold(
 	onCancel: () -> Unit,
 	modifier: Modifier = Modifier,
 	meta: String? = null,
+	subject: String? = null,
 	destructive: Boolean = false,
 	confirmEnabled: Boolean = true,
 	body: @Composable ColumnScope.() -> Unit,
@@ -129,8 +135,10 @@ fun FormDialogScaffold(
 			Column(
 				modifier = Modifier.weight(1f, fill = false),
 				verticalArrangement = Arrangement.spacedBy(20.dp),
-				content = body,
-			)
+			) {
+				if (subject != null) FormDialogSubject(subject)
+				body()
+			}
 			Spacer(Modifier.height(28.dp))
 			Row(
 				modifier = Modifier.fillMaxWidth(),
@@ -147,6 +155,20 @@ fun FormDialogScaffold(
 			}
 		}
 	}
+}
+
+/** The name of what a dialog acts on (a project, a group), set large in mono so it stands apart from the prose. */
+@Composable
+fun FormDialogSubject(text: String, modifier: Modifier = Modifier) {
+	Text(
+		text = text,
+		style = MaterialTheme.typography.headlineSmall.copy(
+			fontFamily = hammerMonoFontFamily(),
+			letterSpacing = (-0.5).sp,
+		),
+		color = MaterialTheme.colorScheme.onSurface,
+		modifier = modifier,
+	)
 }
 
 /**

@@ -29,6 +29,7 @@ fun ProjectRenameDialogPreview() {
 	) {
 		FormDialogScaffold(
 			title = Res.string.rename_project_title.get(),
+			subject = "Alice in Wonderland",
 			confirmLabel = Res.string.rename_project_button.get(),
 			cancelLabel = Res.string.rename_project_cancel_button.get(),
 			onConfirm = {},

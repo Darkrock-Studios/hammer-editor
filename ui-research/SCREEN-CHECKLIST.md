@@ -18,8 +18,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Delete Project (`ProjectDeleteDialog`) g: Delete project dialog
   - [x] Leave Project (`ProjectLeaveDialog`) g: Leave project dialog
   - [x] Stop syncing this project? (`ProjectSyncOffDialog`) g: Stop syncing dialog
-  - [ ] Create / Rename / Describe / Delete Group (`ProjectGroupDialogs.kt`) **no gallery**
-  - [ ] Move to group (`MoveToGroupDialog`) **no gallery**
+  - [x] Create / Rename / Describe / Delete Group (`ProjectGroupDialogs.kt`) g: Create group dialog, Rename group dialog, Group description dialog, Delete group dialog
+  - [x] Move to group (`MoveToGroupDialog`) g: Move to group dialog
   - [ ] Account Sync, with Sync Log and Cancel Sync? (`ProjectsSyncDialog`) **no gallery**
   - [ ] Story Idea Conflict (`IdeaConflictUi`) **no gallery**
   - [ ] Your app / the sync server is out of date (`ProtocolMismatchDialog`) **no gallery**

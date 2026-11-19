@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -16,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -26,7 +28,8 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.projectselection.GroupData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
-import com.darkrockstudios.apps.hammer.common.compose.FormDialog
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerList
@@ -38,11 +41,11 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.move_to_group_cancel_button
 import com.darkrockstudios.apps.hammer.move_to_group_destination_label
-import com.darkrockstudios.apps.hammer.move_to_group_meta_group
-import com.darkrockstudios.apps.hammer.move_to_group_meta_project
 import com.darkrockstudios.apps.hammer.move_to_group_move_button
 import com.darkrockstudios.apps.hammer.move_to_group_no_results
 import com.darkrockstudios.apps.hammer.move_to_group_search_placeholder
+import com.darkrockstudios.apps.hammer.move_to_group_title_group
+import com.darkrockstudios.apps.hammer.move_to_group_title_project
 import com.darkrockstudios.apps.hammer.move_to_group_top_level
 
 fun moveToGroupDestinationTag(id: GroupId?) = "move-to-group-destination-${id?.id ?: "top"}"
@@ -88,6 +91,24 @@ fun MoveToGroupDialog(
 	onMove: (destination: GroupDef?) -> Unit,
 	onDismiss: () -> Unit,
 ) {
+	AnimatedDialog(
+		visible = true,
+		onCloseRequest = onDismiss,
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center,
+	) {
+		MoveToGroupContent(target, groups, placement, onMove, onCancel = onDismiss)
+	}
+}
+
+@Composable
+fun MoveToGroupContent(
+	target: MoveTarget,
+	groups: List<GroupDef>,
+	placement: Map<ProjectId, GroupId?>,
+	onMove: (destination: GroupDef?) -> Unit,
+	onCancel: () -> Unit,
+) {
 	val (name, currentParent, excluding) = when (target) {
 		is MoveTarget.Project -> Triple(target.projectDef.name, placement[target.projectDef.id], null)
 		is MoveTarget.Group -> Triple(target.groupDef.name, target.groupDef.parentId, target.groupDef.id)
@@ -113,18 +134,16 @@ fun MoveToGroupDialog(
 		if (canMove) onMove(destinations.firstOrNull { it.group?.id == selected }?.group)
 	}
 
-	FormDialog(
-		visible = true,
-		meta = when (target) {
-			is MoveTarget.Project -> Res.string.move_to_group_meta_project.get()
-			is MoveTarget.Group -> Res.string.move_to_group_meta_group.get()
-		}.uppercase(),
-		title = name,
+	FormDialogScaffold(
+		title = when (target) {
+			is MoveTarget.Project -> Res.string.move_to_group_title_project.get()
+			is MoveTarget.Group -> Res.string.move_to_group_title_group.get()
+		},
+		subject = name,
 		confirmLabel = Res.string.move_to_group_move_button.get(),
 		cancelLabel = Res.string.move_to_group_cancel_button.get(),
 		onConfirm = ::submit,
-		onCancel = onDismiss,
-		onDismiss = onDismiss,
+		onCancel = onCancel,
 		confirmEnabled = canMove,
 	) {
 		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {

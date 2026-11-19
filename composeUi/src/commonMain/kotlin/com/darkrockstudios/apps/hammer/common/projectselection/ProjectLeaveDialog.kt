@@ -65,16 +65,12 @@ fun ProjectLeaveContent(
 
 	FormDialogScaffold(
 		title = Res.string.leave_project_title.get(),
+		subject = projectName,
 		confirmLabel = Res.string.leave_project_confirm.get(),
 		cancelLabel = Res.string.delete_project_cancel.get(),
 		onConfirm = onConfirm,
 		onCancel = onCancel,
 	) {
-		Text(
-			text = projectName,
-			style = MaterialTheme.typography.headlineMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
 		listOf(ownerUntouched, Res.string.leave_project_copy_kept.get()).forEach { paragraph ->
 			Text(
 				text = paragraph,

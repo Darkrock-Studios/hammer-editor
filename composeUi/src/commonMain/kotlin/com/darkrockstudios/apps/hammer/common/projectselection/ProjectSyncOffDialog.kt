@@ -56,16 +56,12 @@ fun ProjectSyncOffContent(
 ) {
 	FormDialogScaffold(
 		title = Res.string.project_settings_sync_off_title.get(),
+		subject = projectName,
 		confirmLabel = Res.string.project_settings_sync_off_confirm.get(),
 		cancelLabel = Res.string.project_settings_sync_off_cancel.get(),
 		onConfirm = onConfirm,
 		onCancel = onCancel,
 	) {
-		Text(
-			text = projectName,
-			style = MaterialTheme.typography.headlineMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
 		listOf(
 			Res.string.project_settings_sync_off_unaffected.get(),
 			Res.string.project_settings_sync_off_delete.get(),
