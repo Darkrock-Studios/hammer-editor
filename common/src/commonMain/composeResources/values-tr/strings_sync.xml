@@ -176,7 +176,6 @@
 	<string name="sync_scene_group_moved_parent">Moved scene %1$d to new parent %2$d</string>
 	<string name="sync_unauthorized">Unauthorized</string>
 	<string name="sync_general_error">Unhandled server error</string>
-	<string name="protocol_mismatch_section">UPDATE REQUIRED</string>
 	<string name="protocol_mismatch_title_client">Your app is out of date</string>
 	<string name="protocol_mismatch_title_server">The sync server is out of date</string>
 	<string name="protocol_mismatch_body_client">This version of Hammer can no longer sync with the server. Update to the latest version to keep syncing your work.</string>

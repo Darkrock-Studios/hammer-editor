@@ -69,6 +69,7 @@ import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupDesc
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.GroupDeleteDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.MoveToGroupDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectsSyncDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.protocolmismatch.ProtocolMismatchDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectRenameDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenDraftsListUiTabletPreview
@@ -164,6 +165,8 @@ class ScreenGalleryTest {
 		surfaced("Account sync dialog") { ProjectsSyncDialogPreview() },
 		surfaced("Account sync log") { ProjectsSyncDialogPreview(showLog = true) },
 		surfaced("Story idea conflict") { ProjectsSyncDialogPreview(ideaConflict = true) },
+		surfaced("Out of date dialog, app") { ProtocolMismatchDialogPreview() },
+		surfaced("Out of date dialog, server") { ProtocolMismatchDialogPreview(clientIsBehind = false) },
 		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("About") { ScreenAboutAppUiTabletPreview() },

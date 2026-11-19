@@ -163,7 +163,6 @@
 	<string name="sync_scene_group_moved_parent">Сцену %1$d переміщено до нового батька %2$d</string>
 	<string name="sync_unauthorized">Неавторизовано</string>
 	<string name="sync_general_error">Необроблена помилка сервера</string>
-	<string name="protocol_mismatch_section">ПОТРІБНЕ ОНОВЛЕННЯ</string>
 	<string name="protocol_mismatch_title_client">Ваш застосунок застарів</string>
 	<string name="protocol_mismatch_title_server">Сервер синхронізації застарів</string>
 	<string name="protocol_mismatch_body_client">Ця версія Hammer більше не може синхронізуватися із сервером. Оновіть до останньої версії, щоб продовжити синхронізувати свою роботу.</string>

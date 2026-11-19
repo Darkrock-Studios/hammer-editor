@@ -81,3 +81,20 @@ fun ProtocolMismatchNoVersionInfoPreview() {
 		darkTheme = false,
 	)
 }
+
+/** Gallery entry: the theme comes from the gallery harness. */
+@Composable
+fun ProtocolMismatchDialogPreview(clientIsBehind: Boolean = true) {
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		ProtocolMismatchContent(
+			state = previewState(clientIsBehind = clientIsBehind, isNewVersionAvailable = clientIsBehind),
+			onOpenRelease = {},
+			onDismiss = {},
+		)
+	}
+}

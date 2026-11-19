@@ -163,7 +163,6 @@
 	<string name="sync_scene_group_moved_parent">Szene %1$d in neue übergeordnete Gruppe %2$d verschoben</string>
 	<string name="sync_unauthorized">Nicht autorisiert</string>
 	<string name="sync_general_error">Unbehandelter Serverfehler</string>
-	<string name="protocol_mismatch_section">AKTUALISIERUNG ERFORDERLICH</string>
 	<string name="protocol_mismatch_title_client">Ihre App ist veraltet</string>
 	<string name="protocol_mismatch_title_server">Der Sync-Server ist veraltet</string>
 	<string name="protocol_mismatch_body_client">Diese Version von Hammer kann nicht mehr mit dem Server synchronisieren. Aktualisieren Sie auf die neueste Version, um Ihre Arbeit weiter zu synchronisieren.</string>
