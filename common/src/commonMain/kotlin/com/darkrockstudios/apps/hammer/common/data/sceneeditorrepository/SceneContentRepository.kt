@@ -190,8 +190,16 @@ class SceneContentRepository(
 		staleThrough[sceneId] = update.sequence
 		when {
 			source == UpdateSource.Editor -> {
-				updateSceneBuffer(SceneBuffer(content, dirty = true, source = source))
-				true
+				// The editor also reports the text it was just loaded with; that is not an edit.
+				val oldBuffer = sceneBuffers[sceneId]
+				val unchangedSinceLoad = oldBuffer != null && !oldBuffer.dirty &&
+					oldBuffer.content.markdown != null && oldBuffer.content == content
+				if (unchangedSinceLoad) {
+					false
+				} else {
+					updateSceneBuffer(SceneBuffer(content, dirty = true, source = source))
+					true
+				}
 			}
 
 			else -> {

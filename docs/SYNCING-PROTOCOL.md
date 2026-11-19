@@ -744,6 +744,12 @@ and this upload, and the baseline is exactly what the server holds, so the heal 
 cleanly, with no conflict
 and no `force`.
 
+A value stored for a field the server left null must be one every device derives identically. A
+per-device value (a scene's `created` filled from the local project's own creation time, say) heals
+the server with a hash the other devices do not share, and each of them then conflicts on the entity
+at its next sync. Where no such value exists, the field stays null locally and the heal has nothing
+to push; the next real edit stamps it and uploads.
+
 ```mermaid
 sequenceDiagram
 	participant Client
