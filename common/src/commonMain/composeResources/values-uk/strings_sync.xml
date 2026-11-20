@@ -180,17 +180,10 @@
 	<string name="server_setup_help_intro">Сервери синхронізації Hammer дають змогу працювати над проєктами з кількох пристроїв. Вони синхронізують вашу роботу між усіма пристроями, які ви налаштуєте з тим самим сервером.</string>
 	<string name="server_setup_help_official_header">Офіційний сервер</string>
 	<string name="server_setup_help_official_body">Ви можете розгорнути власний сервер синхронізації, але якщо це надто технічно чи ви просто хочете підтримати проєкт, ми надаємо офіційний сервер на hammer.ink.</string>
-	<string name="server_setup_help_patreon">Якщо ви підпишетеся на наш Patreon, ви отримаєте доступ до офіційного сервера. Це найкращий спосіб підтримати цей проєкт.</string>
 	<string name="server_setup_help_patreon_link">Patreon</string>
 	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
 	<string name="server_setup_help_registration_header">Реєстрація</string>
-	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.
-	</string>
-	<string name="server_setup_help_setup_header">Налаштування</string>
-	<string name="server_setup_help_setup_step1">Введіть URL сервера, наприклад «hammer.ink» для офіційного сервера.</string>
-	<string name="server_setup_help_setup_step2">Введіть вашу електронну пошту та пароль, потім натисніть «Створити», щоб створити обліковий запис.</string>
-	<string name="server_setup_help_setup_step3">Надалі та на інших пристроях ви просто натискатимете «Увійти».</string>
+	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.</string>
 	<string name="server_setup_help_note_header">Важлива примітка</string>
 	<string name="server_setup_help_note_body">Синхронізація в Hammer відрізняється від онлайн-застосунків на кшталт Google Docs. Синхронізація не в реальному часі. Зазвичай вона відбувається під час відкриття чи закриття застосунку. Переконайтеся, що ви синхронізовані з останніми версіями проєктів, перш ніж переходити в офлайн. Hammer виконує автоматичну синхронізацію, але завжди варто перевірити, якщо ви збираєтеся бути офлайн деякий час.</string>
-	<string name="server_setup_help_dismiss_button">Зрозуміло</string>
 </resources>

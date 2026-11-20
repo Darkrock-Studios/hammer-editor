@@ -29,7 +29,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Settings (`AccountSettingsUi`, all tabs) g: Account settings, Account settings, writing, Account settings, sync, Account settings, sync not set up
   - [x] Plugins tab (`PluginSettingsSection`, `RuntimePluginsSection`) g: Account settings, plugins
   - [x] Set Up Server, with MFA step (`ServerSetupDialog`, `MfaCodeStep`) g: Server setup dialog, Server setup dialog, MFA
-  - [ ] About Sync Servers (`ServerSetupHelpDialog`) **no gallery**
+  - [x] About Sync Servers (`ServerSetupHelpDialog`) g: About sync servers
   - [ ] Terms of Service (`TermsOfServiceDialog`) **no gallery**
   - [ ] Merge existing projects with the server?, and Delete all local projects? (`MergeProjectsDialog`) **no gallery**
   - [ ] Remove Server confirm (`SimpleConfirm`) **no gallery**

@@ -180,17 +180,10 @@
 	<string name="server_setup_help_intro">Los servidores de sincronización de Hammer te permiten trabajar en tus proyectos desde varios dispositivos. Sincronizarán tu trabajo entre todos los dispositivos que configures con el mismo servidor.</string>
 	<string name="server_setup_help_official_header">Servidor oficial</string>
 	<string name="server_setup_help_official_body">Puedes ejecutar tu propio servidor de sincronización, pero si eso es demasiado técnico, o simplemente quieres apoyar el proyecto, ofrecemos un servidor oficial en hammer.ink.</string>
-	<string name="server_setup_help_patreon">Si te suscribes a nuestro Patreon, obtienes acceso al servidor oficial. Es la mejor forma de apoyar este proyecto.</string>
 	<string name="server_setup_help_patreon_link">Patreon</string>
 	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
 	<string name="server_setup_help_registration_header">Registro</string>
-	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.
-	</string>
-	<string name="server_setup_help_setup_header">Configuración</string>
-	<string name="server_setup_help_setup_step1">Introduce la URL del servidor, como «hammer.ink» para el servidor oficial.</string>
-	<string name="server_setup_help_setup_step2">Introduce tu correo y contraseña, luego pulsa «Crear» para crear tu cuenta.</string>
-	<string name="server_setup_help_setup_step3">En el futuro, y en otros dispositivos, simplemente pulsarás «Iniciar sesión».</string>
+	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.</string>
 	<string name="server_setup_help_note_header">Nota importante</string>
 	<string name="server_setup_help_note_body">La sincronización en Hammer es diferente de las aplicaciones que priorizan lo online, como Google Docs. La sincronización no es en tiempo real. Suele ocurrir al abrir o cerrar la aplicación. Asegúrate de estar sincronizado con las últimas versiones de tus proyectos antes de quedarte sin conexión. Hammer sincroniza automáticamente, pero siempre conviene comprobarlo si vas a estar sin conexión un tiempo.</string>
-	<string name="server_setup_help_dismiss_button">Entendido</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
+import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiPluginsTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.storyideas.StoryIdeaConfirmsPreview
@@ -185,6 +186,7 @@ class ScreenGalleryTest {
 		screen("Account settings, plugins") { ScreenAccountSettingsUiPluginsTabletPreview() },
 		surfaced("Server setup dialog") { ServerSetupDialogScrimPreview() },
 		surfaced("Server setup dialog, MFA") { ServerSetupDialogScrimPreview(mfa = true) },
+		surfaced("About sync servers") { ServerSetupHelpPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },

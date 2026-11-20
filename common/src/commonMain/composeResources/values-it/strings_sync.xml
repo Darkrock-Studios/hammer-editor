@@ -180,17 +180,10 @@
 	<string name="server_setup_help_intro">I server di sincronizzazione di Hammer ti permettono di lavorare ai tuoi progetti da più dispositivi. Sincronizzeranno il tuo lavoro tra tutti i dispositivi che configuri con lo stesso server.</string>
 	<string name="server_setup_help_official_header">Server ufficiale</string>
 	<string name="server_setup_help_official_body">Puoi gestire un tuo server di sincronizzazione, ma se è troppo tecnico o vuoi semplicemente supportare il progetto, gestiamo un server ufficiale su hammer.ink.</string>
-	<string name="server_setup_help_patreon">Se ti abboni al nostro Patreon, ottieni l’accesso al server ufficiale. È il modo migliore per supportare questo progetto.</string>
 	<string name="server_setup_help_patreon_link">Patreon</string>
 	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
 	<string name="server_setup_help_registration_header">Registrazione</string>
-	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.
-	</string>
-	<string name="server_setup_help_setup_header">Configurazione</string>
-	<string name="server_setup_help_setup_step1">Inserisci l’URL del server, come «hammer.ink» per il server ufficiale.</string>
-	<string name="server_setup_help_setup_step2">Inserisci la tua e-mail e password, poi premi «Crea» per creare il tuo account.</string>
-	<string name="server_setup_help_setup_step3">In futuro, e su altri dispositivi, premerai semplicemente «Accedi».</string>
+	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.</string>
 	<string name="server_setup_help_note_header">Nota importante</string>
 	<string name="server_setup_help_note_body">La sincronizzazione in Hammer è diversa dalle applicazioni online come Google Docs. La sincronizzazione non è in tempo reale. Di solito avviene quando apri o chiudi l’app. Assicurati di essere sincronizzato con le ultime versioni dei tuoi progetti prima di andare offline. Hammer sincronizza automaticamente, ma è sempre bene controllare se resterai offline per un po’.</string>
-	<string name="server_setup_help_dismiss_button">Ho capito</string>
 </resources>
