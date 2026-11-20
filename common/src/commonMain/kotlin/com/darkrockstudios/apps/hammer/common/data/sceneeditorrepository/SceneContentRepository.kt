@@ -98,8 +98,9 @@ class SceneContentRepository(
 	private val tempBuffersRestored = atomic(false)
 
 	/**
-	 * Called with content from outside the editor (sync, a draft restore) as [onContentChanged]
-	 * applies it to a buffer, under the buffer lock, so no reader sees the new buffer first.
+	 * Called with text from outside the editor (sync, a draft restore, [replaceBuffer]) under the
+	 * buffer lock, just before it replaces the scene's buffer, so no reader sees the new buffer
+	 * first. Must be quick.
 	 */
 	var onExternalContentApplied: ((SceneContent) -> Unit)? = null
 
@@ -154,6 +155,7 @@ class SceneContentRepository(
 		sceneBuffersLock.withLock {
 			staleThrough[content.scene.id] = updateSequence.incrementAndGet()
 			pendingUpdates.remove(content.scene.id)
+			onExternalContentApplied?.invoke(content)
 			updateSceneBuffer(SceneBuffer(content, dirty = true, source = UpdateSource.Repository))
 		}
 	}
@@ -212,8 +214,8 @@ class SceneContentRepository(
 				val oldBuffer = sceneBuffers[content.scene.id]
 				if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
 					val dirty = source != UpdateSource.Sync
-					updateSceneBuffer(SceneBuffer(content, dirty, source))
 					onExternalContentApplied?.invoke(content)
+					updateSceneBuffer(SceneBuffer(content, dirty, source))
 					dirty
 				} else {
 					false
@@ -377,7 +379,7 @@ class SceneContentRepository(
 		if (!buffer.dirty) return false
 		val success = sceneDatasource.storeTempSceneBuffer(buffer)
 		if (success) {
-			_bufferPersistedFlow.tryEmit(BufferPersistedEvent(sceneItem.id, buffer.source))
+			_bufferPersistedFlow.tryEmit(BufferPersistedEvent(sceneItem.id, buffer.source, buffer.content))
 		}
 		return success
 	}

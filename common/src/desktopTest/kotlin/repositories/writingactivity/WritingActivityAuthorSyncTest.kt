@@ -219,19 +219,29 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 
 	@Test
 	fun `a write recorded during activity sync survives it`() = runTest {
-		tracker.rememberBaseline(1, "Start.")
 		val saving = CompletableDeferred<Unit>()
 		val resume = CompletableDeferred<Unit>()
-		var installIdCalls = 0
-		coEvery { globalSettingsStore.ensureInstallId() } coAnswers {
-			// The fourth call is the own log's save, after the sync loaded and merged it.
-			if (++installIdCalls == 4) {
-				saving.complete(Unit)
-				resume.await()
+		// The sync's save of the merged own log is the first; it waits until the write is under way.
+		val gated = mockk<WritingActivityRepository> {
+			coEvery { ownDeviceId() } coAnswers { repository.ownDeviceId() }
+			coEvery { claimOwnSlot(any()) } coAnswers { repository.claimOwnSlot(firstArg()) }
+			coEvery { loadOwnLog() } coAnswers { repository.loadOwnLog() }
+			coEvery { replaceRemoteSlot(any()) } coAnswers { repository.replaceRemoteSlot(firstArg()) }
+			coEvery { saveOwnLog(any(), any()) } coAnswers {
+				if (!saving.isCompleted) {
+					saving.complete(Unit)
+					resume.await()
+				}
+				repository.saveOwnLog(firstArg(), secondArg())
 			}
-			ownDeviceId
 		}
-		val syncing = launch { sync(WritingActivitySlot(ownDeviceId, DeviceLog("Desktop", listOf(session(9, 40))))) }
+		val tracker = WritingSessionTracker(gated, Clock.System, projectDef)
+		tracker.rememberBaseline(1, "Start.")
+		coEvery { api.getWritingActivity(any(), any()) } returns Result.success(
+			WritingActivityResponse(listOf(WritingActivitySlot(ownDeviceId, DeviceLog("Desktop", listOf(session(9, 40))))))
+		)
+		val operation = WritingActivitySyncOperation(projectDef, gated, tracker, api, globalSettingsStore, statisticsRepository)
+		val syncing = launch { operation.execute(state(), { _, _ -> }, { }, mockk(relaxed = true)) { } }
 		saving.await()
 
 		val writing = launch { tracker.onSceneSaved(1, "Start. Three new words.", UpdateSource.Editor) }

@@ -71,14 +71,12 @@ class SceneEditorService(
 		// next sync, scene switch, or app close to flush the buffer.
 		serviceScope.launch {
 			sceneContentRepository.bufferPersistedFlow.collect { event ->
-				sceneContentRepository.getSceneBuffer(event.sceneId)?.let { buffer ->
+				if (event.source == UpdateSource.Editor) {
 					writingSessionTracker.onSceneSaved(
 						sceneId = event.sceneId,
-						newContent = buffer.content.coerceMarkdown(),
-						source = buffer.source,
+						newContent = event.content.coerceMarkdown(),
+						source = event.source,
 					)
-				}
-				if (event.source == UpdateSource.Editor) {
 					sceneMetadataRepository.recordSceneActivity(event.sceneId)
 					statisticsRepository.markDirty()
 				}
@@ -93,6 +91,10 @@ class SceneEditorService(
 		sceneEditorRepository.reIdScene(oldId, newId)
 		sceneContentRepository.reIdBuffer(oldId, newId)
 		writingSessionTracker.reIdBaseline(oldId, newId)
+		// Outside text that reached the moved buffer before its anchor moved.
+		sceneContentRepository.getSceneBuffer(newId)?.takeIf { it.source != UpdateSource.Editor }?.let {
+			writingSessionTracker.replaceBaseline(newId, it.content.coerceMarkdown())
+		}
 	}
 
 	/**
@@ -266,7 +268,6 @@ class SceneEditorService(
 	 */
 	suspend fun replaceSceneText(sceneItem: SceneItem, markdown: String): Boolean {
 		sceneContentRepository.replaceBuffer(SceneContent(sceneItem, markdown))
-		writingSessionTracker.rememberBaseline(sceneItem.id, markdown)
 		return storeSceneBuffer(sceneItem)
 	}
 

@@ -166,6 +166,19 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `words whose save failed reach the log before it is synced`() = runTest {
+		val ownLog = "/projects/Test Project/scenes/.activity/device-test.toml".toPath()
+		fileSystem.createDirectories(ownLog)
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.onSceneSaved(1, "I went home and made dinner", UpdateSource.Editor)
+		fileSystem.delete(ownLog)
+
+		val seenBySync = tracker.updateOwnLog { repository.loadOwnLog().sessions.sumOf { it.wordsWritten } }
+
+		assertEquals(3, seenBySync)
+	}
+
+	@Test
 	fun `Drafts and Repository sources also do not credit`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "")
 		tracker.onSceneSaved(1, "draft content here", UpdateSource.Drafts)
