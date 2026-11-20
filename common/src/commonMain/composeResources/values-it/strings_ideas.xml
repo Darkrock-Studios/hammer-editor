@@ -2,7 +2,6 @@
 <resources>
 	<string name="project_select_nav_story_ideas">Idee per storie</string>
 	<string name="project_select_nav_story_ideas_short">IDEA</string>
-	<string name="ideas_header">Idee per storie</string>
 	<string name="ideas_header_meta">%1$d IDEE · %2$d TAG</string>
 	<string name="ideas_list_empty">Ancora nessuna idea per storie. Cattura la tua prima scintilla.</string>
 	<string name="ideas_list_empty_archived">Nessuna idea archiviata.</string>
@@ -27,7 +26,6 @@
 	<string name="ideas_sort_glyph_title_az">↓ A–Z</string>
 	<string name="ideas_stamp_promoted">CONVERTITA · %1$s</string>
 	<string name="ideas_stamp_archived">ARCHIVIATA · %1$s</string>
-	<string name="ideas_create_fab">Cattura una nuova idea</string>
 	<string name="ideas_create_marker">Nuova idea</string>
 	<string name="ideas_view_header">Idea per una storia</string>
 	<string name="ideas_view_label_editing">Modifica</string>

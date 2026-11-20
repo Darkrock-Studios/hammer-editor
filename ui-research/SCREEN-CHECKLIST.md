@@ -24,7 +24,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Story Idea Conflict (`IdeaConflictUi`) g: Story idea conflict
   - [x] Your app / the sync server is out of date (`ProtocolMismatchDialog`) g: Out of date dialog, app, Out of date dialog, server
   - [x] Update banner (`AppUpdateBanner`, inline) g: Project list, update available, Update banner states
-- [ ] Story Ideas list and idea view (`StoryIdeasUi`) g: Story ideas, Story idea
+- [x] Story Ideas list and idea view (`StoryIdeasUi`) g: Story ideas, Story idea
   - [ ] Discard Changes / Delete Idea / Create Project from Idea (`SimpleConfirm`) **no gallery**
 - [x] Settings (`AccountSettingsUi`, all tabs) g: Account settings, Account settings, writing, Account settings, sync, Account settings, sync not set up
   - [ ] Plugins tab (`PluginSettingsSection`, `RuntimePluginsSection`) **no gallery**

@@ -437,7 +437,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		)
 		showOverview(component, screen = desktopScreen, size = DpSize(1000.dp, 700.dp))
 
-		(lanes.map { "$it · 1" } + "ALL · 6").forEach { label ->
+		(lanes.map { "$it · 1" } + "All · 6").forEach { label ->
 			val layout = textLayout(label)
 			assertEquals(1, layout.lineCount, "$label wrapped")
 			val fits = layout.multiParagraph.intrinsics.maxIntrinsicWidth <= layout.layoutInput.constraints.maxWidth

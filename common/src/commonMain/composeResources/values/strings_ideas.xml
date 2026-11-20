@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_select_nav_story_ideas">Story Ideas</string>
+	<string name="project_select_nav_story_ideas">Story ideas</string>
 	<string name="project_select_nav_story_ideas_short">IDEA</string>
 
-	<string name="ideas_header">Story Ideas</string>
 	<string name="ideas_header_meta">%1$d IDEAS · %2$d TAGS</string>
 	<string name="ideas_list_empty">No story ideas yet. Capture your first spark.</string>
 	<string name="ideas_list_empty_archived">No archived ideas.</string>
@@ -22,7 +21,7 @@
 	<string name="ideas_filter_filtered">FILTERED %1$d / %2$d</string>
 	<string name="ideas_filter_clear_all">Clear All</string>
 
-	<string name="ideas_sort_label">SORT</string>
+	<string name="ideas_sort_label">Sort</string>
 	<string name="ideas_sort_newest">Newest</string>
 	<string name="ideas_sort_oldest">Oldest</string>
 	<string name="ideas_sort_title_az">Title A–Z</string>
@@ -33,8 +32,7 @@
 	<string name="ideas_stamp_promoted">PROMOTED · %1$s</string>
 	<string name="ideas_stamp_archived">ARCHIVED · %1$s</string>
 
-	<string name="ideas_create_fab">Capture a new idea</string>
-	<string name="ideas_create_marker">New Idea</string>
+	<string name="ideas_create_marker">New idea</string>
 	<string name="ideas_view_header">Story Idea</string>
 	<string name="ideas_view_label_editing">Editing</string>
 	<string name="ideas_view_status_unsaved">UNSAVED</string>
@@ -63,7 +61,7 @@
 	<string name="ideas_toast_too_long">Idea is too long: %1$d characters max</string>
 	<string name="ideas_toast_tag_too_long">Tags can be at most %1$d characters</string>
 
-	<string name="ideas_promote_button">Create Project</string>
+	<string name="ideas_promote_button">Create project</string>
 	<string name="ideas_promote_dialog_title">Create Project from Idea</string>
 	<string name="ideas_promote_dialog_message">A new project will be created and this idea will be added to it as its first note.</string>
 	<string name="ideas_toast_promoted">Project created: %1$s</string>
