@@ -49,6 +49,21 @@ class WritingActivityAttributionTest {
 	}
 
 	@Test
+	fun `this device's unstamped slot is the signed-in account's in a shared project`() {
+		val attributed = attributeSlots(
+			listOf(
+				WritingActivitySlot("device-self", DeviceLog("Desktop")),
+				WritingActivitySlot("device-a", DeviceLog("Phone")),
+			),
+			activityOwner(owner, signedIn(7)),
+			viewerId = 7,
+			ownDeviceId = "device-self",
+		).associate { it.deviceId to it.authorId }
+
+		assertEquals(mapOf("device-self" to 7L, "device-a" to 5L), attributed)
+	}
+
+	@Test
 	fun `with no account and no owner, unauthored slots stay unattributed`() {
 		val slot = attributeSlots(listOf(WritingActivitySlot("device-a", DeviceLog("Desktop"))), activityOwner(null, null))
 		assertNull(slot.single().authorId)

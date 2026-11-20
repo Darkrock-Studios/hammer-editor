@@ -6,8 +6,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 
 /**
- * A slot with its author resolved: a slot with no author is the owner's. [authorId] is null
- * only when the owner is unknown (an own project with no account signed in).
+ * A slot with its author resolved: a slot with no author is the owner's, except this device's
+ * own slot, which is the signed-in account's. [authorId] is null only when neither is known (an
+ * own project with no account signed in).
  */
 data class AttributedSlot(
 	val deviceId: String,
@@ -16,24 +17,31 @@ data class AttributedSlot(
 	val authorName: String?,
 )
 
+/** The signed-in account whose writing activity this device records, or null with none. */
+fun activityViewerId(serverSettings: ServerSettings?): Long? = serverSettings?.userId?.takeIf { it >= 0 }
+
 /** The owner of a project: [sharedOwner] for a shared one, else the signed-in account. */
 fun activityOwner(sharedOwner: ProjectOwner?, serverSettings: ServerSettings?): ProjectOwner? =
-	sharedOwner ?: serverSettings?.userId?.takeIf { it >= 0 }?.let { ProjectOwner(it, null) }
+	sharedOwner ?: activityViewerId(serverSettings)?.let { ProjectOwner(it, null) }
 
-fun attributeSlots(slots: List<WritingActivitySlot>, owner: ProjectOwner?): List<AttributedSlot> =
+/**
+ * Resolves each slot's author. A slot with no author is [owner]'s, unless it is [ownDeviceId]'s
+ * slot and [viewerId] is signed in: this device writes only for the signed-in account, before the
+ * server stamps the slot on sync.
+ */
+fun attributeSlots(
+	slots: List<WritingActivitySlot>,
+	owner: ProjectOwner?,
+	viewerId: Long? = null,
+	ownDeviceId: String? = null,
+): List<AttributedSlot> =
 	slots.map { slot ->
-		val authorId = slot.log.authorId ?: owner?.id
+		val unstampedOwn = viewerId != null && slot.log.authorId == null && slot.deviceId == ownDeviceId
+		val authorId = slot.log.authorId ?: if (unstampedOwn) viewerId else owner?.id
 		val authorName = slot.log.authorName ?: owner?.name?.takeIf { authorId == owner.id }
 		AttributedSlot(slot.deviceId, slot.log, authorId, authorName)
 	}
 
-/**
- * The slots whose words are [viewerId]'s: those attributed to them, plus this device's own slot
- * before the server has stamped an author on it. With no account ([viewerId] null), every slot.
- */
-fun List<AttributedSlot>.viewersSlots(viewerId: Long?, ownDeviceId: String): List<AttributedSlot> =
-	if (viewerId == null) {
-		this
-	} else {
-		filter { it.authorId == viewerId || (it.deviceId == ownDeviceId && it.log.authorId == null) }
-	}
+/** The slots attributed to [viewerId]; with no account signed in, every slot. */
+fun List<AttributedSlot>.viewersSlots(viewerId: Long?): List<AttributedSlot> =
+	if (viewerId == null) this else filter { it.authorId == viewerId }

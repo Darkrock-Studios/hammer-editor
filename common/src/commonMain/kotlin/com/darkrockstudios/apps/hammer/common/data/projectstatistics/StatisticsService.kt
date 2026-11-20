@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.activityOwner
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.activityViewerId
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.attributeSlots
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.viewersSlots
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
@@ -73,7 +74,8 @@ class StatisticsService(
 
 	/**
 	 * Load statistics from cache if available and not dirty.
-	 * If cache is missing, dirty, or has an outdated schema, calculates fresh statistics.
+	 * If cache is missing, dirty, has an outdated schema, or was computed for another signed-in
+	 * account, calculates fresh statistics.
 	 *
 	 * [loadReferenceIndex] supplies the scene references behind entry appearances. It is passed
 	 * in because a Service may not depend on another Service; see [ProjectStatisticsUseCase].
@@ -81,7 +83,8 @@ class StatisticsService(
 	suspend fun loadStatistics(loadReferenceIndex: suspend () -> ReferenceIndex): ProjectStatistics {
 		val cached = statisticsRepository.loadStatistics()
 		val isCurrentSchema = cached?.schemaVersion == ProjectStatistics.CURRENT_SCHEMA_VERSION
-		return if (cached != null && isCurrentSchema && !cached.isDirty) {
+		val sameViewer = cached?.viewerId == activityViewerId(globalSettingsStore.serverSettings)
+		return if (cached != null && isCurrentSchema && sameViewer && !cached.isDirty) {
 			Napier.d("Loaded statistics from cache")
 			cached
 		} else {
@@ -92,6 +95,7 @@ class StatisticsService(
 						"expected ${ProjectStatistics.CURRENT_SCHEMA_VERSION}); recalculating"
 				)
 
+				!sameViewer -> Napier.d("Cache is for another account, will recalculate")
 				else -> Napier.d("Cache is dirty, will recalculate")
 			}
 			recalculateStatistics(loadReferenceIndex)
@@ -180,9 +184,14 @@ class StatisticsService(
 			val wordsPerDevice = mutableMapOf<String, Int>()
 			val serverSettings = globalSettingsStore.serverSettings
 			val owner = activityOwner(projectsRepository.getOwner(projectDef), serverSettings)
-			val slots = attributeSlots(writingActivityRepository.loadAllLogs(), owner)
-			val viewerId = serverSettings?.userId?.takeIf { it >= 0 }
-			slots.viewersSlots(viewerId, writingActivityRepository.ownDeviceId()).forEach { slot ->
+			val viewerId = activityViewerId(serverSettings)
+			val slots = attributeSlots(
+				writingActivityRepository.loadAllLogs(),
+				owner,
+				viewerId,
+				writingActivityRepository.ownDeviceId(),
+			)
+			slots.viewersSlots(viewerId).forEach { slot ->
 				val deviceLog = slot.log
 				var deviceTotal = 0
 				deviceLog.sessions.forEach { session ->
@@ -246,6 +255,7 @@ class StatisticsService(
 				topAppearances = topAppearances,
 				totalEntryConnections = totalEntryConnections,
 				wordCountGoal = wordCountGoal,
+				viewerId = viewerId,
 				isDirty = false,
 				lastCalculated = clock.now(),
 				schemaVersion = ProjectStatistics.CURRENT_SCHEMA_VERSION,

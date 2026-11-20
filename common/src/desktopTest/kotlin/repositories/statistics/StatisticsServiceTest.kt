@@ -362,4 +362,30 @@ class StatisticsServiceTest : BaseTest() {
 
 		assertEquals(140, stats.dailyWordTotals.values.sum())
 	}
+
+	@Test
+	fun `loadStatistics recalculates a cache computed for another account`() = runTest(mainTestDispatcher) {
+		coEvery { statisticsRepository.loadStatistics() } returns
+			cachedStats(schema = ProjectStatistics.CURRENT_SCHEMA_VERSION, dirty = false).copy(viewerId = 2)
+
+		val result = makeService(signedInAs = 1).loadStatistics(::loadIndex)
+
+		assertEquals(1L, result.viewerId)
+		coVerify { statisticsRepository.saveStatistics(result) }
+	}
+
+	@Test
+	fun `this device's unstamped slot is the viewer's in the author breakdown too`() =
+		runTest(mainTestDispatcher) {
+			val day = Instant.parse("2026-04-27T09:00:00Z")
+			coEvery { writingActivityRepository.loadAllLogs() } returns listOf(
+				WritingActivitySlot("device-self", DeviceLog("Desktop", listOf(WritingSession(day, day, 30, sealed = false)))),
+				WritingActivitySlot("device-1", DeviceLog("Laptop", listOf(WritingSession(day, day, 400, sealed = true)), 2, "Bo")),
+			)
+			coEvery { statisticsRepository.loadStatistics() } returns null
+
+			val stats = makeService(signedInAs = 1, sharedBy = ProjectOwner(2, "Bo")).recalculateStatistics(::loadIndex)
+
+			assertEquals(listOf(2L to 400, 1L to 30), stats.wordsPerAuthor.map { it.authorId to it.words })
+		}
 }
