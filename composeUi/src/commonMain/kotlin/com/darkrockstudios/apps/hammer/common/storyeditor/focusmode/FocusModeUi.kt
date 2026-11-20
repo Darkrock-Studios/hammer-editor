@@ -140,8 +140,10 @@ fun FocusModeUi(component: FocusMode) {
 		) {
 			Row(
 				modifier = Modifier
-					.fillMaxWidth(),
+					.fillMaxWidth()
+					.background(MaterialTheme.colorScheme.surfaceContainerLow),
 				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically,
 			) {
 				// No insert image action: focus mode fills the project's one modal slot, which the
 				// image gallery would need.
@@ -153,14 +155,11 @@ fun FocusModeUi(component: FocusMode) {
 					modifier = Modifier.weight(1f),
 				)
 
-				IconButton(
-					onClick = component::dismiss,
-					modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
-				) {
+				IconButton(onClick = component::dismiss) {
 					Icon(
 						imageVector = Icons.Default.Close,
 						contentDescription = Res.string.scene_editor_menu_item_close.get(),
-						tint = MaterialTheme.colorScheme.onBackground
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
 				}
 			}
@@ -206,6 +205,7 @@ fun FocusModeUi(component: FocusMode) {
 						style = rememberHammerEditorStyle(
 							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
+							unfocusedBorderColor = Color.Transparent,
 						),
 						modifier = Modifier
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
