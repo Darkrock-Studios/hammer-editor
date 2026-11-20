@@ -1,11 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.drafts
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,27 +24,25 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
+import com.darkrockstudios.apps.hammer.draft_list_close
 import com.darkrockstudios.apps.hammer.draft_list_empty
 import com.darkrockstudios.apps.hammer.draft_list_header
+import com.darkrockstudios.apps.hammer.draft_list_open
 
 private val DialogMaxWidth = 600.dp
-private val DialogBodyMinHeight = 280.dp
+private val DialogBodyMinHeight = 160.dp
 
 @Composable
 fun DraftsListUi(
 	component: DraftsList,
 ) {
-	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 
-	var headerText by remember { mutableStateOf("") }
 	LaunchedEffect(state.sceneItem) {
 		component.loadDrafts()
-		headerText = strRes.get(Res.string.draft_list_header, state.sceneItem.name)
 	}
 
 	Box(
@@ -62,10 +63,10 @@ fun DraftsListUi(
 			),
 		) {
 			Column {
-				Masthead(count = state.drafts.size, onClose = component::cancel)
-				HdFolioDivider()
-
-				TitleRow(headerText = headerText)
+				TitleRow(
+					title = Res.string.draft_list_header.get(state.sceneItem.name),
+					onClose = component::cancel,
+				)
 				HorizontalDivider(
 					thickness = Dp.Hairline,
 					color = MaterialTheme.colorScheme.outlineVariant,
@@ -85,45 +86,32 @@ fun DraftsListUi(
 						)
 					}
 				}
-
-				FooterBar()
 			}
 		}
 	}
 }
 
 @Composable
-private fun Masthead(count: Int, onClose: () -> Unit) {
-	val meta = when (count) {
-		0 -> "EMPTY"
-		1 -> "1 DRAFT"
-		else -> "$count DRAFTS"
-	}
-	HdMasthead(
-		section = "DRAFTS",
-		leadingMeta = listOf(meta),
-		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
-	)
-}
-
-@Composable
-private fun TitleRow(headerText: String) {
+private fun TitleRow(title: String, onClose: () -> Unit) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
-				top = Ui.Padding.L,
-				bottom = Ui.Padding.M,
-			),
+			.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.L, bottom = Ui.Padding.S),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
 		Text(
-			text = headerText,
-			style = MaterialTheme.typography.headlineSmall,
-			color = MaterialTheme.colorScheme.onSurface,
+			text = title,
+			style = MaterialTheme.typography.titleLarge,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis,
+			modifier = Modifier.weight(1f),
 		)
+		IconButton(onClick = onClose) {
+			Icon(
+				imageVector = Icons.Filled.Close,
+				contentDescription = Res.string.draft_list_close.get(),
+			)
+		}
 	}
 }
 
@@ -157,12 +145,7 @@ private fun DraftRow(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
-				top = Ui.Padding.L,
-				bottom = Ui.Padding.L,
-			),
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
@@ -186,13 +169,13 @@ private fun DraftRow(
 			}
 		}
 		HdHairlineButton(
-			label = "OPEN",
-			emphasised = true,
+			label = Res.string.draft_list_open.get(),
 			onClick = onSelect,
 		)
 	}
 	if (!isLast) {
 		HorizontalDivider(
+			modifier = Modifier.padding(horizontal = Ui.Padding.XL),
 			thickness = Dp.Hairline,
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
@@ -201,41 +184,16 @@ private fun DraftRow(
 
 @Composable
 private fun EmptyState() {
-	Column(
+	Box(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(Ui.Padding.XL * 2),
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.CenterVertically),
+			.heightIn(min = DialogBodyMinHeight)
+			.padding(Ui.Padding.XL),
+		contentAlignment = Alignment.Center,
 	) {
-		HdMonoLabel(
-			text = "DRAFTS · EMPTY",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 		Text(
 			text = Res.string.draft_list_empty.get(),
-			style = MaterialTheme.typography.bodyLarge,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-	}
-}
-
-@Composable
-private fun FooterBar() {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "ESC CLOSE",
+			style = MaterialTheme.typography.bodyMedium,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}

@@ -18,7 +18,7 @@ import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
-import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Preview
 @Composable
@@ -31,19 +31,19 @@ fun ScreenDraftsListUiPreview() {
 					DraftDef(
 						id = 3,
 						sceneId = 0,
-						draftTimestamp = Clock.System.now(),
+						draftTimestamp = Instant.parse("2026-11-02T09:14:00Z"),
 						draftName = "Test Draft"
 					),
 					DraftDef(
 						id = 4,
 						sceneId = 1,
-						draftTimestamp = Clock.System.now(),
+						draftTimestamp = Instant.parse("2026-11-09T21:40:00Z"),
 						draftName = "Test Draft 2"
 					),
 					DraftDef(
 						id = 5,
 						sceneId = 2,
-						draftTimestamp = Clock.System.now(),
+						draftTimestamp = Instant.parse("2026-11-16T07:05:00Z"),
 						draftName = "Another Test Draft"
 					),
 				)
@@ -79,19 +79,19 @@ fun ScreenDraftsListUiTabletPreview() {
 					DraftDef(
 						id = 3,
 						sceneId = 0,
-						draftTimestamp = Clock.System.now(),
+						draftTimestamp = Instant.parse("2026-11-02T09:14:00Z"),
 						draftName = "Test Draft"
 					),
 					DraftDef(
 						id = 4,
 						sceneId = 1,
-						draftTimestamp = Clock.System.now(),
+						draftTimestamp = Instant.parse("2026-11-09T21:40:00Z"),
 						draftName = "Test Draft 2"
 					),
 					DraftDef(
 						id = 5,
 						sceneId = 2,
-						draftTimestamp = Clock.System.now(),
+						draftTimestamp = Instant.parse("2026-11-16T07:05:00Z"),
 						draftName = "Another Test Draft"
 					),
 				)
