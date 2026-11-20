@@ -9,6 +9,7 @@ New features
 
 Improvements
 - Export: Word files open more reliably in other word processors
+- Writing statistics count each word you type once. Autosaves landing mid-word, fixed typos, undone deletions, moved or pasted-back text and text arriving by sync or a draft restore no longer add words. On a shared project, Today, Last 7 days, the streak and goals show your own words
 
 
 ## [3.12.1] - 2026-10-24

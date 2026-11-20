@@ -1,0 +1,81 @@
+# Writing Activity
+
+Writing activity is the record of how many words a writer produced and when. It drives the
+project home's Today, Last 7 days, streak, heatmap and goal progress, the Android widget, and the
+words-by-author breakdown. Each device keeps its own log; how logs sync is in
+[SYNCING-PROTOCOL.md](SYNCING-PROTOCOL.md#writing-activity-sync-per-device-slots).
+
+## The rule
+
+> Hammer counts the words you typed this session that were not already in your story. Moving text,
+> pasting it back, or undoing a deletion does not count. Deleting never subtracts.
+
+A word is what the scene word count counts (`countedWordSpans`), compared without case.
+
+## How words are counted
+
+`WritingSessionTracker` does the counting; the pure functions are in `WordCredit.kt`.
+
+**Anchors.** The first time the tracker sees a scene in an epoch (its editor loads it, or a save
+arrives), it remembers the scene's text as its anchor. Every editor save, autosave included, is
+compared with that anchor, never with the previous save. So an autosave that lands mid-word, a
+typo fixed a minute later, or a deletion that is undone changes nothing: only the text at each
+save, measured against the anchor, matters.
+
+**What was typed.** A word diff of the anchor against the saved text gives the inserted words.
+The common start and end are trimmed first. A diff matches stray common words ("the", "and")
+inside a rewritten passage; changes separated by a single matched word form one stretch, and a
+stretch that deletes and inserts at least six words is counted whole. When either remaining side
+is longer than 2,000 words, a bag difference (surplus occurrences of each word) stands in for the
+diff, which would otherwise grow with the square of the size.
+
+**Text seen before.** The tracker keeps a hash of every four-word window, and of every line
+shorter than that, from all text it has anchored or let go of since the project was opened. An
+inserted word inside such a window or line was moved, pasted back or restored, not written, and
+does not count. This catches moves within a scene, between scenes, and out of a deleted scene.
+
+**Recording.** A scene's credit is its count of typed words. The epoch's total is the sum of all
+scenes' credits plus credit banked from scenes that were re-anchored or deleted. A save records
+only what lifts the total above its highest point so far in the epoch, so deleting typed words
+and typing them again adds nothing, and nothing is ever subtracted.
+
+**Epochs.** An epoch ends where a writing session is sealed: at the first editor save on a later
+local calendar day, or more than six hours after the last save that recorded words. Every scene
+is then re-anchored at its last saved text, and the total and its high point start from zero.
+
+**Text from outside the editor.** When text replaces a scene's buffer from anywhere but the editor
+(sync, a draft restore, a plugin or MCP write, a rename rewriting the scene, discarding unsaved
+edits), the scene is re-anchored at the new text: its credit is banked and the new text counts as
+seen. Sync and draft content re-anchor at the moment the buffer is replaced, under the buffer lock,
+so an editor save is never compared with the wrong anchor. A rewrite first credits any words typed
+into the buffer it rewrites. A deleted scene's credit is banked and its text stays seen.
+
+## Accepted limits
+
+- Text pasted from another app counts as written.
+- Fresh prose that repeats four consecutive words, or a whole short line, from text seen before
+  loses those words.
+- Writing 100 words, deleting them and writing 100 different ones in one epoch credits 100.
+- Duplicating text typed this epoch (copy, paste, keep both) counts twice.
+- Bolding part of a word splits it into two words, which count as new.
+- In a passage that is both moved and densely edited, a word within three words of an edit and of
+  the move's edge can count.
+- After switching accounts on one install, words written before the next sync stay in the own log
+  stamped with the previous account, so the new account's totals miss them until that sync.
+- Recorded history is never corrected.
+
+## Sessions and days
+
+Recorded words go into the device's current `WritingSession`. A session grows while saves keep
+coming on the same local calendar day, no more than six hours apart; otherwise it is sealed and a
+new one begins (`WritingSessionTracker.mergeWriting`). A session's words belong to the local date
+it started on.
+
+## Whose words
+
+On a shared project, Today, Last 7 days, the streak, the heatmap and goal progress count only the
+signed-in author's sessions, from every device they used. Words by author covers everyone. With no
+account signed in, every log counts. A log's author is the one the server stamped on it; a log with
+none is the project owner's, except this device's own log, which belongs to the signed-in account.
+Cached statistics record the account they were computed for and are recalculated for another.
+The `stats.activity` and `stats.sessions` operations cover every author.
