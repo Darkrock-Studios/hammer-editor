@@ -62,15 +62,19 @@
 	<string name="ideas_toast_tag_too_long">Tags can be at most %1$d characters</string>
 
 	<string name="ideas_promote_button">Create project</string>
-	<string name="ideas_promote_dialog_title">Create Project from Idea</string>
-	<string name="ideas_promote_dialog_message">A new project will be created and this idea will be added to it as its first note.</string>
+	<string name="ideas_promote_dialog_title">Create a project from this idea?</string>
+	<string name="ideas_promote_dialog_message">The idea becomes the first note in a new project.</string>
 	<string name="ideas_toast_promoted">Project created: %1$s</string>
 	<string name="ideas_toast_promote_failed">Failed to create project</string>
 
-	<string name="ideas_delete_dialog_title">Delete Idea</string>
-	<string name="ideas_delete_dialog_message">This idea will be permanently deleted. This cannot be undone.</string>
-	<string name="ideas_discard_dialog_title">Discard Changes</string>
-	<string name="ideas_discard_dialog_message">You have unsaved changes. Discard them?</string>
+	<string name="ideas_delete_dialog_title">Delete this idea?</string>
+	<string name="ideas_delete_dialog_message">This can't be undone.</string>
+	<string name="ideas_delete_dialog_confirm">Delete</string>
+	<string name="ideas_discard_dialog_title">Discard your changes?</string>
+	<string name="ideas_discard_dialog_message">Your edits to this idea haven't been saved.</string>
+	<string name="ideas_discard_dialog_confirm">Discard</string>
+	<string name="ideas_discard_dialog_keep">Keep editing</string>
+	<string name="ideas_dialog_cancel">Cancel</string>
 
 	<string name="sync_log_ideas_begin">Syncing story ideas</string>
 	<string name="sync_log_ideas_unchanged">Story ideas unchanged — skipped</string>

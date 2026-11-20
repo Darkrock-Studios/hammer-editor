@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
+import com.darkrockstudios.apps.hammer.common.preview.storyideas.StoryIdeaConfirmsPreview
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -203,6 +204,7 @@ class ScreenGalleryTest {
 		surfaced("Create timeline event") { ScreenCreateTimeLineEventUiPreview() },
 		screen("Story ideas") { ScreenStoryIdeasUiTabletPreview() },
 		screen("Story idea") { ScreenStoryIdeasViewTabletPreview() },
+		surfaced("Story idea confirms") { StoryIdeaConfirmsPreview() },
 		screen("Project stats") { ScreenProjectStatsUiTabletPreview() },
 		screen("Project settings") { ScreenProjectSettingsUiTabletPreview() },
 		screen("Project settings, shared") { ScreenProjectSettingsUiSharedPreview() },

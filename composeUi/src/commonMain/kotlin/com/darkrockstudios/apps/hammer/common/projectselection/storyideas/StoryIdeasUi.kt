@@ -1,5 +1,9 @@
 ﻿package com.darkrockstudios.apps.hammer.common.projectselection.storyideas
 
+import com.darkrockstudios.apps.hammer.ideas_discard_dialog_confirm
+import com.darkrockstudios.apps.hammer.ideas_discard_dialog_keep
+import com.darkrockstudios.apps.hammer.ideas_delete_dialog_confirm
+import com.darkrockstudios.apps.hammer.ideas_dialog_cancel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioFooter
 import androidx.compose.animation.AnimatedContent
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
@@ -935,6 +939,10 @@ private fun IdeaDetail(
 		SimpleConfirm(
 			title = Res.string.ideas_discard_dialog_title.get(),
 			message = Res.string.ideas_discard_dialog_message.get(),
+			positiveButton = Res.string.ideas_discard_dialog_confirm.get(),
+			negativeButton = Res.string.ideas_discard_dialog_keep.get(),
+			destructive = true,
+			kind = "DISCARD",
 			onDismiss = {
 				confirmDiscard = false
 				confirmClose = false
@@ -954,6 +962,10 @@ private fun IdeaDetail(
 		SimpleConfirm(
 			title = Res.string.ideas_delete_dialog_title.get(),
 			message = Res.string.ideas_delete_dialog_message.get(),
+			positiveButton = Res.string.ideas_delete_dialog_confirm.get(),
+			negativeButton = Res.string.ideas_dialog_cancel.get(),
+			destructive = true,
+			kind = "DELETE",
 			onDismiss = { confirmDelete = false },
 		) {
 			confirmDelete = false
@@ -969,6 +981,9 @@ private fun IdeaDetail(
 		SimpleConfirm(
 			title = Res.string.ideas_promote_dialog_title.get(),
 			message = Res.string.ideas_promote_dialog_message.get(),
+			positiveButton = Res.string.ideas_promote_button.get(),
+			negativeButton = Res.string.ideas_dialog_cancel.get(),
+			kind = "PROMOTE",
 			onDismiss = { confirmPromote = false },
 		) {
 			confirmPromote = false

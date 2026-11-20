@@ -104,29 +104,46 @@ fun ConfirmationDialog(
 		implicitDismiss = implicitDismiss,
 		onDismissed = onDismissed,
 	) {
-		if (cancelLabel != null) {
-			TextButton(
-				onClick = onCancel ?: onDismiss,
-				shape = RoundedCornerShape(4.dp),
-			) {
-				Text(cancelLabel)
-			}
-		}
-		val confirmColors = if (destructive) {
-			ButtonDefaults.buttonColors(
-				containerColor = MaterialTheme.colorScheme.error,
-				contentColor = MaterialTheme.colorScheme.onError,
-			)
-		} else {
-			ButtonDefaults.buttonColors()
-		}
-		Button(
-			onClick = onConfirm,
+		ConfirmationActions(
+			confirmLabel = confirmLabel,
+			onConfirm = onConfirm,
+			cancelLabel = cancelLabel,
+			onCancel = onCancel ?: onDismiss,
+			destructive = destructive,
+		)
+	}
+}
+
+@Composable
+internal fun RowScope.ConfirmationActions(
+	confirmLabel: String,
+	onConfirm: () -> Unit,
+	cancelLabel: String?,
+	onCancel: () -> Unit,
+	destructive: Boolean,
+) {
+	if (cancelLabel != null) {
+		TextButton(
+			onClick = onCancel,
 			shape = RoundedCornerShape(4.dp),
-			colors = confirmColors,
 		) {
-			Text(confirmLabel)
+			Text(cancelLabel)
 		}
+	}
+	val confirmColors = if (destructive) {
+		ButtonDefaults.buttonColors(
+			containerColor = MaterialTheme.colorScheme.error,
+			contentColor = MaterialTheme.colorScheme.onError,
+		)
+	} else {
+		ButtonDefaults.buttonColors()
+	}
+	Button(
+		onClick = onConfirm,
+		shape = RoundedCornerShape(4.dp),
+		colors = confirmColors,
+	) {
+		Text(confirmLabel)
 	}
 }
 
@@ -139,7 +156,6 @@ fun ConfirmationDialog(
  * [androidx.compose.material3.Button] / [androidx.compose.material3.TextButton] children
  * and they line up against the right edge.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun IndexStripDialog(
 	visible: Boolean,
@@ -162,92 +178,117 @@ fun IndexStripDialog(
 		modifier = Modifier.fillMaxSize(),
 		contentAlignment = Alignment.Center,
 	) {
-		val accent = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-		val resolvedIndex = index ?: folioCodeFor(title)
-		Surface(
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			shadowElevation = Ui.Elevation.LARGE,
-			modifier = modifier
-				.padding(horizontal = Ui.Padding.XL)
-				.widthIn(max = 560.dp)
-				.fillMaxWidth(),
-		) {
-			BoxWithConstraints {
-				val gutterWidth = if (maxWidth < 380.dp) 60.dp else GutterWidth
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.height(IntrinsicSize.Min),
-				) {
-					IndexGutter(
-						index = resolvedIndex,
-						kind = kind,
-						accent = accent,
-						width = gutterWidth
-					)
-					VerticalDivider(
+		IndexStripCard(
+			title = title,
+			message = message,
+			modifier = modifier,
+			destructive = destructive,
+			kind = kind,
+			index = index,
+			keyboardHint = keyboardHint,
+			actions = actions,
+		)
+	}
+}
+
+/** The card [IndexStripDialog] shows, without the dialog window. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun IndexStripCard(
+	title: String,
+	message: String,
+	modifier: Modifier = Modifier,
+	destructive: Boolean = false,
+	kind: String = if (destructive) "ALERT" else "CONFIRM",
+	index: String? = null,
+	keyboardHint: String? = null,
+	actions: @Composable RowScope.() -> Unit,
+) {
+	val accent = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+	val resolvedIndex = index ?: folioCodeFor(title)
+	Surface(
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		shadowElevation = Ui.Elevation.LARGE,
+		modifier = modifier
+			.padding(horizontal = Ui.Padding.XL)
+			.widthIn(max = 560.dp)
+			.fillMaxWidth(),
+	) {
+		BoxWithConstraints {
+			val gutterWidth = if (maxWidth < 380.dp) 60.dp else GutterWidth
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(IntrinsicSize.Min),
+			) {
+				IndexGutter(
+					index = resolvedIndex,
+					kind = kind,
+					accent = accent,
+					width = gutterWidth
+				)
+				VerticalDivider(
+					color = MaterialTheme.colorScheme.outlineVariant,
+					thickness = 1.dp,
+				)
+				Column(modifier = Modifier.weight(1f)) {
+					Column(
+						modifier = Modifier.padding(
+							start = 26.dp,
+							end = 26.dp,
+							top = 22.dp,
+							bottom = 20.dp,
+						),
+						verticalArrangement = Arrangement.spacedBy(10.dp),
+					) {
+						Text(
+							text = title,
+							style = MaterialTheme.typography.titleLarge.copy(
+								fontWeight = FontWeight.Normal,
+								letterSpacing = (-0.22).sp,
+								lineHeight = 25.sp,
+							),
+							color = MaterialTheme.colorScheme.onSurface,
+						)
+						if (message.isNotEmpty()) {
+							Text(
+								text = message,
+								style = MaterialTheme.typography.bodyMedium.copy(
+									lineHeight = 22.sp,
+								),
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
+					}
+					HorizontalDivider(
 						color = MaterialTheme.colorScheme.outlineVariant,
 						thickness = 1.dp,
 					)
-					Column(modifier = Modifier.weight(1f)) {
-						Column(
-							modifier = Modifier.padding(
-								start = 26.dp,
-								end = 26.dp,
-								top = 22.dp,
-								bottom = 20.dp,
-							),
-							verticalArrangement = Arrangement.spacedBy(10.dp),
-						) {
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(10.dp),
+					) {
+						if (keyboardHint != null) {
 							Text(
-								text = title,
-								style = MaterialTheme.typography.titleLarge.copy(
-									fontWeight = FontWeight.Normal,
-									letterSpacing = (-0.22).sp,
-									lineHeight = 25.sp,
-								),
-								color = MaterialTheme.colorScheme.onSurface,
+								text = keyboardHint,
+								fontFamily = hammerMonoFontFamily(),
+								fontSize = 10.sp,
+								letterSpacing = 0.4.sp,
+								color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
 							)
-							if (message.isNotEmpty()) {
-								Text(
-									text = message,
-									style = MaterialTheme.typography.bodyMedium.copy(
-										lineHeight = 22.sp,
-									),
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							}
 						}
-						HorizontalDivider(
-							color = MaterialTheme.colorScheme.outlineVariant,
-							thickness = 1.dp,
-						)
-						Row(
-							modifier = Modifier
-								.fillMaxWidth()
-								.padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(10.dp),
+						FlowRow(
+							modifier = Modifier.weight(1f),
+							horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+							verticalArrangement = Arrangement.spacedBy(8.dp),
+							itemVerticalAlignment = Alignment.CenterVertically,
 						) {
-							if (keyboardHint != null) {
-								Text(
-									text = keyboardHint,
-									fontFamily = hammerMonoFontFamily(),
-									fontSize = 10.sp,
-									letterSpacing = 0.4.sp,
-									color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-								)
-							}
-							FlowRow(
-								modifier = Modifier.weight(1f),
-								horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-								verticalArrangement = Arrangement.spacedBy(8.dp),
-								itemVerticalAlignment = Alignment.CenterVertically,
-							) {
-								actions()
-							}
+							actions()
 						}
 					}
 				}
