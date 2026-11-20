@@ -36,7 +36,6 @@
 	<string name="scene_archive_dialog_archive_button">Archivia</string>
 	<string name="scene_archive_dialog_dismiss_button">Annulla</string>
 	<string name="scene_rename_dialog_title">Rinomina scena</string>
-	<string name="scene_rename_dialog_label">Nome della scena</string>
 	<string name="scene_rename_dialog_rename_button">Rinomina</string>
 	<string name="scene_list_group_action_create_scene">Crea scena</string>
 	<string name="scene_list_group_action_create_group">Crea gruppo</string>

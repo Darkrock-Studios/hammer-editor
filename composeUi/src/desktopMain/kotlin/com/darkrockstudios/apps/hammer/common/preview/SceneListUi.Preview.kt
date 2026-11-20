@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.CreateDialogCard
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneRenameCard
+import com.darkrockstudios.apps.hammer.common.storyeditor.SceneKind
 import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -306,6 +308,27 @@ fun CreateSceneDialogScrimPreview() {
 			title = Res.string.scene_list_create_scene_dialog_title.get(),
 			parentName = "Chapter IV",
 			name = "The Lobster Quadrille",
+			onNameChange = {},
+			error = null,
+			confirmEnabled = true,
+			onConfirm = {},
+			onCancel = {},
+		)
+	}
+}
+
+/** Renaming a chapter, over a scrim. */
+@Composable
+fun SceneRenameDialogScrimPreview() {
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		SceneRenameCard(
+			kind = SceneKind.Chapter,
+			name = "Down the Rabbit-Hole",
 			onNameChange = {},
 			error = null,
 			confirmEnabled = true,

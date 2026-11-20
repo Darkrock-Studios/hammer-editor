@@ -37,7 +37,6 @@
 	<string name="scene_archive_dialog_archive_button">Archive</string>
 	<string name="scene_archive_dialog_dismiss_button">Cancel</string>
 	<string name="scene_rename_dialog_title">Rename Scene</string>
-	<string name="scene_rename_dialog_label">Scene Name</string>
 	<string name="scene_rename_dialog_rename_button">Rename</string>
 	<string name="scene_list_group_action_create_scene">Create Scene</string>
 	<string name="scene_list_group_action_create_group">Create Group</string>

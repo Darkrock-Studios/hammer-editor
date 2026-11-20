@@ -64,6 +64,7 @@ import com.darkrockstudios.apps.hammer.common.preview.SceneConflictPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenCreateEntryPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.CreateSceneDialogScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.SceneRenameDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenStoryNoSceneTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiGroupedTabletPreview
@@ -238,6 +239,7 @@ class ScreenGalleryTest {
 		screen("Story, no scene selected") { ScreenStoryNoSceneTabletPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		surfaced("Create scene dialog") { CreateSceneDialogScrimPreview() },
+		surfaced("Rename chapter dialog") { SceneRenameDialogScrimPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
 		screen("Focus mode") { ScreenFocusModeUiTabletPreview() },

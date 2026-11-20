@@ -36,7 +36,6 @@
 	<string name="scene_archive_dialog_archive_button">Archiver</string>
 	<string name="scene_archive_dialog_dismiss_button">Annuler</string>
 	<string name="scene_rename_dialog_title">Renommer la scène</string>
-	<string name="scene_rename_dialog_label">Nom de la scène</string>
 	<string name="scene_rename_dialog_rename_button">Renommer</string>
 	<string name="scene_list_group_action_create_scene">Créer une scène</string>
 	<string name="scene_list_group_action_create_group">Créer un groupe</string>

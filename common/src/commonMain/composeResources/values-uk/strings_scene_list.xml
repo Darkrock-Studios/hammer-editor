@@ -36,7 +36,6 @@
 	<string name="scene_archive_dialog_archive_button">Архівувати</string>
 	<string name="scene_archive_dialog_dismiss_button">Скасувати</string>
 	<string name="scene_rename_dialog_title">Перейменувати сцену</string>
-	<string name="scene_rename_dialog_label">Назва сцени</string>
 	<string name="scene_rename_dialog_rename_button">Перейменувати</string>
 	<string name="scene_list_group_action_create_scene">Створити сцену</string>
 	<string name="scene_list_group_action_create_group">Створити групу</string>

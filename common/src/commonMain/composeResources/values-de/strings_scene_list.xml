@@ -36,7 +36,6 @@
 	<string name="scene_archive_dialog_archive_button">Archivieren</string>
 	<string name="scene_archive_dialog_dismiss_button">Abbrechen</string>
 	<string name="scene_rename_dialog_title">Szene umbenennen</string>
-	<string name="scene_rename_dialog_label">Szenenname</string>
 	<string name="scene_rename_dialog_rename_button">Umbenennen</string>
 	<string name="scene_list_group_action_create_scene">Szene erstellen</string>
 	<string name="scene_list_group_action_create_group">Gruppe erstellen</string>
