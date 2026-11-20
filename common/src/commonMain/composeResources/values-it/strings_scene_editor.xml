@@ -65,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Cerca luoghi…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Cerca voci…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Nessuna voce corrispondente.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Chiudi la finestra</string>
 	<string name="scene_editor_metadata_tags_header">Tag</string>
 	<string name="scene_editor_metadata_tags_empty">Ancora nessun tag</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Aggiungi tag</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Aggiungi tag</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Fatto</string>
 	<string name="scene_editor_no_scene_selected">Seleziona una scena da modificare</string>
 	<string name="default_draft_name">Nuova bozza</string>

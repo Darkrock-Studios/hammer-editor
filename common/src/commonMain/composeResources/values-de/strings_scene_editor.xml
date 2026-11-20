@@ -65,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Orte suchen…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Einträge suchen…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Keine passenden Einträge.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Dialog schließen</string>
 	<string name="scene_editor_metadata_tags_header">Tags</string>
 	<string name="scene_editor_metadata_tags_empty">Noch keine Tags</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Tag hinzufügen</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Tags hinzufügen</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Fertig</string>
 	<string name="scene_editor_no_scene_selected">Wählen Sie eine Szene zum Bearbeiten</string>
 	<string name="default_draft_name">Neuer Entwurf</string>

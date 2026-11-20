@@ -584,47 +584,66 @@ private fun AddTagDialog(
 		onCloseRequest = onDismiss,
 		dismissOnTapOutside = true,
 	) {
-		val submit: () -> Unit = {
-			if (draft.isNotBlank()) component.addTags(draft)
-			requestDismiss()
-		}
-		HdHairlineDialogShell(
-			title = Res.string.scene_editor_metadata_tags_add_dialog_title.get(),
-			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
+		AddTagCard(
+			draft = draft,
+			onDraftChange = { draft = it },
+			suggestions = suggestions,
+			onSelectSuggestion = { tag ->
+				component.addTags(replaceTagPrefix(draft, tag))
+				draft = ""
+			},
+			onDone = {
+				if (draft.isNotBlank()) component.addTags(draft)
+				requestDismiss()
+			},
+		)
+	}
+}
+
+@Composable
+internal fun AddTagCard(
+	draft: String,
+	onDraftChange: (String) -> Unit,
+	suggestions: List<String>,
+	onSelectSuggestion: (String) -> Unit,
+	onDone: () -> Unit,
+) {
+	HdHairlineDialogShell(
+		title = Res.string.scene_editor_metadata_tags_add_dialog_title.get(),
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		HdHairlineField(
+			label = Res.string.scene_editor_metadata_tags_add_dialog_field_label.get(),
+			value = draft,
+			onValueChange = onDraftChange,
+			singleLine = true,
+			capitalization = KeyboardCapitalization.None,
+			autoCorrectEnabled = false,
+		)
+
+		SpacerM()
+
+		HdTagSuggestionStrip(
+			suggestions = suggestions,
+			onSelect = onSelectSuggestion,
+		)
+
+		SpacerL()
+
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.End,
 		) {
-			HdHairlineField(
-				label = Res.string.scene_editor_metadata_tags_header.get(),
-				value = draft,
-				onValueChange = { draft = it },
-				placeholder = Res.string.scene_editor_metadata_tags_add_dialog_placeholder.get(),
-				singleLine = true,
-				capitalization = KeyboardCapitalization.None,
-				autoCorrectEnabled = false,
-			)
-
-			SpacerM()
-
-			HdTagSuggestionStrip(
-				suggestions = suggestions,
-				onSelect = { tag ->
-					component.addTags(replaceTagPrefix(draft, tag))
-					draft = ""
+			HdHairlineButton(
+				label = if (draft.isBlank()) {
+					Res.string.scene_editor_metadata_tags_add_dialog_done.get()
+				} else {
+					Res.string.scene_editor_metadata_tags_add_dialog_add.get()
 				},
+				onClick = onDone,
+				emphasised = true,
 			)
-
-			SpacerL()
-
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.End,
-			) {
-				HdHairlineButton(
-					label = Res.string.scene_editor_metadata_tags_add_dialog_done.get(),
-					onClick = submit,
-					emphasised = true,
-				)
-			}
 		}
 	}
 }

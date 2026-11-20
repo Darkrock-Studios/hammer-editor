@@ -78,14 +78,14 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Search locations…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Search entries…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">No matching entries.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Close dialog</string>
 
 	<string name="scene_editor_metadata_tags_header">Tags</string>
 	<string name="scene_editor_metadata_tags_empty">No tags yet</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Add tag</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Add tags</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Done</string>
+	<string name="scene_editor_metadata_tags_add_dialog_add">Add</string>
+	<string name="scene_editor_metadata_tags_add_dialog_field_label">Tags, separated by spaces</string>
 
 	<string name="scene_editor_no_scene_selected">Pick a scene to start writing.</string>
 

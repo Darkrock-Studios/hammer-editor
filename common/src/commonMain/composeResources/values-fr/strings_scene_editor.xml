@@ -65,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Rechercher des lieux…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Rechercher des entrées…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Aucune entrée correspondante.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Fermer la boîte de dialogue</string>
 	<string name="scene_editor_metadata_tags_header">Étiquettes</string>
 	<string name="scene_editor_metadata_tags_empty">Aucun tag pour l'instant</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Ajouter un tag</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Ajouter des tags</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">étiquette1 étiquette2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Terminé</string>
 	<string name="scene_editor_no_scene_selected">Sélectionnez une scène à modifier</string>
 	<string name="default_draft_name">Nouveau brouillon</string>

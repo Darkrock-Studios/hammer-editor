@@ -65,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Buscar lugares…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Buscar entradas…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">No hay entradas coincidentes.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Cerrar diálogo</string>
 	<string name="scene_editor_metadata_tags_header">Etiquetas</string>
 	<string name="scene_editor_metadata_tags_empty">Aún no hay etiquetas</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Añadir etiqueta</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Añadir etiquetas</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">etiqueta1 etiqueta2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Listo</string>
 	<string name="scene_editor_no_scene_selected">Selecciona una escena para editar</string>
 	<string name="default_draft_name">Nuevo borrador</string>

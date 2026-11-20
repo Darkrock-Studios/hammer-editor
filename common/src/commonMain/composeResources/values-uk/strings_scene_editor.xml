@@ -65,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Пошук місць…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Пошук записів…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Немає відповідних записів.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Закрити діалог</string>
 	<string name="scene_editor_metadata_tags_header">Теги</string>
 	<string name="scene_editor_metadata_tags_empty">Ще немає тегів</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Додати тег</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Додати теги</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">тег1 тег2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Готово</string>
 	<string name="scene_editor_no_scene_selected">Виберіть сцену для редагування</string>
 	<string name="default_draft_name">Нова чернетка</string>
