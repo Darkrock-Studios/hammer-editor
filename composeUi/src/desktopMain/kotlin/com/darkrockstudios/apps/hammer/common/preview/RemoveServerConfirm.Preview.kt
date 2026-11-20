@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_cancel
 import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_confirm
 import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_message
 import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_title
+import com.darkrockstudios.apps.hammer.confirm_kind_remove
 
 /** The Remove server confirm from the Server settings tab, over a scrim. */
 @Composable
@@ -29,7 +30,7 @@ internal fun RemoveServerConfirmScrimPreview() {
 			title = Res.string.settings_remove_server_dialog_title.get(),
 			message = Res.string.settings_remove_server_dialog_message.get(),
 			destructive = true,
-			kind = "REMOVE",
+			kind = Res.string.confirm_kind_remove.get(),
 		) {
 			ConfirmationActions(
 				confirmLabel = Res.string.settings_remove_server_dialog_confirm.get(),

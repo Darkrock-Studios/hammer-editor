@@ -56,6 +56,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import kotlin.random.Random
 import kotlin.time.Clock
+import com.darkrockstudios.apps.hammer.project_home_stat_scene_median_format
 
 const val PROJECT_STATS_TAG = "project-stats"
 const val PROJECT_HOME_IMAGES_TAG = "project-home-images"
@@ -448,7 +449,7 @@ private fun StructureSection(
 				value = state.averageWordsPerScene.formatDecimalSeparator(),
 				subtitle = listOfNotNull(
 					state.medianSceneWords.takeIf { it > 0 }?.let {
-						"${Res.string.project_home_stat_scene_median.get().lowercase()} ${it.formatDecimalSeparator()}"
+						Res.string.project_home_stat_scene_median_format.get(it.formatDecimalSeparator())
 					},
 					state.sceneWordsStdDev.takeIf { it > 0 }?.let {
 						Res.string.project_home_stat_scene_spread.get(it.formatDecimalSeparator())

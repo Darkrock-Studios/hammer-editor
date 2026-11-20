@@ -20,7 +20,6 @@
 	<string name="project_home_stat_longest_scene_words">%1$s words</string>
 	<string name="project_home_stat_longest_scene_empty">No scenes yet</string>
 	<string name="project_home_stat_last_edited_scene">Last Edited</string>
-	<string name="project_home_stat_scene_median">Median</string>
 
 	<string name="project_home_stat_reading_time">≈ %1$d min reading</string>
 	<string name="project_home_stat_pages">%1$d pages</string>
@@ -57,6 +56,7 @@
 	<string name="project_home_stat_avg_weekend">Avg weekend</string>
 
 	<string name="project_home_stat_chapter_words_range">%1$s to %2$s words</string>
+	<string name="project_home_stat_scene_median_format">median %1$s</string>
 	<string name="project_home_stat_scene_spread">σ %1$s</string>
 	<string name="project_home_stat_donut_entries">entries</string>
 	<string name="project_home_stat_donut_tooltip">%1$s · %2$s entries</string>

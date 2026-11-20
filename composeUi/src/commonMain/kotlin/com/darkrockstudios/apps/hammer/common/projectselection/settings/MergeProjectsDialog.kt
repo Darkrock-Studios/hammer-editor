@@ -106,7 +106,7 @@ internal fun MergeReplaceConfirmCard(onConfirm: () -> Unit, onCancel: () -> Unit
 		title = Res.string.merge_projects_replace_confirm_title.get(),
 		message = Res.string.merge_projects_replace_confirm_message.get(),
 		destructive = true,
-		kind = "DELETE",
+		kind = Res.string.confirm_kind_delete.get(),
 	) {
 		ConfirmationActions(
 			confirmLabel = Res.string.merge_projects_replace_confirm_button.get(),

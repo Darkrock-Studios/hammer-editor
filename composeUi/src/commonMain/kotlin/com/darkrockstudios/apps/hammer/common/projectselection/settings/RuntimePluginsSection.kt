@@ -106,6 +106,8 @@ import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.compose.koinInject
 import org.koin.core.qualifier.named
+import com.darkrockstudios.apps.hammer.confirm_kind_uninstall
+import com.darkrockstudios.apps.hammer.Res as CommonRes
 
 /**
  * Install, enable, disable, and uninstall runtime plugins, and open the settings of an active one
@@ -269,7 +271,7 @@ internal fun ColumnScope.RuntimePluginsList(
 			positiveButton = Res.string.plugin_runtime_uninstall.get(),
 			negativeButton = Res.string.plugin_runtime_uninstall_cancel.get(),
 			destructive = true,
-			kind = "UNINSTALL",
+			kind = CommonRes.string.confirm_kind_uninstall.get(),
 			onDismiss = { uninstalling = null },
 		) {
 			uninstalling = null

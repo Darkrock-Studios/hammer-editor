@@ -25,6 +25,9 @@ import com.darkrockstudios.apps.hammer.ideas_discard_dialog_title
 import com.darkrockstudios.apps.hammer.ideas_promote_button
 import com.darkrockstudios.apps.hammer.ideas_promote_dialog_message
 import com.darkrockstudios.apps.hammer.ideas_promote_dialog_title
+import com.darkrockstudios.apps.hammer.confirm_kind_delete
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import com.darkrockstudios.apps.hammer.confirm_kind_promote
 
 /** The idea view's discard, delete and promote confirms, stacked over a scrim. */
 @Preview(widthDp = 600, heightDp = 900)
@@ -41,7 +44,7 @@ fun StoryIdeaConfirmsPreview() {
 			title = Res.string.ideas_discard_dialog_title.get(),
 			message = Res.string.ideas_discard_dialog_message.get(),
 			destructive = true,
-			kind = "DISCARD",
+			kind = Res.string.confirm_kind_discard.get(),
 		) {
 			ConfirmationActions(
 				confirmLabel = Res.string.ideas_discard_dialog_confirm.get(),
@@ -55,7 +58,7 @@ fun StoryIdeaConfirmsPreview() {
 			title = Res.string.ideas_delete_dialog_title.get(),
 			message = Res.string.ideas_delete_dialog_message.get(),
 			destructive = true,
-			kind = "DELETE",
+			kind = Res.string.confirm_kind_delete.get(),
 		) {
 			ConfirmationActions(
 				confirmLabel = Res.string.ideas_delete_dialog_confirm.get(),
@@ -68,7 +71,7 @@ fun StoryIdeaConfirmsPreview() {
 		IndexStripCard(
 			title = Res.string.ideas_promote_dialog_title.get(),
 			message = Res.string.ideas_promote_dialog_message.get(),
-			kind = "PROMOTE",
+			kind = Res.string.confirm_kind_promote.get(),
 		) {
 			ConfirmationActions(
 				confirmLabel = Res.string.ideas_promote_button.get(),

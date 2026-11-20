@@ -17,7 +17,6 @@
 	<string name="project_home_stat_longest_scene_words">%1$s palavras</string>
 	<string name="project_home_stat_longest_scene_empty">Ainda não há cenas</string>
 	<string name="project_home_stat_last_edited_scene">Última Edição</string>
-	<string name="project_home_stat_scene_median">Mediana</string>
 	<string name="project_home_stat_reading_time">≈ %1$d min de leitura</string>
 	<string name="project_home_stat_pages">%1$d páginas</string>
 	<string name="project_home_stat_daily_goal">Meta diária</string>

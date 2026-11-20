@@ -44,6 +44,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
+import com.darkrockstudios.apps.hammer.confirm_kind_alert
+import com.darkrockstudios.apps.hammer.confirm_kind_confirm
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 /**
  * Card-style confirmation dialog with a left-side index gutter and a vertical mono caption
@@ -65,8 +69,8 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
  * @param implicitDismiss if false, ESC and predictive-back do nothing — the user must use
  *   an explicit button.
  * @param destructive paints the gutter rule and the confirm button in the error color.
- * @param kind short uppercase mono caption shown vertically in the gutter (e.g. "DELETE",
- *   "DISCARD", "ARCHIVE", "INFO").
+ * @param kind short mono caption shown vertically in the gutter, from a `confirm_kind_*` string;
+ *   uppercased there.
  * @param index folio-style label in the gutter top (e.g. "07.A"). When null (the default),
  *   a stable code is derived from [title] — same dialog always renders the same code, mimicking
  *   the design's manuscript-folio look. Pass an empty string to suppress the label entirely.
@@ -85,7 +89,7 @@ fun ConfirmationDialog(
 	onCancel: (() -> Unit)? = null,
 	modifier: Modifier = Modifier,
 	destructive: Boolean = false,
-	kind: String = if (destructive) "ALERT" else "CONFIRM",
+	kind: String = if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get(),
 	index: String? = null,
 	keyboardHint: String? = null,
 	implicitDismiss: Boolean = true,
@@ -164,7 +168,7 @@ fun IndexStripDialog(
 	onDismiss: () -> Unit,
 	modifier: Modifier = Modifier,
 	destructive: Boolean = false,
-	kind: String = if (destructive) "ALERT" else "CONFIRM",
+	kind: String = if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get(),
 	index: String? = null,
 	keyboardHint: String? = null,
 	implicitDismiss: Boolean = true,
@@ -199,7 +203,7 @@ internal fun IndexStripCard(
 	message: String,
 	modifier: Modifier = Modifier,
 	destructive: Boolean = false,
-	kind: String = if (destructive) "ALERT" else "CONFIRM",
+	kind: String = if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get(),
 	index: String? = null,
 	keyboardHint: String? = null,
 	actions: @Composable RowScope.() -> Unit,
@@ -345,8 +349,9 @@ private fun VerticalCaption(text: String, color: Color) {
 	)
 	val measurer = rememberTextMeasurer()
 	val density = LocalDensity.current
-	val (boxWidth, boxHeight) = remember(text, style, density) {
-		val measured = measurer.measure(text, style = style, maxLines = 1, softWrap = false)
+	val caption = text.uppercase()
+	val (boxWidth, boxHeight) = remember(caption, style, density) {
+		val measured = measurer.measure(caption, style = style, maxLines = 1, softWrap = false)
 		with(density) {
 			measured.size.height.toDp() to measured.size.width.toDp()
 		}
@@ -356,7 +361,7 @@ private fun VerticalCaption(text: String, color: Color) {
 		contentAlignment = Alignment.Center,
 	) {
 		Text(
-			text = text,
+			text = caption,
 			maxLines = 1,
 			softWrap = false,
 			style = style,

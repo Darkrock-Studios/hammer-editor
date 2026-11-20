@@ -17,7 +17,6 @@
 	<string name="project_home_stat_longest_scene_words">%1$s слів</string>
 	<string name="project_home_stat_longest_scene_empty">Ще немає сцен</string>
 	<string name="project_home_stat_last_edited_scene">Востаннє відредаговано</string>
-	<string name="project_home_stat_scene_median">Медіана</string>
 	<string name="project_home_stat_reading_time">≈ %1$d хв читання</string>
 	<string name="project_home_stat_pages">%1$d сторінок</string>
 	<string name="project_home_stat_daily_goal">Щоденна ціль</string>

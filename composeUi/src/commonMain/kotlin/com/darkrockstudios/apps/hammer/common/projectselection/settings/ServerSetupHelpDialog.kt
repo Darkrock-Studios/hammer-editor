@@ -20,6 +20,8 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.server_setup_help_note_caption
+import com.darkrockstudios.apps.hammer.Res
 
 private val DialogMaxHeight = 760.dp
 
@@ -77,7 +79,7 @@ internal fun ServerSetupHelpContent(onClose: () -> Unit, modifier: Modifier = Mo
 				BodyText(Res.string.server_setup_help_registration_body.get())
 			}
 
-			HdCatalogueCard(topStart = "NOTE") {
+			HdCatalogueCard(topStart = Res.string.server_setup_help_note_caption.get()) {
 				Text(
 					text = Res.string.server_setup_help_note_header.get(),
 					style = MaterialTheme.typography.titleSmall,

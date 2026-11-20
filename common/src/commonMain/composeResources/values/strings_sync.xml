@@ -351,6 +351,7 @@
 	<string
 		name="server_setup_help_intro">A sync server keeps your projects in step across your devices. Run your own, or use the official one.</string>
 	<string name="server_setup_help_official_header">The official server</string>
+	<string name="server_setup_help_note_caption">NOTE</string>
 	<string
 		name="server_setup_help_official_body">hammer.ink comes with a Patreon subscription.</string>
 	<string name="server_setup_help_patreon_link">Patreon</string>

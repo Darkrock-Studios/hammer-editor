@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.unsaved_timeline_dialog_message
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
 
 @Composable
 fun ConfirmUnsavedScenesDialog(
@@ -78,7 +79,7 @@ private fun UnsavedEntityConfirm(
 		positiveButton = Res.string.unsaved_entity_dialog_negative_button.get(),
 		negativeButton = Res.string.unsaved_entity_dialog_keep.get(),
 		destructive = true,
-		kind = "DISCARD",
+		kind = Res.string.confirm_kind_discard.get(),
 		onDismiss = { component.cancelCloseRequest() },
 	) {
 		scope.launch {

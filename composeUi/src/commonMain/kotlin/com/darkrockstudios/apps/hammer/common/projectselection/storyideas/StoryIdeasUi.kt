@@ -193,6 +193,9 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
+import com.darkrockstudios.apps.hammer.confirm_kind_delete
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import com.darkrockstudios.apps.hammer.confirm_kind_promote
 
 const val IDEAS_CREATE_BUTTON_TAG = "ideas-create-button"
 const val IDEAS_EDITOR_TITLE_TAG = "ideas-editor-title"
@@ -942,7 +945,7 @@ private fun IdeaDetail(
 			positiveButton = Res.string.ideas_discard_dialog_confirm.get(),
 			negativeButton = Res.string.ideas_discard_dialog_keep.get(),
 			destructive = true,
-			kind = "DISCARD",
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = {
 				confirmDiscard = false
 				confirmClose = false
@@ -965,7 +968,7 @@ private fun IdeaDetail(
 			positiveButton = Res.string.ideas_delete_dialog_confirm.get(),
 			negativeButton = Res.string.ideas_dialog_cancel.get(),
 			destructive = true,
-			kind = "DELETE",
+			kind = Res.string.confirm_kind_delete.get(),
 			onDismiss = { confirmDelete = false },
 		) {
 			confirmDelete = false
@@ -983,7 +986,7 @@ private fun IdeaDetail(
 			message = Res.string.ideas_promote_dialog_message.get(),
 			positiveButton = Res.string.ideas_promote_button.get(),
 			negativeButton = Res.string.ideas_dialog_cancel.get(),
-			kind = "PROMOTE",
+			kind = Res.string.confirm_kind_promote.get(),
 			onDismiss = { confirmPromote = false },
 		) {
 			confirmPromote = false

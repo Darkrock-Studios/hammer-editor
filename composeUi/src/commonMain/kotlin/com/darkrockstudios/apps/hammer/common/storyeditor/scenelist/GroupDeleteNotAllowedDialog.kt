@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.group_cannot_delete_dialog_message
 import com.darkrockstudios.apps.hammer.group_cannot_delete_dialog_title
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_dismiss_button
+import com.darkrockstudios.apps.hammer.confirm_kind_blocked
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -34,6 +35,6 @@ internal fun GroupDeleteNotAllowedDialog(scene: SceneItem, isChapter: Boolean, d
 		confirmLabel = Res.string.scene_delete_dialog_dismiss_button.get(),
 		onConfirm = { dismissDialog(false) },
 		onDismiss = { dismissDialog(false) },
-		kind = "BLOCKED",
+		kind = Res.string.confirm_kind_blocked.get(),
 	)
 }

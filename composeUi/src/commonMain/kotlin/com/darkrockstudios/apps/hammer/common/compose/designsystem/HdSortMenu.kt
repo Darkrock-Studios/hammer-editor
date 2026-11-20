@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import org.jetbrains.compose.resources.StringResource
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.hd_sort_menu_description_format
 
 interface HdSortOption {
 	/** Long-form label shown in the dropdown menu (e.g. "Newest"). */
@@ -154,7 +156,7 @@ fun <T : HdSortOption> HdQuietSortMenu(
 			HdToolButton(active = expanded, onClick = { expanded = true }) {
 				Icon(
 					imageVector = Icons.AutoMirrored.Filled.Sort,
-					contentDescription = "$contentDescription: $selectedLabel",
+					contentDescription = Res.string.hd_sort_menu_description_format.get(contentDescription, selectedLabel),
 					tint = MaterialTheme.colorScheme.onSurfaceVariant,
 					modifier = Modifier.size(16.dp),
 				)

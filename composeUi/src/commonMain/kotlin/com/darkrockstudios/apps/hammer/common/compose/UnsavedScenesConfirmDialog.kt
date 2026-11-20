@@ -5,6 +5,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.confirm_kind_unsaved
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 @Composable
 fun UnsavedScenesConfirmDialog(
@@ -23,7 +26,7 @@ fun UnsavedScenesConfirmDialog(
 		message = message,
 		onDismiss = onCancel,
 		destructive = true,
-		kind = "UNSAVED",
+		kind = Res.string.confirm_kind_unsaved.get(),
 		implicitDismiss = false,
 	) {
 		UnsavedScenesActions(

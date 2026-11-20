@@ -112,7 +112,7 @@ internal fun BackupRestoreConfirmCard(backup: ProjectBackupDef, onConfirm: () ->
 		title = Res.string.backup_restore_dialog_title.get(),
 		message = Res.string.backup_restore_dialog_message.get(backup.projectName, backupDateLabel(backup)),
 		destructive = true,
-		kind = "RESTORE",
+		kind = Res.string.confirm_kind_restore.get(),
 	) {
 		ConfirmationActions(
 			confirmLabel = Res.string.backup_restore_dialog_confirm.get(),
@@ -130,7 +130,7 @@ internal fun BackupDeleteConfirmCard(backup: ProjectBackupDef, onConfirm: () -> 
 		title = Res.string.backup_delete_dialog_title.get(),
 		message = Res.string.backup_delete_dialog_message.get(backupDateLabel(backup)),
 		destructive = true,
-		kind = "DELETE",
+		kind = Res.string.confirm_kind_delete.get(),
 	) {
 		ConfirmationActions(
 			confirmLabel = Res.string.backup_manager_delete_button.get(),

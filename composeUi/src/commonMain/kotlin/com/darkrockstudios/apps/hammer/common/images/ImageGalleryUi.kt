@@ -135,6 +135,7 @@ import com.darkrockstudios.apps.hammer.images_usage_type_scene
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
+import com.darkrockstudios.apps.hammer.confirm_kind_delete
 
 const val IMAGE_GALLERY_TAG = "image-gallery"
 const val IMAGE_GALLERY_ADD_TAG = "image-gallery-add"
@@ -829,7 +830,7 @@ private fun DeleteDialog(
 		onConfirm = { onConfirm(showing) },
 		onDismiss = onCancel,
 		destructive = true,
-		kind = "DELETE",
+		kind = Res.string.confirm_kind_delete.get(),
 	)
 }
 

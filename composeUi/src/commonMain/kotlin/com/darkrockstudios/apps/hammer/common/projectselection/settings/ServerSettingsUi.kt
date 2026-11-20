@@ -61,6 +61,7 @@ import com.darkrockstudios.apps.hammer.settings_sync_status_not_set_up
 import com.darkrockstudios.apps.hammer.settings_sync_status_signed_out
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.darkrockstudios.apps.hammer.confirm_kind_remove
 
 /**
  * The top of the Sync tab: one framed status block (connected, signed out, or not set up) with
@@ -189,7 +190,7 @@ internal fun RemoveServerRow(component: AccountSettings, scope: CoroutineScope) 
 			positiveButton = Res.string.settings_remove_server_dialog_confirm.get(),
 			negativeButton = Res.string.settings_remove_server_dialog_cancel.get(),
 			destructive = true,
-			kind = "REMOVE",
+			kind = Res.string.confirm_kind_remove.get(),
 			onDismiss = { confirm = false },
 			onConfirm = {
 				scope.launch {

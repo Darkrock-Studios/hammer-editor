@@ -81,6 +81,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
+import com.darkrockstudios.apps.hammer.projects_list_opened_format
+import com.darkrockstudios.apps.hammer.projects_list_opened_inline_format
 
 val ProjectCardTestTag = "project-card"
 const val ProjectCardCoverTestTag = "project-card-cover"
@@ -266,7 +268,7 @@ fun ProjectIndexRow(
 						)
 					}
 					TagChipRow(tags = tags, onTagClick = onTagClick)
-					val meta = listOfNotNull(wordsLabel, lastAccessedDate?.let { "opened $it" }).joinToString(" · ")
+					val meta = listOfNotNull(wordsLabel, lastAccessedDate?.let { Res.string.projects_list_opened_inline_format.get(it) }).joinToString(" · ")
 					if (meta.isNotEmpty()) {
 						Text(
 							text = meta,
@@ -286,7 +288,7 @@ fun ProjectIndexRow(
 					// Self-labelled, so the list needs no column header.
 					if (lastAccessedDate != null) {
 						Text(
-							text = "Opened $lastAccessedDate",
+							text = Res.string.projects_list_opened_format.get(lastAccessedDate),
 							style = hdMetaStyle(),
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)

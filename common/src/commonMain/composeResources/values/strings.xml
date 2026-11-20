@@ -67,4 +67,16 @@
 	<string name="markdown_format_bar_table_delete">Delete table</string>
 	<string name="markdown_format_bar_undo">Undo</string>
 	<string name="markdown_format_bar_redo">Redo</string>
+	<string name="confirm_kind_alert">Alert</string>
+	<string name="confirm_kind_confirm">Confirm</string>
+	<string name="confirm_kind_delete">Delete</string>
+	<string name="confirm_kind_restore">Restore</string>
+	<string name="confirm_kind_archive">Archive</string>
+	<string name="confirm_kind_uninstall">Uninstall</string>
+	<string name="confirm_kind_discard">Discard</string>
+	<string name="confirm_kind_remove">Remove</string>
+	<string name="confirm_kind_promote">Promote</string>
+	<string name="confirm_kind_blocked">Blocked</string>
+	<string name="confirm_kind_unsaved">Unsaved</string>
+	<string name="hd_sort_menu_description_format">%1$s: %2$s</string>
 </resources>

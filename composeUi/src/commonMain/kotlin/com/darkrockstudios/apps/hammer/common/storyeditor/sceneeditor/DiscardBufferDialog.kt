@@ -28,6 +28,6 @@ internal fun DiscardBufferDialog(scene: SceneItem, dismissDialog: (Boolean) -> U
 		onConfirm = { dismissDialog(true) },
 		onDismiss = { dismissDialog(false) },
 		destructive = true,
-		kind = "DISCARD",
+		kind = Res.string.confirm_kind_discard.get(),
 	)
 }

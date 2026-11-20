@@ -39,6 +39,8 @@
 	<string name="projects_list_entry_count_other">%1$d entries</string>
 	<string name="projects_list_sort_label">Sort</string>
 	<string name="projects_list_sort_recently_opened">Recently opened</string>
+	<string name="projects_list_opened_format">Opened %1$s</string>
+	<string name="projects_list_opened_inline_format">opened %1$s</string>
 	<string name="projects_list_sort_least_recent">Least recent</string>
 	<string name="projects_list_sort_newest">Newest</string>
 	<string name="projects_list_sort_oldest">Oldest</string>

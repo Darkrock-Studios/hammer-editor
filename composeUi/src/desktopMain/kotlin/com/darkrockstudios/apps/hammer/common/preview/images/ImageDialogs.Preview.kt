@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.images_gallery_cancel
 import com.darkrockstudios.apps.hammer.images_gallery_delete
 import com.darkrockstudios.apps.hammer.images_gallery_delete_title
 import com.darkrockstudios.apps.hammer.base.http.EntityType
+import com.darkrockstudios.apps.hammer.confirm_kind_delete
 
 /** Renaming an image, over a scrim. */
 @Composable
@@ -45,7 +46,7 @@ internal fun DeleteImageScrimPreview() {
 			title = Res.string.images_gallery_delete_title.get("Harbour at dusk"),
 			message = usageMessage(usages),
 			destructive = true,
-			kind = "DELETE",
+			kind = Res.string.confirm_kind_delete.get(),
 		) {
 			ConfirmationActions(
 				confirmLabel = Res.string.images_gallery_delete.get(),

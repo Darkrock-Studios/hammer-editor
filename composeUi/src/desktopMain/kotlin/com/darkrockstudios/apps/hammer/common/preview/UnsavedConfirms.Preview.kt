@@ -25,6 +25,8 @@ import com.darkrockstudios.apps.hammer.unsaved_scenes_dialog_title
 import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_title
 import com.darkrockstudios.apps.hammer.unsaved_timeline_dialog_message
 import org.jetbrains.compose.resources.StringResource
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import com.darkrockstudios.apps.hammer.confirm_kind_unsaved
 
 /** The unsaved scenes prompt shown when closing a project, over a scrim. */
 @Composable
@@ -40,7 +42,7 @@ internal fun UnsavedScenesScrimPreview() {
 			title = Res.string.unsaved_scenes_dialog_title.get(),
 			message = Res.string.unsaved_scenes_dialog_message.get(),
 			destructive = true,
-			kind = "UNSAVED",
+			kind = Res.string.confirm_kind_unsaved.get(),
 		) {
 			UnsavedScenesActions(
 				saveButtonText = Res.string.unsaved_entity_dialog_positive_button.get(),
@@ -76,7 +78,7 @@ private fun UnsavedEntityCard(message: StringResource) {
 		title = Res.string.unsaved_entity_dialog_title.get(),
 		message = message.get(),
 		destructive = true,
-		kind = "DISCARD",
+		kind = Res.string.confirm_kind_discard.get(),
 	) {
 		ConfirmationActions(
 			confirmLabel = Res.string.unsaved_entity_dialog_negative_button.get(),

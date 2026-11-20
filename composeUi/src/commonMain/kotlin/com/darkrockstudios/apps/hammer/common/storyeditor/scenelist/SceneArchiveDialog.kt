@@ -27,6 +27,6 @@ internal fun SceneArchiveDialog(scene: SceneItem, dismissDialog: (Boolean) -> Un
 		cancelLabel = Res.string.scene_archive_dialog_dismiss_button.get(),
 		onConfirm = { dismissDialog(true) },
 		onDismiss = { dismissDialog(false) },
-		kind = "ARCHIVE",
+		kind = Res.string.confirm_kind_archive.get(),
 	)
 }
