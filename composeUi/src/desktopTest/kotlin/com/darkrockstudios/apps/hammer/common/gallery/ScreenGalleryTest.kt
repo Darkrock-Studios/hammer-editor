@@ -11,6 +11,8 @@ import com.darkrockstudios.apps.hammer.common.preview.PluginDetailsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.FullCommandScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SpellCheckDictionaryAndroidPreview
 import com.darkrockstudios.apps.hammer.common.preview.LibrariesScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.UnsavedScenesScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.UnsavedEntityConfirmsScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -193,6 +195,8 @@ class ScreenGalleryTest {
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("Project shell") { ScreenProjectShellTabletPreview() },
 		screen("Project shell, rail expanded") { ScreenProjectShellTabletPreview(railExpanded = true) },
+		surfaced("Unsaved scenes confirm") { UnsavedScenesScrimPreview() },
+		surfaced("Unsaved note, entry and event confirms") { UnsavedEntityConfirmsScrimPreview() },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
 		screen("About, update available") { ScreenAboutAppUiUpdateAvailableTabletPreview() },
 		screen("Account settings") { ScreenAccountSettingsUiTabletPreview() },
