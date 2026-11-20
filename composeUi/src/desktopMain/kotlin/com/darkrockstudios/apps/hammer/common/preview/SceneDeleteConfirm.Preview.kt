@@ -13,6 +13,10 @@ import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_delete_button
 import com.darkrockstudios.apps.hammer.create_sceneitem_dialog_dismiss_button
+import com.darkrockstudios.apps.hammer.chapter_cannot_delete_dialog_message
+import com.darkrockstudios.apps.hammer.chapter_cannot_delete_dialog_title
+import com.darkrockstudios.apps.hammer.confirm_kind_blocked
+import com.darkrockstudios.apps.hammer.cannot_delete_dialog_ok
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_message
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_title
 import com.darkrockstudios.apps.hammer.confirm_kind_delete
@@ -38,6 +42,31 @@ internal fun SceneDeleteConfirmScrimPreview() {
 				cancelLabel = Res.string.create_sceneitem_dialog_dismiss_button.get(),
 				onCancel = {},
 				destructive = true,
+			)
+		}
+	}
+}
+
+/** Trying to delete a chapter that still has scenes, over a scrim. */
+@Composable
+internal fun ChapterCannotDeleteScrimPreview() {
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		IndexStripCard(
+			title = Res.string.chapter_cannot_delete_dialog_title.get("Chapter IV"),
+			message = Res.string.chapter_cannot_delete_dialog_message.get("Chapter IV"),
+			kind = Res.string.confirm_kind_blocked.get(),
+		) {
+			ConfirmationActions(
+				confirmLabel = Res.string.cannot_delete_dialog_ok.get(),
+				onConfirm = {},
+				cancelLabel = null,
+				onCancel = {},
+				destructive = false,
 			)
 		}
 	}

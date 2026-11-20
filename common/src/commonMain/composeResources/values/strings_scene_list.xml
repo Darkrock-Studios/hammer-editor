@@ -14,12 +14,11 @@
 	<string name="chapter_delete_dialog_title">Delete chapter “%1$s”?</string>
 	<string name="chapter_delete_dialog_message">The chapter is empty, so no scenes go with it.</string>
 	<string name="scene_delete_dialog_delete_button">Delete</string>
-	<string name="scene_delete_dialog_dismiss_button">Dismiss</string>
-	<string name="group_cannot_delete_dialog_title">Cannot Delete Group</string>
-	<string name="group_cannot_delete_dialog_message">You cannot delete a group while it still has children: "%1$s"
-	</string>
-	<string name="chapter_cannot_delete_dialog_title">Cannot Delete Chapter</string>
-	<string name="chapter_cannot_delete_dialog_message">You cannot delete a chapter while it still contains scenes or groups: "%1$s"</string>
+	<string name="group_cannot_delete_dialog_title">“%1$s” isn’t empty</string>
+	<string name="group_cannot_delete_dialog_message">Move or delete the scenes and groups in this group first.</string>
+	<string name="cannot_delete_dialog_ok">OK</string>
+	<string name="chapter_cannot_delete_dialog_title">“%1$s” isn’t empty</string>
+	<string name="chapter_cannot_delete_dialog_message">Move or delete the scenes and groups in this chapter first.</string>
 	<string name="create_sceneitem_dialog_create_button">Create</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Cancel</string>
 	<string name="create_sceneitem_dialog_name_label">Name</string>

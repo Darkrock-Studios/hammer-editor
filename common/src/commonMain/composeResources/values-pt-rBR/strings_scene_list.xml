@@ -8,7 +8,6 @@
 	<string name="scene_delete_dialog_title">Excluir Cena</string>
 	<string name="scene_delete_dialog_message">Tem certeza que deseja excluir esta cena: "%1$s"</string>
 	<string name="scene_delete_dialog_delete_button">Excluir</string>
-	<string name="scene_delete_dialog_dismiss_button">Descartar</string>
 	<string name="group_cannot_delete_dialog_title">Não é Possível Excluir o Grupo</string>
 	<string name="group_cannot_delete_dialog_message">Você não pode excluir um grupo enquanto ele ainda contém elementos: "%1$s"</string>
 	<string name="create_sceneitem_dialog_create_button">Criar</string>

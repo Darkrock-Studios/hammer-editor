@@ -8,7 +8,6 @@
 	<string name="scene_delete_dialog_title">Видалити сцену</string>
 	<string name="scene_delete_dialog_message">Ви впевнені, що хочете видалити цю сцену: «%1$s»</string>
 	<string name="scene_delete_dialog_delete_button">Видалити</string>
-	<string name="scene_delete_dialog_dismiss_button">Закрити</string>
 	<string name="group_cannot_delete_dialog_title">Неможливо видалити групу</string>
 	<string name="group_cannot_delete_dialog_message">Не можна видалити групу, доки вона містить елементи: «%1$s»</string>
 	<string name="create_sceneitem_dialog_create_button">Створити</string>

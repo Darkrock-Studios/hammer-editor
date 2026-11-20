@@ -8,7 +8,6 @@
 	<string name="scene_delete_dialog_title">Elimina scena</string>
 	<string name="scene_delete_dialog_message">Vuoi davvero eliminare questa scena: «%1$s»?</string>
 	<string name="scene_delete_dialog_delete_button">Elimina</string>
-	<string name="scene_delete_dialog_dismiss_button">Ignora</string>
 	<string name="group_cannot_delete_dialog_title">Impossibile eliminare il gruppo</string>
 	<string name="group_cannot_delete_dialog_message">Non puoi eliminare un gruppo finché contiene elementi: «%1$s»</string>
 	<string name="create_sceneitem_dialog_create_button">Crea</string>
