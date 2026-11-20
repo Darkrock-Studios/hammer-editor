@@ -41,7 +41,6 @@
 	<string name="project_home_stat_activity_tooltip_empty">%1$s · sem escrita</string>
 	<string name="project_home_stat_avg_weekday">Avg weekday</string>
 	<string name="project_home_stat_avg_weekend">Avg weekend</string>
-	<string name="project_home_stat_chapter_words_summary">σ %1$d · mín %2$d · máx %3$d</string>
 	<string name="project_home_stat_donut_entries">verbetes</string>
 	<string name="project_home_stat_donut_tooltip">%1$s · %2$s verbetes</string>
 	<string name="project_home_stat_themes_title">Temas</string>

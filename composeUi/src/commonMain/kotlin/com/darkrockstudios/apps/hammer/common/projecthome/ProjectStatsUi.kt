@@ -212,10 +212,7 @@ private fun DashboardHeader(
 				)
 			}
 		}
-		HdMonoLabel(
-			text = Res.string.project_home_stat_created.get(state.created),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+		HdMetaText(text = Res.string.project_home_stat_created.get(state.created))
 	}
 
 	if (viewingCover && cover != null) {
@@ -378,14 +375,8 @@ private fun ThisWeekBlock(activity: WritingActivityDerived, modifier: Modifier =
 	) {
 		val pct = activity.weekChangePercent
 		when {
-			pct == null -> HdMonoLabel(
-				text = Res.string.project_home_stat_week_change_new.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			pct == 0 -> HdMonoLabel(
-				text = Res.string.project_home_stat_week_change_flat.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
+			pct == null -> HdMetaText(text = Res.string.project_home_stat_week_change_new.get())
+			pct == 0 -> HdMetaText(text = Res.string.project_home_stat_week_change_flat.get())
 			else -> HdDeltaBadge(percent = pct.toFloat(), suffix = "vs last week")
 		}
 		Spacer(Modifier.height(4.dp))
@@ -439,17 +430,10 @@ private fun StructureSection(
 	onShowLongestScene: () -> Unit,
 	onShowLastEditedScene: () -> Unit,
 ) {
-	val sceneCount = state.numberOfScenes
 	val chapterCount = state.wordsByChapter.size
 	HdHairlineSection(
 		section = 1,
 		title = "Structure",
-		headerTrailing = {
-			HdMonoLabel(
-				text = "$sceneCount scenes · $chapterCount chapters",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		},
 	) {
 		val scenes: @Composable () -> Unit = {
 			HdStatBlock(
@@ -462,9 +446,14 @@ private fun StructureSection(
 			HdStatBlock(
 				label = Res.string.project_home_stat_avg_words_per_scene.get(),
 				value = state.averageWordsPerScene.formatDecimalSeparator(),
-				subtitle = if (state.medianSceneWords > 0)
-					"${Res.string.project_home_stat_scene_median.get().lowercase()} ${state.medianSceneWords.formatDecimalSeparator()}"
-				else null,
+				subtitle = listOfNotNull(
+					state.medianSceneWords.takeIf { it > 0 }?.let {
+						"${Res.string.project_home_stat_scene_median.get().lowercase()} ${it.formatDecimalSeparator()}"
+					},
+					state.sceneWordsStdDev.takeIf { it > 0 }?.let {
+						Res.string.project_home_stat_scene_spread.get(it.formatDecimalSeparator())
+					},
+				).joinToString(" · ").ifEmpty { null },
 			)
 		}
 		val longestScene: @Composable () -> Unit = {
@@ -559,13 +548,11 @@ private fun StructureSection(
 					title = Res.string.project_home_stat_chapter_words.get(),
 					modifier = Modifier.fillMaxWidth(),
 					trailing = {
-						HdMonoLabel(
-							text = Res.string.project_home_stat_chapter_words_summary.get(
-								state.sceneWordsStdDev,
-								chapterStats.min,
-								chapterStats.max,
+						HdMetaText(
+							text = Res.string.project_home_stat_chapter_words_range.get(
+								chapterStats.min.formatDecimalSeparator(),
+								chapterStats.max.formatDecimalSeparator(),
 							),
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					},
 				)
@@ -595,14 +582,6 @@ private fun InhabitantsSection(
 ) {
 	val typeCounts = state.encyclopediaEntriesByType
 	val totalEntries = remember(typeCounts) { typeCounts.values.sum() }
-	val headerSummary = remember(typeCounts, totalEntries) {
-		buildList {
-			if (totalEntries > 0) add("$totalEntries entries")
-			typeCounts[EntryType.PLACE]?.takeIf { it > 0 }?.let { add("$it places") }
-			typeCounts[EntryType.PERSON]?.takeIf { it > 0 }?.let { add("$it people") }
-			typeCounts[EntryType.THING]?.takeIf { it > 0 }?.let { add("$it things") }
-		}.joinToString(" · ").takeIf { it.isNotEmpty() }
-	}
 	val hammerColors = LocalHammerColors.current
 	val attributions = remember(state.topAppearances, hammerColors) {
 		state.topAppearances.map { entry ->
@@ -618,14 +597,6 @@ private fun InhabitantsSection(
 	HdHairlineSection(
 		section = 2,
 		title = "Inhabitants",
-		headerTrailing = {
-			if (headerSummary != null) {
-				HdMonoLabel(
-					text = headerSummary,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-			}
-		},
 	) {
 		HdResponsiveStrip(isWide = isWide) {
 			Column(modifier = Modifier.cell(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -636,7 +607,7 @@ private fun InhabitantsSection(
 				if (attributions.isNotEmpty()) {
 					HdMiniBarChart(items = attributions, modifier = Modifier.fillMaxWidth())
 				} else {
-					Spacer(Modifier.height(48.dp))
+					HdMetaText(text = Res.string.project_home_stat_characters_appearances_empty.get())
 				}
 			}
 			Column(modifier = Modifier.cell(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -649,6 +620,7 @@ private fun InhabitantsSection(
 					totalEntries = totalEntries,
 					modifier = Modifier.fillMaxWidth().height(220.dp),
 				)
+				EncyclopediaLegend(typeCounts)
 				if (state.totalEntryConnections > 0) {
 					HdMonoLabel(
 						text = Res.string.project_home_stat_connections.get(state.totalEntryConnections),
@@ -678,6 +650,8 @@ private fun InhabitantsSection(
 						value = state.writingActivity.avgWeekend.formatDecimalSeparator(),
 						valueStyle = MaterialTheme.typography.titleSmall,
 					)
+				} else {
+					HdMetaText(text = Res.string.project_home_stat_activity_empty.get())
 				}
 			}
 		}
@@ -1314,6 +1288,29 @@ private fun EncyclopediaDonut(
 	}
 
 	LaunchedEffect(Unit) { hasAnimated = true }
+}
+
+/** Each slice's color, type and count, since a donut without hover can't otherwise say. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EncyclopediaLegend(typeCounts: Map<EntryType, Int>) {
+	val hammerColors = LocalHammerColors.current
+	FlowRow(
+		horizontalArrangement = Arrangement.spacedBy(16.dp),
+		verticalArrangement = Arrangement.spacedBy(4.dp),
+	) {
+		typeCounts.filterValues { it > 0 }.forEach { (type, count) ->
+			Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+				Box(Modifier.size(8.dp).background(hammerColors.colorFor(type)))
+				HdMetaText(
+					text = Res.string.project_home_stat_donut_tooltip.get(
+						type.toStringResource().get(),
+						count.formatDecimalSeparator(),
+					),
+				)
+			}
+		}
+	}
 }
 
 @Composable

@@ -41,7 +41,6 @@
 	<string name="project_home_stat_activity_tooltip_empty">%1$s · sin escritura</string>
 	<string name="project_home_stat_avg_weekday">Med. entre semana</string>
 	<string name="project_home_stat_avg_weekend">Med. fin de semana</string>
-	<string name="project_home_stat_chapter_words_summary">σ %1$d · mín %2$d · máx %3$d</string>
 	<string name="project_home_stat_donut_entries">entradas</string>
 	<string name="project_home_stat_donut_tooltip">%1$s · %2$s entradas</string>
 	<string name="project_home_stat_themes_title">Temas</string>

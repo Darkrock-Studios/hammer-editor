@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
-	<string name="project_home_stat_created">Created: %1$s</string>
+	<string name="project_home_stat_created">Created %1$s</string>
 	<string name="project_home_cover_description">Book cover</string>
 	<string name="project_home_loading_stats">Calculating statistics...</string>
 	<string name="project_home_refresh_stats_button">Refresh statistics</string>
@@ -42,6 +42,7 @@
 	<string name="project_home_stat_best_day_value">%1$s · %2$s</string>
 
 	<string name="project_home_stat_characters_appearances">Characters by Appearances</string>
+	<string name="project_home_stat_characters_appearances_empty">No characters are linked to scenes yet.</string>
 	<string name="project_home_stat_connections">%1$d connections</string>
 
 	<string name="project_home_stat_words_per_device">Words by Device</string>
@@ -49,12 +50,14 @@
 	<string name="project_home_stat_unknown_author">Unknown author</string>
 
 	<string name="project_home_stat_activity">Activity · %1$d weeks</string>
+	<string name="project_home_stat_activity_empty">No writing recorded yet.</string>
 	<string name="project_home_stat_activity_tooltip">%1$s · %2$s words</string>
 	<string name="project_home_stat_activity_tooltip_empty">%1$s · no writing</string>
 	<string name="project_home_stat_avg_weekday">Avg weekday</string>
 	<string name="project_home_stat_avg_weekend">Avg weekend</string>
 
-	<string name="project_home_stat_chapter_words_summary">σ %1$d · min %2$d · max %3$d</string>
+	<string name="project_home_stat_chapter_words_range">%1$s to %2$s words</string>
+	<string name="project_home_stat_scene_spread">σ %1$s</string>
 	<string name="project_home_stat_donut_entries">entries</string>
 	<string name="project_home_stat_donut_tooltip">%1$s · %2$s entries</string>
 
