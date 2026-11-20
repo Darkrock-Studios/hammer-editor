@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.DiscardNewEntryScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.RenameEntryNamesScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.RenameEntrySummaryScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.EntryAddDialogsScrimPreview
@@ -293,6 +294,7 @@ class ScreenGalleryTest {
 		surfaced("Rename image") { RenameImageScrimPreview() },
 		surfaced("Delete image") { DeleteImageScrimPreview() },
 		surfaced("Create encyclopedia entry") { ScreenCreateEntryPreview() },
+		surfaced("Discard new entry") { DiscardNewEntryScrimPreview() },
 		screen("Timeline") { ScreenTimeLineOverviewUiTabletPreview() },
 		screen("View timeline event") { ScreenViewTimeLineEventUiTabletPreview() },
 		surfaced("Move to timeline dialog") { MoveToTimelineDialogPreview() },

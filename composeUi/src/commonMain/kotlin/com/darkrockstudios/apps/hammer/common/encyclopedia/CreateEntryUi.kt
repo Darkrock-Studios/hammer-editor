@@ -67,6 +67,10 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_cover_art_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_create_button
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_description_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_title
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_confirm
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_keep
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_message
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_header
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_attached
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_browse_button
@@ -294,6 +298,11 @@ internal fun CreateEntryUi(
 	if (state.showConfirmClose) {
 		SimpleConfirm(
 			title = Res.string.encyclopedia_create_entry_discard_title.get(),
+			message = Res.string.encyclopedia_create_entry_discard_message.get(),
+			positiveButton = Res.string.encyclopedia_create_entry_discard_confirm.get(),
+			negativeButton = Res.string.encyclopedia_create_entry_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { component.dismissConfirmClose() },
 		) {
 			component.dismissConfirmClose()

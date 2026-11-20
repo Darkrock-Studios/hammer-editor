@@ -13,6 +13,10 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
 import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_confirm
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_keep
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_message
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_title
 import com.darkrockstudios.apps.hammer.confirm_kind_delete
 import com.darkrockstudios.apps.hammer.confirm_kind_discard
 import com.darkrockstudios.apps.hammer.confirm_kind_remove
@@ -86,6 +90,27 @@ internal fun EntryConfirmsScrimPreview() {
 			cancelLabel = Res.string.encyclopedia_entry_confirm_cancel.get(),
 			kind = Res.string.confirm_kind_remove.get(),
 			destructive = false,
+		)
+	}
+}
+
+/** Leaving a new encyclopedia entry before creating it, over a scrim. */
+@Composable
+internal fun DiscardNewEntryScrimPreview() {
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		verticalArrangement = Arrangement.Center,
+		horizontalAlignment = Alignment.CenterHorizontally,
+	) {
+		EntryConfirm(
+			title = Res.string.encyclopedia_create_entry_discard_title.get(),
+			message = Res.string.encyclopedia_create_entry_discard_message.get(),
+			confirmLabel = Res.string.encyclopedia_create_entry_discard_confirm.get(),
+			cancelLabel = Res.string.encyclopedia_create_entry_discard_keep.get(),
+			kind = Res.string.confirm_kind_discard.get(),
+			destructive = true,
 		)
 	}
 }

@@ -111,7 +111,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Add Alias (`AliasAddDialog`) g: Encyclopedia add tags and alias
   - [x] Rename "name" everywhere (`RenameEntryDialog`) g: Rename everywhere, names, Rename everywhere, summary
 - [x] Create entry (`CreateEntryUi`) g: Create encyclopedia entry
-  - [ ] Discard New Entry? (`SimpleConfirm`) **no gallery**
+  - [x] Discard New Entry? (`SimpleConfirm`) g: Discard new entry
 
 ## 7. Timeline
 
