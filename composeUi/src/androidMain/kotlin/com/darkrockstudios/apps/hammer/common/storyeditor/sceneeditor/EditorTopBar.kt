@@ -8,10 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -96,9 +96,9 @@ actual fun EditorTopBar(
 					modifier = Modifier.testTag(SCENE_EDITOR_SAVE_TAG),
 				) {
 					Icon(
-						Icons.Filled.Save,
+						Icons.Outlined.Save,
 						contentDescription = Res.string.scene_editor_save_button.get(),
-						tint = MaterialTheme.colorScheme.onSurface
+						tint = MaterialTheme.colorScheme.onSurfaceVariant
 					)
 				}
 			}
@@ -107,9 +107,9 @@ actual fun EditorTopBar(
 		if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
 			IconButton(onClick = onToggleMetadata) {
 				Icon(
-					Icons.Filled.Info,
+					Icons.Outlined.Info,
 					contentDescription = Res.string.scene_editor_metadata_button.get(),
-					tint = MaterialTheme.colorScheme.onSurface
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
 		}
@@ -117,9 +117,9 @@ actual fun EditorTopBar(
 		if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
 			IconButton(onClick = component::readScene) {
 				Icon(
-					imageVector = Icons.AutoMirrored.Filled.MenuBook,
+					imageVector = Icons.AutoMirrored.Outlined.MenuBook,
 					contentDescription = Res.string.scene_editor_menu_item_read.get(),
-					tint = MaterialTheme.colorScheme.onSurface
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
 		}
@@ -129,7 +129,7 @@ actual fun EditorTopBar(
 				Icon(
 					imageVector = Icons.Default.Fullscreen,
 					contentDescription = Res.string.scene_editor_focus_mode_button.get(),
-					tint = MaterialTheme.colorScheme.onBackground
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
 		}

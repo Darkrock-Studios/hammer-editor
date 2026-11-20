@@ -79,7 +79,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Move scene (`MoveSceneDialog`) g: Move scene dialog
   - [x] Archived Scenes (`ArchivedScenesDialog`) g: Archived scenes
 - [x] Story Outline (`OutlineOverviewUi`) g: Outline overview
-- [ ] Scene editor (`SceneEditorUi`) g: Scene editor
+- [x] Scene editor (`SceneEditorUi`) g: Scene editor
   - [ ] Start New Draft (`SaveDraftDialog`) **no gallery**
   - [ ] Discard Changes (`DiscardBufferDialog`) **no gallery**
   - [x] Archive Scene, from the editor (merged into `SceneArchiveDialog`) g: Archive scene confirm
