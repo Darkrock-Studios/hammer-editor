@@ -1,5 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,6 +52,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  * renders as a mono greeble on the right; anchor it to a real value (a locale code,
  * a count), never decoration. [onClear], when provided, shows a muted row above the
  * list that clears the current selection. Selection and clear both dismiss.
+ * [isSelected] marks the current item, and [clearSelected] the clear row when nothing is set;
+ * the list opens scrolled to the current item.
  */
 @Composable
 fun <T> HdSearchableListDialog(
@@ -63,6 +70,8 @@ fun <T> HdSearchableListDialog(
 	clearLabel: String? = null,
 	onClear: (() -> Unit)? = null,
 	emptyLabel: String = "",
+	isSelected: (T) -> Boolean = { false },
+	clearSelected: Boolean = false,
 ) {
 	var query by rememberSaveable { mutableStateOf("") }
 
@@ -87,6 +96,8 @@ fun <T> HdSearchableListDialog(
 			clearLabel = clearLabel,
 			onClear = onClear,
 			emptyLabel = emptyLabel,
+			isSelected = isSelected,
+			clearSelected = clearSelected,
 		)
 	}
 }
@@ -108,6 +119,8 @@ internal fun <T> HdSearchableListDialogContent(
 	clearLabel: String? = null,
 	onClear: (() -> Unit)? = null,
 	emptyLabel: String = "",
+	isSelected: (T) -> Boolean = { false },
+	clearSelected: Boolean = false,
 ) {
 	val filtered = remember(items, query) {
 		if (query.isBlank()) items
@@ -138,7 +151,8 @@ internal fun <T> HdSearchableListDialogContent(
 			PickerRow(
 				label = clearLabel,
 				trailing = null,
-				muted = true,
+				muted = !clearSelected,
+				selected = clearSelected,
 				onClick = {
 					onClear()
 					onDismissRequest()
@@ -169,12 +183,16 @@ internal fun <T> HdSearchableListDialogContent(
 					)
 				}
 			} else {
-				LazyColumn(modifier = Modifier.fillMaxWidth()) {
+				val listState = rememberLazyListState(
+					initialFirstVisibleItemIndex = filtered.indexOfFirst(isSelected).coerceAtLeast(0),
+				)
+				LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
 					items(filtered, key = itemKey) { item ->
 						PickerRow(
 							label = itemLabel(item),
 							trailing = itemTrailing?.invoke(item),
 							muted = false,
+							selected = isSelected(item),
 							onClick = {
 								onSelect(item)
 								onDismissRequest()
@@ -196,6 +214,7 @@ private fun PickerRow(
 	label: String,
 	trailing: String?,
 	muted: Boolean,
+	selected: Boolean,
 	onClick: () -> Unit,
 ) {
 	Row(
@@ -204,17 +223,26 @@ private fun PickerRow(
 			.clickable(onClick = onClick)
 			.padding(horizontal = Ui.Padding.M, vertical = Ui.Padding.L),
 		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.SpaceBetween,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
 	) {
 		Text(
 			text = label,
 			style = MaterialTheme.typography.bodyMedium,
-			color = if (muted) {
-				MaterialTheme.colorScheme.onSurfaceVariant
-			} else {
-				MaterialTheme.colorScheme.onSurface
+			color = when {
+				selected -> MaterialTheme.colorScheme.primary
+				muted -> MaterialTheme.colorScheme.onSurfaceVariant
+				else -> MaterialTheme.colorScheme.onSurface
 			},
+			modifier = Modifier.weight(1f),
 		)
+		if (selected) {
+			Icon(
+				imageVector = Icons.Filled.Check,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.primary,
+				modifier = Modifier.size(18.dp),
+			)
+		}
 		if (trailing != null) {
 			HdMonoLabel(
 				text = trailing,

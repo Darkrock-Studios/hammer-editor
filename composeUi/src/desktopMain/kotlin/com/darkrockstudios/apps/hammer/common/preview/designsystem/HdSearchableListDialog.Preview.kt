@@ -70,3 +70,32 @@ fun HdSearchableListDialogFilteredPreview() {
 fun HdSearchableListDialogEmptyPreview() {
 	DialogPreviewSurface(query = "klingon")
 }
+
+/** The project language picker over a scrim, with English (United States) as the current language. */
+@Composable
+internal fun LanguagePickerScrimPreview() {
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		HdSearchableListDialogContent(
+			title = "Choose a language",
+			query = "",
+			onQueryChange = {},
+			items = languages,
+			itemLabel = { it.second },
+			itemTrailing = { it.first.uppercase() },
+			itemKey = { it.first },
+			onSelect = {},
+			onDismissRequest = {},
+			closeContentDescription = "Close",
+			searchPlaceholder = "Search languages",
+			clearLabel = "Not set",
+			onClear = {},
+			emptyLabel = "No languages match",
+			isSelected = { it.first == "en-US" },
+		)
+	}
+}

@@ -39,7 +39,6 @@
 	<string name="project_info_language_dialog_title">Escolha um idioma</string>
 	<string name="project_info_language_dialog_close">Fechar</string>
 	<string name="project_info_language_search_hint">Procurar idiomas</string>
-	<string name="project_info_language_clear">Clear (not set)</string>
 	<string name="project_info_language_empty">No languages match</string>
 	<string name="project_info_color_picker_edit">Editar</string>
 	<string name="project_info_color_picker_cancel">Cancelar</string>

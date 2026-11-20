@@ -70,7 +70,6 @@ import com.darkrockstudios.apps.hammer.project_info_author_label
 import com.darkrockstudios.apps.hammer.project_info_color_picker_cancel
 import com.darkrockstudios.apps.hammer.project_info_color_picker_confirm
 import com.darkrockstudios.apps.hammer.project_info_color_picker_edit
-import com.darkrockstudios.apps.hammer.project_info_language_clear
 import com.darkrockstudios.apps.hammer.project_info_language_dialog_close
 import com.darkrockstudios.apps.hammer.project_info_language_dialog_title
 import com.darkrockstudios.apps.hammer.project_info_language_empty
@@ -184,9 +183,11 @@ internal fun LanguageField(
 		onDismiss = { showPicker = false },
 		closeContentDescription = Res.string.project_info_language_dialog_close.get(),
 		searchPlaceholder = Res.string.project_info_language_search_hint.get(),
-		clearLabel = Res.string.project_info_language_clear.get(),
+		clearLabel = Res.string.project_info_language_unset.get(),
 		onClear = { onChange(null) },
 		emptyLabel = Res.string.project_info_language_empty.get(),
+		isSelected = { it.tag == languageTag },
+		clearSelected = languageTag == null,
 	)
 }
 
