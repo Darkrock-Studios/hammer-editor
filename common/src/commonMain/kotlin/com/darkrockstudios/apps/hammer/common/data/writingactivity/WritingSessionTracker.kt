@@ -119,11 +119,15 @@ class WritingSessionTracker(
 	 */
 	suspend fun <T> updateOwnLog(block: suspend () -> T): T = mutex.withLock {
 		sessions?.takeIf { sessionsUnsaved }?.let { persist(it) }
+		val unsaved = sessions?.takeIf { sessionsUnsaved }
 		try {
 			block()
 		} finally {
-			sessions = null
-			sessionsUnsaved = false
+			// Still unwritten: kept over whatever the block wrote, for the next write to retry.
+			sessions = unsaved?.let {
+				val written = runCatching { repository.loadOwnLog().sessions }.getOrDefault(emptyList())
+				mergeOwnSlotSessions(written, it)
+			}
 		}
 	}
 

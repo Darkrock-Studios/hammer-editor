@@ -500,6 +500,23 @@ class SceneEditorServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Unsaved edits restored after a scene was anchored are not credited again`() = runTest(mainTestDispatcher) {
+		val service = serviceCountingActivity()
+		sceneDatasource.storeTempSceneBuffer(
+			SceneBuffer(SceneContent(sceneItem(3, 0), "Unsaved from last time"), dirty = true, source = UpdateSource.Editor)
+		)
+		service.initialize(restoreUnsavedEdits = false)
+		val scene = service.getSceneItemFromId(3)!!
+		service.loadSceneBuffer(scene)
+
+		service.restoreUnsavedEdits()
+		service.onContentChanged(SceneContent(scene, "Unsaved from last time and now more"), UpdateSource.Editor)
+		advanceUntilIdle()
+
+		assertEquals(3, wordsRecorded())
+	}
+
+	@Test
 	fun `Store-all-buffers flushes every dirty buffer`() = runTest(mainTestDispatcher) {
 		val service = initializedService()
 

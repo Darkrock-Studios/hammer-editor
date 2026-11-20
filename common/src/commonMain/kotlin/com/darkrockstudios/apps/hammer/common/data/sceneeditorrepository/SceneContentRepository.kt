@@ -98,7 +98,8 @@ class SceneContentRepository(
 	private val tempBuffersRestored = atomic(false)
 
 	/**
-	 * Called with text from outside the editor (sync, a draft restore, [replaceBuffer]) under the
+	 * Called with text from outside the editor (sync, a draft restore, [replaceBuffer], restored
+	 * unsaved edits) under the
 	 * buffer lock, just before it replaces the scene's buffer, so no reader sees the new buffer
 	 * first. Must be quick.
 	 */
@@ -388,7 +389,10 @@ class SceneContentRepository(
 	fun restoreTempBuffers() {
 		if (!tempBuffersRestored.compareAndSet(expect = false, update = true)) return
 		for (content in sceneDatasource.getSceneTempBufferContents()) {
-			updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository))
+			sceneBuffersLock.withLock {
+				onExternalContentApplied?.invoke(content)
+				updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository))
+			}
 		}
 	}
 

@@ -343,6 +343,11 @@ for this yet.
 The protocol for synchronizing data between client and server is outlined here:
 [SYNCING-PROTOCOL.md](docs/SYNCING-PROTOCOL.md)
 
+## Writing Activity
+
+How words written are counted, and whose words the statistics show, is in
+[WRITING-ACTIVITY.md](docs/WRITING-ACTIVITY.md).
+
 ## Adding an Entity Type
 
 Every client and server touch point for a new synced entity type, with the hashing rules that

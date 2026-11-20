@@ -16,8 +16,9 @@ A word is what the scene word count counts (`countedWordSpans`), compared withou
 
 `WritingSessionTracker` does the counting; the pure functions are in `WordCredit.kt`.
 
-**Anchors.** The first time the tracker sees a scene in an epoch (its editor loads it, or a save
-arrives), it remembers the scene's text as its anchor. Every editor save, autosave included, is
+**Anchors.** A scene is anchored at its text when its buffer is loaded from disk, when a buffer
+that is already in memory is first opened, or at its first editor save if neither happened. Every
+editor save, autosave included, is
 compared with that anchor, never with the previous save. So an autosave that lands mid-word, a
 typo fixed a minute later, or a deletion that is undone changes nothing: only the text at each
 save, measured against the anchor, matters.
@@ -41,13 +42,16 @@ and typing them again adds nothing, and nothing is ever subtracted.
 
 **Epochs.** An epoch ends where a writing session is sealed: at the first editor save on a later
 local calendar day, or more than six hours after the last save that recorded words. Every scene
-is then re-anchored at its last saved text, and the total and its high point start from zero.
+is then re-anchored at its last saved text, and the total and its high point start from zero. The
+tracker lives in memory with the open project, so closing and reopening a project also starts a
+new epoch.
 
 **Text from outside the editor.** When text replaces a scene's buffer from anywhere but the editor
-(sync, a draft restore, a plugin or MCP write, a rename rewriting the scene, discarding unsaved
-edits), the scene is re-anchored at the new text: its credit is banked and the new text counts as
-seen. Sync and draft content re-anchor at the moment the buffer is replaced, under the buffer lock,
-so an editor save is never compared with the wrong anchor. A rewrite first credits any words typed
+(sync, a draft restore, a plugin or MCP write, a rename rewriting the scene, restored unsaved
+edits, discarding unsaved edits), the scene is re-anchored at the new text: its credit is banked
+and the new text counts as seen. The re-anchor happens under the buffer lock just before the buffer
+is replaced, so an editor save is never compared with the wrong anchor. A scene the tracker does
+not hold yet is left alone and anchored when it is opened. A rewrite first credits any words typed
 into the buffer it rewrites. A deleted scene's credit is banked and its text stays seen.
 
 ## Accepted limits
@@ -55,13 +59,14 @@ into the buffer it rewrites. A deleted scene's credit is banked and its text sta
 - Text pasted from another app counts as written.
 - Fresh prose that repeats four consecutive words, or a whole short line, from text seen before
   loses those words.
-- Writing 100 words, deleting them and writing 100 different ones in one epoch credits 100.
+- Writing 100 words, deleting them and writing 100 different ones in one epoch credits 100. Across
+  a project reopen it credits 200.
 - Duplicating text typed this epoch (copy, paste, keep both) counts twice.
 - Bolding part of a word splits it into two words, which count as new.
 - In a passage that is both moved and densely edited, a word within three words of an edit and of
   the move's edge can count.
-- After switching accounts on one install, words written before the next sync stay in the own log
-  stamped with the previous account, so the new account's totals miss them until that sync.
+- After switching accounts on one install, words written before the next sync go into the own log
+  still stamped with the previous account, and that sync files them under the previous account.
 - Recorded history is never corrected.
 
 ## Sessions and days
@@ -73,9 +78,10 @@ it started on.
 
 ## Whose words
 
-On a shared project, Today, Last 7 days, the streak, the heatmap and goal progress count only the
-signed-in author's sessions, from every device they used. Words by author covers everyone. With no
-account signed in, every log counts. A log's author is the one the server stamped on it; a log with
+With an account signed in, Today, Last 7 days, the streak, the heatmap, goal progress and words
+by device count only that author's sessions, from every device they used, so on a co-authored
+project each author sees their own writing. Words by author covers everyone. With no account
+signed in, every log counts. A log's author is the one the server stamped on it; a log with
 none is the project owner's, except this device's own log, which belongs to the signed-in account.
 Cached statistics record the account they were computed for and are recalculated for another.
 The `stats.activity` and `stats.sessions` operations cover every author.
