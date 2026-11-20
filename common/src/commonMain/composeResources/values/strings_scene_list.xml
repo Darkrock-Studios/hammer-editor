@@ -57,9 +57,10 @@
 	<string name="scene_list_group_action_create_group">Create Group</string>
 
 	<string name="scene_list_item_action_move">Move To</string>
+	<string name="scene_move_dialog_title">Move “%1$s”</string>
 	<string name="scene_move_dialog_destination_label">Destination</string>
 	<string name="scene_move_dialog_search_placeholder">Search groups</string>
-	<string name="scene_move_dialog_chapters">Chapters (Top Level)</string>
+	<string name="scene_move_dialog_chapters">Top level (as a chapter)</string>
 	<string name="scene_move_dialog_no_results">No matching groups</string>
 	<string name="scene_move_dialog_position_label">Position (1–%1$d)</string>
 	<string name="scene_move_dialog_invalid_position">Enter a position between 1 and %1$d</string>

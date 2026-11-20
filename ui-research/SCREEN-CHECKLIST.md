@@ -76,7 +76,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Delete Scene / Chapter / Group (`SceneDeleteDialog`) g: Delete scene confirm
   - [x] Cannot Delete Chapter / Group (`GroupDeleteNotAllowedDialog`) g: Cannot delete chapter
   - [x] Archive Scene, from the list (`SceneArchiveDialog`) g: Archive scene confirm
-  - [ ] Move scene (`MoveSceneDialog`) g: Move scene dialog
+  - [x] Move scene (`MoveSceneDialog`) g: Move scene dialog
   - [ ] Archived Scenes (`ArchivedScenesDialog`) **no gallery**
 - [ ] Story Outline (`OutlineOverviewUi`) g: Outline overview
 - [ ] Scene editor (`SceneEditorUi`) g: Scene editor

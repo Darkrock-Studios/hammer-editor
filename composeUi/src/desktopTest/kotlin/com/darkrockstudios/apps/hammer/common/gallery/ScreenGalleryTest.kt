@@ -252,7 +252,7 @@ class ScreenGalleryTest {
 		screen("Drafts list") { ScreenDraftsListUiTabletPreview() },
 		screen("Reader mode") { ScreenReaderModeUiTabletPreview() },
 		screen("Outline overview") { ScreenOutlineOverviewUiTabletPreview() },
-		screen("Move scene dialog", note = "Preview hardcodes the dark theme.") { ScreenMoveSceneDialogPreview() },
+		surfaced("Move scene dialog") { ScreenMoveSceneDialogPreview() },
 		screen("Browse notes") { ScreenBrowseNotesUiTabletPreview() },
 		screen("View note") { ScreenViewNoteUiTabletPreview() },
 		surfaced("Create note") { ScreenCreateNoteUiPreview() },

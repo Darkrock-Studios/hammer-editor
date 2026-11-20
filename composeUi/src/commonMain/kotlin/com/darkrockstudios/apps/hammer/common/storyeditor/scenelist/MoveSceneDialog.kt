@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.FormDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
@@ -51,18 +50,20 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.computeMoveRequest
 import com.darkrockstudios.apps.hammer.common.data.movePositionCount
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
-import com.darkrockstudios.apps.hammer.common.data.tree.isChapter
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.data.validMoveDestinations
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
 import com.darkrockstudios.apps.hammer.scene_move_dialog_destination_label
 import com.darkrockstudios.apps.hammer.scene_move_dialog_dismiss_button
 import com.darkrockstudios.apps.hammer.scene_move_dialog_invalid_position
 import com.darkrockstudios.apps.hammer.scene_move_dialog_move_button
+import com.darkrockstudios.apps.hammer.scene_move_dialog_title
 import com.darkrockstudios.apps.hammer.scene_move_dialog_no_results
 import com.darkrockstudios.apps.hammer.scene_move_dialog_position_label
 import com.darkrockstudios.apps.hammer.scene_move_dialog_search_placeholder
 import com.darkrockstudios.apps.hammer.scene_move_dialog_chapters
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
+import androidx.compose.foundation.layout.fillMaxSize
 
 private fun moveDestinationTag(id: Int) = "move-dialog-destination-$id"
 
@@ -164,18 +165,35 @@ internal fun MoveSceneDialog(
 		onDismiss()
 	}
 
-	FormDialog(
+	AnimatedDialog(
 		visible = true,
-		meta = sceneTypeMeta(item, isChapter = tree.isChapter(item)),
-		title = item.name,
+		onCloseRequest = onDismiss,
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center,
+	) {
+		MoveSceneCard(
+			state = state,
+			onConfirm = ::submit,
+			onCancel = onDismiss,
+		)
+	}
+}
+
+@Composable
+internal fun MoveSceneCard(
+	state: MoveSceneDialogState,
+	onConfirm: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	FormDialogScaffold(
+		title = Res.string.scene_move_dialog_title.get(state.item.name),
 		confirmLabel = Res.string.scene_move_dialog_move_button.get(),
 		cancelLabel = Res.string.scene_move_dialog_dismiss_button.get(),
-		onConfirm = ::submit,
-		onCancel = onDismiss,
-		onDismiss = onDismiss,
+		onConfirm = onConfirm,
+		onCancel = onCancel,
 		confirmEnabled = state.selectedNode != null && state.positionValid,
 	) {
-		MoveSceneDialogBody(state = state, onSubmit = ::submit)
+		MoveSceneDialogBody(state = state, onSubmit = onConfirm)
 	}
 }
 
@@ -251,7 +269,12 @@ private fun DestinationRow(
 	HdPickerRow(
 		label = if (isTopLevel) topLevelLabel else node.value.name,
 		depth = node.depth,
-		icon = if (isTopLevel) Icons.AutoMirrored.Outlined.MenuBook else Icons.Filled.Folder,
+		// Only groups directly under the top level are chapters.
+		icon = when (node.depth) {
+			0 -> null
+			1 -> Icons.AutoMirrored.Outlined.MenuBook
+			else -> Icons.Filled.Folder
+		},
 		modifier = Modifier
 			.background(bg)
 			.leftBorder(2.dp, accent)

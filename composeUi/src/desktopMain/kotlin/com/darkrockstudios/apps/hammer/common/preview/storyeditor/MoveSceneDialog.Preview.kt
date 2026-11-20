@@ -9,56 +9,30 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
-import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
-import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
-import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.MoveSceneDialogBody
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.MoveSceneCard
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.MoveSceneDialogState
-import com.darkrockstudios.apps.hammer.scene_move_dialog_dismiss_button
-import com.darkrockstudios.apps.hammer.scene_move_dialog_move_button
 
-/**
- * The move dialog renders inside an animated [androidx.compose.ui.window.Dialog], which the
- * Desktop preview renderer can't settle to a static frame. Preview its [FormDialogScaffold]
- * chrome directly.
- */
+/** Moving a top-level scene, over a scrim; the card directly, since the animated dialog can't settle in a preview. */
 @Preview(widthDp = 720, heightDp = 720)
 @Composable
 fun ScreenMoveSceneDialogPreview() {
 	KoinApplicationPreview {
-		AppTheme(globalSettingsPreview, true) {
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.background(MaterialTheme.colorScheme.background),
-				contentAlignment = Alignment.Center,
-			) {
-				val tree = remember { previewTree() }
-				val item = remember(tree) { tree.findBy { it.id == 8 }!!.value }
-				val state = remember(tree, item) { MoveSceneDialogState(item, tree) }
-
-				FormDialogScaffold(
-					meta = sceneTypeMeta(item),
-					title = item.name,
-					confirmLabel = Res.string.scene_move_dialog_move_button.get(),
-					cancelLabel = Res.string.scene_move_dialog_dismiss_button.get(),
-					onConfirm = {},
-					onCancel = {},
-					confirmEnabled = true,
-					body = {
-						MoveSceneDialogBody(state = state, onSubmit = {})
-					},
-				)
-			}
+		Box(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+			contentAlignment = Alignment.Center,
+		) {
+			val tree = remember { previewTree() }
+			val item = remember(tree) { tree.findBy { it.id == 8 }!!.value }
+			val state = remember(tree, item) { MoveSceneDialogState(item, tree) }
+			MoveSceneCard(state = state, onConfirm = {}, onCancel = {})
 		}
 	}
 }
