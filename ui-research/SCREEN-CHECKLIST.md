@@ -54,7 +54,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 
 - [x] Home, stats dashboard (`ProjectHomeUi`, `ProjectStatsUi`) g: Project stats
   - [x] Export Story (`ExportOptionsDialog`, `SceneSelector`) g: Export options dialog
-  - [ ] Choosing an Export Format (`ExportHelpDialog`) **no gallery**
+  - [x] Choosing an Export Format (`ExportHelpDialog`) **no gallery** g: Export format help
 - [x] Project settings (`ProjectSettingsUi`, all tabs) g: Project settings, Project settings, shared, Project settings, writing, Project settings, timelines, Project settings, plugins
   - [ ] Choose a language (`LanguageField`, `HdSearchableListDialog`) **no gallery**
   - [ ] Color picker, Primary / Secondary (`ColorPickerDialog`) **no gallery**

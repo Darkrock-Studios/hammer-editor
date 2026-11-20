@@ -29,3 +29,16 @@ fun ExportHelpDialogPreview() {
 		}
 	}
 }
+
+/** The export format help over a scrim, for the gallery. */
+@Composable
+internal fun ExportHelpScrimPreview() {
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		ExportHelpContent(onDismiss = {})
+	}
+}

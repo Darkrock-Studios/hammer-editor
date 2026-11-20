@@ -120,14 +120,13 @@
 	<string name="project_home_export_scenes_clear_all">Clear all</string>
 
 	<string name="project_home_export_help_icon_description">Learn about export formats</string>
-	<string name="project_home_export_help_title">Choosing an Export Format</string>
-	<string name="project_home_export_help_intro">Each format suits a different purpose. Pick the one that matches how you plan to use the exported story.</string>
-	<string name="project_home_export_help_format_markdown">Plain text with light formatting, in a zip with its images; ideal for version control or other writing tools.</string>
-	<string name="project_home_export_help_format_epub">The standard e-book format; best for beta readers reading on e-readers and phones with reflowable text.</string>
-	<string name="project_home_export_help_format_pdf">A fixed page layout that looks the same everywhere; best for printing or sharing a final, read-only copy.</string>
-	<string name="project_home_export_help_format_docx">Standard Manuscript Format, for submitting to editors, agents and publishers: a first page with your contact details and word count, double spacing, and a running header.</string>
-	<string name="project_home_export_help_format_rtf">A broadly compatible rich-text format; a safe choice when you are unsure which word processor the recipient uses.</string>
-	<string name="project_home_export_help_dismiss">Got it</string>
+	<string name="project_home_export_help_title">Choosing an export format</string>
+	<string name="project_home_export_help_close">Close</string>
+	<string name="project_home_export_help_format_markdown">Plain text with light formatting, zipped with its images. Good for version control and other writing tools.</string>
+	<string name="project_home_export_help_format_epub">The e-book format. Best for beta readers on e-readers and phones.</string>
+	<string name="project_home_export_help_format_pdf">A fixed layout that looks the same everywhere. Best for printing or a final, read-only copy.</string>
+	<string name="project_home_export_help_format_docx">Standard Manuscript Format, for agents, editors and publishers: contact details and word count up front, double spacing, and a running header.</string>
+	<string name="project_home_export_help_format_rtf">Opens in almost any word processor. A safe choice when you don't know what the reader uses.</string>
 
 	<string name="project_home_export_contents_title">Contents</string>
 	<string name="project_home_export_byline">by %1$s</string>

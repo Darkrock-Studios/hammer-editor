@@ -86,13 +86,11 @@
 	<string name="project_home_export_scenes_clear_all">Cancella tutto</string>
 	<string name="project_home_export_help_icon_description">Scopri i formati di esportazione</string>
 	<string name="project_home_export_help_title">Scegliere un formato di esportazione</string>
-	<string name="project_home_export_help_intro">Ogni formato è adatto a uno scopo diverso. Scegli quello che corrisponde a come intendi usare la storia esportata.</string>
 	<string name="project_home_export_help_format_markdown">Testo semplice con formattazione leggera, in uno ZIP con le sue immagini; ideale per il controllo di versione o altri strumenti di scrittura.</string>
 	<string name="project_home_export_help_format_epub">Il formato standard per e-book; il migliore per i beta lettori che leggono su e-reader e telefoni con testo ridistribuibile.</string>
 	<string name="project_home_export_help_format_pdf">Un’impaginazione fissa che appare uguale ovunque; la migliore per stampare o condividere una copia finale di sola lettura.</string>
 	<string name="project_home_export_help_format_docx">Si apre in Word e Google Docs; il migliore per redattori e beta lettori che lasciano commenti o registrano le modifiche.</string>
 	<string name="project_home_export_help_format_rtf">Un formato di testo formattato ampiamente compatibile; una scelta sicura quando non sai quale elaboratore di testi usa il destinatario.</string>
-	<string name="project_home_export_help_dismiss">Ho capito</string>
 	<string name="project_home_export_contents_title">Sommario</string>
 	<string name="project_home_export_byline">di %1$s</string>
 	<string name="project_home_action_import_toast_success">Storia importata</string>
