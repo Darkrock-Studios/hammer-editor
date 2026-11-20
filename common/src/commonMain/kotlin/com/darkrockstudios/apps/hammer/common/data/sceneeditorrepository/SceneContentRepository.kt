@@ -81,12 +81,21 @@ class SceneContentRepository(
 
 	private val storeTempJobs = mutableMapOf<Int, Job>()
 
+	/**
+	 * Called with text from outside the editor (sync, a draft restore, restored unsaved edits)
+	 * under the buffer lock, just before it replaces the scene's buffer, so no reader sees the new
+	 * buffer first. Must be quick.
+	 */
+	var onExternalContentApplied: ((SceneContent) -> Unit)? = null
+
 	/** Loads any temp (unsaved) buffers from disk and starts the content debounce pipeline. */
 	suspend fun initialize() {
 		val tempContent = sceneDatasource.getSceneTempBufferContents()
 		for (content in tempContent) {
-			val buffer = SceneBuffer(content, true, UpdateSource.Repository)
-			updateSceneBuffer(buffer)
+			sceneBuffersLock.withLock {
+				onExternalContentApplied?.invoke(content)
+				updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository))
+			}
 		}
 
 		contentUpdateJob = editorScope.launch {
@@ -134,13 +143,16 @@ class SceneContentRepository(
 			return true
 		}
 
-		val oldBuffer = sceneBuffersLock.withLock { sceneBuffers[content.scene.id] }
-		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
-			val dirty = source != UpdateSource.Sync
-			updateSceneBuffer(SceneBuffer(content, dirty, source))
-			dirty
-		} else {
-			false
+		return sceneBuffersLock.withLock {
+			val oldBuffer = sceneBuffers[content.scene.id]
+			if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
+				val dirty = source != UpdateSource.Sync
+				onExternalContentApplied?.invoke(content)
+				updateSceneBuffer(SceneBuffer(content, dirty, source))
+				dirty
+			} else {
+				false
+			}
 		}
 	}
 
@@ -274,7 +286,7 @@ class SceneContentRepository(
 		if (!buffer.dirty) return false
 		val success = sceneDatasource.storeTempSceneBuffer(buffer)
 		if (success) {
-			_bufferPersistedFlow.tryEmit(BufferPersistedEvent(sceneItem.id, buffer.source))
+			_bufferPersistedFlow.tryEmit(BufferPersistedEvent(sceneItem.id, buffer.source, buffer.content))
 		}
 		return success
 	}

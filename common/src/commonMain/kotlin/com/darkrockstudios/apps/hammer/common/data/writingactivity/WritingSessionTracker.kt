@@ -80,6 +80,7 @@ class WritingSessionTracker(
 
 	// Cached in memory once loaded from disk; kept in sync with every save.
 	private var sessions: List<WritingSession>? = null
+	private var sessionsUnsaved = false
 
 	/** Anchors a scene to [content] unless it already has an anchor. */
 	fun ensureBaseline(sceneId: Int, content: String) {
@@ -116,12 +117,21 @@ class WritingSessionTracker(
 	}
 
 	/**
-	 * Forces the next [onSceneSaved] call to reload the session list from
-	 * disk. Call this after sync writes a merged log so the tracker doesn't
-	 * keep extending a stale in-memory copy.
+	 * Runs [block], which reads and rewrites this device's own log, with no write recorded in between.
+	 * The next write reloads the log from disk. [block] must not call back into the tracker.
 	 */
-	suspend fun invalidateSessionCache() = mutex.withLock {
-		sessions = null
+	suspend fun <T> updateOwnLog(block: suspend () -> T): T = mutex.withLock {
+		sessions?.takeIf { sessionsUnsaved }?.let { persist(it) }
+		val unsaved = sessions?.takeIf { sessionsUnsaved }
+		try {
+			block()
+		} finally {
+			// Still unwritten: kept over whatever the block wrote, for the next write to retry.
+			sessions = unsaved?.let {
+				val written = runCatching { repository.loadOwnLog().sessions }.getOrDefault(emptyList())
+				mergeOwnSlotSessions(written, it)
+			}
+		}
 	}
 
 	/**
@@ -244,16 +254,22 @@ class WritingSessionTracker(
 		}
 	}
 
-	@Suppress("TooGenericExceptionCaught") // Persist failure keeps in-memory state for retry
 	private suspend fun recordWriting(words: Int, at: Instant) = mutex.withLock {
 		val current = sessions ?: repository.loadOwnLog().sessions
 		val updated = mergeWriting(current, words, at, TimeZone.currentSystemDefault())
 		sessions = updated
-		try {
+		persist(updated)
+	}
+
+	/** Under [mutex]. A failed write keeps the sessions in memory for the next one to retry. */
+	@Suppress("TooGenericExceptionCaught") // Persist failure keeps in-memory state for retry
+	private suspend fun persist(updated: List<WritingSession>) {
+		sessionsUnsaved = try {
 			repository.saveOwnLog(updated)
+			false
 		} catch (e: Exception) {
 			Napier.e("Failed to persist writing activity", e)
-			// Keep the in-memory state: the next delta retries the write.
+			true
 		}
 	}
 

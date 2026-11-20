@@ -22,13 +22,13 @@ import io.github.aakira.napier.Napier
  *     never edit slots we don't own.
  *  3. Merge the local copy of our own slot with the server's copy
  *     (deterministic union by `startedAt`), save the merged result both
- *     locally and back to the server.
- *  4. Invalidate the tracker's session cache so subsequent saves see the
- *     merged state instead of continuing from a possibly stale snapshot.
+ *     locally and back to the server. The local load, merge and save run
+ *     inside [WritingSessionTracker.updateOwnLog], so no write is lost in
+ *     between.
  *
  * Failure mode: if any step fails (server doesn't implement the endpoint,
  * network blip, etc.) we log a warning and pass through with the original
- * state. Writing activity is auxiliary — losing one sync of it shouldn't
+ * state. Writing activity is auxiliary: losing one sync of it shouldn't
  * fail the whole project sync.
  */
 class WritingActivitySyncOperation(
@@ -68,10 +68,12 @@ class WritingActivitySyncOperation(
 				}
 			}
 
-			val localOwnLog = repository.loadOwnLog()
 			val remoteOwnSessions = response.devices[ownDeviceId]?.sessions ?: emptyList()
-			val mergedSessions = mergeOwnSlotSessions(localOwnLog.sessions, remoteOwnSessions)
-			repository.saveOwnLog(mergedSessions)
+			val mergedSessions = tracker.updateOwnLog {
+				val merged = mergeOwnSlotSessions(repository.loadOwnLog().sessions, remoteOwnSessions)
+				repository.saveOwnLog(merged)
+				merged
+			}
 
 			val payload = DeviceLog(
 				deviceLabel = globalSettingsStore.deviceLabelOrDefault(),
@@ -88,7 +90,6 @@ class WritingActivitySyncOperation(
 				onLog(syncLogW("Writing activity upload failed: ${error.message}", projectDef))
 			}
 
-			tracker.invalidateSessionCache()
 			onLog(syncLogI("Writing activity synced (${response.devices.size + 1} devices)", projectDef))
 		} catch (e: Exception) {
 			Napier.w("Writing activity sync failed", e)

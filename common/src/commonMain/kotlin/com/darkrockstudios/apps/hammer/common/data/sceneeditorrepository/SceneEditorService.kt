@@ -56,21 +56,24 @@ class SceneEditorService(
 
 	init {
 		projectScope.scope.registerCallback(this)
+		// Re-anchored as the buffer is replaced, so an editor save is never diffed against the
+		// wrong text on either side of the replacement.
+		sceneContentRepository.onExternalContentApplied = { content ->
+			writingSessionTracker.replaceBaseline(content.scene.id, content.coerceMarkdown())
+		}
 		// Autosave persists from the content repo's debounce engine fire here; run the
 		// save side-effects (writing-activity, timestamp, stats) the content repo
-		// deliberately doesn't. Crediting writing activity here — not only on full
-		// saves — means active typing counts as it happens, instead of waiting for the
+		// deliberately doesn't. Crediting writing activity here, not only on full
+		// saves, means active typing counts as it happens, instead of waiting for the
 		// next sync, scene switch, or app close to flush the buffer.
 		serviceScope.launch {
 			sceneContentRepository.bufferPersistedFlow.collect { event ->
 				if (event.source == UpdateSource.Editor) {
-					sceneContentRepository.getSceneBuffer(event.sceneId)?.let { buffer ->
-						writingSessionTracker.onSceneSaved(
-							sceneId = event.sceneId,
-							newContent = buffer.content.coerceMarkdown(),
-							source = event.source,
-						)
-					}
+					writingSessionTracker.onSceneSaved(
+						sceneId = event.sceneId,
+						newContent = event.content.coerceMarkdown(),
+						source = event.source,
+					)
 					sceneMetadataRepository.recordSceneActivity(event.sceneId)
 					statisticsRepository.markDirty()
 				}
@@ -84,6 +87,11 @@ class SceneEditorService(
 	fun reIdScene(oldId: Int, newId: Int) {
 		sceneEditorRepository.reIdScene(oldId, newId)
 		sceneContentRepository.reIdBuffer(oldId, newId)
+		writingSessionTracker.reIdBaseline(oldId, newId)
+		// Outside text that reached the moved buffer before its anchor moved.
+		sceneContentRepository.getSceneBuffer(newId)?.takeIf { it.source != UpdateSource.Editor }?.let {
+			writingSessionTracker.replaceBaseline(newId, it.content.coerceMarkdown())
+		}
 	}
 
 	/**
@@ -321,12 +329,15 @@ class SceneEditorService(
 		sceneContentRepository.getSceneBuffer(sceneDef)
 
 	/**
-	 * Returns the cached buffer, or loads it from disk and remembers a writing-session baseline
-	 * for the freshly-loaded content.
+	 * Returns the cached buffer, or loads it from disk, and anchors the scene's writing activity at
+	 * that text: a cached buffer only when the scene has no anchor yet, a load from disk always.
 	 */
 	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
 		val cached = sceneContentRepository.getSceneBuffer(sceneItem)
-		if (cached != null) return cached
+		if (cached != null) {
+			writingSessionTracker.ensureBaseline(sceneItem.id, cached.content.coerceMarkdown())
+			return cached
+		}
 
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val buffer = sceneContentRepository.loadBuffer(sceneItem, scenePath)

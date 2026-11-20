@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivityResponse
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
@@ -12,14 +13,22 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransf
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.WritingActivitySyncOperation
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okio.fakefilesystem.FakeFileSystem
 import okio.Path.Companion.toPath
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -28,15 +37,13 @@ import synchronizer.operations.*
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 class WritingActivitySyncOperationTest : BaseTest() {
 
 	@MockK(relaxed = true)
 	private lateinit var repository: WritingActivityRepository
-
-	@MockK(relaxed = true)
-	private lateinit var tracker: WritingSessionTracker
 
 	@MockK(relaxed = true)
 	private lateinit var api: WritingActivityApi
@@ -76,7 +83,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 	private fun createOperation(): WritingActivitySyncOperation = WritingActivitySyncOperation(
 		projectDef = projectDef,
 		repository = repository,
-		tracker = tracker,
+		tracker = WritingSessionTracker(repository, Clock.System, projectDef),
 		api = api,
 		globalSettingsStore = globalSettingsStore,
 	)
@@ -124,7 +131,6 @@ class WritingActivitySyncOperationTest : BaseTest() {
 				log = DeviceLog(deviceLabel = deviceLabel, sessions = listOf(localOnlySession())),
 			)
 		}
-		coVerify { tracker.invalidateSessionCache() }
 	}
 
 	@Test
@@ -188,7 +194,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 
 		assertTrue(isSuccess(result), "GET failure must not fail the surrounding sync")
 		coVerify(exactly = 0) { api.uploadDeviceLog(any(), any(), any(), any()) }
-		coVerify(exactly = 0) { tracker.invalidateSessionCache() }
+		coVerify(exactly = 0) { repository.saveOwnLog(any()) }
 	}
 
 	@Test
@@ -204,6 +210,48 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		// Local merge still happened — sealed sessions never shrink even if upload fails.
 		coVerify { repository.saveOwnLog(any()) }
-		coVerify { tracker.invalidateSessionCache() }
+	}
+
+	@Test
+	fun `a write recorded during activity sync survives it`() = runTest {
+		val fileSystem = FakeFileSystem()
+		fileSystem.createDirectories(projectDef.path.toOkioPath())
+		val real = WritingActivityRepository(
+			WritingActivityDatasource(fileSystem, createTomlSerializer(), projectDef),
+			globalSettingsStore,
+			projectDef,
+		)
+		coEvery { globalSettingsStore.ensureInstallId() } returns ownDeviceId
+		val saving = CompletableDeferred<Unit>()
+		val resume = CompletableDeferred<Unit>()
+		// The sync's save of the merged own log is the first; it waits until the write is under way.
+		val gated = mockk<WritingActivityRepository> {
+			coEvery { ownDeviceId() } coAnswers { real.ownDeviceId() }
+			coEvery { loadOwnLog() } coAnswers { real.loadOwnLog() }
+			coEvery { replaceForeignDeviceLog(any(), any()) } coAnswers { real.replaceForeignDeviceLog(firstArg(), secondArg()) }
+			coEvery { saveOwnLog(any()) } coAnswers {
+				if (!saving.isCompleted) {
+					saving.complete(Unit)
+					resume.await()
+				}
+				real.saveOwnLog(firstArg())
+			}
+		}
+		val tracker = WritingSessionTracker(gated, Clock.System, projectDef)
+		tracker.rememberBaseline(1, "Start.")
+		coEvery { api.getWritingActivity(any(), any()) } returns Result.success(
+			WritingActivityResponse(mapOf(ownDeviceId to DeviceLog(deviceLabel, listOf(localOnlySession()))))
+		)
+		coEvery { api.uploadDeviceLog(any(), any(), any(), any()) } returns Result.success("ok")
+		val operation = WritingActivitySyncOperation(projectDef, gated, tracker, api, globalSettingsStore)
+		val syncing = launch { operation.execute(startState(), onProgress, onLog, onConflict, onComplete) }
+		saving.await()
+
+		val writing = launch { tracker.onSceneSaved(1, "Start. Three new words.", UpdateSource.Editor) }
+		advanceUntilIdle()
+		resume.complete(Unit)
+		joinAll(syncing, writing)
+
+		assertEquals(53, real.loadOwnLog().sessions.sumOf { it.wordsWritten })
 	}
 }
