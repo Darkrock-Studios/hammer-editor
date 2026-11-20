@@ -60,6 +60,8 @@ fun <T> HdTabbedPage(
 	modifier: Modifier = Modifier,
 	back: (@Composable () -> Unit)? = null,
 	trailing: (@Composable () -> Unit)? = null,
+	/** Greebles for the [HdFolioFooter] pinned under the content. */
+	folio: List<String>? = null,
 	content: @Composable ColumnScope.(T) -> Unit,
 ) {
 	val compact = LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact
@@ -89,6 +91,7 @@ fun <T> HdTabbedPage(
 				TabBody(selected, maxWidth, endPadding = horizontal, top = Ui.Padding.XL, content = content)
 			}
 		}
+		folio?.let { HdFolioFooter(it, horizontalPadding = horizontal) }
 	}
 }
 
@@ -103,6 +106,7 @@ fun HdPage(
 	modifier: Modifier = Modifier,
 	back: (@Composable () -> Unit)? = null,
 	trailing: (@Composable () -> Unit)? = null,
+	folio: List<String>? = null,
 	content: @Composable ColumnScope.() -> Unit,
 ) {
 	val compact = LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact
@@ -113,6 +117,7 @@ fun HdPage(
 		Box(Modifier.weight(1f).fillMaxWidth().padding(start = horizontal)) {
 			TabBody(Unit, maxWidth, endPadding = horizontal, top = if (compact) Ui.Padding.XL else 32.dp, centered = !compact) { content() }
 		}
+		folio?.let { HdFolioFooter(it, horizontalPadding = horizontal) }
 	}
 }
 

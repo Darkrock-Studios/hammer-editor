@@ -195,12 +195,17 @@ fabricate.
 - **The masthead:** the `§` folio mark before the title, and a stamp
   at the end of the rule (`3 IDEAS · 5 TAGS`).
 - **Card header strips:** date and size (`02 JUL \`26 · 24 W`).
-- **Folio footers:** a hairline-topped strip at the foot of a view or
-  dialog (`30 W · 3 TAGS`, `§ IV · SYNC`).
+- **Folio footers:** [`HdFolioFooter`](HdFolioFooter.kt) at the foot of
+  a page or view (`ACCOUNT SETTINGS · §§ 3`, `30 W · 3 TAGS`). Wide
+  screens only; on a phone the height is worth more.
 - **Status stamps** on an item (`PROMOTED · 01 JUL \`26`), one per item.
 
 Not on buttons, menus, filter chips, form labels or body copy. Those
 are read to be used, so they're sans, sentence case.
+
+Each slot is still judged on its own. A greeble that only fills space
+next to the real controls (a project count beside a dialog's Close
+button) adds nothing; leave it out.
 
 ---
 

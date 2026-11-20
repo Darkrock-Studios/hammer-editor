@@ -83,6 +83,7 @@ fun AboutAppUi(
 		HdPage(
 			title = Res.string.project_select_nav_about_app.get(),
 			maxWidth = hdColumnMaxWidth(MaxColumnWidth),
+			folio = listOf(Res.string.project_select_nav_about_app.get(), "§§ $AboutSectionCount"),
 		) {
 			Hero(version = state.currentVersion)
 
@@ -218,3 +219,6 @@ private fun ButtonRow(content: @Composable () -> Unit) {
 /** The Troubleshooting group, on platforms that keep logs; nothing where there are none. */
 @Composable
 expect fun PlatformAboutSection(component: AboutApp)
+
+/** Credits, Community, Updates, and every platform's Troubleshooting group. */
+private const val AboutSectionCount = 4

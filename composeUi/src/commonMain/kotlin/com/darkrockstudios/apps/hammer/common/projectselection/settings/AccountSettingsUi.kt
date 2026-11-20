@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
+import com.darkrockstudios.apps.hammer.account_settings_folio_caption
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -93,6 +94,7 @@ internal fun AccountSettingsUi(
 		maxWidth = hdColumnMaxWidth(MaxColumnWidth),
 		modifier = modifier.background(MaterialTheme.colorScheme.surface),
 		trailing = { AutosaveBadge() },
+		folio = listOf(Res.string.account_settings_folio_caption.get(), "§§ ${tabs.size}"),
 	) { _ ->
 		when (tab) {
 			SettingsTab.General -> GeneralTab(component, rootSnackbar)

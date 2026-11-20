@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import com.darkrockstudios.apps.hammer.project_settings_folio_section_count
+import com.darkrockstudios.apps.hammer.project_settings_folio_caption
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.mutableStateOf
@@ -111,6 +113,10 @@ fun ProjectSettingsUi(
 		modifier = modifier.background(MaterialTheme.colorScheme.surface),
 		back = { HomeButton(onClose) },
 		trailing = { AutosaveBadge() },
+		folio = listOf(
+			Res.string.project_settings_folio_caption.get(component.projectName),
+			Res.string.project_settings_folio_section_count.get(tabs.size),
+		),
 	) { _ ->
 		if (state.isLoaded) {
 			when (tab) {

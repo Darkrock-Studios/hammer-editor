@@ -1,5 +1,6 @@
 ﻿package com.darkrockstudios.apps.hammer.common.projectselection.storyideas
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioFooter
 import androidx.compose.animation.AnimatedContent
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
@@ -1282,23 +1283,13 @@ private fun ViewFolioFooter(markdown: String, tagCount: Int) {
 	val words = remember(markdown) {
 		countWords(markdown)
 	}
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
+	HdFolioFooter(
+		parts = listOfNotNull(
+			Res.string.ideas_word_count_short.get(words),
+			Res.string.ideas_tag_count_short.get(tagCount).takeIf { tagCount > 0 },
+		),
+		spread = true,
 	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(text = Res.string.ideas_word_count_short.get(words))
-		Spacer(modifier = Modifier.weight(1f))
-		if (tagCount > 0) {
-			HdMonoLabel(text = Res.string.ideas_tag_count_short.get(tagCount))
-		}
-	}
 }
 
 @Composable
