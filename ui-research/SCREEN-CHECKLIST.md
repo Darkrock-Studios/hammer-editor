@@ -119,7 +119,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Timeline overview (`TimeLineOverviewUi`) g: Timeline
   - [x] New / Rename / Delete timeline (`TimelineSwitcherDialogs`) g: Timeline new, rename, delete
   - [x] Delete N events?, from the deleted-timeline notice (`TimelineSwitcher.kt`) g: Delete events of a deleted timeline
-- [ ] Event view and edit (`ViewTimeLineEventUi`) g: View timeline event
+- [x] Event view and edit (`ViewTimeLineEventUi`) g: View timeline event
   - [ ] Discard Changes? / Delete Timeline Event? (`SimpleConfirm`) **no gallery**
   - [ ] Move to another timeline (`MoveToTimelineDialog`) g: Move to timeline dialog
 - [ ] Create Event (`CreateTimeLineEventUi`) g: Create timeline event **needs a larger redesign, not a polish pass**

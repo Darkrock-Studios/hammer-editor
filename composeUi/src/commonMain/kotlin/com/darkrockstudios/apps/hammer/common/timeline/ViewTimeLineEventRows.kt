@@ -68,52 +68,49 @@ internal fun StampRow(
 	onMove: (() -> Unit)? = null,
 ) {
 	val event = state.event
-	val sectionTitle = if (isEditing) {
-		Res.string.timeline_view_label_editing.get()
-	} else {
-		state.kind.label()
-	}
-
 	val moveShown = !isEditing && onMove != null
 	HdDetailStampRow(
 		stackActionsWhenNarrow = isEditing || moveShown,
 		leading = {
-			HdMonoLabel(
-				text = "§ III · $sectionTitle",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-
 			if (isEditing) {
+				HdMonoLabel(
+					text = "§ IV · ${Res.string.timeline_view_label_editing.get()}",
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
 				PulsingDot()
+			} else {
+				HdMonoLabel(
+					text = state.kind.label(),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+				MetaRule()
+				with(sharedTransitionScope) {
+					HdMonoLabel(
+						text = savedDate?.takeIf { it.isNotBlank() } ?: Res.string.timeline_view_undated.get(),
+						modifier = Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "timeline-date-${event?.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						),
+					)
+				}
+				val lane = event?.lane
+				if (lane != null) {
+					MetaRule()
+					val index = state.laneIndex
+					if (index != null) LaneSwatch(lane = lane, index = index)
+					HdMonoLabel(text = lane, maxLines = 1)
+				}
 			}
 		},
-		meta = {
-			MetaRule()
-
-			val metaText = if (isEditing) {
-				Res.string.timeline_view_status_unsaved.get()
-			} else {
-				savedDate?.takeIf { it.isNotBlank() } ?: Res.string.timeline_view_undated.get()
-			}
-			with(sharedTransitionScope) {
-				HdMonoLabel(
-					text = metaText,
-					modifier = Modifier.sharedElement(
-						sharedContentState = rememberSharedContentState(
-							key = "timeline-date-${event?.id}",
-						),
-						animatedVisibilityScope = animatedVisibilityScope,
-					),
-				)
-			}
-
-			val lane = event?.lane
-			if (!isEditing && lane != null) {
+		meta = if (isEditing) {
+			{
 				MetaRule()
-				val index = state.laneIndex
-				if (index != null) LaneSwatch(lane = lane, index = index)
-				HdMonoLabel(text = lane, maxLines = 1)
+				HdMonoLabel(text = Res.string.timeline_view_status_unsaved.get())
 			}
+		} else {
+			null
 		},
 		actions = {
 			if (isEditing) {
@@ -194,11 +191,6 @@ internal fun ViewFolioFooter(event: TimeLineEvent?, eventText: String?) {
 			HdMonoLabel(
 				text = Res.string.timeline_view_word_count_short.get(countWords(eventText)),
 			)
-		}
-		val tagCount = event?.tags?.size ?: 0
-		if (tagCount > 0) {
-			MetaRule()
-			HdMonoLabel(text = Res.string.timeline_view_tag_count_short.get(tagCount))
 		}
 	}
 }

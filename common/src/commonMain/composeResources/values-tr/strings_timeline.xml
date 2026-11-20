@@ -20,7 +20,6 @@
 	<string name="timeline_view_status_word_char">%1$d W · %2$d CH</string>
 	<string name="timeline_view_status_hint">ESC TO CANCEL</string>
 	<string name="timeline_view_word_count_short">%1$d W</string>
-	<string name="timeline_view_tag_count_short">%1$d TAGS</string>
 	<string name="timeline_view_toast_save_success">Saved</string>
 	<string name="timeline_view_toast_save_failure">Failed to save</string>
 	<string name="timeline_create_header">Create Event</string>

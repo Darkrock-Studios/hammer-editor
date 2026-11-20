@@ -20,7 +20,6 @@
 	<string name="timeline_view_status_word_char">%1$d PAR · %2$d CAR</string>
 	<string name="timeline_view_status_hint">ESC PER ANNULLARE</string>
 	<string name="timeline_view_word_count_short">%1$d PAR</string>
-	<string name="timeline_view_tag_count_short">%1$d TAG</string>
 	<string name="timeline_view_toast_save_success">Salvato</string>
 	<string name="timeline_view_toast_save_failure">Impossibile salvare</string>
 	<string name="timeline_create_header">Crea evento</string>

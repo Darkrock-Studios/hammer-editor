@@ -20,7 +20,6 @@
 	<string name="timeline_view_status_word_char">%1$d СЛ · %2$d СИМ</string>
 	<string name="timeline_view_status_hint">ESC ДЛЯ СКАСУВАННЯ</string>
 	<string name="timeline_view_word_count_short">%1$d СЛ</string>
-	<string name="timeline_view_tag_count_short">%1$d ТЕГІВ</string>
 	<string name="timeline_view_toast_save_success">Збережено</string>
 	<string name="timeline_view_toast_save_failure">Не вдалося зберегти</string>
 	<string name="timeline_create_header">Створити подію</string>
