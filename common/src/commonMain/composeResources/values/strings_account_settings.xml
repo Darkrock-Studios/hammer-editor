@@ -45,16 +45,21 @@
 	<string name="settings_server_remove_server_button">Remove Server</string>
 	<string name="settings_remove_server_dialog_title">Remove Server</string>
 	<string name="settings_remove_server_dialog_message">Are you sure you want to remove the server?</string>
-	<string name="settings_server_setup_title">Set Up Server</string>
-	<string name="settings_server_setup_url_hint">Server URL: hammer.ink</string>
+	<string name="settings_server_setup_title">Connect to a sync server</string>
+	<string name="settings_server_setup_help_description">About sync servers</string>
+	<string name="settings_server_setup_connected_stamp">Connected</string>
+	<string name="settings_server_setup_url_label">Server</string>
+	<string name="settings_server_setup_email_label">Email</string>
+	<string name="settings_server_setup_password_label">Password</string>
+	<string name="settings_server_setup_url_hint">hammer.ink</string>
 	<string name="settings_server_setup_insecure_warning">Plain HTTP: your email, password and writing travel unencrypted. Only use this on a network you trust.</string>
-	<string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
+	<string name="settings_server_setup_email_hint">you@example.com</string>
 	<string name="settings_server_setup_password_hint">Password</string>
 	<string name="settings_server_setup_password_requirements">%1$d-%2$d characters</string>
 	<string name="settings_server_setup_password_show">Show password</string>
 	<string name="settings_server_setup_password_hide">Hide password</string>
-	<string name="settings_server_setup_login_button">Log In</string>
-	<string name="settings_server_setup_create_button">Create</string>
+	<string name="settings_server_setup_login_button">Log in</string>
+	<string name="settings_server_setup_create_button">Create account</string>
 	<string name="settings_server_setup_cancel_button">Cancel</string>
 	<string name="merge_projects_dialog_title">Merge existing projects with the server?</string>
 	<string name="merge_projects_mode_label">PROJECT DATA</string>
@@ -156,6 +161,9 @@
 
 	<!-- Second factor at login -->
 	<string name="settings_server_setup_mfa_meta">Second factor</string>
+	<string name="settings_server_setup_mfa_title">Two-step verification</string>
+	<string name="settings_server_setup_mfa_step_stamp">Step 2 of 2</string>
+	<string name="settings_server_setup_mfa_account">%1$s on %2$s</string>
 	<string name="settings_server_setup_mfa_code_label">Verification code</string>
 	<string name="settings_server_setup_mfa_code_explanation">Enter the code from your authenticator app.</string>
 	<string name="settings_server_setup_mfa_recovery_label">Recovery code</string>

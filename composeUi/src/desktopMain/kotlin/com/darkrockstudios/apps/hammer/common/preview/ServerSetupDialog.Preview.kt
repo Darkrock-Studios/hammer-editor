@@ -64,3 +64,28 @@ fun ServerSetupDialogMfaPreview() {
 		}
 	}
 }
+
+/** The setup form, or with [mfa] its second-factor step, over a scrim in the surrounding theme. */
+@Composable
+internal fun ServerSetupDialogScrimPreview(mfa: Boolean = false) {
+	val scope = rememberCoroutineScope()
+	val state = if (mfa) {
+		defaultAccountSettingsComponentState.copy(
+			serverUrl = "hammer.ink",
+			serverEmail = "writer@example.com",
+			mfaChallenge = MfaChallenge(token = "preview", methods = listOf(MfaMethod.TOTP, MfaMethod.RECOVERY)),
+		)
+	} else {
+		defaultAccountSettingsComponentState
+	}
+	KoinApplicationPreview {
+		Box(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+			contentAlignment = Alignment.Center,
+		) {
+			ServerSetupDialogContent(component = accountSettingsComponent(state), scope = scope)
+		}
+	}
+}

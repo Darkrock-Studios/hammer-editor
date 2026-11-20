@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
+import com.darkrockstudios.apps.hammer.common.preview.ServerSetupDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiPluginsTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.storyideas.StoryIdeaConfirmsPreview
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -182,6 +183,8 @@ class ScreenGalleryTest {
 		screen("Account settings, sync") { ScreenAccountSettingsUiSyncTabletPreview() },
 		screen("Account settings, sync not set up") { ScreenAccountSettingsUiSyncNotSetUpTabletPreview() },
 		screen("Account settings, plugins") { ScreenAccountSettingsUiPluginsTabletPreview() },
+		surfaced("Server setup dialog") { ServerSetupDialogScrimPreview() },
+		surfaced("Server setup dialog, MFA") { ServerSetupDialogScrimPreview(mfa = true) },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
