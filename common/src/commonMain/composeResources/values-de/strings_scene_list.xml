@@ -2,9 +2,7 @@
 <resources>
 	<string name="scene_list_header">Szenen</string>
 	<string name="scene_list_create_group_dialog_title">Gruppe erstellen</string>
-	<string name="scene_list_create_group_dialog_message">Gruppenname</string>
 	<string name="scene_list_create_scene_dialog_title">Szene erstellen</string>
-	<string name="scene_list_create_scene_dialog_message">Szenenname</string>
 	<string name="scene_group_item_collapsed">Gruppe eingeklappt</string>
 	<string name="scene_group_item_expanded">Gruppe ausgeklappt</string>
 	<string name="scene_delete_dialog_title">Szene löschen</string>

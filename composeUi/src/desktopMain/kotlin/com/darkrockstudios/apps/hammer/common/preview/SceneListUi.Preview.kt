@@ -15,6 +15,12 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.CreateDialogCard
+import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
@@ -286,4 +292,25 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override suspend fun unarchiveScene(scene: SceneItem) {}
 	override fun showArchivedScenes() {}
 	override fun dismissArchivedDialog() {}
+}
+/** New scene inside a group, over a scrim; the card directly, since the animated dialog can't settle in a preview. */
+@Composable
+fun CreateSceneDialogScrimPreview() {
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		CreateDialogCard(
+			title = Res.string.scene_list_create_scene_dialog_title.get(),
+			parentName = "Chapter IV",
+			name = "The Lobster Quadrille",
+			onNameChange = {},
+			error = null,
+			confirmEnabled = true,
+			onConfirm = {},
+			onCancel = {},
+		)
+	}
 }

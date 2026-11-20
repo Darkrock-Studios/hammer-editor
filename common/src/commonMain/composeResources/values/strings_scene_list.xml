@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="scene_list_header">Scenes</string>
-	<string name="scene_list_create_group_dialog_title">Create Group</string>
-	<string name="scene_list_create_group_dialog_message">Group Name</string>
-	<string name="scene_list_create_scene_dialog_title">Create Scene</string>
-	<string name="scene_list_create_scene_dialog_message">Scene Name</string>
-	<string name="scene_list_create_chapter_group_dialog_title">Create Chapter Group</string>
-	<string name="scene_list_create_chapter_scene_dialog_title">Create Chapter Scene</string>
-	<string name="scene_list_create_chapter_dialog_message">Chapter Name</string>
+	<string name="scene_list_create_group_dialog_title">New group</string>
+	<string name="scene_list_create_scene_dialog_title">New scene</string>
+	<string name="scene_list_create_chapter_group_dialog_title">New chapter group</string>
+	<string name="scene_list_create_chapter_scene_dialog_title">New chapter scene</string>
 	<string name="scene_group_item_collapsed">Group Collapsed</string>
 	<string name="scene_group_item_expanded">Group Expanded</string>
 	<string name="scene_delete_dialog_title">Delete Scene</string>
@@ -25,6 +22,8 @@
 	<string name="chapter_cannot_delete_dialog_message">You cannot delete a chapter while it still contains scenes or groups: "%1$s"</string>
 	<string name="create_sceneitem_dialog_create_button">Create</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Cancel</string>
+	<string name="create_sceneitem_dialog_name_label">Name</string>
+	<string name="create_sceneitem_dialog_parent">In %1$s</string>
 
 	<string name="scene_list_outline_overview_title">Story Outline</string>
 	<string name="scene_list_outline_button">Outline</string>
@@ -73,8 +72,8 @@
 
 	<string name="scene_list_count_format">%1$d CH · %2$d SCN</string>
 	<string name="scene_group_scene_count_format">%1$d SCN</string>
-	<string name="scene_list_create_menu_chapter_scene">New Chapter Scene</string>
-	<string name="scene_list_create_menu_chapter_group">New Chapter Group</string>
+	<string name="scene_list_create_menu_chapter_scene">New chapter scene</string>
+	<string name="scene_list_create_menu_chapter_group">New chapter group</string>
 	<string name="scene_list_add_button">Add</string>
 	<string name="scene_type_meta_scene">Scene</string>
 	<string name="scene_type_meta_group">Group</string>

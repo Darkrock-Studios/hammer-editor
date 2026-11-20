@@ -2,9 +2,7 @@
 <resources>
 	<string name="scene_list_header">Escenas</string>
 	<string name="scene_list_create_group_dialog_title">Crear grupo</string>
-	<string name="scene_list_create_group_dialog_message">Nombre del grupo</string>
 	<string name="scene_list_create_scene_dialog_title">Crear escena</string>
-	<string name="scene_list_create_scene_dialog_message">Nombre de la escena</string>
 	<string name="scene_group_item_collapsed">Grupo contraído</string>
 	<string name="scene_group_item_expanded">Grupo expandido</string>
 	<string name="scene_delete_dialog_title">Eliminar escena</string>

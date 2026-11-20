@@ -80,14 +80,11 @@ import com.darkrockstudios.apps.hammer.more_menu_button
 import com.darkrockstudios.apps.hammer.scene_archived_snackbar
 import com.darkrockstudios.apps.hammer.scene_list_add_button
 import com.darkrockstudios.apps.hammer.scene_list_count_format
-import com.darkrockstudios.apps.hammer.scene_list_create_chapter_dialog_message
 import com.darkrockstudios.apps.hammer.scene_list_create_chapter_group_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_create_chapter_scene_dialog_title
-import com.darkrockstudios.apps.hammer.scene_list_create_group_dialog_message
 import com.darkrockstudios.apps.hammer.scene_list_create_group_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_create_menu_chapter_group
 import com.darkrockstudios.apps.hammer.scene_list_create_menu_chapter_scene
-import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_message
 import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_header
 import com.darkrockstudios.apps.hammer.scene_list_outline_button
@@ -315,11 +312,7 @@ fun SceneListUi(
 		} else {
 			Res.string.scene_list_create_group_dialog_title.get()
 		},
-		textLabel = if (creatingChapter) {
-			Res.string.scene_list_create_chapter_dialog_message.get()
-		} else {
-			Res.string.scene_list_create_group_dialog_message.get()
-		},
+		parentName = lastCreateParent?.takeUnless { creatingChapter }?.name,
 	) { groupName ->
 		scope.launch {
 			Napier.d { "Create dialog close" }
@@ -339,11 +332,7 @@ fun SceneListUi(
 		} else {
 			Res.string.scene_list_create_scene_dialog_title.get()
 		},
-		textLabel = if (creatingChapter) {
-			Res.string.scene_list_create_chapter_dialog_message.get()
-		} else {
-			Res.string.scene_list_create_scene_dialog_message.get()
-		},
+		parentName = lastCreateParent?.takeUnless { creatingChapter }?.name,
 	) { sceneName ->
 		scope.launch {
 			Napier.d { "Create dialog close" }
