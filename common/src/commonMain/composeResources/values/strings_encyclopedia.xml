@@ -127,11 +127,6 @@
 
 	<string name="encyclopedia_entry_crumb_root">Encyclopedia</string>
 	<string name="encyclopedia_entry_edit_button">Edit</string>
-	<string name="encyclopedia_entry_particulars_label">Particulars</string>
-	<string name="encyclopedia_entry_particulars_type">Type</string>
-	<string name="encyclopedia_entry_particulars_tags">Tags</string>
-	<string name="encyclopedia_entry_particulars_aliases">Aliases</string>
-	<string name="encyclopedia_entry_particulars_scenes">Scenes</string>
 	<string name="encyclopedia_entry_card_words">%1$d W</string>
 	<string name="encyclopedia_entry_card_open">↗ Open</string>
 	<string name="encyclopedia_entry_tags_label">Tags</string>
@@ -145,7 +140,4 @@
 	<string name="encyclopedia_entry_image_page_description">Image %1$d of %2$d: %3$s</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Ent-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sc.%1$s</string>
-	<string name="encyclopedia_entry_colophon_label">Entry · Catalogue card</string>
-	<string name="encyclopedia_entry_colophon_label_compact">Edited</string>
-	<string name="encyclopedia_entry_colophon_end">End of entry ✦</string>
 </resources>

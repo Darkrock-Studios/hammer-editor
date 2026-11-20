@@ -13,6 +13,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.engraving_placeholder_label
 import kotlin.math.sqrt
 
 /**
@@ -64,8 +67,10 @@ fun HdEngravingPlaceholder(
 			)
 		} else {
 			HdMonoLabel(
-				text = "[ENGRAVING · $label]",
+				text = Res.string.engraving_placeholder_label.get(label),
 				color = MaterialTheme.colorScheme.outline,
+				textAlign = TextAlign.Center,
+				modifier = Modifier.padding(horizontal = 16.dp),
 			)
 		}
 	}

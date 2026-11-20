@@ -61,18 +61,10 @@
 	<string name="encyclopedia_entry_add_tags_button">Додати теги</string>
 	<string name="encyclopedia_entry_crumb_root">Енциклопедія</string>
 	<string name="encyclopedia_entry_edit_button">Редагувати</string>
-	<string name="encyclopedia_entry_particulars_label">Подробиці</string>
-	<string name="encyclopedia_entry_particulars_type">Тип</string>
-	<string name="encyclopedia_entry_particulars_tags">Теги</string>
-	<string name="encyclopedia_entry_particulars_aliases">Псевдоніми</string>
-	<string name="encyclopedia_entry_particulars_scenes">Сцени</string>
 	<string name="encyclopedia_entry_tags_label">Теги</string>
 	<string name="encyclopedia_entry_add_tag_chip">тег</string>
 	<string name="encyclopedia_entry_add_alias_chip">псевдонім</string>
 	<string name="encyclopedia_entry_figure_label">Рис. I</string>
 	<string name="encyclopedia_entry_folio_format">Арк. %1$s · Зап-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Сц.%1$s</string>
-	<string name="encyclopedia_entry_colophon_label">Запис · Каталожна картка</string>
-	<string name="encyclopedia_entry_colophon_label_compact">Відредаговано</string>
-	<string name="encyclopedia_entry_colophon_end">Кінець запису ✦</string>
 </resources>

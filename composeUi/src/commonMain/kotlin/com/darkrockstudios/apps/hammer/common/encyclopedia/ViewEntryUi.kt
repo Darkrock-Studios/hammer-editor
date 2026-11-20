@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRegion
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdHangsHeads
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdInRegion
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdControlFrame
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -13,6 +12,7 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -83,9 +83,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLi
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDetailStampRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagSuggestionStrip
@@ -136,9 +134,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_body_empty_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_close_button
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_end
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label_compact
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_crumb_root
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_message
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_title
@@ -151,11 +146,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_toast
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_folio_format
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_name_hint
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_aliases
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_label
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_scenes
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_tags
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_type
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_message
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_scene_index_format
@@ -309,7 +299,6 @@ internal fun ViewEntryUi(
 					CollapseWhileTyping(enabled = editing) {
 						Column {
 							CrumbRow(
-								title = entryNameText.ifBlank { state.entryDef.name }.uppercase(),
 								menuSlot = { DetailViewDropdownMenu(state.menuItems, ActionPlace.Entry, state.entryDef.id) },
 								onClose = {
 									val isDirty = content != null &&
@@ -395,15 +384,6 @@ internal fun ViewEntryUi(
 					}
 
 					if (!editing) {
-						if (content != null) {
-							ParticularsLedger(
-								state = state,
-								modifier = Modifier
-									.padding(horizontal = Ui.Padding.XXL)
-									.padding(top = 28.dp),
-							)
-						}
-
 						TagsAndAliasesZone(
 							state = state,
 							component = component,
@@ -426,10 +406,7 @@ internal fun ViewEntryUi(
 							scope = scope,
 						)
 
-						FooterColophon(
-							compact = isCompact,
-							ruleSoft = ruleSoft,
-						)
+						Spacer(modifier = Modifier.height(Ui.Padding.XXL))
 					}
 				}
 			}
@@ -534,7 +511,6 @@ internal fun ViewEntryUi(
 
 @Composable
 private fun CrumbRow(
-	title: String,
 	menuSlot: @Composable () -> Unit,
 	onClose: () -> Unit,
 ) {
@@ -546,28 +522,12 @@ private fun CrumbRow(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		Row(
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			HdCrumbBackLink(
-				label = Res.string.encyclopedia_entry_crumb_root.get(),
-				onClick = onClose,
-				onClickLabel = Res.string.encyclopedia_entry_close_button.get(),
-			)
-			HdMonoLabel(
-				text = "/",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
-		Text(
-			text = title,
-			style = MaterialTheme.typography.labelSmall,
-			color = MaterialTheme.colorScheme.onSurface,
-			maxLines = 1,
-			overflow = TextOverflow.Ellipsis,
-			modifier = Modifier.weight(1f),
+		HdCrumbBackLink(
+			label = Res.string.encyclopedia_entry_crumb_root.get(),
+			onClick = onClose,
+			onClickLabel = Res.string.encyclopedia_entry_close_button.get(),
 		)
+		Spacer(modifier = Modifier.weight(1f))
 		menuSlot()
 	}
 }
@@ -872,63 +832,6 @@ private fun BodyTextZone(
 	}
 }
 
-@Composable
-private fun ParticularsLedger(
-	state: ViewEntry.State,
-	modifier: Modifier = Modifier,
-) {
-	val content = state.content ?: return
-	val cells = listOf<@Composable () -> Unit>(
-		{
-			HdMetadataItem(
-				label = Res.string.encyclopedia_entry_particulars_type.get(),
-				value = state.entryDef.type.toStringResource().get(),
-			)
-		},
-		{
-			HdMetadataItem(
-				label = Res.string.encyclopedia_entry_particulars_tags.get(),
-				value = content.tags.size.toString(),
-			)
-		},
-		{
-			HdMetadataItem(
-				label = Res.string.encyclopedia_entry_particulars_aliases.get(),
-				value = content.aliases.size.toString(),
-			)
-		},
-		{
-			HdMetadataItem(
-				label = Res.string.encyclopedia_entry_particulars_scenes.get(),
-				value = state.appearsIn.size.toString(),
-			)
-		},
-	)
-
-	HdRegion(
-		modifier = modifier,
-		contentSpacing = 0.dp,
-		title = Res.string.encyclopedia_entry_particulars_label.get(),
-	) {
-		Box(
-			modifier = Modifier
-				.fillMaxWidth()
-				.then(
-					if (LocalHdInRegion.current) Modifier
-					else Modifier
-						.border(
-							width = Dp.Hairline,
-							color = MaterialTheme.colorScheme.outlineVariant,
-							shape = RectangleShape,
-						)
-						.background(MaterialTheme.colorScheme.surfaceContainerLow)
-				),
-		) {
-			HdHairlineGrid(columns = 2, cells = cells)
-		}
-	}
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TagsAndAliasesZone(
@@ -1152,38 +1055,6 @@ private fun SceneRow(
 			thickness = Dp.Hairline,
 			color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
 		)
-	}
-}
-
-@Composable
-private fun FooterColophon(compact: Boolean, ruleSoft: Color) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XXL)
-			.padding(top = 36.dp, bottom = Ui.Padding.XXL),
-	) {
-		HorizontalDivider(thickness = Dp.Hairline, color = ruleSoft)
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(top = Ui.Padding.L),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			HdMonoLabel(
-				text = if (compact) {
-					Res.string.encyclopedia_entry_colophon_label_compact.get()
-				} else {
-					Res.string.encyclopedia_entry_colophon_label.get()
-				},
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_colophon_end.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
 	}
 }
 
