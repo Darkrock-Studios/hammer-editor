@@ -77,6 +77,7 @@ import com.darkrockstudios.apps.hammer.common.preview.notes.ScreenViewNoteUiTabl
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ExportOptionsDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectStatsUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectShellTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectCreateDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ImportHelpDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ProjectDeleteDialogPreview
@@ -190,6 +191,8 @@ class ScreenGalleryTest {
 		surfaced("Out of date dialog, server") { ProtocolMismatchDialogPreview(clientIsBehind = false) },
 		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
+		screen("Project shell") { ScreenProjectShellTabletPreview() },
+		screen("Project shell, rail expanded") { ScreenProjectShellTabletPreview(railExpanded = true) },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
 		screen("About, update available") { ScreenAboutAppUiUpdateAvailableTabletPreview() },
 		screen("Account settings") { ScreenAccountSettingsUiTabletPreview() },

@@ -40,11 +40,11 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Spell check language info, Android (`SpellCheckDictionaryControl`) **no gallery** g: Spell check dictionary, Android, Spell check language info (baseline only, dialog removed)
 - [x] About (`AboutAppUi`, `PlatformAboutSection`) g: About, About, update available
   - [x] Libraries (`LibrariesUi`) **no gallery** g: Open source libraries
-  - [ ] Studio overlay (`CairnAboutOverlay`, external cairn library) **no gallery**
+  - [~] Studio overlay (`CairnAboutOverlay`, external cairn library) **no gallery** skipped: lives in Cairn, not this repo
 
 ## 2. Project root
 
-- [ ] Project shell: nav rail / bottom bar (`ProjectRootScaffold`) **no gallery**
+- [x] Project shell: nav rail / bottom bar (`ProjectRootScaffold`) **no gallery** g: Project shell, Project shell, rail expanded
 - [ ] Unsaved Scenes (`ConfirmUnsavedScenesDialog`) **no gallery**
 - [ ] Unsaved Note / Encyclopedia Entry / Timeline Event (`ConfirmCloseDialogs.kt`) **no gallery**
 - [ ] Search project (`GlobalSearchUi`) **no gallery**
