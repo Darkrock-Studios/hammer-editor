@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="duplicate_ids_section">DUPLICATE FILES</string>
 	<string name="duplicate_ids_remaining">%1$d TO RESOLVE</string>
-	<string name="duplicate_ids_close">× LATER</string>
 	<string name="duplicate_ids_title_entry">%1$d encyclopedia entries share the ID %2$d</string>
 	<string name="duplicate_ids_title_scene">%1$d scenes share the ID %2$d</string>
 	<string name="duplicate_ids_title_draft">%1$d drafts share the ID %2$d</string>

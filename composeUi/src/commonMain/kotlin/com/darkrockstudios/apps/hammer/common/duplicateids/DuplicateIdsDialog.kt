@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.duplicateids
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,11 +39,9 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.duplicateids.DuplicateIds
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineCheckbox
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPrimaryAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
@@ -62,7 +60,6 @@ import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.duplicate_ids_archived
 import com.darkrockstudios.apps.hammer.duplicate_ids_body_groups
 import com.darkrockstudios.apps.hammer.duplicate_ids_body_several
-import com.darkrockstudios.apps.hammer.duplicate_ids_close
 import com.darkrockstudios.apps.hammer.duplicate_ids_decide_later
 import com.darkrockstudios.apps.hammer.duplicate_ids_error_backup
 import com.darkrockstudios.apps.hammer.duplicate_ids_error_backup_label
@@ -77,7 +74,6 @@ import com.darkrockstudios.apps.hammer.duplicate_ids_keep_one
 import com.darkrockstudios.apps.hammer.duplicate_ids_keep_prefix
 import com.darkrockstudios.apps.hammer.duplicate_ids_modified
 import com.darkrockstudios.apps.hammer.duplicate_ids_remaining
-import com.darkrockstudios.apps.hammer.duplicate_ids_section
 import com.darkrockstudios.apps.hammer.duplicate_ids_show_differences
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_draft
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_entry
@@ -117,12 +113,8 @@ fun DuplicateIdsContent(
 	modifier: Modifier = Modifier,
 ) {
 	val set = state.current ?: return
-	BoxWithConstraints(modifier = modifier) {
-		// The metadata greebles truncate to nothing beside the section on a phone.
-		val meta = if (maxWidth < COMPACT_WIDTH) emptyList() else listOf(
-			entityCode(set),
-			Res.string.duplicate_ids_remaining.get(state.sets.size),
-		)
+	Box(modifier = modifier) {
+		val meta = listOf(entityCode(set), Res.string.duplicate_ids_remaining.get(state.sets.size)).joinToString(" · ")
 		DuplicateIdsSurface(state, set, meta, onToggleKeep, onKeep, onDecideLater)
 	}
 }
@@ -131,7 +123,7 @@ fun DuplicateIdsContent(
 private fun DuplicateIdsSurface(
 	state: DuplicateIds.State,
 	set: DuplicateIdSet,
-	meta: List<String>,
+	meta: String,
 	onToggleKeep: (HPath) -> Unit,
 	onKeep: () -> Unit,
 	onDecideLater: () -> Unit,
@@ -147,17 +139,6 @@ private fun DuplicateIdsSurface(
 			.fillMaxWidth(),
 	) {
 		Column {
-			HdMasthead(
-				section = Res.string.duplicate_ids_section.get(),
-				leadingMeta = meta,
-				trailing = {
-					HdMastheadAction(
-						label = Res.string.duplicate_ids_close.get(),
-						onClick = onDecideLater,
-					)
-				},
-			)
-			HdFolioDivider()
 			Column(
 				modifier = Modifier
 					.weight(1f, fill = false)
@@ -165,7 +146,10 @@ private fun DuplicateIdsSurface(
 					.padding(start = 26.dp, end = 26.dp, top = 22.dp, bottom = 22.dp),
 				verticalArrangement = Arrangement.spacedBy(16.dp),
 			) {
-				Explanation(set)
+				Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+					HdMonoLabel(text = meta)
+					Explanation(set)
+				}
 				Column {
 					set.copies.forEachIndexed { index, copy ->
 						if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = Dp.Hairline)
@@ -270,14 +254,8 @@ private fun CopyRow(
 				if (copy.archived) HdMonoLabel(Res.string.duplicate_ids_archived.get())
 			}
 			// Filenames are case-sensitive, so not set in the label's capitals.
-			Text(
-				text = copy.relativePath,
-				style = MaterialTheme.typography.labelSmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				maxLines = 2,
-				overflow = TextOverflow.Ellipsis,
-			)
-			HdMonoLabel(text = copyMeta(copy), maxLines = 1)
+			HdMetaText(text = copy.relativePath, maxLines = 2, overflow = TextOverflow.Ellipsis)
+			HdMetaText(text = copyMeta(copy), maxLines = 1)
 
 			val preview = remember(copy.text) { copy.text.trim().take(PREVIEW_LENGTH) }
 			if (preview.isNotEmpty()) {
@@ -292,10 +270,11 @@ private fun CopyRow(
 
 			if (canDiff) {
 				if (copy.contentHash == inUse.contentHash) {
-					HdMonoLabel(Res.string.duplicate_ids_identical.get())
+					HdMetaText(Res.string.duplicate_ids_identical.get())
 				} else {
-					HdMonoLabel(
+					Text(
 						text = if (showDiff) Res.string.duplicate_ids_hide_differences.get() else Res.string.duplicate_ids_show_differences.get(),
+						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.primary,
 						modifier = Modifier.clickable { showDiff = !showDiff }.padding(vertical = 4.dp),
 					)
@@ -375,8 +354,6 @@ private fun Footer(
 	}
 }
 
-private val COMPACT_WIDTH = 520.dp
-
 // Plenty for the two lines shown, without laying out a whole scene per row.
 private const val PREVIEW_LENGTH = 400
 
@@ -401,4 +378,3 @@ private fun formatModified(millis: Long): String =
 	Instant.fromEpochMilliseconds(millis)
 		.toLocalDateTime(TimeZone.currentSystemDefault())
 		.format("d MMM yyyy HH:mm")
-		.uppercase()
