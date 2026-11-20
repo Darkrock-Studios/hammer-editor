@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.RenameEntryNamesScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.RenameEntrySummaryScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.EntryAddDialogsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.EntryConfirmsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.notes.NoteDiscardConfirmScrimPreview
@@ -284,6 +286,8 @@ class ScreenGalleryTest {
 		surfaced("View encyclopedia entry, timelines") { ScreenViewEntryTimelinesPreview() },
 		surfaced("Encyclopedia entry confirms") { EntryConfirmsScrimPreview() },
 		surfaced("Encyclopedia add tags and alias") { EntryAddDialogsScrimPreview() },
+		surfaced("Rename everywhere, names") { RenameEntryNamesScrimPreview() },
+		surfaced("Rename everywhere, summary") { RenameEntrySummaryScrimPreview() },
 		surfaced("Image gallery") { ImageGalleryBrowsePreview() },
 		surfaced("Image picker") { ImageGalleryPickTabletPreview() },
 		surfaced("Rename image") { RenameImageScrimPreview() },

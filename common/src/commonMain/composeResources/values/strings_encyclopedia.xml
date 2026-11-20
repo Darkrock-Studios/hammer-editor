@@ -70,10 +70,6 @@
 	<string name="encyclopedia_entry_menu_add_image">Add Image</string>
 	<string name="encyclopedia_entry_menu_rename">Rename Everywhere…</string>
 	<string name="encyclopedia_entry_rename_draft_name">Before renaming %1$s</string>
-	<string name="encyclopedia_entry_rename_marker">Rename</string>
-	<string name="encyclopedia_entry_rename_meta_forms">%1$d forms</string>
-	<string name="encyclopedia_entry_rename_meta_changes">%1$d changes</string>
-	<string name="encyclopedia_entry_rename_close">× Close</string>
 	<string name="encyclopedia_entry_rename_title">Rename %1$s everywhere</string>
 	<string name="encyclopedia_entry_rename_intro">Give each name its new form. Changed forms are replaced across your story; a removed alias leaves the text alone.</string>
 	<string name="encyclopedia_entry_rename_name_label">Name · %1$s</string>
@@ -96,8 +92,7 @@
 	<string name="encyclopedia_entry_rename_searching">Searching your story…</string>
 	<string name="encyclopedia_entry_rename_applying">Renaming…</string>
 	<string name="encyclopedia_entry_rename_progress">%1$d of %2$d</string>
-	<string name="encyclopedia_entry_rename_summary_one">1 change: %1$s → %2$s</string>
-	<string name="encyclopedia_entry_rename_summary_other">%1$d changes: %2$s → %3$s</string>
+	<string name="encyclopedia_entry_rename_summary_title">%1$s → %2$s</string>
 	<string name="encyclopedia_entry_rename_summary_none">No references found. Applying renames only the entry.</string>
 	<string name="encyclopedia_entry_rename_place_scene_text">Scenes</string>
 	<string name="encyclopedia_entry_rename_place_archived">Archived scenes</string>
