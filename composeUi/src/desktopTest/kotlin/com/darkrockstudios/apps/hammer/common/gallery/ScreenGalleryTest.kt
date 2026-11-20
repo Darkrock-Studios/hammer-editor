@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.DiscardChangesScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SaveDraftScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ArchivedScenesScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ArchivedScenesEmptyScrimPreview
@@ -251,6 +252,7 @@ class ScreenGalleryTest {
 		surfaced("Archive scene confirm") { SceneArchiveConfirmScrimPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Start new draft") { SaveDraftScrimPreview() },
+		surfaced("Discard changes") { DiscardChangesScrimPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
 		screen("Focus mode") { ScreenFocusModeUiTabletPreview() },
 		screen("Drafts list") { ScreenDraftsListUiTabletPreview() },

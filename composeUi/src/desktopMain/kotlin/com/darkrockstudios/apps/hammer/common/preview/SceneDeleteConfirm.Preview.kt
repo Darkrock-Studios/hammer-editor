@@ -25,6 +25,11 @@ import com.darkrockstudios.apps.hammer.scene_archive_dialog_title
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_message
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_title
 import com.darkrockstudios.apps.hammer.confirm_kind_delete
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import com.darkrockstudios.apps.hammer.discard_buffer_dialog_cancel
+import com.darkrockstudios.apps.hammer.discard_buffer_dialog_confirm
+import com.darkrockstudios.apps.hammer.discard_buffer_dialog_message
+import com.darkrockstudios.apps.hammer.discard_buffer_dialog_title
 
 /** Deleting a scene from the scene list, over a scrim. */
 @Composable
@@ -97,6 +102,32 @@ internal fun SceneArchiveConfirmScrimPreview() {
 				cancelLabel = Res.string.scene_archive_dialog_dismiss_button.get(),
 				onCancel = {},
 				destructive = false,
+			)
+		}
+	}
+}
+
+/** Discarding unsaved edits from the scene editor, over a scrim. */
+@Composable
+internal fun DiscardChangesScrimPreview() {
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		IndexStripCard(
+			title = Res.string.discard_buffer_dialog_title.get("The Lamp Room"),
+			message = Res.string.discard_buffer_dialog_message.get("The Lamp Room"),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
+		) {
+			ConfirmationActions(
+				confirmLabel = Res.string.discard_buffer_dialog_confirm.get(),
+				onConfirm = {},
+				cancelLabel = Res.string.discard_buffer_dialog_cancel.get(),
+				onCancel = {},
+				destructive = true,
 			)
 		}
 	}
