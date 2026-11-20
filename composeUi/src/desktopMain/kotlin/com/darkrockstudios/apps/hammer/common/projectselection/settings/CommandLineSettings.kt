@@ -1,12 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,33 +25,35 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.HostOs
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
-import com.darkrockstudios.apps.hammer.common.compose.rememberClipboardCopier
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.plugin.CliPath
 import com.darkrockstudios.apps.hammer.common.compose.plugin.CliPathInstaller
 import com.darkrockstudios.apps.hammer.common.compose.plugin.CliPathState
 import com.darkrockstudios.apps.hammer.common.compose.plugin.cliLauncher
 import com.darkrockstudios.apps.hammer.common.compose.plugin.shellQuoted
+import com.darkrockstudios.apps.hammer.common.compose.rememberClipboardCopier
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.hostOs
 import com.darkrockstudios.apps.hammer.composeui.resources.Res
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_absent
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_add
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_admin
-import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_failed
-import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_installed
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_close
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_copied
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_copy
+import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_failed
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_full_command
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_full_command_info
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_full_command_show
+import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_installed
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_manual
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_new_terminals
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_off_path
@@ -112,21 +118,46 @@ private fun FullCommandDialog(command: String, visible: Boolean, onDismiss: () -
 	val copy = rememberClipboardCopier()
 	var copied by remember(visible) { mutableStateOf(false) }
 	AnimatedDialog(visible = visible, onCloseRequest = onDismiss) {
-		HdHairlineDialogShell(
-			title = Res.string.cli_path_full_command.get(),
+		FullCommandCard(
+			command = command,
+			copied = copied,
+			onCopy = {
+				copy(command)
+				copied = true
+			},
 			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.cli_path_close.get(),
-		) {
-			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-				Text(Res.string.cli_path_full_command_info.get(), style = MaterialTheme.typography.bodyMedium)
-				Monospace(command)
-				HdHairlineButton(
-					label = (if (copied) Res.string.cli_path_copied else Res.string.cli_path_copy).get(),
-					onClick = {
-						copy(command)
-						copied = true
-					},
-				)
+		)
+	}
+}
+
+/** The full command prompt without its dialog window. */
+@Composable
+internal fun FullCommandCard(command: String, copied: Boolean, onCopy: () -> Unit, onClose: () -> Unit) {
+	HdHairlineDialogShell(
+		title = Res.string.cli_path_full_command.get(),
+		onClose = onClose,
+		closeContentDescription = Res.string.cli_path_close.get(),
+	) {
+		Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+			Text(Res.string.cli_path_full_command_info.get(), style = MaterialTheme.typography.bodyMedium)
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.border(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant, RectangleShape)
+					.padding(start = 12.dp, top = 4.dp, end = 4.dp, bottom = 4.dp),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				SelectionContainer(modifier = Modifier.weight(1f)) {
+					Text(command, style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace))
+				}
+				IconButton(onClick = onCopy) {
+					Icon(
+						imageVector = if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
+						contentDescription = (if (copied) Res.string.cli_path_copied else Res.string.cli_path_copy).get(),
+						tint = if (copied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.size(18.dp),
+					)
+				}
 			}
 		}
 	}

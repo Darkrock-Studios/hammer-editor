@@ -36,7 +36,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Manage Backups, and Restore Backup confirm (`BackupManagerDialog`) **no gallery** g: Backup manager, Restore backup confirm, Delete backup confirm
   - [x] Install "name"? (`InstallDialog`) **no gallery** g: Plugin install dialog
   - [x] Plugin details (`DetailsDialog`) **no gallery** g: Plugin details dialog
-  - [ ] Full command, desktop (`FullCommandDialog`) **no gallery**
+  - [x] Full command, desktop (`FullCommandDialog`) **no gallery** g: Full command dialog
   - [ ] Spell check language info, Android (`SpellCheckDictionaryControl`) **no gallery**
 - [x] About (`AboutAppUi`, `PlatformAboutSection`) g: About, About, update available
   - [ ] Libraries (`LibrariesUi`) **no gallery**

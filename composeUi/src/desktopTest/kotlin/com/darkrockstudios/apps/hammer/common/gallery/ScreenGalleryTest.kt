@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.preview.BackupRestoreConfirmScrimP
 import com.darkrockstudios.apps.hammer.common.preview.BackupDeleteConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.PluginInstallScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.PluginDetailsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.FullCommandScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -207,6 +208,7 @@ class ScreenGalleryTest {
 		surfaced("Delete backup confirm") { BackupDeleteConfirmScrimPreview() },
 		surfaced("Plugin install dialog") { PluginInstallScrimPreview() },
 		surfaced("Plugin details dialog") { PluginDetailsScrimPreview() },
+		surfaced("Full command dialog") { FullCommandScrimPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
