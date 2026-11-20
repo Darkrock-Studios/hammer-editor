@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineSwitcherDialogCard
+import com.darkrockstudios.apps.hammer.common.timeline.DeleteOrphansCard
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -150,5 +151,19 @@ internal fun TimelineSwitcherDialogsScrimPreview() {
 				onClose = {},
 			)
 		}
+	}
+}
+
+/** Deleting the events left by a timeline deleted on another device, over a scrim. */
+@Composable
+internal fun DeleteOrphansScrimPreview() {
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		verticalArrangement = Arrangement.Center,
+		horizontalAlignment = Alignment.CenterHorizontally,
+	) {
+		DeleteOrphansCard(count = 3, onConfirm = {}, onClose = {})
 	}
 }

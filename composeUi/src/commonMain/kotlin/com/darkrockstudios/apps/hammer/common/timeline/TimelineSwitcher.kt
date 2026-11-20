@@ -74,7 +74,6 @@ import com.darkrockstudios.apps.hammer.timeline_rename_title
 import com.darkrockstudios.apps.hammer.timeline_settings_mode_label
 import com.darkrockstudios.apps.hammer.timeline_settings_preset_label
 import com.darkrockstudios.apps.hammer.timeline_switcher_cancel
-import com.darkrockstudios.apps.hammer.timeline_switcher_close
 import com.darkrockstudios.apps.hammer.timeline_switcher_delete
 import com.darkrockstudios.apps.hammer.timeline_switcher_new
 import com.darkrockstudios.apps.hammer.timeline_switcher_rename
@@ -321,27 +320,36 @@ internal fun DeletedTimelineNotice(
 		}
 	}
 	AnimatedDialog(visible = confirmingDelete, onCloseRequest = { confirmingDelete = false }) {
-		HdHairlineDialogShell(
-			title = pluralStringResource(Res.plurals.timeline_deleted_delete_title, count, count),
+		DeleteOrphansCard(
+			count = count,
+			onConfirm = {
+				confirmingDelete = false
+				onDeleteAll()
+			},
 			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.timeline_switcher_close.get(),
-		) {
-			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-				Text(
-					text = Res.string.timeline_deleted_delete_detail.get(),
-					style = MaterialTheme.typography.bodyMedium,
-				)
-				DialogButtons(
-					confirmLabel = Res.string.timeline_deleted_delete_all.get(),
-					confirmTag = TIME_LINE_DELETED_DELETE_CONFIRM_TAG,
-					danger = true,
-					onConfirm = {
-						confirmingDelete = false
-						onDeleteAll()
-					},
-					onCancel = { requestDismiss() },
-				)
-			}
+		)
+	}
+}
+
+@Composable
+internal fun DeleteOrphansCard(count: Int, onConfirm: () -> Unit, onClose: () -> Unit) {
+	HdHairlineDialogShell(
+		title = pluralStringResource(Res.plurals.timeline_deleted_delete_title, count, count),
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+			Text(
+				text = Res.string.timeline_deleted_delete_detail.get(),
+				style = MaterialTheme.typography.bodyMedium,
+			)
+			DialogButtons(
+				confirmLabel = Res.string.timeline_deleted_delete_all.get(),
+				confirmTag = TIME_LINE_DELETED_DELETE_CONFIRM_TAG,
+				danger = true,
+				onConfirm = onConfirm,
+				onCancel = onClose,
+			)
 		}
 	}
 }
