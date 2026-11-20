@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.SaveDraftScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ArchivedScenesScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ArchivedScenesEmptyScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.MergeReplaceConfirmScrimPreview
@@ -249,6 +250,7 @@ class ScreenGalleryTest {
 		surfaced("Cannot delete chapter") { ChapterCannotDeleteScrimPreview() },
 		surfaced("Archive scene confirm") { SceneArchiveConfirmScrimPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
+		surfaced("Start new draft") { SaveDraftScrimPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
 		screen("Focus mode") { ScreenFocusModeUiTabletPreview() },
 		screen("Drafts list") { ScreenDraftsListUiTabletPreview() },

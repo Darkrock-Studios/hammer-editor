@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Neuen Entwurf beginnen:</string>
-	<string name="save_draft_dialog_name_hint">Entwurfsname</string>
 	<string name="save_draft_dialog_save_button">Speichern</string>
 	<string name="save_draft_dialog_cancel_button">Abbrechen</string>
 	<string name="save_draft_dialog_toast_success">Entwurf gespeichert</string>
-	<string name="save_draft_dialog_current_draft">Aktuellen Entwurf speichern als:</string>
 	<string name="save_draft_dialog_error">Der aktuelle Entwurfsname ist ungültig!</string>
 	<string name="scene_editor_rename_dialog_title">Szene umbenennen</string>
 	<string name="scene_editor_name_hint">Szenenname</string>

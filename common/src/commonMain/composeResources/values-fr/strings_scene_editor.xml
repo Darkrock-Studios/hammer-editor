@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Créer un nouveau brouillon :</string>
-	<string name="save_draft_dialog_name_hint">Nom du brouillon</string>
 	<string name="save_draft_dialog_save_button">Enregistrer</string>
 	<string name="save_draft_dialog_cancel_button">Annuler</string>
 	<string name="save_draft_dialog_toast_success">Brouillon enregistré</string>
-	<string name="save_draft_dialog_current_draft">Enregistrer le brouillon actuel sous :</string>
 	<string name="save_draft_dialog_error">Le nom du brouillon actuel est invalide !</string>
 	<string name="scene_editor_rename_dialog_title">Renommer la scène</string>
 	<string name="scene_editor_name_hint">Nom de la scène</string>

@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Створити нову чернетку:</string>
-	<string name="save_draft_dialog_name_hint">Назва чернетки</string>
 	<string name="save_draft_dialog_save_button">Зберегти</string>
 	<string name="save_draft_dialog_cancel_button">Скасувати</string>
 	<string name="save_draft_dialog_toast_success">Чернетку збережено</string>
-	<string name="save_draft_dialog_current_draft">Зберегти поточну чернетку як:</string>
 	<string name="save_draft_dialog_error">Назва поточної чернетки недійсна!</string>
 	<string name="scene_editor_rename_dialog_title">Перейменувати сцену</string>
 	<string name="scene_editor_name_hint">Назва сцени</string>

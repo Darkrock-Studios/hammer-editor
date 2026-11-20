@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Crear un nuevo borrador:</string>
-	<string name="save_draft_dialog_name_hint">Nombre del borrador</string>
 	<string name="save_draft_dialog_save_button">Guardar</string>
 	<string name="save_draft_dialog_cancel_button">Cancelar</string>
 	<string name="save_draft_dialog_toast_success">Borrador guardado</string>
-	<string name="save_draft_dialog_current_draft">Guardar el borrador actual como:</string>
 	<string name="save_draft_dialog_error">¡El nombre del borrador actual no es válido!</string>
 	<string name="scene_editor_rename_dialog_title">Renombrar escena</string>
 	<string name="scene_editor_name_hint">Nombre de la escena</string>

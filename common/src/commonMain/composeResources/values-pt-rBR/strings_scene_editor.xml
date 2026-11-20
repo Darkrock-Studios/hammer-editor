@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Iniciar novo rascunho:</string>
-	<string name="save_draft_dialog_name_hint">Nome do rascunho</string>
 	<string name="save_draft_dialog_save_button">Salvar</string>
 	<string name="save_draft_dialog_cancel_button">Cancelar</string>
 	<string name="save_draft_dialog_toast_success">Rascunho Salvo</string>
-	<string name="save_draft_dialog_current_draft">Salvando rascunho atual como:</string>
 	<string name="save_draft_dialog_error">O nome atual do rascunho é inválido!</string>
 	<string name="scene_editor_rename_dialog_title">Renomear Cena</string>
 	<string name="scene_editor_name_hint">Nome da Cena</string>
