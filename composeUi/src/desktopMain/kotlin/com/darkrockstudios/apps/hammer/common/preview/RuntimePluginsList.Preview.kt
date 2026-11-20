@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginManifest
 
 /** The Plugins tab's list: one active with settings, one off, one turned off after a crash. */
 @Composable
-internal fun ColumnScope.RuntimePluginsListPreview() {
+internal fun ColumnScope.RuntimePluginsListPreview(showHeader: Boolean = true) {
 	Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
 		RuntimePluginsList(
 			installed = previewInstalledPlugins,
@@ -22,6 +22,7 @@ internal fun ColumnScope.RuntimePluginsListPreview() {
 			onSettings = {},
 			onUninstall = {},
 			onInstall = {},
+			showHeader = showHeader,
 		)
 	}
 }

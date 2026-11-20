@@ -116,6 +116,7 @@ internal fun ColumnScope.RuntimePluginsSection(
 	runtimePlugins: RuntimePlugins,
 	settings: (pluginId: String) -> PluginSettingsPane?,
 	onOpenSettings: (pluginId: String) -> Unit,
+	showHeader: Boolean = true,
 ) {
 	val scope = rememberCoroutineScope()
 	// Changes run on the app scope so leaving Settings cannot cancel one half done.
@@ -156,6 +157,7 @@ internal fun ColumnScope.RuntimePluginsSection(
 
 	val plugins = installed
 	RuntimePluginsList(
+		showHeader = showHeader,
 		installed = plugins,
 		failure = failure,
 		hasSettings = { id -> settings(id) != null },
@@ -230,10 +232,12 @@ internal fun ColumnScope.RuntimePluginsList(
 	onSettings: (pluginId: String) -> Unit,
 	onUninstall: (pluginId: String) -> Unit,
 	onInstall: () -> Unit,
+	/** Off where a dialog's title already names the list. */
+	showHeader: Boolean = true,
 ) {
 	var uninstalling by remember { mutableStateOf<InstalledPlugin?>(null) }
 
-	HdSettingGroup(title = Res.string.plugin_runtime_header.get()) {
+	HdSettingGroup(title = if (showHeader) Res.string.plugin_runtime_header.get() else null) {
 		if (installed != null && installed.isEmpty()) {
 			Text(Res.string.plugin_runtime_empty.get(), style = MaterialTheme.typography.bodyMedium)
 		}

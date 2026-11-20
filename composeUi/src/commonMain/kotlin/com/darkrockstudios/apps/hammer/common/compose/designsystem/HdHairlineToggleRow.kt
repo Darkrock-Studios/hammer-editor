@@ -26,6 +26,8 @@ fun HdHairlineToggleRow(
 	modifier: Modifier = Modifier,
 	hint: String? = null,
 	enabled: Boolean = true,
+	/** A risk of turning it on, under the hint in the error color. */
+	warning: String? = null,
 ) {
 	Row(
 		modifier = modifier
@@ -47,6 +49,13 @@ fun HdHairlineToggleRow(
 					text = hint,
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+			}
+			if (warning != null) {
+				Text(
+					text = warning,
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.error,
 				)
 			}
 		}
