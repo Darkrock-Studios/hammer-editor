@@ -154,10 +154,10 @@ private fun nestedSceneSummary(): SceneSummary {
 		group("Chapter IV").apply {
 			addChild(scene("Mushroom Consumed"))
 			addChild(
-				group("Chapter III").apply {
+				group("Underground").apply {
 					addChild(scene("Down the hole"))
 					addChild(
-						group("Chapter II").apply {
+						group("A sea of tears").apply {
 							addChild(scene("The Pool of Tears"))
 							addChild(scene("White Rabbit Arrives"))
 						}
@@ -171,7 +171,7 @@ private fun nestedSceneSummary(): SceneSummary {
 	root.addChild(
 		group("Chapter VI").apply {
 			addChild(
-				group("Chapter V").apply {
+				group("The Duchess").apply {
 					addChild(scene("Pig and Pepper"))
 				}
 			)

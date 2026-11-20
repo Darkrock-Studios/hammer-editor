@@ -73,7 +73,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Scenes list (`SceneListUi`) g: Scene list
   - [x] Create Scene / Group / Chapter Scene / Chapter Group (`CreateDialog`) g: Create scene dialog
   - [x] Rename Scene / Chapter / Group (`SceneRenameDialog`) g: Rename chapter dialog
-  - [ ] Delete Scene / Chapter / Group (`SceneDeleteDialog`) **no gallery**
+  - [x] Delete Scene / Chapter / Group (`SceneDeleteDialog`) g: Delete scene confirm
   - [ ] Cannot Delete Chapter / Group (`GroupDeleteNotAllowedDialog`) **no gallery**
   - [ ] Archive Scene, from the list (`SceneArchiveDialog`) **no gallery**
   - [ ] Move scene (`MoveSceneDialog`) g: Move scene dialog
