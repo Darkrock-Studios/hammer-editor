@@ -17,11 +17,7 @@
 	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;немає плану&gt;</string>
 	<string name="scene_list_outline_dismiss">Закрити</string>
-	<string name="scene_list_outline_overview_eyebrow">Рукопис</string>
-	<string name="scene_list_outline_overview_frontispiece_eyebrow">План</string>
 	<string name="scene_list_outline_overview_jump_to">Перейти до</string>
-	<string name="scene_list_outline_overview_stat_chapters">Розділи</string>
-	<string name="scene_list_outline_overview_stat_scenes">Сцени</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d СЦ</string>
 	<string name="scene_list_outline_overview_end">Кінець плану</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>

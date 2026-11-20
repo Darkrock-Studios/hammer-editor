@@ -31,7 +31,8 @@ import com.darkrockstudios.apps.hammer.base.romanNumeral
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.scene_list_outline_overview_chapter_scenes_eyebrow
+import org.jetbrains.compose.resources.pluralStringResource
+import com.darkrockstudios.apps.hammer.scene_list_outline_overview_scenes
 import com.darkrockstudios.apps.hammer.scene_list_outline_overview_jump_to
 import com.darkrockstudios.apps.hammer.scene_list_outline_overview_position
 import com.darkrockstudios.apps.hammer.scene_list_outline_overview_scene_count
@@ -215,7 +216,7 @@ fun HdChapterHeader(
 	}
 	Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
 		HdMonoLabel(
-			text = Res.string.scene_list_outline_overview_chapter_scenes_eyebrow.get(sceneCount),
+			text = pluralStringResource(Res.plurals.scene_list_outline_overview_scenes, sceneCount, sceneCount),
 		)
 		Text(
 			text = title,

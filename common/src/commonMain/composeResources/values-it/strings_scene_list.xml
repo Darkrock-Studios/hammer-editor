@@ -17,11 +17,7 @@
 	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;nessuna scaletta&gt;</string>
 	<string name="scene_list_outline_dismiss">Ignora</string>
-	<string name="scene_list_outline_overview_eyebrow">Manoscritto</string>
-	<string name="scene_list_outline_overview_frontispiece_eyebrow">Una scaletta di</string>
 	<string name="scene_list_outline_overview_jump_to">Vai a</string>
-	<string name="scene_list_outline_overview_stat_chapters">Capitoli</string>
-	<string name="scene_list_outline_overview_stat_scenes">Scene</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d SCN</string>
 	<string name="scene_list_outline_overview_end">Fine della scaletta</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>

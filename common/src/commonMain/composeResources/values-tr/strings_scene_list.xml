@@ -18,11 +18,7 @@
 	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;no outline&gt;</string>
 	<string name="scene_list_outline_dismiss">Dismiss</string>
-	<string name="scene_list_outline_overview_eyebrow">Manuscript</string>
-	<string name="scene_list_outline_overview_frontispiece_eyebrow">An outline of</string>
 	<string name="scene_list_outline_overview_jump_to">Jump to</string>
-	<string name="scene_list_outline_overview_stat_chapters">Chapters</string>
-	<string name="scene_list_outline_overview_stat_scenes">Scenes</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d SCN</string>
 	<string name="scene_list_outline_overview_end">End of outline</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>

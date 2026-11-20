@@ -17,11 +17,7 @@
 	<string name="scene_list_reader_button">Lire</string>
 	<string name="scene_list_outline_overview_none">&lt;aucun plan&gt;</string>
 	<string name="scene_list_outline_dismiss">Ignorer</string>
-	<string name="scene_list_outline_overview_eyebrow">Manuscrit</string>
-	<string name="scene_list_outline_overview_frontispiece_eyebrow">Un plan de</string>
 	<string name="scene_list_outline_overview_jump_to">Aller à</string>
-	<string name="scene_list_outline_overview_stat_chapters">Chapitres</string>
-	<string name="scene_list_outline_overview_stat_scenes">Scènes</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d SCN</string>
 	<string name="scene_list_outline_overview_end">Fin du plan</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>

@@ -17,11 +17,7 @@
 	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;sem esboço&gt;</string>
 	<string name="scene_list_outline_dismiss">Descartar</string>
-	<string name="scene_list_outline_overview_eyebrow">Manuscrito</string>
-	<string name="scene_list_outline_overview_frontispiece_eyebrow">Um esboço de</string>
 	<string name="scene_list_outline_overview_jump_to">Ir para</string>
-	<string name="scene_list_outline_overview_stat_chapters">Capítulos</string>
-	<string name="scene_list_outline_overview_stat_scenes">Cenas</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d CEN</string>
 	<string name="scene_list_outline_overview_end">Fim do esboço</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>

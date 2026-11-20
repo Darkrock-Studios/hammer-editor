@@ -24,18 +24,21 @@
 	<string name="create_sceneitem_dialog_name_label">Name</string>
 	<string name="create_sceneitem_dialog_parent">In %1$s</string>
 
-	<string name="scene_list_outline_overview_title">Story Outline</string>
+	<string name="scene_list_outline_overview_title">Story outline</string>
 	<string name="scene_list_outline_button">Outline</string>
 	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;no outline&gt;</string>
 	<string name="scene_list_outline_dismiss">Dismiss</string>
-	<string name="scene_list_outline_overview_eyebrow">Manuscript</string>
-	<string name="scene_list_outline_overview_frontispiece_eyebrow">An outline of</string>
 	<string name="scene_list_outline_overview_jump_to">Jump to</string>
-	<string name="scene_list_outline_overview_stat_chapters">Chapters</string>
-	<string name="scene_list_outline_overview_stat_scenes">Scenes</string>
-	<string name="scene_list_outline_overview_chapter_scenes_eyebrow">Chapter · %1$d Scenes</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d SCN</string>
+	<plurals name="scene_list_outline_overview_chapters">
+		<item quantity="one">%1$d chapter</item>
+		<item quantity="other">%1$d chapters</item>
+	</plurals>
+	<plurals name="scene_list_outline_overview_scenes">
+		<item quantity="one">%1$d scene</item>
+		<item quantity="other">%1$d scenes</item>
+	</plurals>
 	<string name="scene_list_outline_overview_end">End of outline</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>
 	<string name="scene_list_outline_overview_untitled_chapter">Untitled chapter</string>

@@ -17,11 +17,7 @@
 	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;sin esquema&gt;</string>
 	<string name="scene_list_outline_dismiss">Descartar</string>
-	<string name="scene_list_outline_overview_eyebrow">Manuscrito</string>
-	<string name="scene_list_outline_overview_frontispiece_eyebrow">Un esquema de</string>
 	<string name="scene_list_outline_overview_jump_to">Ir a</string>
-	<string name="scene_list_outline_overview_stat_chapters">Capítulos</string>
-	<string name="scene_list_outline_overview_stat_scenes">Escenas</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d ESC</string>
 	<string name="scene_list_outline_overview_end">Fin del esquema</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>

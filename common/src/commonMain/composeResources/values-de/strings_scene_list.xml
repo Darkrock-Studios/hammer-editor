@@ -17,11 +17,7 @@
 	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;keine Gliederung&gt;</string>
 	<string name="scene_list_outline_dismiss">Schließen</string>
-	<string name="scene_list_outline_overview_eyebrow">Manuskript</string>
-	<string name="scene_list_outline_overview_frontispiece_eyebrow">Eine Gliederung von</string>
 	<string name="scene_list_outline_overview_jump_to">Springen zu</string>
-	<string name="scene_list_outline_overview_stat_chapters">Kapitel</string>
-	<string name="scene_list_outline_overview_stat_scenes">Szenen</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d SZN</string>
 	<string name="scene_list_outline_overview_end">Ende der Gliederung</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>

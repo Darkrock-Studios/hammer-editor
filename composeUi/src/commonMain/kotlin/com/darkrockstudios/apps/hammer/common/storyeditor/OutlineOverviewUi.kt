@@ -34,13 +34,13 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterHead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterRailItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEndMark
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSceneBreak
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.pluralStringResource
 
 private val WideThreshold = 720.dp
 private const val FRONTISPIECE_ITEM_COUNT = 1
@@ -162,14 +162,12 @@ fun OutlineOverviewContent(
 						detectTapGestures(onTap = {})
 					},
 			) {
-				Masthead(
-					chapterCount = totalChapters,
-					sceneCount = totalScenes,
-					isWide = isWide,
-					onClose = onDismiss,
-				)
+				Masthead(isWide = isWide, onClose = onDismiss)
 
-				HdFolioDivider()
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
 
 				if (chapters.isEmpty()) {
 					EmptyOutline(modifier = Modifier.weight(1f))
@@ -194,6 +192,8 @@ fun OutlineOverviewContent(
 						ReadingColumn(
 							chapters = chapters,
 							projectName = projectName,
+							chapterCount = totalChapters,
+							sceneCount = totalScenes,
 							listState = listState,
 							wide = true,
 							onSceneClick = component::selectScene,
@@ -211,6 +211,8 @@ fun OutlineOverviewContent(
 					ReadingColumn(
 						chapters = chapters,
 						projectName = projectName,
+						chapterCount = totalChapters,
+						sceneCount = totalScenes,
 						listState = listState,
 						wide = false,
 						onSceneClick = component::selectScene,
@@ -226,8 +228,6 @@ fun OutlineOverviewContent(
 
 @Composable
 private fun Masthead(
-	chapterCount: Int,
-	sceneCount: Int,
 	isWide: Boolean,
 	onClose: () -> Unit,
 ) {
@@ -235,81 +235,26 @@ private fun Masthead(
 		modifier = Modifier
 			.fillMaxWidth()
 			.padding(
-				horizontal = if (isWide) Ui.Padding.XXL else Ui.Padding.XL,
-				vertical = Ui.Padding.XL,
+				start = if (isWide) Ui.Padding.XXL else Ui.Padding.XL,
+				end = Ui.Padding.M,
+				top = Ui.Padding.L,
+				bottom = Ui.Padding.M,
 			),
-		verticalAlignment = Alignment.Top,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
 	) {
-		Column(
-			modifier = Modifier.weight(1f),
-			verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-		) {
-			HdMonoLabel(text = Res.string.scene_list_outline_overview_eyebrow.get())
-			Text(
-				text = Res.string.scene_list_outline_overview_title.get(),
-				style = MaterialTheme.typography.displaySmall,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-			Row(
-				modifier = Modifier
-					.padding(top = Ui.Padding.M)
-					.height(IntrinsicSize.Min),
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				StatPair(
-					label = Res.string.scene_list_outline_overview_stat_chapters.get(),
-					value = chapterCount.toString(),
-				)
-				VerticalDivider(
-					color = MaterialTheme.colorScheme.outlineVariant,
-					thickness = Dp.Hairline,
-					modifier = Modifier.height(36.dp),
-				)
-				StatPair(
-					label = Res.string.scene_list_outline_overview_stat_scenes.get(),
-					value = sceneCount.toString(),
-				)
-			}
-		}
-
-		CloseButton(onClose = onClose)
-	}
-}
-
-@Composable
-private fun StatPair(label: String, value: String) {
-	Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-		HdMonoLabel(text = label)
 		Text(
-			text = value,
-			style = MaterialTheme.typography.headlineMedium,
-			fontWeight = FontWeight.Light,
+			text = Res.string.scene_list_outline_overview_title.get(),
+			style = MaterialTheme.typography.titleLarge,
 			color = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier.weight(1f),
 		)
-	}
-}
-
-@Composable
-private fun CloseButton(onClose: () -> Unit) {
-	Box(
-		modifier = Modifier
-			.size(32.dp)
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				shape = RectangleShape,
+		IconButton(onClick = onClose) {
+			Icon(
+				imageVector = Icons.Default.Close,
+				contentDescription = Res.string.scene_list_outline_dismiss.get(),
+				tint = MaterialTheme.colorScheme.onSurface,
 			)
-			.clickable(onClick = onClose),
-		contentAlignment = Alignment.Center,
-	) {
-		Icon(
-			imageVector = Icons.Default.Close,
-			contentDescription = Res.string.scene_list_outline_dismiss.get(),
-			tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			modifier = Modifier.size(16.dp),
-		)
+		}
 	}
 }
 
@@ -364,6 +309,8 @@ private fun untitledChapter(): String =
 private fun ReadingColumn(
 	chapters: List<OutlineChapter>,
 	projectName: String?,
+	chapterCount: Int,
+	sceneCount: Int,
 	listState: LazyListState,
 	wide: Boolean,
 	onSceneClick: (SceneItem) -> Unit,
@@ -382,7 +329,7 @@ private fun ReadingColumn(
 			),
 		) {
 			item(key = "frontispiece") {
-				Frontispiece(projectName = projectName)
+				Frontispiece(projectName = projectName, chapterCount = chapterCount, sceneCount = sceneCount)
 			}
 			itemsIndexed(chapters, key = { idx, _ -> "ch-$idx" }) { index, ch ->
 				ChapterBlock(
@@ -406,7 +353,7 @@ private fun ReadingColumn(
 }
 
 @Composable
-private fun Frontispiece(projectName: String?) {
+private fun Frontispiece(projectName: String?, chapterCount: Int, sceneCount: Int) {
 	Column(
 		modifier = Modifier
 			.fillMaxWidth()
@@ -414,9 +361,6 @@ private fun Frontispiece(projectName: String?) {
 		horizontalAlignment = Alignment.CenterHorizontally,
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdMonoLabel(
-			text = Res.string.scene_list_outline_overview_frontispiece_eyebrow.get(),
-		)
 		if (!projectName.isNullOrBlank()) {
 			Text(
 				text = projectName,
@@ -426,6 +370,12 @@ private fun Frontispiece(projectName: String?) {
 				textAlign = TextAlign.Center,
 			)
 		}
+		HdMonoLabel(
+			text = listOf(
+				pluralStringResource(Res.plurals.scene_list_outline_overview_chapters, chapterCount, chapterCount),
+				pluralStringResource(Res.plurals.scene_list_outline_overview_scenes, sceneCount, sceneCount),
+			).joinToString(" · "),
+		)
 		Box(
 			modifier = Modifier
 				.padding(top = Ui.Padding.L)
