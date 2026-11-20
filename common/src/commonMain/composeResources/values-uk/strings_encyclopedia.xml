@@ -57,8 +57,6 @@
 	<string name="encyclopedia_entry_menu_delete">Видалити запис</string>
 	<string name="encyclopedia_entry_menu_remove_image">Вилучити зображення</string>
 	<string name="encyclopedia_entry_menu_add_image">Додати зображення</string>
-	<string name="encyclopedia_entry_add_tags_dialog_title">Додати теги</string>
-	<string name="encyclopedia_entry_add_tags_button">Додати теги</string>
 	<string name="encyclopedia_entry_crumb_root">Енциклопедія</string>
 	<string name="encyclopedia_entry_edit_button">Редагувати</string>
 	<string name="encyclopedia_entry_tags_label">Теги</string>

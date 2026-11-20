@@ -57,8 +57,6 @@
 	<string name="encyclopedia_entry_menu_delete">Excluir Verbete</string>
 	<string name="encyclopedia_entry_menu_remove_image">Remover Imagem</string>
 	<string name="encyclopedia_entry_menu_add_image">Adicionar Imagem</string>
-	<string name="encyclopedia_entry_add_tags_dialog_title">Adicionar Etiquetas</string>
-	<string name="encyclopedia_entry_add_tags_button">Adicionar Etiquetas</string>
 	<string name="encyclopedia_entry_crumb_root">Enciclopédia</string>
 	<string name="encyclopedia_entry_edit_button">Editar</string>
 	<string name="encyclopedia_entry_tags_label">Etiquetas</string>

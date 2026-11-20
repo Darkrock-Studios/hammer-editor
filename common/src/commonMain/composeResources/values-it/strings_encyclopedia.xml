@@ -57,8 +57,6 @@
 	<string name="encyclopedia_entry_menu_delete">Elimina voce</string>
 	<string name="encyclopedia_entry_menu_remove_image">Rimuovi immagine</string>
 	<string name="encyclopedia_entry_menu_add_image">Aggiungi immagine</string>
-	<string name="encyclopedia_entry_add_tags_dialog_title">Aggiungi tag</string>
-	<string name="encyclopedia_entry_add_tags_button">Aggiungi tag</string>
 	<string name="encyclopedia_entry_crumb_root">Enciclopedia</string>
 	<string name="encyclopedia_entry_edit_button">Modifica</string>
 	<string name="encyclopedia_entry_tags_label">Tag</string>

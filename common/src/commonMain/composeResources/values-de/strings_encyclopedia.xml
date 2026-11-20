@@ -57,8 +57,6 @@
 	<string name="encyclopedia_entry_menu_delete">Eintrag löschen</string>
 	<string name="encyclopedia_entry_menu_remove_image">Bild entfernen</string>
 	<string name="encyclopedia_entry_menu_add_image">Bild hinzufügen</string>
-	<string name="encyclopedia_entry_add_tags_dialog_title">Tags hinzufügen</string>
-	<string name="encyclopedia_entry_add_tags_button">Tags hinzufügen</string>
 	<string name="encyclopedia_entry_crumb_root">Lexikon</string>
 	<string name="encyclopedia_entry_edit_button">Bearbeiten</string>
 	<string name="encyclopedia_entry_tags_label">Tags</string>

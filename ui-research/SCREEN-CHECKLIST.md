@@ -107,8 +107,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Browse (`BrowseEntriesUi`) g: Browse encyclopedia
 - [x] Entry view (`ViewEntryUi`) g: View encyclopedia entry, View encyclopedia entry, images, View encyclopedia entry, timelines
   - [x] Discard Changes? / Delete Entry? / Remove Image? (`SimpleConfirm`) g: Encyclopedia entry confirms
-  - [ ] Add Tags (`TagAddDialog`) **no gallery**
-  - [ ] Add Alias (`AliasAddDialog`) **no gallery**
+  - [x] Add Tags (`TagAddDialog`) g: Encyclopedia add tags and alias
+  - [x] Add Alias (`AliasAddDialog`) g: Encyclopedia add tags and alias
   - [ ] Rename "name" everywhere (`RenameEntryDialog`) **no gallery**
 - [ ] Create entry (`CreateEntryUi`) g: Create encyclopedia entry
   - [ ] Discard New Entry? (`SimpleConfirm`) **no gallery**

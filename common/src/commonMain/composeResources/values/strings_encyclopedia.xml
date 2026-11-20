@@ -37,8 +37,9 @@
 	<string name="encyclopedia_entry_aliases_label">Aliases</string>
 	<string name="encyclopedia_entry_dictionary_toggle_label">Learn in spell check</string>
 	<string name="encyclopedia_entry_dictionary_toggle_hint">This entry&#8217;s name and aliases won&#8217;t be marked as misspelled</string>
-	<string name="encyclopedia_entry_add_alias_dialog_title">Add Alias</string>
+	<string name="encyclopedia_entry_add_alias_dialog_title">Add alias</string>
 	<string name="encyclopedia_entry_add_alias_button">Add</string>
+	<string name="encyclopedia_entry_add_alias_done">Done</string>
 	<string name="encyclopedia_entry_alias_hint">Nickname or other name</string>
 	<string name="encyclopedia_entry_appears_in_label">Appears in scenes</string>
 	<string name="encyclopedia_entry_appears_in_empty">Not yet referenced in any scene</string>
@@ -126,8 +127,6 @@
 	<string name="encyclopedia_entry_rename_result_invalid">%1$d places could not take the new text and were left as they were.</string>
 	<string name="encyclopedia_entry_rename_result_backup_failed">The backup failed, so nothing was changed.</string>
 	<string name="encyclopedia_entry_rename_result_entry_failed">The text was renamed, but the entry itself could not be.</string>
-	<string name="encyclopedia_entry_add_tags_dialog_title">Add Tags</string>
-	<string name="encyclopedia_entry_add_tags_button">Add Tags</string>
 
 	<string name="encyclopedia_entry_crumb_root">Encyclopedia</string>
 	<string name="encyclopedia_entry_edit_button">Edit</string>

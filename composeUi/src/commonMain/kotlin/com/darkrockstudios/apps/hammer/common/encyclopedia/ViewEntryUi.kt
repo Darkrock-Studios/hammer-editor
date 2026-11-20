@@ -113,7 +113,6 @@ import com.darkrockstudios.apps.hammer.timeline_subject_timelines_label
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_alias_too_long
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_invalid_name
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_name_too_short
@@ -124,8 +123,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_chip
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_dialog_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tag_chip
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tags_button
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tags_dialog_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_alias_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_aliases_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_appears_in_empty
@@ -135,6 +132,11 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_labe
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_body_empty_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_close_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_crumb_root
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.AddTagCard
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
+import com.darkrockstudios.apps.hammer.common.compose.SpacerL
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_done
 import com.darkrockstudios.apps.hammer.confirm_kind_discard
 import com.darkrockstudios.apps.hammer.confirm_kind_delete
 import com.darkrockstudios.apps.hammer.confirm_kind_remove
@@ -1088,42 +1090,34 @@ private fun TagAddDialog(
 	scope: CoroutineScope,
 ) {
 	val mainDispatcher = rememberMainDispatcher()
-	SimpleDialog(
-		title = Res.string.encyclopedia_entry_add_tags_dialog_title.get(),
+	var newTagsText by rememberSaveable { mutableStateOf("") }
+	val existingTags = state.content?.tags.orEmpty()
+	val suggestions = rememberTagSuggestions(newTagsText, existingTags, component::suggestTags)
+
+	AnimatedDialog(
 		visible = state.showTagAdd,
 		onCloseRequest = component::endTagAdd,
+		dismissOnTapOutside = true,
 	) {
-		var newTagsText by rememberSaveable { mutableStateOf("") }
-		val existingTags = state.content?.tags.orEmpty()
-		val suggestions = rememberTagSuggestions(newTagsText, existingTags, component::suggestTags)
-		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-			HdHairlineField(
-				label = Res.string.encyclopedia_create_entry_tags_label.get(),
-				value = newTagsText,
-				onValueChange = { newTagsText = it },
-				capitalization = KeyboardCapitalization.None,
-				autoCorrectEnabled = false,
-			)
-			HdTagSuggestionStrip(
-				suggestions = suggestions,
-				onSelect = { tag ->
-					scope.launch {
-						component.addTags(replaceTagPrefix(newTagsText, tag))
-						withContext(mainDispatcher) { newTagsText = "" }
-					}
-				},
-			)
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_add_tags_button.get(),
-				emphasised = true,
-				onClick = {
-					scope.launch {
-						component.addTags(newTagsText)
-						withContext(mainDispatcher) { newTagsText = "" }
-					}
-				},
-			)
-		}
+		AddTagCard(
+			draft = newTagsText,
+			onDraftChange = { newTagsText = it },
+			suggestions = suggestions,
+			onSelectSuggestion = { tag ->
+				scope.launch {
+					component.addTags(replaceTagPrefix(newTagsText, tag))
+					withContext(mainDispatcher) { newTagsText = "" }
+				}
+			},
+			onDone = {
+				val draft = newTagsText
+				if (draft.isNotBlank()) {
+					scope.launch { component.addTags(draft) }
+				}
+				newTagsText = ""
+				requestDismiss()
+			},
+		)
 	}
 }
 
@@ -1136,30 +1130,69 @@ private fun AliasAddDialog(
 	strRes: StrRes,
 ) {
 	val mainDispatcher = rememberMainDispatcher()
-	SimpleDialog(
-		title = Res.string.encyclopedia_entry_add_alias_dialog_title.get(),
+	var newAliasText by rememberSaveable { mutableStateOf("") }
+
+	AnimatedDialog(
 		visible = state.showAliasAdd,
 		onCloseRequest = component::endAliasAdd,
+		dismissOnTapOutside = true,
 	) {
-		var newAliasText by rememberSaveable { mutableStateOf("") }
-		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-			HdHairlineField(
-				label = Res.string.encyclopedia_entry_alias_hint.get(),
-				value = newAliasText,
-				onValueChange = { newAliasText = it },
-			)
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_add_alias_button.get(),
-				emphasised = true,
-				onClick = {
+		AliasAddCard(
+			alias = newAliasText,
+			onAliasChange = { newAliasText = it },
+			onDone = {
+				val alias = newAliasText
+				if (alias.isBlank()) {
+					requestDismiss()
+				} else {
 					scope.launch {
-						val result = component.addAlias(newAliasText)
+						val result = component.addAlias(alias)
 						withContext(mainDispatcher) {
-							if (result.error == EntryError.NONE) newAliasText = ""
+							if (result.error == EntryError.NONE) {
+								newAliasText = ""
+								requestDismiss()
+							}
 						}
 						reportSaveResult(result, rootSnackbar, scope, strRes)
 					}
+				}
+			},
+		)
+	}
+}
+
+@Composable
+internal fun AliasAddCard(
+	alias: String,
+	onAliasChange: (String) -> Unit,
+	onDone: () -> Unit,
+) {
+	HdHairlineDialogShell(
+		title = Res.string.encyclopedia_entry_add_alias_dialog_title.get(),
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		HdHairlineField(
+			label = Res.string.encyclopedia_entry_alias_hint.get(),
+			value = alias,
+			onValueChange = onAliasChange,
+			singleLine = true,
+		)
+
+		SpacerL()
+
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.End,
+		) {
+			HdHairlineButton(
+				label = if (alias.isBlank()) {
+					Res.string.encyclopedia_entry_add_alias_done.get()
+				} else {
+					Res.string.encyclopedia_entry_add_alias_button.get()
 				},
+				onClick = onDone,
+				emphasised = true,
 			)
 		}
 	}
