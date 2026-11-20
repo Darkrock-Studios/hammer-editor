@@ -36,7 +36,6 @@
 	<string name="notes_search_placeholder">Buscar notas</string>
 	<string name="notes_search_close">Cerrar búsqueda</string>
 	<string name="notes_search_clear">Borrar búsqueda</string>
-	<string name="notes_header_meta">%1$d NOTAS · %2$d ETIQUETAS</string>
 	<string name="notes_word_count_short">%1$d PAL</string>
 	<string name="notes_filter_all">TODO</string>
 	<string name="notes_filter_filtered">FILTRADO · %1$d DE %2$d</string>

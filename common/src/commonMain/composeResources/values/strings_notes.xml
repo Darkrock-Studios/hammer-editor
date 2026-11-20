@@ -40,7 +40,6 @@
 	<string name="notes_search_close">Close search</string>
 	<string name="notes_search_clear">Clear search</string>
 
-	<string name="notes_header_meta">%1$d NOTES · %2$d TAGS</string>
 	<string name="notes_word_count_short">%1$d W</string>
 	<string name="notes_filter_all">All</string>
 	<string name="notes_filter_filtered">FILTERED · %1$d OF %2$d</string>

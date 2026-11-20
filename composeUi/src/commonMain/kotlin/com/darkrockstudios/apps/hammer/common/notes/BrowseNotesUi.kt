@@ -78,7 +78,6 @@ import com.darkrockstudios.apps.hammer.notes_filter_all
 import com.darkrockstudios.apps.hammer.notes_filter_clear_all
 import com.darkrockstudios.apps.hammer.notes_filter_filtered
 import com.darkrockstudios.apps.hammer.notes_header
-import com.darkrockstudios.apps.hammer.notes_header_meta
 import com.darkrockstudios.apps.hammer.notes_list_empty
 import com.darkrockstudios.apps.hammer.notes_search_button
 import com.darkrockstudios.apps.hammer.notes_search_clear
@@ -233,19 +232,6 @@ fun BrowseNotesUi(
 						section = 3,
 						title = Res.string.notes_header.get(),
 						modifier = Modifier.weight(1f),
-						trailing = {
-							// On narrow screens the meta competes with the
-							// search icon for space — only surface the
-							// summary when there's room for it.
-							if (isWide) {
-								HdMonoLabel(
-									text = Res.string.notes_header_meta.get(
-										state.notes.size,
-										tagIndex.size,
-									),
-								)
-							}
-						},
 					)
 					if (!isWide) {
 						IconButton(onClick = { showSearchBar = true }) {

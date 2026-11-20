@@ -36,7 +36,6 @@
 	<string name="notes_search_placeholder">Пошук нотаток</string>
 	<string name="notes_search_close">Закрити пошук</string>
 	<string name="notes_search_clear">Очистити пошук</string>
-	<string name="notes_header_meta">%1$d НОТАТОК · %2$d ТЕГІВ</string>
 	<string name="notes_word_count_short">%1$d СЛ</string>
 	<string name="notes_filter_all">УСІ</string>
 	<string name="notes_filter_filtered">ВІДФІЛЬТРОВАНО · %1$d З %2$d</string>

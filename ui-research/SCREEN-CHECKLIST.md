@@ -94,8 +94,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 
 ## 5. Notes
 
-- [ ] Notes container (`NotesUi`) **no gallery**
-- [ ] Notes list (`BrowseNotesUi`) g: Browse notes
+- [x] Notes container (`NotesUi`) no UI of its own
+- [x] Notes list (`BrowseNotesUi`) g: Browse notes
 - [ ] Note view (`ViewNoteUi`) g: View note
   - [ ] Discard Changes? / Delete Note? (`SimpleConfirm`, `ConfirmDeleteNoteDialog`) **no gallery**
 - [ ] Create Note (`CreateNoteUi`) g: Create note
