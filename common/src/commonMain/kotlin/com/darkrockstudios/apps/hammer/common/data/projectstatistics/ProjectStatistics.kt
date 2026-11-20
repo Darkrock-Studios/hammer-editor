@@ -39,12 +39,12 @@ data class ProjectStatistics(
 	val sceneWordsStdDev: Int = 0,
 	val numberOfNotes: Int = 0,
 	val numberOfTimelineEvents: Int = 0,
-	// Stable per-day rollup of all sealed sessions across all devices. Key is
+	// The viewer's words per day, from every session of theirs on any device. Key is
 	// LocalDate.toString() ("yyyy-MM-dd") so it stays serializable.
 	val dailyWordTotals: Map<String, Int> = emptyMap(),
-	// Lifetime totals keyed by friendly device label.
+	// The viewer's lifetime totals keyed by friendly device label.
 	val wordsPerDevice: Map<String, Int> = emptyMap(),
-	// Empty unless more than one author has written in this project.
+	// Every author's words; empty unless more than one author has written in this project.
 	val wordsPerAuthor: List<AuthorWords> = emptyList(),
 	// Top-N pre-sorted, view-ready ranking of encyclopedia entries by scene reference count.
 	val topAppearances: List<EntryAppearance> = emptyList(),
@@ -59,6 +59,6 @@ data class ProjectStatistics(
 	val schemaVersion: Int = 0,
 ) {
 	companion object {
-		const val CURRENT_SCHEMA_VERSION = 7
+		const val CURRENT_SCHEMA_VERSION = 8
 	}
 }

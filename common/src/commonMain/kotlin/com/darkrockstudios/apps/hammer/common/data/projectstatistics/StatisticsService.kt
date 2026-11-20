@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.activityOwner
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.attributeSlots
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.viewersSlots
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
@@ -177,9 +178,11 @@ class StatisticsService(
 			val timeZone = TimeZone.currentSystemDefault()
 			val dailyWordTotals = mutableMapOf<String, Int>()
 			val wordsPerDevice = mutableMapOf<String, Int>()
-			val owner = activityOwner(projectsRepository.getOwner(projectDef), globalSettingsStore.serverSettings)
+			val serverSettings = globalSettingsStore.serverSettings
+			val owner = activityOwner(projectsRepository.getOwner(projectDef), serverSettings)
 			val slots = attributeSlots(writingActivityRepository.loadAllLogs(), owner)
-			slots.forEach { slot ->
+			val viewerId = serverSettings?.userId?.takeIf { it >= 0 }
+			slots.viewersSlots(viewerId, writingActivityRepository.ownDeviceId()).forEach { slot ->
 				val deviceLog = slot.log
 				var deviceTotal = 0
 				deviceLog.sessions.forEach { session ->

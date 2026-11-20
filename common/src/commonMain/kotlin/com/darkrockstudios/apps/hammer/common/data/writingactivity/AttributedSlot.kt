@@ -26,3 +26,14 @@ fun attributeSlots(slots: List<WritingActivitySlot>, owner: ProjectOwner?): List
 		val authorName = slot.log.authorName ?: owner?.name?.takeIf { authorId == owner.id }
 		AttributedSlot(slot.deviceId, slot.log, authorId, authorName)
 	}
+
+/**
+ * The slots whose words are [viewerId]'s: those attributed to them, plus this device's own slot
+ * before the server has stamped an author on it. With no account ([viewerId] null), every slot.
+ */
+fun List<AttributedSlot>.viewersSlots(viewerId: Long?, ownDeviceId: String): List<AttributedSlot> =
+	if (viewerId == null) {
+		this
+	} else {
+		filter { it.authorId == viewerId || (it.deviceId == ownDeviceId && it.log.authorId == null) }
+	}
