@@ -74,8 +74,6 @@
 	<string name="settings_spellcheck_encyclopedia_enable">Apprendre les noms de l'encyclopédie</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Les noms d'entrés et les alias ne seront pas marqués comme mal orthographiés pendant que leur projet est ouvert</string>
 	<string name="settings_spellcheck_dictionary">Dictionnaire</string>
-	<string name="settings_spellcheck_dictionary_android_info_title">Langue de correction orthographique</string>
-	<string name="settings_spellcheck_dictionary_android_info_message">Sur Android, la langue de correction orthographique est choisie par votre appareil, pas par l'application. Pour la modifier, changez les langues de votre système et de votre clavier dans les paramètres Android.</string>
 	<string name="settings_server_enable_sync_backup_desc">Configurez un serveur pour synchroniser vos projets entre appareils et créer des sauvegardes sécurisées.</string>
 	<string name="settings_server_sync_backup_preferences">Préférences de synchronisation et de sauvegarde</string>
 	<string name="settings_server_danger_zone">Zone sensible</string>

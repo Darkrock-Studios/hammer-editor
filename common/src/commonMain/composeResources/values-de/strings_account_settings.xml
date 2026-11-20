@@ -74,8 +74,6 @@
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
 	<string name="settings_spellcheck_dictionary">Wörterbuch</string>
-	<string name="settings_spellcheck_dictionary_android_info_title">Sprache der Rechtschreibprüfung</string>
-	<string name="settings_spellcheck_dictionary_android_info_message">Unter Android wird die Sprache der Rechtschreibprüfung von Ihrem Gerät festgelegt, nicht von der App. Ändern Sie sie in den Android-Einstellungen über die System- und Tastatursprachen.</string>
 	<string name="settings_server_enable_sync_backup_desc">Richte einen Server ein, um deine Projekte zwischen den Geräten zu synchronisieren und sichere Sicherungen zu erstellen.</string>
 	<string name="settings_server_sync_backup_preferences">Synchronisiere &amp; Backup-Einstellungen</string>
 	<string name="settings_server_danger_zone">Gefahrenzone</string>

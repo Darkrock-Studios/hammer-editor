@@ -74,8 +74,6 @@
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
 	<string name="settings_spellcheck_dictionary">Diccionario</string>
-	<string name="settings_spellcheck_dictionary_android_info_title">Idioma de la corrección ortográfica</string>
-	<string name="settings_spellcheck_dictionary_android_info_message">En Android, el idioma de la corrección ortográfica lo elige tu dispositivo, no la aplicación. Para cambiarlo, actualiza los idiomas del sistema y del teclado en los ajustes de Android.</string>
 	<string name="settings_server_enable_sync_backup_desc">Configura un servidor para sincronizar tus proyectos entre dispositivos y crear copias de seguridad seguras.</string>
 	<string name="settings_server_sync_backup_preferences">Preferencias de sincronización y copias de seguridad</string>
 	<string name="settings_server_danger_zone">Zona de peligro</string>
