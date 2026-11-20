@@ -23,8 +23,8 @@ import kotlin.time.Instant
  *
  * Two responsibilities:
  *  1. Remember each open scene's pre-edit text (the "baseline") so we can
- *     compute how many words were *added* on save, ignoring deletions and
- *     pure rearrangements.
+ *     compute how many words were typed on save ([countOriginalWords]),
+ *     ignoring deletions and text moved within the scene.
  *  2. Roll those word-add events up into [WritingSession] entries with the
  *     "extend in place / seal on calendar-day rollover or long gap" rules.
  */
@@ -80,7 +80,12 @@ class WritingSessionTracker(
 		val added = baselineLock.withReentrantLock {
 			val oldContent = baseline[sceneId]
 			baseline[sceneId] = newContent
-			if (oldContent == null) 0 else countAddedWords(oldContent, newContent)
+			if (oldContent == null) {
+				0
+			} else {
+				val old = ActivityWords.of(oldContent)
+				countOriginalWords(old, ActivityWords.of(newContent), old.shingles().toSet())
+			}
 		}
 
 		if (added > 0) {
