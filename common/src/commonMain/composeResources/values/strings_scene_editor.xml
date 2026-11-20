@@ -13,7 +13,7 @@
 	<string name="scene_editor_cancel_button">Cancel</string>
 	<string name="scene_editor_unsaved_chip">Unsaved</string>
 	<string name="scene_editor_save_button">Save</string>
-	<string name="scene_editor_metadata_button">Scene Info</string>
+	<string name="scene_editor_metadata_button">Scene info</string>
 	<string name="scene_editor_toast_save_successful">Saved</string>
 	<string name="scene_editor_menu_group">Scene</string>
 	<string name="scene_editor_menu_item_save_draft">New Draft</string>
@@ -43,8 +43,8 @@
 
 	<string name="scene_editor_focus_mode_button">Enter Focus Mode</string>
 
-	<string name="scene_editor_metadata_title">Metadata</string>
-	<string name="scene_editor_metadata_hide_button">Hide Info</string>
+	<string name="scene_editor_metadata_title">Scene info</string>
+	<string name="scene_editor_metadata_hide_button">Hide scene info</string>
 	<string name="scene_editor_metadata_word_count_label">Words:</string>
 	<string name="scene_editor_metadata_advanced_header">Advanced</string>
 	<string name="scene_editor_metadata_entity_id">Entity ID:</string>

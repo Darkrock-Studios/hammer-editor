@@ -70,62 +70,32 @@ fun SceneMetadataPanelUi(
 				Row(
 					modifier = Modifier
 						.fillMaxWidth()
-						.padding(start = Ui.Padding.M, end = Ui.Padding.L, top = Ui.Padding.S, bottom = Ui.Padding.S),
+						.padding(start = Ui.Padding.XL, end = Ui.Padding.S, top = Ui.Padding.S, bottom = Ui.Padding.S),
 					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 				) {
-					IconButton(
-						onClick = closeMetadata,
-						modifier = Modifier.size(36.dp),
-					) {
-						Icon(
-							imageVector = Icons.Default.Close,
-							contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
-							tint = MaterialTheme.colorScheme.onSurface,
-						)
-					}
-					Spacer(Modifier.width(Ui.Padding.S))
 					Text(
 						text = Res.string.scene_editor_metadata_title.get(),
 						style = MaterialTheme.typography.titleMedium,
 						color = MaterialTheme.colorScheme.onSurface,
 					)
+					HdEntityId(prefix = "SCN", id = state.sceneItem.id)
+					Spacer(Modifier.weight(1f))
+					IconButton(onClick = closeMetadata) {
+						Icon(
+							imageVector = Icons.Default.Close,
+							contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
 				}
 				HorizontalDivider(
 					thickness = Dp.Hairline,
 					color = MaterialTheme.colorScheme.outlineVariant,
 				)
 
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-					verticalAlignment = Alignment.Bottom,
-				) {
-					Column(modifier = Modifier.weight(1f).padding(end = Ui.Padding.M)) {
-						Text(
-							text = state.sceneItem.name,
-							style = MaterialTheme.typography.titleLarge,
-							color = MaterialTheme.colorScheme.onSurface,
-						)
-						HdEntityId(
-							prefix = "SCN",
-							id = state.sceneItem.id,
-							modifier = Modifier.padding(top = 2.dp),
-						)
-					}
-					Row(verticalAlignment = Alignment.Bottom) {
-						HdMonoLabel(
-							text = Res.string.scene_editor_metadata_word_count_label.get().removeSuffix(":"),
-							modifier = Modifier.padding(end = 6.dp, bottom = 2.dp),
-						)
-						Text(
-							text = "${state.wordCount}",
-							style = MaterialTheme.typography.titleMedium,
-							color = MaterialTheme.colorScheme.onSurface,
-						)
-					}
-				}
 				TimestampStrip(
+					wordCount = state.wordCount,
 					created = state.metadata.created,
 					edited = state.metadata.lastEdited,
 				)
@@ -359,6 +329,7 @@ private fun EntryRefBuckets(
 
 @Composable
 private fun TimestampStrip(
+	wordCount: Int,
 	created: Instant?,
 	edited: Instant?,
 ) {
@@ -366,8 +337,13 @@ private fun TimestampStrip(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
 	) {
+		TimestampCell(
+			label = Res.string.scene_editor_metadata_word_count_label.get().removeSuffix(":"),
+			value = wordCount.toString(),
+			modifier = Modifier.weight(1f),
+		)
 		TimestampCell(
 			label = Res.string.scene_editor_metadata_created_label.get(),
 			value = created?.let(::formatStamp) ?: unset,
