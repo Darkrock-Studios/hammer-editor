@@ -3,6 +3,9 @@ package com.darkrockstudios.apps.hammer.common.gallery
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.MergeReplaceConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.RemoveServerConfirmScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.BackupManagerScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.BackupRestoreConfirmScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.BackupDeleteConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -197,6 +200,9 @@ class ScreenGalleryTest {
 		surfaced("Merge projects dialog, replace") { MergeProjectsScrimPreview(MergeMode.Replace) },
 		surfaced("Delete all local projects confirm") { MergeReplaceConfirmScrimPreview() },
 		surfaced("Remove server confirm") { RemoveServerConfirmScrimPreview() },
+		surfaced("Backup manager") { BackupManagerScrimPreview() },
+		surfaced("Restore backup confirm") { BackupRestoreConfirmScrimPreview() },
+		surfaced("Delete backup confirm") { BackupDeleteConfirmScrimPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },

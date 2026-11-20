@@ -92,8 +92,7 @@
 	<string name="backup_manager_error_delete_backup">Failed to delete backup: %1$s</string>
 	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Restore Backup</string>
-	<string name="backup_restore_dialog_message">Warning: Restoring this backup will completely replace the current contents of the project. All existing files will be deleted and replaced with the backup data. This action cannot be undone.
-	</string>
+	<string name="backup_restore_dialog_message">Warning: Restoring this backup will completely replace the current contents of the project. All existing files will be deleted and replaced with the backup data. This action cannot be undone.</string>
 	<string name="backup_restore_dialog_confirm">Restore</string>
 	<string name="backup_restore_dialog_cancel">Cancel</string>
 	<string name="backup_manager_title">Manage Backups</string>

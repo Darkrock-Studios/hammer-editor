@@ -33,7 +33,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Terms of Service (`TermsOfServiceDialog`) g: Terms of service dialog
   - [x] Merge existing projects with the server?, and Delete all local projects? (`MergeProjectsDialog`) **no gallery** g: Merge projects dialog, Merge projects dialog, replace, Delete all local projects confirm
   - [x] Remove Server confirm (`SimpleConfirm`) **no gallery** g: Remove server confirm
-  - [ ] Manage Backups, and Restore Backup confirm (`BackupManagerDialog`) **no gallery**
+  - [x] Manage Backups, and Restore Backup confirm (`BackupManagerDialog`) **no gallery** g: Backup manager, Restore backup confirm, Delete backup confirm
   - [ ] Install "name"? (`InstallDialog`) **no gallery**
   - [ ] Plugin details (`DetailsDialog`) **no gallery**
   - [ ] Full command, desktop (`FullCommandDialog`) **no gallery**

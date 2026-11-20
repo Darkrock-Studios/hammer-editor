@@ -120,20 +120,23 @@
 	<string name="backup_manager_error_delete_backup">Failed to delete backup: %1$s</string>
 	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_manager_error_restore_in_use">%1$s is in use, so its backup was not restored. Close it and try again.</string>
-	<string name="backup_restore_dialog_title">Restore Backup</string>
-	<string
-		name="backup_restore_dialog_message">Warning: Restoring this backup will completely replace the current contents of the project. All existing files will be deleted and replaced with the backup data. This action cannot be undone.
-	</string>
-	<string name="backup_restore_dialog_confirm">Restore</string>
+	<string name="backup_restore_dialog_title">Restore this backup?</string>
+	<string name="backup_restore_dialog_message">%1$s is replaced with the backup from %2$s. Anything written since then is lost, and this can't be undone.</string>
+	<string name="backup_restore_dialog_confirm">Restore backup</string>
 	<string name="backup_restore_dialog_cancel">Cancel</string>
-	<string name="backup_manager_title">Manage Backups</string>
-	<string name="backup_manager_no_backups">No backups found</string>
+	<string name="backup_manager_title">Backups</string>
+	<string name="backup_manager_no_backups">No backups yet.</string>
 	<string name="backup_manager_select_project_hint">Select a project</string>
-	<string name="backup_manager_no_backups_for_project">No backups for this project</string>
+	<string name="backup_manager_no_backups_for_project">No backups of this project yet.</string>
 	<string name="backup_manager_restore_button">Restore</string>
 	<string name="backup_manager_delete_button">Delete backup</string>
-	<string name="backup_manager_show_button">Show in Folder</string>
+	<string name="backup_manager_show_button">Show in folder</string>
 	<string name="backup_manager_export_button">Export</string>
+	<string name="backup_manager_close">Close</string>
+	<string name="backup_manager_more">More for the backup from %1$s</string>
+	<string name="backup_delete_dialog_title">Delete this backup?</string>
+	<string name="backup_delete_dialog_message">The backup from %1$s is removed from this device. Your project isn't changed.</string>
+	<string name="backup_delete_dialog_cancel">Cancel</string>
 	<string name="account_sync_confirm_cancel_title">Cancel sync?</string>
 	<string name="account_sync_confirm_cancel_message">Are you sure you want to cancel the sync?</string>
 	<string name="account_sync_toast_canceled">Sync canceled</string>
