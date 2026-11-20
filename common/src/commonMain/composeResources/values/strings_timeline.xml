@@ -165,7 +165,6 @@
 	<string name="timeline_mode_dialog_manual_message">The current date order becomes the manual order. Dates are kept, but no longer order the timeline.</string>
 	<string name="timeline_mode_dialog_confirm">Switch</string>
 	<string name="timeline_mode_dialog_cancel">Cancel</string>
-	<string name="timeline_mode_dialog_close">Close</string>
 	<string name="timeline_preset_warning_label">Some dates do not fit</string>
 	<plurals name="timeline_preset_warning_message">
 		<item quantity="one">%1$d entry keeps its date as a label</item>

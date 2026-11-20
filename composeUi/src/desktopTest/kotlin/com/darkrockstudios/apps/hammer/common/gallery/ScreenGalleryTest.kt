@@ -18,6 +18,8 @@ import com.darkrockstudios.apps.hammer.common.preview.GlobalSearchEmptyScrimPrev
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ExportHelpScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.designsystem.LanguagePickerScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ColorPickerScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.TimelineEditorScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.TimelineModeSwitchScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -259,6 +261,8 @@ class ScreenGalleryTest {
 		screen("Project settings, timelines") { ScreenProjectSettingsUiTimelinesTabletPreview() },
 		screen("Project settings, plugins") { ScreenProjectSettingsUiPluginsTabletPreview() },
 		surfaced("Timeline settings") { TimelineSettingsUiThreeTimelinesPreview() },
+		surfaced("Edit timeline") { TimelineEditorScrimPreview() },
+		surfaced("Switch timeline mode") { TimelineModeSwitchScrimPreview() },
 		surfaced("Export options dialog") { ExportOptionsDialogPreview() },
 		surfaced("Export format help") { ExportHelpScrimPreview() },
 		surfaced("Language picker") { LanguagePickerScrimPreview() },

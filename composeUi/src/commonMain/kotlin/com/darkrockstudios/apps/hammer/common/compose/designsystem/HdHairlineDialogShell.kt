@@ -17,13 +17,14 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 /**
  * Hairline-bordered modal shell with a title row and close affordance. Pair with
  * [com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog] and pass its
- * `requestDismiss` as [onClose] so the exit animation plays.
+ * `requestDismiss` as [onClose] so the exit animation plays. A null [onClose] drops the close
+ * button, for dialogs whose own Cancel already dismisses them.
  */
 @Composable
 fun HdHairlineDialogShell(
 	title: String,
-	onClose: () -> Unit,
-	closeContentDescription: String,
+	onClose: (() -> Unit)?,
+	closeContentDescription: String?,
 	modifier: Modifier = Modifier,
 	content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -47,12 +48,14 @@ fun HdHairlineDialogShell(
 					style = MaterialTheme.typography.titleLarge,
 					modifier = Modifier.weight(1f),
 				)
-				IconButton(onClick = onClose) {
-					Icon(
-						imageVector = Icons.Filled.Close,
-						contentDescription = closeContentDescription,
-						tint = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
+				if (onClose != null) {
+					IconButton(onClick = onClose) {
+						Icon(
+							imageVector = Icons.Filled.Close,
+							contentDescription = closeContentDescription,
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
 				}
 			}
 			SpacerL()

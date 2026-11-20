@@ -58,8 +58,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Project settings (`ProjectSettingsUi`, all tabs) g: Project settings, Project settings, shared, Project settings, writing, Project settings, timelines, Project settings, plugins
   - [x] Choose a language (`LanguageField`, `HdSearchableListDialog`) **no gallery** g: Language picker
   - [x] Color picker, Primary / Secondary (`ColorPickerDialog`) **no gallery** g: Color picker
-  - [ ] Edit timeline (`TimelineEditor`) **no gallery**
-  - [ ] Switch to a dated / manual timeline (`ModeSwitchDialog`) **no gallery**
+  - [x] Edit timeline (`TimelineEditor`) **no gallery** g: Edit timeline
+  - [x] Switch to a dated / manual timeline (`ModeSwitchDialog`) **no gallery** g: Switch timeline mode
   - [ ] Plugins manage dialog (`ManagePluginsDialog`) **no gallery**
   - [ ] Per-plugin settings (`PluginSettingsDialog`) **no gallery**
 - [ ] Images gallery (`ImageGalleryUi`) g: Image gallery
