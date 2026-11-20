@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock as withReentrantLock
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.TimeZone
@@ -18,15 +20,22 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 /**
- * Captures writing activity from scene saves and keeps the on-disk
- * `writing_activity/{deviceId}.toml` log up to date for the active project.
+ * Captures writing activity from scene saves and keeps this device's activity log up to date for
+ * the active project.
  *
- * Two responsibilities:
- *  1. Remember each open scene's pre-edit text (the "baseline") so we can
- *     compute how many words were typed on save ([countOriginalWords]),
- *     ignoring deletions and text moved within the scene.
- *  2. Roll those word-add events up into [WritingSession] entries with the
- *     "extend in place / seal on calendar-day rollover or long gap" rules.
+ * Each scene is anchored to its text when the tracker first sees it in an epoch, and an editor save
+ * is credited with the words typed since that anchor ([countOriginalWords]) that are not text the
+ * tracker has seen before. Editor saves never move the anchor, so autosaves landing mid-word, typos
+ * fixed later and undone deletions credit nothing extra. Text replaced from outside the editor
+ * re-anchors the scene, banking its credit. An epoch ends where a [WritingSession] is sealed: on an
+ * editor save on a later local calendar day, or more than [MERGE_GAP] after the last save that
+ * recorded words.
+ *
+ * Saves record the growth of the epoch's total (banked plus every scene's credit) past its highest
+ * point so far, so deleting never subtracts and retyping deleted words never adds.
+ *
+ * Anchoring only records text; it is tokenized and its shingles added by the next editor save, on
+ * that save's thread.
  */
 class WritingSessionTracker(
 	private val repository: WritingActivityRepository,
@@ -36,21 +45,71 @@ class WritingSessionTracker(
 
 	override val projectScope = ProjectDefScope(projectDef)
 
+	private class Anchor(val text: String, val words: Lazy<ActivityWords>) {
+		var credit = 0
+		var lastSeen: String = text
+		var lastSeenWords: Lazy<ActivityWords> = words
+
+		/** Ticket of the editor save [credit] and [lastSeen] come from. */
+		var ticket = 0L
+
+		/** Anchored at [content] with no editor save since, so re-anchoring there changes nothing. */
+		fun isAt(content: String): Boolean = lastSeenWords === words && text == content
+	}
+
+	/** Guards the session log and its cache. */
 	private val mutex = Mutex()
+
+	/** Guards everything below it. Held only for map and field updates, never to tokenize or hash. */
 	private val baselineLock = reentrantLock()
-	private val baseline = mutableMapOf<Int, String>()
+	private val anchors = mutableMapOf<Int, Anchor>()
+
+	/** Shingles of every text anchored or left behind since the project opened. Only grows. */
+	private var reproduced: PersistentSet<Long> = persistentHashSetOf()
+
+	/** Texts whose shingles belong in [reproduced] but are not added yet. */
+	private val unseen = mutableListOf<Lazy<ActivityWords>>()
+	private var banked = 0
+	private var highWater = 0
+	private var epochStart: Instant? = null
+	private var lastRecorded: Instant? = null
+	private var nextTicket = 0L
 
 	// Cached in memory once loaded from disk; kept in sync with every save.
 	private var sessions: List<WritingSession>? = null
 
-	/** Records the pre-edit content of a scene the user just opened. */
-	fun rememberBaseline(sceneId: Int, content: String) {
-		baselineLock.withReentrantLock { baseline[sceneId] = content }
+	/** Anchors a scene to [content] unless it already has an anchor. */
+	fun ensureBaseline(sceneId: Int, content: String) {
+		baselineLock.withReentrantLock {
+			if (sceneId !in anchors) install(sceneId, content, lazy { ActivityWords.of(content) })
+		}
 	}
 
-	/** Drops the baseline for a scene that's been deleted. */
+	/** Anchors a scene to [content], banking the credit of any anchor it had. */
+	fun rememberBaseline(sceneId: Int, content: String) {
+		baselineLock.withReentrantLock { reanchor(sceneId, content) }
+	}
+
+	/** Re-anchors a scene the tracker holds at [content], as [rememberBaseline] does; others stay untracked. */
+	fun replaceBaseline(sceneId: Int, content: String) {
+		baselineLock.withReentrantLock {
+			if (sceneId in anchors) reanchor(sceneId, content)
+		}
+	}
+
+	/** Drops the anchor of a deleted scene, banking its credit. What it held stays seen. */
 	fun forgetBaseline(sceneId: Int) {
-		baselineLock.withReentrantLock { baseline.remove(sceneId) }
+		baselineLock.withReentrantLock {
+			anchors.remove(sceneId)?.let(::retire)
+		}
+	}
+
+	/** Moves a scene's anchor to its new id. */
+	fun reIdBaseline(oldId: Int, newId: Int) {
+		baselineLock.withReentrantLock {
+			val moved = anchors.remove(oldId) ?: return@withReentrantLock
+			anchors.put(newId, moved)?.let(::retire)
+		}
 	}
 
 	/**
@@ -63,35 +122,127 @@ class WritingSessionTracker(
 	}
 
 	/**
-	 * Process a successful scene save. Returns the number of words credited
-	 * to this save (0 for non-Editor sources, no baseline yet, or no net
-	 * additions). When the count is positive, the on-disk session log is
-	 * updated.
+	 * Processes a successful scene save and returns the words recorded for it. An editor save is
+	 * credited against the scene's anchor, or anchors a scene that has none and credits nothing. Any
+	 * other source re-anchors a scene the tracker holds. Call off the main thread: an editor save
+	 * diffs the scene against its anchor.
 	 */
 	suspend fun onSceneSaved(sceneId: Int, newContent: String, source: UpdateSource): Int {
-		if (source != UpdateSource.Editor) return 0
+		if (source != UpdateSource.Editor) {
+			replaceBaseline(sceneId, newContent)
+			return 0
+		}
 
-		// Read-diff-write the baseline atomically. This is now driven by both the
-		// autosave pipeline and full saves, which can run on different threads for
-		// the same scene; the lock guarantees each caller credits its own delta and
-		// hands the updated baseline to the next, so nothing is double-counted or
-		// lost. A null baseline (scene loaded before the tracker saw it, or buffer
-		// populated from sync) just establishes one and credits nothing.
-		val added = baselineLock.withReentrantLock {
-			val oldContent = baseline[sceneId]
-			baseline[sceneId] = newContent
-			if (oldContent == null) {
-				0
-			} else {
-				val old = ActivityWords.of(oldContent)
-				countOriginalWords(old, ActivityWords.of(newContent), old.shingles().toSet())
+		val words = ActivityWords.of(newContent)
+		val (recorded, at) = creditEditorSave(sceneId, newContent, words)
+		if (recorded > 0) recordWriting(recorded, at)
+		return recorded
+	}
+
+	private fun creditEditorSave(sceneId: Int, content: String, words: ActivityWords): Pair<Int, Instant> {
+		val ticket = baselineLock.withReentrantLock { ++nextTicket }
+		while (true) {
+			markSeen()
+			val snapshot = baselineLock.withReentrantLock {
+				val now = clock.now()
+				restartEpochIfDue(now)
+				if (unseen.isEmpty()) EditorSaveSnapshot(now, anchors[sceneId], reproduced) else null
+			} ?: continue
+			val anchor = snapshot.anchor
+			if (anchor == null) {
+				baselineLock.withReentrantLock {
+					if (sceneId !in anchors) install(sceneId, content, lazyOf(words))
+				}
+				return 0 to snapshot.now
 			}
-		}
 
-		if (added > 0) {
-			recordWriting(added, clock.now())
+			val credit = countOriginalWords(anchor.words.value, words, snapshot.seen)
+
+			val recorded = baselineLock.withReentrantLock {
+				when {
+					anchors[sceneId] !== anchor -> null
+					ticket < anchor.ticket -> 0
+					else -> {
+						anchor.credit = credit
+						anchor.lastSeen = content
+						anchor.lastSeenWords = lazyOf(words)
+						anchor.ticket = ticket
+						val total = banked + anchors.values.sumOf { it.credit }
+						val growth = (total - highWater).coerceAtLeast(0)
+						highWater = maxOf(highWater, total)
+						if (growth > 0) lastRecorded = snapshot.now
+						growth
+					}
+				}
+			}
+			if (recorded != null) return recorded to snapshot.now
 		}
-		return added
+	}
+
+	private class EditorSaveSnapshot(val now: Instant, val anchor: Anchor?, val seen: Set<Long>)
+
+	/** Under [baselineLock]. Starts a new epoch when one is due, re-anchoring every scene at its last seen text. */
+	private fun restartEpochIfDue(now: Instant) {
+		val start = epochStart
+		if (start == null) {
+			epochStart = now
+			return
+		}
+		val timeZone = TimeZone.currentSystemDefault()
+		val laterDay = now.toLocalDateTime(timeZone).date > start.toLocalDateTime(timeZone).date
+		val gap = lastRecorded?.let { now - it > MERGE_GAP } == true
+		if (!laterDay && !gap) return
+
+		for (entry in anchors.entries) {
+			val anchor = entry.value
+			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords))
+			unseen += anchor.lastSeenWords
+		}
+		banked = 0
+		highWater = 0
+		epochStart = now
+		lastRecorded = null
+	}
+
+	/** Under [baselineLock]. */
+	private fun reanchor(sceneId: Int, content: String) {
+		val old = anchors[sceneId]
+		if (old?.isAt(content) == true) return
+		old?.let(::retire)
+		install(sceneId, content, lazy { ActivityWords.of(content) })
+	}
+
+	/** Under [baselineLock]: banks a dropped anchor's credit and keeps its text seen. */
+	private fun retire(anchor: Anchor) {
+		banked += anchor.credit
+		unseen += anchor.lastSeenWords
+	}
+
+	/** Under [baselineLock]. */
+	private fun install(sceneId: Int, content: String, words: Lazy<ActivityWords>) {
+		if (epochStart == null) epochStart = clock.now()
+		anchors[sceneId] = Anchor(content, words)
+		unseen += words
+	}
+
+	/** Moves [unseen] texts into [reproduced], tokenizing and hashing outside [baselineLock]. */
+	private fun markSeen() {
+		val pending = baselineLock.withReentrantLock { unseen.toList() }
+		if (pending.isEmpty()) return
+		val shingles = pending.flatMap { it.value.shingles() }
+		while (true) {
+			val base = baselineLock.withReentrantLock { reproduced }
+			val merged = base.addAll(shingles)
+			val swapped = baselineLock.withReentrantLock {
+				(reproduced === base).also { swapped ->
+					if (swapped) {
+						reproduced = merged
+						unseen.removeAll { added -> pending.any { it === added } }
+					}
+				}
+			}
+			if (swapped) return
+		}
 	}
 
 	@Suppress("TooGenericExceptionCaught") // Persist failure keeps in-memory state for retry
@@ -103,7 +254,7 @@ class WritingSessionTracker(
 			repository.saveOwnLog(updated)
 		} catch (e: Exception) {
 			Napier.e("Failed to persist writing activity", e)
-			// Keep the in-memory state — we'll retry on the next delta.
+			// Keep the in-memory state: the next delta retries the write.
 		}
 	}
 

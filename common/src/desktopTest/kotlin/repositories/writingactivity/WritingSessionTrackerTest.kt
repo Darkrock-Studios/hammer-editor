@@ -67,7 +67,7 @@ class WritingSessionTrackerTest : BaseTest() {
 			newContent = "I went home and made dinner",
 			source = UpdateSource.Editor,
 		)
-		// "and", "made", "dinner" are new — three words.
+		// "and", "made", "dinner" are new: three words.
 		assertEquals(3, credited)
 
 		val log = repository.loadOwnLog()
@@ -112,6 +112,46 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `ensureBaseline keeps an existing anchor`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.ensureBaseline(sceneId = 1, content = "I went home and ate dinner")
+
+		assertEquals(3, tracker.onSceneSaved(1, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `ensureBaseline anchors a scene without one`() = runTest {
+		tracker.ensureBaseline(sceneId = 1, content = "I went home")
+
+		assertEquals(2, tracker.onSceneSaved(1, "I went home and ate", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a non-editor save re-anchors the scene`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.onSceneSaved(1, "I went home and ate dinner", UpdateSource.Repository)
+
+		assertEquals(1, tracker.onSceneSaved(1, "I went home and ate dinner late", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a non-editor save leaves an untracked scene untracked`() = runTest {
+		tracker.onSceneSaved(1, "I went home", UpdateSource.Sync)
+
+		assertEquals(0, tracker.onSceneSaved(1, "I went home and ate", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a re-ided scene keeps its anchor`() = runTest {
+		tracker.rememberBaseline(sceneId = 7, content = "I went home")
+		tracker.onSceneSaved(7, "I went home and ate", UpdateSource.Editor)
+
+		tracker.reIdBaseline(oldId = 7, newId = 42)
+
+		assertEquals(1, tracker.onSceneSaved(42, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
 	fun `Drafts and Repository sources also do not credit`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "")
 		tracker.onSceneSaved(1, "draft content here", UpdateSource.Drafts)
@@ -123,7 +163,7 @@ class WritingSessionTrackerTest : BaseTest() {
 
 	@Test
 	fun `save without prior baseline establishes one but credits zero`() = runTest {
-		// Scene was never explicitly loaded — first save shouldn't credit
+		// Scene was never explicitly loaded, so the first save shouldn't credit
 		// any words because we have no reference to compare against.
 		val credited = tracker.onSceneSaved(
 			sceneId = 1,
@@ -138,7 +178,7 @@ class WritingSessionTrackerTest : BaseTest() {
 			newContent = "ten words appearing for the very first time on save plus three",
 			source = UpdateSource.Editor,
 		)
-		// "plus", "three" added — two new words.
+		// "plus", "three" added: two new words.
 		assertEquals(2, secondCredited)
 	}
 
@@ -161,7 +201,7 @@ class WritingSessionTrackerTest : BaseTest() {
 		tracker.rememberBaseline(sceneId = 1, content = "")
 		tracker.onSceneSaved(1, "morning words written here", UpdateSource.Editor)
 
-		// Jump 7 hours into the future — past MERGE_GAP.
+		// Jump 7 hours into the future, past MERGE_GAP.
 		clock.advanceTime(7.hours)
 
 		tracker.rememberBaseline(sceneId = 1, content = "morning words written here")
@@ -182,7 +222,7 @@ class WritingSessionTrackerTest : BaseTest() {
 		tracker.rememberBaseline(sceneId = 1, content = "some original text")
 		tracker.forgetBaseline(1)
 
-		// Now there's no baseline — first save establishes one and credits nothing.
+		// There's no baseline, so the first save establishes one and credits nothing.
 		val credited = tracker.onSceneSaved(
 			sceneId = 1,
 			newContent = "some original text plus three more",
