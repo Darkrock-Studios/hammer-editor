@@ -97,9 +97,18 @@ private fun activityWord(text: String, start: Int, end: Int): String? {
 	var first = start
 	var last = end - 1
 	while (first <= last && !text[first].isLetterOrDigit()) first++
-	while (last >= first && !text[last].isLetterOrDigit()) last--
+	while (last >= first && !text[last].isWordPart()) last--
 	return if (first > last) null else text.substring(first, last + 1).lowercase()
 }
+
+/** Letters, digits and combining marks, such as the vowel signs that end many Indic words. */
+private fun Char.isWordPart(): Boolean = isLetterOrDigit() || category in COMBINING_MARKS
+
+private val COMBINING_MARKS = setOf(
+	CharCategory.NON_SPACING_MARK,
+	CharCategory.COMBINING_SPACING_MARK,
+	CharCategory.ENCLOSING_MARK,
+)
 
 /**
  * The words of [current] typed since [baseline], less those inside a window or short line whose
@@ -165,7 +174,7 @@ private fun insertedRuns(baseline: List<String>, current: List<String>): List<In
 	var zone = mutableListOf<Hunk>()
 	fun closeZone() {
 		val rewrite = zone.sumOf { it.deleted } >= MIN_REWRITE_WORDS &&
-			zone.sumOf { it.inserted.count() } >= MIN_REWRITE_WORDS
+			zone.sumOf { it.inserted.last - it.inserted.first + 1 } >= MIN_REWRITE_WORDS
 		if (rewrite) {
 			runs += zone.first().inserted.first..zone.last().inserted.last
 		} else {

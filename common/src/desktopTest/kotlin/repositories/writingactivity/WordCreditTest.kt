@@ -97,8 +97,8 @@ class WordCreditTest {
 	}
 
 	@Test
-	fun `a typo fixed in the final text credits one word`() {
-		assertEquals(1, credit("I went home", "I went home and"))
+	fun `fixing a typo credits the corrected word`() {
+		assertEquals(1, credit("I went home adn", "I went home and"))
 	}
 
 	@Test
@@ -154,6 +154,11 @@ class WordCreditTest {
 	@Test
 	fun `formatting existing words credits nothing`() {
 		assertEquals(0, credit("I made dinner.", "I made **dinner**!"))
+	}
+
+	@Test
+	fun `a changed vowel sign at a word's end is a new word`() {
+		assertEquals(1, credit("वह काम करता है", "वह काम करते है"))
 	}
 
 	@Test
