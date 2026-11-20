@@ -85,7 +85,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Archive Scene, from the editor (merged into `SceneArchiveDialog`) g: Archive scene confirm
   - [x] Rename Scene, Android / iOS top bar (`RenameSceneDialog`) g: Rename scene, phone editor
 - [x] Scene metadata panel (`SceneMetadataPanelUi`) g: Scene metadata, timelines
-  - [ ] Add reference (`AddReferenceDialog`) **no gallery**
+  - [x] Add reference (`AddReferenceDialog`) g: Add reference
   - [ ] Add tags (`AddTagDialog`) **no gallery**
 - [ ] Drafts list (`DraftsListUi`) g: Drafts list
 - [ ] Draft Compare (`DraftCompareUi`) **no gallery** (preview exists)

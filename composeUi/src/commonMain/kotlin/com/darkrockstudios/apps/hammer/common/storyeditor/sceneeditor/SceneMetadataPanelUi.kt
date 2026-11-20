@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -426,86 +427,107 @@ private fun AddReferenceDialog(
 		onCloseRequest = onDismiss,
 		dismissOnTapOutside = true,
 	) {
-		HdHairlineDialogShell(
-			title = Res.string.scene_editor_metadata_references_add_dialog_title.get(),
+		AddReferenceCard(
+			tab = tab,
+			onTabChange = {
+				tab = it
+				query = ""
+			},
+			query = query,
+			onQueryChange = { query = it },
+			suggestions = suggestions,
+			onAdd = {
+				component.addConfirmedReference(it.entryDef.id)
+				query = ""
+			},
 			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
-		) {
-			Row(modifier = Modifier.fillMaxWidth()) {
-				EntryReferenceBuckets.forEach { bucket ->
-					HdTabPill(
-						label = bucket.label(),
-						active = tab == bucket,
-						onClick = {
-							tab = bucket
-							query = ""
-						},
-						modifier = Modifier.weight(1f),
-					)
-				}
-			}
+		)
+	}
+}
 
-			SpacerL()
-
-			HdSearchField(
-				value = query,
-				onValueChange = { query = it },
-				placeholder = tab.searchPlaceholder(),
-				onClear = { query = "" },
-				modifier = Modifier.fillMaxWidth(),
-			)
-
-			SpacerL()
-
-			Box(
-				modifier = Modifier
-					.fillMaxWidth()
-					.heightIn(min = 120.dp, max = 320.dp),
-			) {
-				if (suggestions.isEmpty()) {
-					Box(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(vertical = Ui.Padding.XL),
-						contentAlignment = Alignment.Center,
-					) {
-						Text(
-							text = Res.string.scene_editor_metadata_references_add_dialog_empty.get(),
-							style = MaterialTheme.typography.bodySmall,
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					}
-				} else {
-					LazyColumn(modifier = Modifier.fillMaxWidth()) {
-						items(suggestions, key = { it.entryDef.id }) { suggestion ->
-							SuggestionRow(
-								suggestion = suggestion,
-								onClick = {
-									component.addConfirmedReference(suggestion.entryDef.id)
-									query = ""
-								},
-							)
-							HorizontalDivider(
-								thickness = Dp.Hairline,
-								color = MaterialTheme.colorScheme.outlineVariant,
-							)
-						}
-					}
-				}
-			}
-
-			SpacerL()
-
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.End,
-			) {
-				HdHairlineButton(
-					label = Res.string.scene_editor_metadata_references_add_dialog_done.get(),
-					onClick = { requestDismiss() },
-					emphasised = true,
+@Composable
+internal fun AddReferenceCard(
+	tab: ReferenceBucket,
+	onTabChange: (ReferenceBucket) -> Unit,
+	query: String,
+	onQueryChange: (String) -> Unit,
+	suggestions: List<SceneMetadataPanel.AddSuggestion>,
+	onAdd: (SceneMetadataPanel.AddSuggestion) -> Unit,
+	onClose: () -> Unit,
+) {
+	HdHairlineDialogShell(
+		title = Res.string.scene_editor_metadata_references_add_dialog_title.get(),
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		Row(modifier = Modifier.fillMaxWidth()) {
+			EntryReferenceBuckets.forEach { bucket ->
+				HdTabPill(
+					label = bucket.label(),
+					active = tab == bucket,
+					onClick = { onTabChange(bucket) },
+					modifier = Modifier.weight(1f),
 				)
 			}
+		}
+
+		SpacerL()
+
+		HdSearchField(
+			value = query,
+			onValueChange = onQueryChange,
+			placeholder = tab.searchPlaceholder(),
+			onClear = { onQueryChange("") },
+			modifier = Modifier.fillMaxWidth(),
+		)
+
+		SpacerL()
+
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.heightIn(min = 120.dp, max = 320.dp),
+		) {
+			if (suggestions.isEmpty()) {
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(vertical = Ui.Padding.XL),
+					contentAlignment = Alignment.Center,
+				) {
+					Text(
+						text = Res.string.scene_editor_metadata_references_add_dialog_empty.get(),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+			} else {
+				LazyColumn(modifier = Modifier.fillMaxWidth()) {
+					items(suggestions, key = { it.entryDef.id }) { suggestion ->
+						SuggestionRow(
+							suggestion = suggestion,
+							onClick = { onAdd(suggestion) },
+						)
+						HorizontalDivider(
+							thickness = Dp.Hairline,
+							color = MaterialTheme.colorScheme.outlineVariant,
+						)
+					}
+				}
+			}
+		}
+
+		SpacerL()
+
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.End,
+		) {
+			HdHairlineButton(
+				label = Res.string.scene_editor_metadata_references_add_dialog_done.get(),
+				onClick = onClose,
+				emphasised = true,
+			)
 		}
 	}
 }
@@ -630,5 +652,11 @@ private fun SuggestionRow(
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
+		Spacer(Modifier.weight(1f))
+		Icon(
+			imageVector = Icons.Default.Add,
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
 	}
 }
