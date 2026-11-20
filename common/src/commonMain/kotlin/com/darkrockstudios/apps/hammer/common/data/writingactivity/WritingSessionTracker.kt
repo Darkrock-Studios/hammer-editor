@@ -91,7 +91,7 @@ class WritingSessionTracker(
 		val added = baselineLock.withReentrantLock {
 			val oldContent = baseline[sceneId]
 			baseline[sceneId] = newContent
-			if (oldContent == null) 0 else countAddedWords(oldContent, newContent)
+			if (oldContent == null) 0 else countOriginalWords(ActivityWords.of(oldContent), ActivityWords.of(newContent), emptySet())
 		}
 
 		if (added > 0) {
