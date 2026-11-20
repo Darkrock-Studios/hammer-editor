@@ -21,7 +21,6 @@ import testProjectId
 import utils.BaseTest
 import utils.TestClock
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
@@ -127,6 +126,29 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `ensureBaseline keeps an existing anchor`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.ensureBaseline(sceneId = 1, content = "I went home and ate dinner")
+
+		assertEquals(3, tracker.onSceneSaved(1, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `ensureBaseline anchors a scene without one`() = runTest {
+		tracker.ensureBaseline(sceneId = 1, content = "I went home")
+
+		assertEquals(2, tracker.onSceneSaved(1, "I went home and ate", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a non-editor save re-anchors the scene`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.onSceneSaved(1, "I went home and ate dinner", UpdateSource.Repository)
+
+		assertEquals(1, tracker.onSceneSaved(1, "I went home and ate dinner late", UpdateSource.Editor))
+	}
+
+	@Test
 	fun `Drafts and Repository sources also do not credit`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "")
 		tracker.onSceneSaved(1, "draft content here", UpdateSource.Drafts)
@@ -134,30 +156,6 @@ class WritingSessionTrackerTest : BaseTest() {
 
 		val log = repository.loadOwnLog()
 		assertTrue(log.sessions.isEmpty())
-	}
-
-	@Test
-	fun `transformed baseline credits typed words but not the rewrite`() = runTest {
-		tracker.rememberBaseline(sceneId = 1, content = "Bob went home")
-		tracker.transformBaseline(1) { it.replace("Bob", "Robert") }
-
-		val credited = tracker.onSceneSaved(1, "Robert went home and slept", UpdateSource.Editor)
-
-		assertEquals(2, credited)
-	}
-
-	@Test
-	fun `transforming a missing baseline does not create one`() = runTest {
-		assertFalse(tracker.transformBaseline(1) { "made up" })
-
-		assertEquals(0, tracker.onSceneSaved(1, "made up words", UpdateSource.Editor))
-	}
-
-	@Test
-	fun `transforming an existing baseline reports it`() = runTest {
-		tracker.rememberBaseline(sceneId = 1, content = "Bob went home")
-
-		assertTrue(tracker.transformBaseline(1) { it })
 	}
 
 	@Test
@@ -214,26 +212,6 @@ class WritingSessionTrackerTest : BaseTest() {
 		assertEquals(2, log.sessions.size)
 		assertTrue(log.sessions.first().sealed)
 		assertTrue(!log.sessions.last().sealed)
-	}
-
-	@Test
-	fun `transformBaseline keeps a rewrite out of the credited words`() = runTest {
-		tracker.rememberBaseline(sceneId = 1, content = "I went home")
-		tracker.transformBaseline(sceneId = 1) { it.replace("home", "to the shop") }
-		val credited = tracker.onSceneSaved(
-			sceneId = 1,
-			newContent = "I went to the shop and back",
-			source = UpdateSource.Editor,
-		)
-		// "and", "back" are new; "to the shop" came from the rewrite.
-		assertEquals(2, credited)
-	}
-
-	@Test
-	fun `transformBaseline without a baseline leaves none`() = runTest {
-		tracker.transformBaseline(sceneId = 1) { "rewritten" }
-		val credited = tracker.onSceneSaved(1, "some words", UpdateSource.Editor)
-		assertEquals(0, credited)
 	}
 
 	@Test

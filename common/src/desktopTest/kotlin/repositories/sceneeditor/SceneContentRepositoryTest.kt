@@ -86,7 +86,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
 	}
 
-	private fun createStack(projectDef: ProjectDef, tracker: WritingSessionTracker = trackerWithBaselines()) {
+	private fun createStack(projectDef: ProjectDef, tracker: WritingSessionTracker = mockk(relaxed = true)) {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		contentRepo = SceneContentRepository(projectDef, sceneDatasource)
@@ -291,8 +291,8 @@ class SceneContentRepositoryTest : BaseTest() {
 		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
 			assertEquals("Content of chapter id 3, typed", readUtf8())
 		}
-		verify { writingSessionTracker.transformBaseline(3, any()) }
-		verify(exactly = 1) { writingSessionTracker.rememberBaseline(3, any()) }
+		coVerify { writingSessionTracker.onSceneSaved(3, "Content of scene id 3, typed", UpdateSource.Editor) }
+		verify { writingSessionTracker.rememberBaseline(3, "Content of chapter id 3, typed") }
 	}
 
 	@Test
@@ -351,7 +351,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertFalse(service.hasDirtyBuffer(sceneItem.id))
-		verify(exactly = 0) { writingSessionTracker.transformBaseline(any(), any()) }
+		coVerify(exactly = 0) { writingSessionTracker.onSceneSaved(any(), any(), any()) }
 		coVerify(exactly = 0) { statisticsRepository.markDirty() }
 	}
 
@@ -864,9 +864,4 @@ class SceneContentRepositoryTest : BaseTest() {
 		assertNotEquals(oldPath1, newPath1)
 		assertNotEquals(oldPath6, newPath6)
 	}
-}
-
-/** A tracker that behaves as if every scene has a baseline, so rewrites transform rather than reset it. */
-private fun trackerWithBaselines(): WritingSessionTracker = mockk(relaxed = true) {
-	every { transformBaseline(any(), any()) } returns true
 }

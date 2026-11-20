@@ -274,12 +274,12 @@ class SceneEditorService(
 		val current = getCurrentSceneContentOrNull(sceneItem) ?: return false
 		val rewritten = transform(current)
 		if (rewritten == current) return false
-		sceneContentRepository.replaceBuffer(SceneContent(sceneItem, rewritten))
-		// A scene that was not open had no baseline, and the buffer created here is the one its
-		// editor will later pick up, so the rewritten text has to become the baseline now.
-		if (!writingSessionTracker.transformBaseline(sceneItem.id, transform)) {
-			writingSessionTracker.rememberBaseline(sceneItem.id, rewritten)
+		val buffer = sceneContentRepository.getSceneBuffer(sceneItem)
+		if (buffer?.dirty == true && buffer.source == UpdateSource.Editor) {
+			writingSessionTracker.onSceneSaved(sceneItem.id, current, UpdateSource.Editor)
 		}
+		sceneContentRepository.replaceBuffer(SceneContent(sceneItem, rewritten))
+		writingSessionTracker.rememberBaseline(sceneItem.id, rewritten)
 		return storeSceneBuffer(sceneItem)
 	}
 
