@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -63,6 +61,7 @@ import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
 import com.darkrockstudios.apps.hammer.common.compose.lastOf
@@ -440,36 +439,65 @@ private fun InstallDialog(
 	val shown = lastOf(pending)
 	AnimatedDialog(visible = pending != null, onCloseRequest = onDismiss) {
 		val install = shown ?: return@AnimatedDialog
-		val manifest = install.plugin.manifest
-		HdHairlineDialogShell(
-			title = Res.string.plugin_install_title.get(manifest.name),
-			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.plugin_install_close.get(),
+		PluginInstallCard(
+			manifest = install.plugin.manifest,
+			size = install.size,
+			translations = install.plugin.translations.keys,
+			settings = install.plugin.settings,
+			replacingVersion = replacing?.manifest?.version,
+			accessOf = { operations.find(it)?.access },
+			onConfirm = { onConfirm(install) },
+			onCancel = { requestDismiss() },
+		)
+	}
+}
+
+/** The install prompt without its dialog window. */
+@Composable
+internal fun PluginInstallCard(
+	manifest: PluginManifest,
+	size: Long?,
+	translations: Collection<String>,
+	settings: List<SettingDeclaration>,
+	/** The installed version this replaces, if any. */
+	replacingVersion: String?,
+	accessOf: (String) -> Access?,
+	onConfirm: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	HdHairlineDialogShell(
+		title = if (replacingVersion == null) {
+			Res.string.plugin_install_title.get(manifest.name)
+		} else {
+			Res.string.plugin_update_title.get(manifest.name)
+		},
+		onClose = onCancel,
+		closeContentDescription = Res.string.plugin_install_close.get(),
+	) {
+		PluginDetails(
+			manifest = manifest,
+			size = size,
+			translations = translations,
+			permissions = manifest.permissions.operations,
+			accessOf = accessOf,
+			settings = settings,
+			replacingVersion = replacingVersion,
+			modifier = Modifier.weight(1f, fill = false),
+		)
+		Row(
+			modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+			horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
 		) {
-			PluginDetails(
-				manifest = manifest,
-				size = install.size,
-				translations = install.plugin.translations.keys,
-				permissions = manifest.permissions.operations,
-				operations = operations,
-				settings = install.plugin.settings,
-				modifier = Modifier.weight(1f, fill = false),
+			HdHairlineButton(label = Res.string.plugin_install_cancel.get(), onClick = onCancel)
+			HdHairlineButton(
+				label = if (replacingVersion == null) {
+					Res.string.plugin_install_confirm.get()
+				} else {
+					Res.string.plugin_update_confirm.get()
+				},
+				onClick = onConfirm,
+				emphasised = true,
 			)
-			replacing?.manifest?.let {
-				Text(
-					text = Res.string.plugin_install_replaces.get(it.version),
-					style = MaterialTheme.typography.bodyMedium,
-					modifier = Modifier.padding(top = 20.dp),
-				)
-			}
-			Row(modifier = Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-				HdHairlineButton(label = Res.string.plugin_install_cancel.get(), onClick = { requestDismiss() })
-				HdHairlineButton(
-					label = Res.string.plugin_install_confirm.get(),
-					onClick = { onConfirm(install) },
-					emphasised = true,
-				)
-			}
 		}
 	}
 }
@@ -486,9 +514,12 @@ private fun PluginDetails(
 	translations: Collection<String>,
 	/** What it may use: what its manifest asks for, or for an installed plugin, what the user granted. */
 	permissions: List<String>,
-	operations: OperationRegistry,
+	/** The access level of an operation by name, or null when it is unknown. */
+	accessOf: (String) -> Access?,
 	/** Its declared settings, for their labels; keys stand in without them. */
 	settings: List<SettingDeclaration> = emptyList(),
+	/** The installed version an install replaces. */
+	replacingVersion: String? = null,
 	modifier: Modifier = Modifier,
 ) {
 	Column(
@@ -499,13 +530,13 @@ private fun PluginDetails(
 			val linkStyle = SpanStyle(color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline)
 			Text(linkify(description, linkStyle), style = MaterialTheme.typography.bodyMedium)
 		}
-		PluginFacts(manifest, size, translations)
+		PluginFacts(manifest, size, translations, replacingVersion)
 		if (manifest.actions.isNotEmpty() || manifest.exporters.isNotEmpty() ||
 			manifest.commands.isNotEmpty() || manifest.diagnostics.isNotEmpty()
 		) {
 			DetailsBlock(Res.string.plugin_install_adds.get()) { PluginFeatures(manifest) }
 		}
-		PluginAccess(manifest, permissions, operations, settings)
+		PluginAccess(manifest, permissions, accessOf, settings)
 	}
 }
 
@@ -530,35 +561,27 @@ private fun DetailsBlock(
 	}
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/** Version, size and languages as one meta line, wrapping as it needs to. */
 @Composable
-private fun PluginFacts(manifest: PluginManifest, size: Long?, translations: Collection<String>) {
-	Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-		FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-			Fact(Res.string.plugin_install_version.get(), manifest.version)
-			size?.let { Fact(Res.string.plugin_install_size.get(), packageSize(it)) }
-			if (manifest.limits.memory > PluginManifest.DEFAULT_MEMORY_MIB) {
-				Fact(
-					label = Res.string.plugin_install_memory.get(),
-					value = Res.string.plugin_install_memory_value.get(manifest.limits.memory.toString()),
-				)
-			}
+private fun PluginFacts(manifest: PluginManifest, size: Long?, translations: Collection<String>, replacingVersion: String?) {
+	val facts = buildList {
+		add(
+			replacingVersion?.let { Res.string.plugin_facts_update.get(manifest.version, it) }
+				?: Res.string.plugin_facts_version.get(manifest.version),
+		)
+		size?.let { add(packageSize(it)) }
+		if (manifest.limits.memory > PluginManifest.DEFAULT_MEMORY_MIB) {
+			add(Res.string.plugin_facts_memory.get(manifest.limits.memory.toString()))
 		}
 		if (manifest.languages.isNotEmpty()) {
-			Fact(Res.string.plugin_details_languages.get(), languageNames(manifest.languages))
+			add(Res.string.plugin_facts_languages.get(languageNames(manifest.languages)))
 		}
 		if (translations.isNotEmpty()) {
-			Fact(Res.string.plugin_details_translations.get(), languageNames(translations))
+			add(Res.string.plugin_facts_translations.get(languageNames(translations)))
 		}
 	}
-}
-
-@Composable
-private fun Fact(label: String, value: String) {
-	Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-		HdMonoLabel(text = label)
-		Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-	}
+	// A no-break space before each dot keeps it off the start of a wrapped line.
+	HdMetaText(text = facts.joinToString("\u00A0· "))
 }
 
 @Composable
@@ -658,7 +681,7 @@ private fun ActionPlace.destination(): ProjectRoot.DestinationTypes = when (this
 private fun PluginAccess(
 	manifest: PluginManifest,
 	permissions: List<String>,
-	operations: OperationRegistry,
+	accessOf: (String) -> Access?,
 	settings: List<SettingDeclaration>,
 ) {
 	var explaining by remember { mutableStateOf(false) }
@@ -688,7 +711,7 @@ private fun PluginAccess(
 		if (grants.isEmpty()) {
 			Text(Res.string.plugin_install_no_access.get(), style = MaterialTheme.typography.bodyMedium)
 		}
-		val byAccess = grantsByAccess(grants) { operations.find(it)?.access }
+		val byAccess = grantsByAccess(grants, accessOf)
 		val colors = LocalHammerColors.current
 		AccessLevel(
 			title = Res.string.plugin_install_reads.get(),
@@ -782,27 +805,32 @@ private fun DetailsDialog(plugin: InstalledPlugin?, operations: OperationRegistr
 	val shown = lastOf(plugin)
 	AnimatedDialog(visible = plugin != null, onCloseRequest = onDismiss) {
 		val installed = shown ?: return@AnimatedDialog
-		val manifest = installed.manifest ?: return@AnimatedDialog
-		HdHairlineDialogShell(
-			title = manifest.name,
+		PluginDetailsCard(
+			installed = installed,
+			accessOf = { operations.find(it)?.access },
 			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.plugin_details_close.get(),
-		) {
-			// Only what the manifest still asks for applies.
-			val permissions = installed.granted.filter { it in manifest.permissions.operations }
-			PluginDetails(
-				manifest = manifest,
-				size = installed.size,
-				translations = installed.translations,
-				permissions = permissions,
-				operations = operations,
-				modifier = Modifier.weight(1f, fill = false),
-			)
-			HdHairlineButton(
-				label = Res.string.plugin_details_done.get(),
-				onClick = { requestDismiss() },
-				modifier = Modifier.padding(top = 20.dp),
-			)
-		}
+		)
+	}
+}
+
+/** An installed plugin's details without their dialog window. */
+@Composable
+internal fun PluginDetailsCard(installed: InstalledPlugin, accessOf: (String) -> Access?, onClose: () -> Unit) {
+	val manifest = installed.manifest ?: return
+	HdHairlineDialogShell(
+		title = manifest.name,
+		onClose = onClose,
+		closeContentDescription = Res.string.plugin_details_close.get(),
+	) {
+		// Only what the manifest still asks for applies.
+		val permissions = installed.granted.filter { it in manifest.permissions.operations }
+		PluginDetails(
+			manifest = manifest,
+			size = installed.size,
+			translations = installed.translations,
+			permissions = permissions,
+			accessOf = accessOf,
+			modifier = Modifier.weight(1f, fill = false),
+		)
 	}
 }

@@ -34,8 +34,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Merge existing projects with the server?, and Delete all local projects? (`MergeProjectsDialog`) **no gallery** g: Merge projects dialog, Merge projects dialog, replace, Delete all local projects confirm
   - [x] Remove Server confirm (`SimpleConfirm`) **no gallery** g: Remove server confirm
   - [x] Manage Backups, and Restore Backup confirm (`BackupManagerDialog`) **no gallery** g: Backup manager, Restore backup confirm, Delete backup confirm
-  - [ ] Install "name"? (`InstallDialog`) **no gallery**
-  - [ ] Plugin details (`DetailsDialog`) **no gallery**
+  - [x] Install "name"? (`InstallDialog`) **no gallery** g: Plugin install dialog
+  - [x] Plugin details (`DetailsDialog`) **no gallery** g: Plugin details dialog
   - [ ] Full command, desktop (`FullCommandDialog`) **no gallery**
   - [ ] Spell check language info, Android (`SpellCheckDictionaryControl`) **no gallery**
 - [x] About (`AboutAppUi`, `PlatformAboutSection`) g: About, About, update available
