@@ -459,6 +459,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		contentRepo.onContentChanged(SceneContent(scene, "From the server"), UpdateSource.Sync)
 		advanceUntilIdle()
 
+		assertEquals("From the server", contentRepo.getSceneBuffer(1)?.content?.markdown)
 		assertFalse(contentRepo.hasDirtyBuffer(1))
 		assertFalse(ffs.exists(getTempBufferPath(1)))
 
