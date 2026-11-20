@@ -217,11 +217,6 @@ private fun StampRow(
 	onSave: () -> Unit,
 	onCancel: () -> Unit,
 ) {
-	val sectionTitle = if (isEditing) {
-		Res.string.notes_view_label_editing.get()
-	} else {
-		Res.string.notes_view_header.get()
-	}
 	val date = remember(note?.created) {
 		note?.created?.toLocalDateTime(TimeZone.currentSystemDefault())
 			?.format("dd MMM yyyy")
@@ -231,39 +226,38 @@ private fun StampRow(
 	HdDetailStampRow(
 		stackActionsWhenNarrow = isEditing,
 		leading = {
-			HdMonoLabel(
-				text = "§ III · $sectionTitle",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-
 			if (isEditing) {
+				HdMonoLabel(
+					text = "§ III · ${Res.string.notes_view_label_editing.get()}",
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
 				PulsingDot()
+			} else {
+				with(sharedTransitionScope) {
+					HdMonoLabel(
+						text = date,
+						modifier = Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "note-date-${note?.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						),
+					)
+				}
 			}
 		},
-		meta = {
-			Box(
-				modifier = Modifier
-					.height(14.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
-
-			val metaText = if (isEditing) {
-				Res.string.notes_view_status_unsaved.get()
-			} else {
-				date
-			}
-			with(sharedTransitionScope) {
-				HdMonoLabel(
-					text = metaText,
-					modifier = Modifier.sharedElement(
-						sharedContentState = rememberSharedContentState(
-							key = "note-date-${note?.id}",
-						),
-						animatedVisibilityScope = animatedVisibilityScope,
-					),
+		meta = if (isEditing) {
+			{
+				Box(
+					modifier = Modifier
+						.height(14.dp)
+						.width(Dp.Hairline)
+						.background(MaterialTheme.colorScheme.outlineVariant),
 				)
+				HdMonoLabel(text = Res.string.notes_view_status_unsaved.get())
 			}
+		} else {
+			null
 		},
 		actions = {
 			if (isEditing) {

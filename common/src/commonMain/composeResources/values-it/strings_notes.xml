@@ -23,7 +23,6 @@
 	<string name="notes_delete_toast_success">Note Deleted</string>
 	<string name="notes_menu_group">Nota</string>
 	<string name="notes_menu_delete">Elimina</string>
-	<string name="notes_view_header">Nota</string>
 	<string name="notes_view_label_editing">Modifica</string>
 	<string name="notes_view_close_button">Chiudi la nota</string>
 	<string name="notes_view_crumb_root">Note</string>

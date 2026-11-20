@@ -18,7 +18,7 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
-import kotlin.time.Clock
+import kotlin.time.Instant
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
@@ -128,6 +128,6 @@ fun ScreenViewNoteUiTabletPreview() {
 
 private fun fakeNoteContent(): NoteContent = NoteContent(
 	id = 1,
-	created = Clock.System.now(),
+	created = Instant.parse("2026-11-12T22:10:00Z"),
 	content = "This is a test note."
 )
