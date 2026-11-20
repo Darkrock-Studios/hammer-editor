@@ -39,7 +39,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Full command, desktop (`FullCommandDialog`) **no gallery** g: Full command dialog
   - [x] Spell check language info, Android (`SpellCheckDictionaryControl`) **no gallery** g: Spell check dictionary, Android, Spell check language info (baseline only, dialog removed)
 - [x] About (`AboutAppUi`, `PlatformAboutSection`) g: About, About, update available
-  - [ ] Libraries (`LibrariesUi`) **no gallery**
+  - [x] Libraries (`LibrariesUi`) **no gallery** g: Open source libraries
   - [ ] Studio overlay (`CairnAboutOverlay`, external cairn library) **no gallery**
 
 ## 2. Project root

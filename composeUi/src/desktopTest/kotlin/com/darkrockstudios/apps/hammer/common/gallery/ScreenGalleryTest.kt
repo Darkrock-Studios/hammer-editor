@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.preview.PluginInstallScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.PluginDetailsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.FullCommandScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SpellCheckDictionaryAndroidPreview
+import com.darkrockstudios.apps.hammer.common.preview.LibrariesScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -211,6 +212,7 @@ class ScreenGalleryTest {
 		surfaced("Plugin details dialog") { PluginDetailsScrimPreview() },
 		surfaced("Full command dialog") { FullCommandScrimPreview() },
 		surfaced("Spell check dictionary, Android") { SpellCheckDictionaryAndroidPreview() },
+		surfaced("Open source libraries") { LibrariesScrimPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
