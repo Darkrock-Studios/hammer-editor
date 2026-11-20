@@ -1,20 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,22 +33,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.archived_scenes_close
 import com.darkrockstudios.apps.hammer.archived_scenes_dialog_title
 import com.darkrockstudios.apps.hammer.archived_scenes_empty
 import com.darkrockstudios.apps.hammer.archived_scenes_restore_button
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 
 private val DialogMaxWidth = 580.dp
-private val DialogBodyMinHeight = 280.dp
+private val DialogBodyMinHeight = 160.dp
 
 @Composable
 internal fun ArchivedScenesDialog(
@@ -63,76 +62,76 @@ internal fun ArchivedScenesDialog(
 		onClosed = onDismiss,
 		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		Surface(
-			modifier = Modifier
-				.padding(Ui.Padding.M)
-				.widthIn(max = DialogMaxWidth)
-				.fillMaxWidth()
-				.predictiveBackTransform(),
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			border = BorderStroke(
-				width = Dp.Hairline,
+		ArchivedScenesCard(
+			archivedScenes = archivedScenes,
+			onUnarchive = onUnarchive,
+			onClose = requestClose,
+			modifier = Modifier.predictiveBackTransform(),
+		)
+	}
+}
+
+@Composable
+internal fun ArchivedScenesCard(
+	archivedScenes: List<SceneItem>,
+	onUnarchive: (SceneItem) -> Unit,
+	onClose: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	Surface(
+		modifier = modifier
+			.padding(Ui.Padding.M)
+			.widthIn(max = DialogMaxWidth)
+			.fillMaxWidth(),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(
+			width = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		),
+	) {
+		Column {
+			TitleRow(onClose = onClose)
+			HorizontalDivider(
+				thickness = Dp.Hairline,
 				color = MaterialTheme.colorScheme.outlineVariant,
-			),
-		) {
-			Column {
-				Masthead(count = archivedScenes.size, onClose = requestClose)
-				HdFolioDivider()
+			)
 
-				TitleRow()
-				HorizontalDivider(
-					thickness = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-				)
-
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.heightIn(min = DialogBodyMinHeight),
-				) {
-					if (archivedScenes.isEmpty()) {
-						EmptyState()
-					} else {
-						SceneList(scenes = archivedScenes, onUnarchive = onUnarchive)
-					}
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.heightIn(min = DialogBodyMinHeight),
+			) {
+				if (archivedScenes.isEmpty()) {
+					EmptyState()
+				} else {
+					SceneList(scenes = archivedScenes, onUnarchive = onUnarchive)
 				}
-
-				FooterBar()
 			}
 		}
 	}
 }
 
 @Composable
-private fun Masthead(count: Int, onClose: () -> Unit) {
-	val meta = if (count == 0) "EMPTY" else "$count ARCHIVED"
-	HdMasthead(
-		section = "ARCHIVE",
-		leadingMeta = listOf(meta),
-		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
-	)
-}
-
-@Composable
-private fun TitleRow() {
+private fun TitleRow(onClose: () -> Unit) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
-				top = Ui.Padding.L,
-				bottom = Ui.Padding.M,
-			),
+			.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.L, bottom = Ui.Padding.S),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
 		Text(
 			text = Res.string.archived_scenes_dialog_title.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			color = MaterialTheme.colorScheme.onSurface,
+			style = MaterialTheme.typography.titleLarge,
+			modifier = Modifier.weight(1f),
 		)
+		IconButton(onClick = onClose) {
+			Icon(
+				imageVector = Icons.Filled.Close,
+				contentDescription = Res.string.archived_scenes_close.get(),
+			)
+		}
 	}
 }
 
@@ -141,13 +140,15 @@ private fun SceneList(
 	scenes: List<SceneItem>,
 	onUnarchive: (SceneItem) -> Unit,
 ) {
-	LazyColumn(modifier = Modifier.fillMaxWidth()) {
+	LazyColumn(
+		modifier = Modifier.fillMaxWidth(),
+		contentPadding = PaddingValues(vertical = Ui.Padding.S),
+	) {
 		items(scenes, key = { it.id }) { scene ->
-			val isLast = scene.id == scenes.last().id
 			SceneRow(
 				scene = scene,
 				onUnarchive = { onUnarchive(scene) },
-				isLast = isLast,
+				isLast = scene.id == scenes.last().id,
 			)
 		}
 	}
@@ -162,36 +163,32 @@ private fun SceneRow(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
-				top = Ui.Padding.L,
-				bottom = Ui.Padding.L,
-			),
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		Column(
+		Row(
 			modifier = Modifier.weight(1f),
-			verticalArrangement = Arrangement.spacedBy(2.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		) {
 			Text(
 				text = scene.name,
 				style = MaterialTheme.typography.bodyLarge,
-				color = MaterialTheme.colorScheme.onSurface,
 				maxLines = 1,
 				overflow = TextOverflow.Ellipsis,
+				modifier = Modifier.weight(1f, fill = false),
 			)
 			HdEntityId(prefix = "SCN", id = scene.id, padTo = 4)
 		}
 		HdHairlineButton(
 			label = Res.string.archived_scenes_restore_button.get(),
-			emphasised = true,
 			onClick = onUnarchive,
 		)
 	}
 	if (!isLast) {
 		HorizontalDivider(
+			modifier = Modifier.padding(horizontal = Ui.Padding.XL),
 			thickness = Dp.Hairline,
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
@@ -200,41 +197,16 @@ private fun SceneRow(
 
 @Composable
 private fun EmptyState() {
-	Column(
+	Box(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(Ui.Padding.XL * 2),
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.CenterVertically),
+			.heightIn(min = DialogBodyMinHeight)
+			.padding(Ui.Padding.XL),
+		contentAlignment = Alignment.Center,
 	) {
-		HdMonoLabel(
-			text = "ARCHIVE · EMPTY",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 		Text(
 			text = Res.string.archived_scenes_empty.get(),
-			style = MaterialTheme.typography.bodyLarge,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-	}
-}
-
-@Composable
-private fun FooterBar() {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "ESC CLOSE",
+			style = MaterialTheme.typography.bodyMedium,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}

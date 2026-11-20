@@ -33,7 +33,8 @@
 	<string name="discard_buffer_dialog_confirm">Discard</string>
 	<string name="discard_buffer_dialog_cancel">Cancel</string>
 
-	<string name="archived_scenes_dialog_title">Archived Scenes</string>
+	<string name="archived_scenes_dialog_title">Archived scenes</string>
+	<string name="archived_scenes_close">Close</string>
 	<string name="archived_scenes_empty">No archived scenes</string>
 	<string name="archived_scenes_restore_button">Restore</string>
 	<string name="archived_scenes_restored_snackbar">"%1$s" has been restored</string>

@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.ArchivedScenesScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.ArchivedScenesEmptyScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.MergeReplaceConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.RemoveServerConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.BackupManagerScrimPreview
@@ -253,6 +255,8 @@ class ScreenGalleryTest {
 		screen("Reader mode") { ScreenReaderModeUiTabletPreview() },
 		screen("Outline overview") { ScreenOutlineOverviewUiTabletPreview() },
 		surfaced("Move scene dialog") { ScreenMoveSceneDialogPreview() },
+		surfaced("Archived scenes") { ArchivedScenesScrimPreview() },
+		surfaced("Archived scenes, empty") { ArchivedScenesEmptyScrimPreview() },
 		screen("Browse notes") { ScreenBrowseNotesUiTabletPreview() },
 		screen("View note") { ScreenViewNoteUiTabletPreview() },
 		surfaced("Create note") { ScreenCreateNoteUiPreview() },
