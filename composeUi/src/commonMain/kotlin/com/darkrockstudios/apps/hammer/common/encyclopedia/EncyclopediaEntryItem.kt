@@ -70,6 +70,8 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_card_open
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_card_words
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_load_error
 import com.kmpalette.color
 import com.kmpalette.loader.FilePathLoader
@@ -373,7 +375,7 @@ internal fun EncyclopediaEntryItem(
 
 			HorizontalDivider(thickness = Dp.Hairline, color = ruleSoft)
 
-			// Footer — mono meta on the left, OPEN affordance on the
+			// Footer — word count on the left, open affordance on the
 			// right. The card itself is the click target; this label
 			// is just a typographic affordance, not a separate button.
 			Row(
@@ -384,13 +386,12 @@ internal fun EncyclopediaEntryItem(
 				horizontalArrangement = Arrangement.SpaceBetween,
 			) {
 				val wordCount = entryContent?.text?.let { countWords(it) } ?: 0
-				val tagCount = tags.size
 				HdMonoLabel(
-					text = formatEntryMeta(wordCount = wordCount, tagCount = tagCount),
+					text = Res.string.encyclopedia_entry_card_words.get(wordCount),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 				HdMonoLabel(
-					text = "↗ OPEN",
+					text = Res.string.encyclopedia_entry_card_open.get(),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
@@ -414,15 +415,3 @@ fun GradientDivider(modifier: Modifier = Modifier) {
 	)
 }
 
-private fun formatEntryMeta(wordCount: Int, tagCount: Int): String {
-	return buildString {
-		append(wordCount)
-		append(" W")
-		if (tagCount > 0) {
-			append(" · ")
-			append(tagCount)
-			append(" TAG")
-			if (tagCount != 1) append("S")
-		}
-	}
-}

@@ -171,17 +171,6 @@ fun BrowseEntriesUi(
 						section = 5,
 						title = Res.string.encyclopedia_header.get(),
 						modifier = Modifier.weight(1f),
-						trailing = {
-							// Counts are redundant with the filter strip on
-							// narrow screens — only surface the summary
-							// when there's room for it on a single line.
-							if (isWide) {
-								HdMonoLabel(
-									text = entrySummary(state.entryDefs),
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							}
-						},
 					)
 					if (!isWide) {
 						IconButton(onClick = { showSearchBar = true }) {
@@ -358,26 +347,6 @@ private fun buildFilterOptions(entries: List<EntryDef>): List<HdEntryFilterOptio
 	}
 }
 
-private fun entrySummary(entries: List<EntryDef>): String {
-	if (entries.isEmpty()) return "0 entries"
-	val byType = entries.groupingBy { it.type }.eachCount()
-	val total = entries.size
-	val parts = mutableListOf("$total ENTRIES")
-	val ordered = listOf(
-		EntryType.PERSON,
-		EntryType.PLACE,
-		EntryType.THING,
-		EntryType.EVENT,
-		EntryType.IDEA,
-	)
-	ordered.forEach { type ->
-		val count = byType[type] ?: 0
-		if (count > 0) {
-			parts.add("$count ${type.text.uppercase()}${if (count == 1) "" else "S"}")
-		}
-	}
-	return parts.joinToString(" · ")
-}
 
 @Composable
 fun BrowseEntriesFab(

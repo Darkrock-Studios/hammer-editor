@@ -103,8 +103,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 
 ## 6. Encyclopedia
 
-- [ ] Encyclopedia container (`EncyclopediaUi`) **no gallery**
-- [ ] Browse (`BrowseEntriesUi`) g: Browse encyclopedia
+- [x] Encyclopedia container (`EncyclopediaUi`) no UI of its own
+- [x] Browse (`BrowseEntriesUi`) g: Browse encyclopedia
 - [ ] Entry view (`ViewEntryUi`) g: View encyclopedia entry, View encyclopedia entry, images, View encyclopedia entry, timelines
   - [ ] Discard Changes? / Delete Entry? / Remove Image? (`SimpleConfirm`) **no gallery**
   - [ ] Add Tags (`TagAddDialog`) **no gallery**

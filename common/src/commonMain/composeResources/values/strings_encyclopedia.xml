@@ -132,6 +132,8 @@
 	<string name="encyclopedia_entry_particulars_tags">Tags</string>
 	<string name="encyclopedia_entry_particulars_aliases">Aliases</string>
 	<string name="encyclopedia_entry_particulars_scenes">Scenes</string>
+	<string name="encyclopedia_entry_card_words">%1$d W</string>
+	<string name="encyclopedia_entry_card_open">↗ Open</string>
 	<string name="encyclopedia_entry_tags_label">Tags</string>
 	<string name="encyclopedia_entry_add_tag_chip">tag</string>
 	<string name="encyclopedia_entry_add_alias_chip">alias</string>
