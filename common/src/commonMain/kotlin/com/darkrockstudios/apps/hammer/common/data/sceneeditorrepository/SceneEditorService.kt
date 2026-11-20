@@ -340,6 +340,8 @@ class SceneEditorService(
 
 	fun hasDirtyBuffers(): Boolean = sceneContentRepository.hasDirtyBuffers()
 
+	fun hasDirtyBuffer(sceneId: Int): Boolean = sceneContentRepository.hasDirtyBuffer(sceneId)
+
 	suspend fun getMetadata(): ProjectMetadata = sceneMetadataRepository.getMetadata()
 
 	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata =

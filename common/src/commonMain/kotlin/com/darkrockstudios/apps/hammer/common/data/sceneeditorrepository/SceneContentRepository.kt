@@ -131,9 +131,9 @@ class SceneContentRepository(
 
 		val oldBuffer = sceneBuffersLock.withLock { sceneBuffers[content.scene.id] }
 		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
-			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
-			updateSceneBuffer(newBuffer)
-			true
+			val dirty = source != UpdateSource.Sync
+			updateSceneBuffer(SceneBuffer(content, dirty, source))
+			dirty
 		} else {
 			false
 		}
@@ -265,6 +265,8 @@ class SceneContentRepository(
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
+		// Saved or replaced by synced content since this job was launched.
+		if (!buffer.dirty) return false
 		val success = sceneDatasource.storeTempSceneBuffer(buffer)
 		if (success) {
 			_bufferPersistedFlow.tryEmit(BufferPersistedEvent(sceneItem.id, buffer.source))
