@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.EditorRenameSceneScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.DiscardChangesScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SaveDraftScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ArchivedScenesScrimPreview
@@ -253,6 +254,7 @@ class ScreenGalleryTest {
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Start new draft") { SaveDraftScrimPreview() },
 		surfaced("Discard changes") { DiscardChangesScrimPreview() },
+		surfaced("Rename scene, phone editor") { EditorRenameSceneScrimPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
 		screen("Focus mode") { ScreenFocusModeUiTabletPreview() },
 		screen("Drafts list") { ScreenDraftsListUiTabletPreview() },

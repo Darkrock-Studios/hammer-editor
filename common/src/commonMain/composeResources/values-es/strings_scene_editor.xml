@@ -5,7 +5,6 @@
 	<string name="save_draft_dialog_cancel_button">Cancelar</string>
 	<string name="save_draft_dialog_toast_success">Borrador guardado</string>
 	<string name="save_draft_dialog_error">¡El nombre del borrador actual no es válido!</string>
-	<string name="scene_editor_rename_dialog_title">Renombrar escena</string>
 	<string name="scene_editor_name_hint">Nombre de la escena</string>
 	<string name="scene_editor_rename_button">Renombrar</string>
 	<string name="scene_editor_cancel_button">Cancelar</string>

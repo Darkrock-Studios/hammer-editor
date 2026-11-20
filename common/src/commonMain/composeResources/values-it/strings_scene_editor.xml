@@ -5,7 +5,6 @@
 	<string name="save_draft_dialog_cancel_button">Annulla</string>
 	<string name="save_draft_dialog_toast_success">Bozza salvata</string>
 	<string name="save_draft_dialog_error">Il nome della bozza attuale non è valido!</string>
-	<string name="scene_editor_rename_dialog_title">Rinomina scena</string>
 	<string name="scene_editor_name_hint">Nome della scena</string>
 	<string name="scene_editor_rename_button">Rinomina</string>
 	<string name="scene_editor_cancel_button">Annulla</string>

@@ -25,14 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.FormDialog
-import com.darkrockstudios.apps.hammer.common.compose.FormField
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
@@ -41,14 +41,11 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadg
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
-import com.darkrockstudios.apps.hammer.scene_editor_cancel_button
+import com.darkrockstudios.apps.hammer.common.storyeditor.SceneKind
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneRenameCard
 import com.darkrockstudios.apps.hammer.scene_editor_focus_mode_button
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_read
 import com.darkrockstudios.apps.hammer.scene_editor_metadata_button
-import com.darkrockstudios.apps.hammer.scene_editor_name_hint
-import com.darkrockstudios.apps.hammer.scene_editor_rename_button
-import com.darkrockstudios.apps.hammer.scene_editor_rename_dialog_title
 import com.darkrockstudios.apps.hammer.scene_editor_save_button
 import com.darkrockstudios.apps.hammer.scene_editor_toast_save_successful
 import com.darkrockstudios.apps.hammer.scene_editor_unsaved_chip
@@ -150,31 +147,26 @@ private fun RenameSceneDialog(
 
 	val validation = rememberNameValidation(editSceneNameValue, NameKind.SceneItem)
 
-	val meta = sceneTypeMeta(state.sceneItem)
-
 	fun submit() {
 		if (validation.isValid) dialogScope.launch { component.changeSceneName(editSceneNameValue) }
 	}
 
-	FormDialog(
+	AnimatedDialog(
 		visible = state.isEditingName,
-		meta = meta,
-		title = Res.string.scene_editor_rename_dialog_title.get(),
-		confirmLabel = Res.string.scene_editor_rename_button.get(),
-		cancelLabel = Res.string.scene_editor_cancel_button.get(),
-		onConfirm = ::submit,
-		onCancel = component::endSceneNameEdit,
-		onDismiss = component::endSceneNameEdit,
-		confirmEnabled = validation.isValid,
+		onCloseRequest = component::endSceneNameEdit,
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center,
 	) {
-		FormField(
-			value = editSceneNameValue,
-			onValueChange = { editSceneNameValue = it },
-			label = Res.string.scene_editor_name_hint.get(),
-			autoFocus = true,
+		SceneRenameCard(
+			kind = SceneKind.Scene,
+			name = editSceneNameValue,
+			onNameChange = { editSceneNameValue = it },
 			error = validation.fieldError(editSceneNameValue),
-			onImeAction = ::submit,
-			testTag = RENAME_SCENE_FIELD_TAG,
+			confirmEnabled = validation.isValid,
+			onConfirm = ::submit,
+			onCancel = component::endSceneNameEdit,
+			autoFocus = true,
+			fieldTestTag = RENAME_SCENE_FIELD_TAG,
 		)
 	}
 }

@@ -5,7 +5,6 @@
 	<string name="save_draft_dialog_cancel_button">Abbrechen</string>
 	<string name="save_draft_dialog_toast_success">Entwurf gespeichert</string>
 	<string name="save_draft_dialog_error">Der aktuelle Entwurfsname ist ungültig!</string>
-	<string name="scene_editor_rename_dialog_title">Szene umbenennen</string>
 	<string name="scene_editor_name_hint">Szenenname</string>
 	<string name="scene_editor_rename_button">Umbenennen</string>
 	<string name="scene_editor_cancel_button">Abbrechen</string>

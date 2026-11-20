@@ -67,6 +67,7 @@ internal fun SceneRenameCard(
 	onConfirm: () -> Unit,
 	onCancel: () -> Unit,
 	autoFocus: Boolean = false,
+	fieldTestTag: String? = null,
 ) {
 	val title = when (kind) {
 		SceneKind.Chapter -> Res.string.chapter_rename_dialog_title
@@ -89,6 +90,7 @@ internal fun SceneRenameCard(
 			autoFocus = autoFocus,
 			error = error,
 			onImeAction = onConfirm,
+			testTag = fieldTestTag,
 		)
 	}
 }

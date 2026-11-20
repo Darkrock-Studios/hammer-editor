@@ -5,7 +5,6 @@
 	<string name="save_draft_dialog_cancel_button">Cancelar</string>
 	<string name="save_draft_dialog_toast_success">Rascunho Salvo</string>
 	<string name="save_draft_dialog_error">O nome atual do rascunho é inválido!</string>
-	<string name="scene_editor_rename_dialog_title">Renomear Cena</string>
 	<string name="scene_editor_name_hint">Nome da Cena</string>
 	<string name="scene_editor_rename_button">Renomear</string>
 	<string name="scene_editor_cancel_button">Cancelar</string>

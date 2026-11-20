@@ -5,7 +5,6 @@
 	<string name="save_draft_dialog_cancel_button">Скасувати</string>
 	<string name="save_draft_dialog_toast_success">Чернетку збережено</string>
 	<string name="save_draft_dialog_error">Назва поточної чернетки недійсна!</string>
-	<string name="scene_editor_rename_dialog_title">Перейменувати сцену</string>
 	<string name="scene_editor_name_hint">Назва сцени</string>
 	<string name="scene_editor_rename_button">Перейменувати</string>
 	<string name="scene_editor_cancel_button">Скасувати</string>
