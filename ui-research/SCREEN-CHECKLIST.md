@@ -57,7 +57,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Choosing an Export Format (`ExportHelpDialog`) **no gallery** g: Export format help
 - [x] Project settings (`ProjectSettingsUi`, all tabs) g: Project settings, Project settings, shared, Project settings, writing, Project settings, timelines, Project settings, plugins
   - [x] Choose a language (`LanguageField`, `HdSearchableListDialog`) **no gallery** g: Language picker
-  - [ ] Color picker, Primary / Secondary (`ColorPickerDialog`) **no gallery**
+  - [x] Color picker, Primary / Secondary (`ColorPickerDialog`) **no gallery** g: Color picker
   - [ ] Edit timeline (`TimelineEditor`) **no gallery**
   - [ ] Switch to a dated / manual timeline (`ModeSwitchDialog`) **no gallery**
   - [ ] Plugins manage dialog (`ManagePluginsDialog`) **no gallery**

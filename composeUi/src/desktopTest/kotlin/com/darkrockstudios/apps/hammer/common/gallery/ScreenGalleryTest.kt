@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.preview.GlobalSearchScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.GlobalSearchEmptyScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ExportHelpScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.designsystem.LanguagePickerScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.ColorPickerScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -261,6 +262,7 @@ class ScreenGalleryTest {
 		surfaced("Export options dialog") { ExportOptionsDialogPreview() },
 		surfaced("Export format help") { ExportHelpScrimPreview() },
 		surfaced("Language picker") { LanguagePickerScrimPreview() },
+		surfaced("Color picker") { ColorPickerScrimPreview() },
 		screen("Duplicate IDs dialog") {
 			if (isSystemInDarkTheme()) DuplicateIdsDialogDarkPreview() else DuplicateIdsDialogPreview()
 		},

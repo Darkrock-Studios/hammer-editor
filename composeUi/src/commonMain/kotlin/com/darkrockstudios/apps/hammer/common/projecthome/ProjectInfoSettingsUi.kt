@@ -1,5 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import com.darkrockstudios.apps.hammer.project_info_color_picker_title
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.BorderStroke
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
@@ -407,23 +412,40 @@ private fun ColorPickerDialog(
 	onDismiss: () -> Unit,
 	onConfirm: (String) -> Unit,
 ) {
-	val controller = rememberColorPickerController()
-	var currentHex by remember(visible) { mutableStateOf(initial.toArgbHex()) }
+	AnimatedDialog(visible = visible, onCloseRequest = onDismiss, dismissOnTapOutside = true) {
+		ColorPickerCard(
+			title = title,
+			initial = initial,
+			onDismiss = { requestDismiss() },
+			onConfirm = onConfirm,
+		)
+	}
+}
 
-	SimpleDialog(
-		onCloseRequest = onDismiss,
-		visible = visible,
-		title = title,
-		dismissOnTapOutside = true,
-		overridePlatformWidth = true,
-		modifier = Modifier.width(320.dp),
+/** The picker without its dialog window: wheel, brightness, the old color beside the new, and the actions. */
+@Composable
+internal fun ColorPickerCard(title: String, initial: Color, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+	val controller = rememberColorPickerController()
+	var currentHex by remember { mutableStateOf(initial.toArgbHex()) }
+
+	Surface(
+		modifier = Modifier.padding(Ui.Padding.L).width(340.dp),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
 	) {
-		Column(modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.M)) {
+		Column(
+			modifier = Modifier.padding(Ui.Padding.XL),
+			verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+		) {
+			Text(
+				text = Res.string.project_info_color_picker_title.get(title),
+				style = MaterialTheme.typography.titleLarge,
+			)
 			HsvColorPicker(
 				modifier = Modifier
 					.fillMaxWidth()
-					.height(220.dp)
-					.padding(bottom = Ui.Padding.M),
+					.height(220.dp),
 				controller = controller,
 				initialColor = initial,
 				onColorChanged = { envelope: ColorEnvelope ->
@@ -433,36 +455,26 @@ private fun ColorPickerDialog(
 			BrightnessSlider(
 				modifier = Modifier
 					.fillMaxWidth()
-					.height(28.dp)
-					.padding(vertical = 4.dp),
+					.height(24.dp),
 				controller = controller,
 			)
-
-			Spacer(Modifier.size(Ui.Padding.M))
-
 			Row(verticalAlignment = Alignment.CenterVertically) {
-				Box(
+				Row(
 					modifier = Modifier
-						.size(36.dp)
-						.background(parseHexColor(currentHex) ?: initial, RectangleShape)
-						.border(
-							width = Dp.Hairline,
-							color = MaterialTheme.colorScheme.outline,
-							shape = RectangleShape,
-						),
-				)
+						.size(width = 64.dp, height = 32.dp)
+						.border(Dp.Hairline, MaterialTheme.colorScheme.outline, RectangleShape),
+				) {
+					Box(Modifier.weight(1f).fillMaxHeight().background(initial))
+					Box(Modifier.weight(1f).fillMaxHeight().background(parseHexColor(currentHex) ?: initial))
+				}
 				Spacer(Modifier.width(Ui.Padding.M))
-				Text(
-					currentHex,
-					style = MaterialTheme.typography.bodyLarge,
+				HdMonoLabel(
+					text = "#" + currentHex.takeLast(6),
 					color = MaterialTheme.colorScheme.onSurface,
 				)
 			}
-
-			Spacer(Modifier.size(Ui.Padding.L))
-
 			Row(
-				modifier = Modifier.fillMaxWidth(),
+				modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.S),
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
 			) {
 				HdHairlineButton(

@@ -68,34 +68,7 @@ fun SimpleDialog(
 		}
 
 		val cardContent = @Composable {
-			Card(modifier = cardModifier) {
-				Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-					Row(
-						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.SpaceBetween,
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Text(
-							text = title,
-							style = MaterialTheme.typography.titleLarge,
-							fontWeight = FontWeight.Bold,
-							modifier = Modifier
-								.weight(1f)
-								.padding(Ui.Padding.XL)
-						)
-
-						Icon(
-							Icons.Default.Close,
-							contentDescription = Res.string.close_dialog_button.get(),
-							modifier = Modifier
-								.padding(Ui.Padding.L)
-								.clickable { requestDismiss() }
-						)
-					}
-					Spacer(modifier = Modifier.size(Ui.Padding.L))
-					content()
-				}
-			}
+			SimpleDialogCard(title = title, onClose = { requestDismiss() }, modifier = cardModifier, content = content)
 		}
 
 		if (dismissOnTapOutside) {
@@ -123,6 +96,44 @@ fun SimpleDialog(
 			) {
 				cardContent()
 			}
+		}
+	}
+}
+
+/** The card [SimpleDialog] draws, without its dialog window. */
+@Composable
+internal fun SimpleDialogCard(
+	title: String,
+	onClose: () -> Unit,
+	modifier: Modifier = Modifier,
+	content: @Composable ColumnScope.() -> Unit,
+) {
+	Card(modifier = modifier) {
+		Column(modifier = Modifier.padding(Ui.Padding.XL)) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Text(
+					text = title,
+					style = MaterialTheme.typography.titleLarge,
+					fontWeight = FontWeight.Bold,
+					modifier = Modifier
+						.weight(1f)
+						.padding(Ui.Padding.XL)
+				)
+
+				Icon(
+					Icons.Default.Close,
+					contentDescription = Res.string.close_dialog_button.get(),
+					modifier = Modifier
+						.padding(Ui.Padding.L)
+						.clickable(onClick = onClose)
+				)
+			}
+			Spacer(modifier = Modifier.size(Ui.Padding.L))
+			content()
 		}
 	}
 }

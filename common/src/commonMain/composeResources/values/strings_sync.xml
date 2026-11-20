@@ -60,8 +60,9 @@
 	<string name="project_info_language_search_hint">Search languages</string>
 	<string name="project_info_language_empty">No languages match</string>
 	<string name="project_info_color_picker_edit">Edit</string>
+	<string name="project_info_color_picker_title">%1$s color</string>
 	<string name="project_info_color_picker_cancel">Cancel</string>
-	<string name="project_info_color_picker_confirm">OK</string>
+	<string name="project_info_color_picker_confirm">Use color</string>
 	<string name="project_settings_breadcrumb_home">Home</string>
 	<string name="project_settings_breadcrumb_root">Project settings</string>
 	<string name="project_settings_autosaved">Autosaved</string>
