@@ -66,8 +66,6 @@
 	<string name="project_home_action_export_toast_success">Історію експортовано</string>
 	<string name="project_home_action_export_toast_failure">Не вдалося експортувати</string>
 	<string name="project_home_export_dialog_title">Експортувати історію</string>
-	<string name="project_home_export_section">ЕКСПОРТ</string>
-	<string name="project_home_export_close">× ЗАКРИТИ</string>
 	<string name="project_home_export_format_label">Формат</string>
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>

@@ -87,11 +87,9 @@
 	<string name="project_home_action_export_toast_failure">Export failed</string>
 	<string name="project_home_action_export_toast_contact_failure">Contact details could not be saved</string>
 
-	<string name="project_home_export_dialog_title">Export Story</string>
-	<string name="project_home_export_section">EXPORT</string>
-	<string name="project_home_export_close">× CLOSE</string>
+	<string name="project_home_export_dialog_title">Export story</string>
 	<string name="project_home_export_chapter_breaks_label">Break the story into chapters</string>
-	<string name="project_home_export_chapter_breaks_hint">Each top-level scene or group becomes a titled chapter. Turn off to export one continuous text with no chapter titles.</string>
+	<string name="project_home_export_chapter_breaks_hint">Each top-level scene or group becomes a titled chapter. Turn off for one continuous text.</string>
 	<string name="project_home_export_format_label">Format</string>
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>
@@ -103,7 +101,7 @@
 	<string name="project_home_export_number_chapters_label">Number chapter titles</string>
 	<string name="project_home_export_font_label">Font</string>
 	<string name="project_home_export_blank_lines_label">Keep blank lines between paragraphs</string>
-	<string name="project_home_export_blank_lines_hint">Turn off if you separate paragraphs with a blank line and do not want empty paragraphs in the export. Scene breaks and runs of two or more blank lines are kept.</string>
+	<string name="project_home_export_blank_lines_hint">Turn off if you separate paragraphs with blank lines. Scene breaks are kept.</string>
 	<string name="project_home_export_manuscript_short_story_label">Short story layout</string>
 	<string name="project_home_export_manuscript_short_story_hint">Title on the first page, no separate title page</string>
 	<string name="project_home_export_manuscript_classic_label">Classic (Courier)</string>
@@ -115,7 +113,7 @@
 	<string name="project_home_export_contact_phone">Phone</string>
 	<string name="project_home_export_contact_email">Email</string>
 	<string name="project_home_export_limit_scenes_label">Limit to specific scenes</string>
-	<string name="project_home_export_limit_scenes_hint">Only the selected scenes will be included in the export</string>
+	<string name="project_home_export_limit_scenes_hint">Export only the scenes you pick.</string>
 	<string name="project_home_export_scenes_label">Scenes</string>
 	<string name="project_home_export_scenes_selected">%1$d of %2$d selected</string>
 	<string name="project_home_export_scenes_select_all">Select all</string>

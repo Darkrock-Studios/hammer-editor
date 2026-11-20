@@ -53,7 +53,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 ## 3. Project home
 
 - [x] Home, stats dashboard (`ProjectHomeUi`, `ProjectStatsUi`) g: Project stats
-  - [ ] Export Story (`ExportOptionsDialog`, `SceneSelector`) g: Export options dialog
+  - [x] Export Story (`ExportOptionsDialog`, `SceneSelector`) g: Export options dialog
   - [ ] Choosing an Export Format (`ExportHelpDialog`) **no gallery**
 - [x] Project settings (`ProjectSettingsUi`, all tabs) g: Project settings, Project settings, shared, Project settings, writing, Project settings, timelines, Project settings, plugins
   - [ ] Choose a language (`LanguageField`, `HdSearchableListDialog`) **no gallery**

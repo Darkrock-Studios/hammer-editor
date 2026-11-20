@@ -66,8 +66,6 @@
 	<string name="project_home_action_export_toast_success">Historia exportada</string>
 	<string name="project_home_action_export_toast_failure">No se pudo exportar</string>
 	<string name="project_home_export_dialog_title">Exportar historia</string>
-	<string name="project_home_export_section">EXPORTAR</string>
-	<string name="project_home_export_close">× CERRAR</string>
 	<string name="project_home_export_format_label">Formato</string>
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>

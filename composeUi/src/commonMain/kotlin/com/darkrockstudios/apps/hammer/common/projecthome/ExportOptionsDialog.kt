@@ -38,15 +38,12 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdButtonBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineCheckbox
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHelpButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerList
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerRow
@@ -61,7 +58,6 @@ import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_label
 import com.darkrockstudios.apps.hammer.project_home_export_cancel
 import com.darkrockstudios.apps.hammer.project_home_export_chapter_breaks_hint
 import com.darkrockstudios.apps.hammer.project_home_export_chapter_breaks_label
-import com.darkrockstudios.apps.hammer.project_home_export_close
 import com.darkrockstudios.apps.hammer.project_home_export_contact_address
 import com.darkrockstudios.apps.hammer.project_home_export_contact_email
 import com.darkrockstudios.apps.hammer.project_home_export_contact_hint
@@ -84,7 +80,6 @@ import com.darkrockstudios.apps.hammer.project_home_export_scenes_clear_all
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_label
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_select_all
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_selected
-import com.darkrockstudios.apps.hammer.project_home_export_section
 
 private val DialogMaxWidth = 520.dp
 
@@ -173,27 +168,12 @@ internal fun ExportOptionsDialogContent(
 		),
 	) {
 		Column {
-			HdMasthead(
-				section = Res.string.project_home_export_section.get(),
-				trailing = {
-					HdHelpButton(
-						onClick = onShowHelp,
-						contentDescription = Res.string.project_home_export_help_icon_description.get(),
-					)
-					HdMastheadAction(
-						label = Res.string.project_home_export_close.get(),
-						onClick = { if (!working) onCancel() },
-					)
-				},
-			)
-			HdFolioDivider()
-
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(
 						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
+						end = Ui.Padding.L,
 						top = Ui.Padding.L,
 						bottom = Ui.Padding.M,
 					),
@@ -201,8 +181,13 @@ internal fun ExportOptionsDialogContent(
 			) {
 				Text(
 					text = Res.string.project_home_export_dialog_title.get(),
-					style = MaterialTheme.typography.headlineSmall,
+					style = MaterialTheme.typography.titleLarge,
 					color = MaterialTheme.colorScheme.onSurface,
+					modifier = Modifier.weight(1f),
+				)
+				HdHelpButton(
+					onClick = onShowHelp,
+					contentDescription = Res.string.project_home_export_help_icon_description.get(),
 				)
 			}
 
@@ -223,20 +208,20 @@ internal fun ExportOptionsDialogContent(
 					),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 			) {
-				HdHairlineToggleRow(
-					checked = shown.treatTopLevelAsChapters,
-					onCheckedChange = { onOptionsChanged(shown.copy(treatTopLevelAsChapters = it)) },
-					label = Res.string.project_home_export_chapter_breaks_label.get(),
-					hint = Res.string.project_home_export_chapter_breaks_hint.get(),
-					enabled = editable,
-				)
-
 				HdHairlineDropdown(
 					title = Res.string.project_home_export_format_label.get(),
 					options = formats,
 					selected = shownFormat,
 					onSelect = { onOptionsChanged(shown.copy(format = it.formatId)) },
 					label = { it.label },
+					enabled = editable,
+				)
+
+				HdHairlineToggleRow(
+					checked = shown.treatTopLevelAsChapters,
+					onCheckedChange = { onOptionsChanged(shown.copy(treatTopLevelAsChapters = it)) },
+					label = Res.string.project_home_export_chapter_breaks_label.get(),
+					hint = Res.string.project_home_export_chapter_breaks_hint.get(),
 					enabled = editable,
 				)
 
