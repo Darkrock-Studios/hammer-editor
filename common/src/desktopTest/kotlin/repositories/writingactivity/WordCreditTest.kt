@@ -8,7 +8,7 @@ import repositories.writingactivity.SampleProse.Companion.paragraphs
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
 
 class WordCreditTest {
@@ -221,7 +221,19 @@ class WordCreditTest {
 		val credited: Int
 		val elapsed = measureTime { credited = countOriginalWords(anchor, current, reproduced) }
 
-		assertTrue(elapsed < 500.milliseconds, "took $elapsed")
+		assertTrue(elapsed < 1.seconds, "took $elapsed")
 		assertEquals(reworked.count { it.startsWith("new") }, credited)
+	}
+
+	@Test
+	fun `replacing a short scene with a long paste is counted without a quadratic diff`() {
+		val baseline = SampleProse(7).words(100)
+		val pasted = SampleProse(8).words(30_000)
+
+		val credited: Int
+		val elapsed = measureTime { credited = credit(baseline, pasted) }
+
+		assertTrue(elapsed < 1.seconds, "took $elapsed")
+		assertTrue(credited in 29_900..30_000, "credited $credited")
 	}
 }

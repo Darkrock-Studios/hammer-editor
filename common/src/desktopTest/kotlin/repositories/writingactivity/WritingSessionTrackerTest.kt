@@ -118,6 +118,15 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `moving a paragraph within a scene credits nothing`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "Alpha beta gamma.\n\nDelta epsilon zeta eta.")
+
+		val credited = tracker.onSceneSaved(1, "Delta epsilon zeta eta.\n\nAlpha beta gamma.", UpdateSource.Editor)
+
+		assertEquals(0, credited)
+	}
+
+	@Test
 	fun `Drafts and Repository sources also do not credit`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "")
 		tracker.onSceneSaved(1, "draft content here", UpdateSource.Drafts)

@@ -30,6 +30,7 @@ class ActivityWords private constructor(
 
 	/** Whether the word at [index] lies in a window or short line whose shingle is in [reproduced]. */
 	fun isReproduced(index: Int, reproduced: Set<Long>): Boolean {
+		if (reproduced.isEmpty()) return false
 		if (lineSize[index] < SHINGLE_SIZE && lineHash(lineStart[index]) in reproduced) return true
 		val first = maxOf(0, index - SHINGLE_SIZE + 1)
 		val last = minOf(index, size - SHINGLE_SIZE)
@@ -85,8 +86,8 @@ class ActivityWords private constructor(
  * The words of [current] typed since [baseline], less those inside a window or short line whose
  * shingle is in [reproduced] (text moved, pasted back or restored rather than written).
  *
- * The common prefix and suffix are trimmed, then a word diff finds the inserted words. When both
- * remaining spans exceed [MAX_DIFFED_WORDS], a bag difference of the spans stands in for the diff.
+ * The common prefix and suffix are trimmed, then a word diff finds the inserted words. When either
+ * remaining span exceeds [MAX_DIFFED_WORDS], a bag difference of the spans stands in for the diff.
  */
 fun countOriginalWords(baseline: ActivityWords, current: ActivityWords, reproduced: Set<Long>): Int {
 	val old = baseline.words
@@ -102,13 +103,13 @@ fun countOriginalWords(baseline: ActivityWords, current: ActivityWords, reproduc
 	return when {
 		newSpan.isEmpty() -> 0
 		oldSpan.isEmpty() -> newSpan.indices.count(isOriginal)
-		minOf(oldSpan.size, newSpan.size) > MAX_DIFFED_WORDS -> bagCredit(oldSpan, newSpan, isOriginal)
+		maxOf(oldSpan.size, newSpan.size) > MAX_DIFFED_WORDS -> bagCredit(oldSpan, newSpan, isOriginal)
 		else -> insertedRuns(oldSpan, newSpan).sumOf { it.count(isOriginal) }
 	}
 }
 
 /**
- * Past this many words on both sides of an edit the diff gives way to a bag difference. A worst
+ * Past this many words on either side of an edit the diff gives way to a bag difference. A worst
  * case at this size (nothing in common) diffs in about 60 ms on a desktop JVM; 1,000 words take 15.
  */
 const val MAX_DIFFED_WORDS = 2_000
