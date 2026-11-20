@@ -2,8 +2,6 @@ package synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -26,6 +24,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
@@ -35,8 +34,8 @@ import utils.fromApiEntity
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
-import kotlin.time.Instant
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SceneSynchronizerTest : BaseTest() {
@@ -80,10 +79,6 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getArchivedSceneFromId(any()) } returns null
 
 		coEvery { sceneEditorService.loadSceneMetadata(any()) } returns SceneMetadata()
-
-		// Backfilling a downloaded scene's null timestamps reads the project's creation time.
-		every { projectMetadataDatasource.loadMetadata(any()) } returns
-			ProjectMetadata(Info(created = Instant.fromEpochSeconds(1_600_000_000)))
 	}
 
 	private fun defaultSceneSynchronizer() = ClientSceneSynchronizer(
@@ -532,6 +527,60 @@ class SceneSynchronizerTest : BaseTest() {
 				UpdateSource.Sync,
 			)
 		}
+	}
+
+	@Test
+	fun `Download Scene - null server timestamps stay null so the local hash matches the server's`() = runTest {
+		val sceneId = 45
+		val serverEntity = ApiProjectEntity.SceneEntity(
+			id = sceneId,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Legacy Scene",
+			path = listOf(0),
+			content = "Scene Content",
+			created = null,
+			lastEdited = null,
+		)
+		val filePath = HPath("/", "", true)
+		val clientEntity = SceneItem.fromApiEntity(serverEntity, def)
+		val content = SceneContent(clientEntity, serverEntity.content)
+
+		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
+		coEvery {
+			sceneEditorService.createScene(
+				parent = rootNode.value,
+				sceneName = serverEntity.name,
+				forceId = serverEntity.id,
+				forceOrder = serverEntity.order
+			)
+		} coAnswers {
+			rootNode.addChild(TreeNode(clientEntity))
+			clientEntity
+		}
+		every { sceneEditorRepository.rawTree } returns tree
+		every { sceneEditorRepository.resolveScenePathFromFilesystem(sceneId) } returns filePath
+		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
+
+		val stored = slot<SceneMetadata>()
+		coEvery { sceneEditorService.storeMetadata(capture(stored), sceneId, UpdateSource.Sync) } returns Unit
+
+		val sync = defaultSceneSynchronizer()
+		assertTrue(sync.storeEntity(serverEntity = serverEntity, syncId = "syncId", onLog = {}))
+
+		assertNull(stored.captured.created)
+		assertNull(stored.captured.lastEdited)
+
+		// Hash the stored copy the way a later sync would, and it must be what the server holds:
+		// nothing for the heal upload to push, and nothing another device could disagree with.
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns clientEntity
+		every { sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneId) } returns filePath
+		every { sceneEditorRepository.getScenePathSegments(filePath) } returns ScenePathSegments(listOf(0))
+		coEvery { sceneEditorRepository.loadSceneMarkdownRaw(clientEntity, filePath) } returns serverEntity.content
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns stored.captured
+
+		assertEquals(serverEntity.hash(), sync.getEntityHash(sceneId))
 	}
 
 	@Test

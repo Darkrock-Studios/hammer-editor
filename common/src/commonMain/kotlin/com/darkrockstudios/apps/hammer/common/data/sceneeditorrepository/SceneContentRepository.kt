@@ -124,6 +124,12 @@ class SceneContentRepository(
 
 	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
 		if (source == UpdateSource.Editor) {
+			// The editor also reports the text it was just loaded with; that is not an edit.
+			val unchangedSinceLoad = sceneBuffersLock.withLock {
+				val oldBuffer = sceneBuffers[content.scene.id]
+				oldBuffer != null && !oldBuffer.dirty && oldBuffer.content.markdown != null && oldBuffer.content == content
+			}
+			if (unchangedSinceLoad) return false
 			val newBuffer = SceneBuffer(content, dirty = true, source = source)
 			updateSceneBuffer(newBuffer)
 			return true

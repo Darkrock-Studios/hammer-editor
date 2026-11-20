@@ -244,6 +244,31 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `An editor update carrying the loaded text leaves the buffer clean`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+		val scene = SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		val loaded = service.loadSceneBuffer(scene)
+		val metadataBefore = sceneMetadataDatasource.loadMetadata(scene.id)
+
+		service.onContentChanged(SceneContent(scene, loaded.content.markdown!!), UpdateSource.Editor)
+		advanceUntilIdle()
+
+		assertFalse(contentRepo.hasDirtyBuffer(scene.id))
+		assertFalse(ffs.exists(getTempBufferPath(scene.id)))
+		assertEquals(metadataBefore, sceneMetadataDatasource.loadMetadata(scene.id))
+
+		service.onContentChanged(SceneContent(scene, "A real edit"), UpdateSource.Editor)
+		advanceUntilIdle()
+
+		assertTrue(contentRepo.hasDirtyBuffer(scene.id))
+		assertTrue(ffs.exists(getTempBufferPath(scene.id)))
+	}
+
+	@Test
 	fun `No dirty buffers on first load`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
