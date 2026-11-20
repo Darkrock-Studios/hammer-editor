@@ -1,18 +1,29 @@
 package com.darkrockstudios.apps.hammer.common.globalsearch
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdSettingRowStacked
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.BorderStroke
+import com.darkrockstudios.apps.hammer.global_search_close
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -43,7 +54,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.AnnotatedSnippet
@@ -52,15 +62,11 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdClearGlyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import com.darkrockstudios.apps.hammer.global_search_clear
 import com.darkrockstudios.apps.hammer.global_search_filter_all
 import com.darkrockstudios.apps.hammer.global_search_filter_encyclopedia
@@ -74,7 +80,6 @@ import com.darkrockstudios.apps.hammer.global_search_source_encyclopedia
 import com.darkrockstudios.apps.hammer.global_search_source_note
 import com.darkrockstudios.apps.hammer.global_search_source_scene
 import com.darkrockstudios.apps.hammer.global_search_source_timeline
-import com.darkrockstudios.apps.hammer.global_search_title
 import com.darkrockstudios.apps.hammer.global_search_too_short
 import com.darkrockstudios.apps.hammer.ic_editor
 import com.darkrockstudios.apps.hammer.ic_encyclopedia
@@ -102,105 +107,77 @@ fun GlobalSearchUi(component: GlobalSearch) {
 		val focusRequester = remember { FocusRequester() }
 		LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-		Surface(
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			shadowElevation = Ui.Elevation.LARGE,
-			modifier = Modifier
-				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XXL)
-				.widthIn(max = DialogMaxWidth)
-				.fillMaxWidth(),
-		) {
-			Column {
-				Masthead(
-					marker = "§ ${Res.string.global_search_title.get().uppercase()}",
-					resultCount = state.results.size,
-					onClose = { isOpen = false },
-				)
-				HdFolioDivider()
-
-				Column(
-					modifier = Modifier.padding(
-						start = 26.dp,
-						end = 26.dp,
-						top = 22.dp,
-						bottom = 22.dp,
-					),
-					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-				) {
-					HdSearchField(
-						value = state.query,
-						onValueChange = component::onQueryChanged,
-						placeholder = Res.string.global_search_placeholder.get(),
-						onClear = { component.onQueryChanged("") },
-						clearContentDescription = Res.string.global_search_clear.get(),
-						focusRequester = focusRequester,
-						testTag = GLOBAL_SEARCH_INPUT_TAG,
-						modifier = Modifier.fillMaxWidth(),
-					)
-
-					HdHairlineSegmentedPicker(
-						options = GlobalSearchFilter.entries.toList(),
-						selected = state.filter,
-						onSelect = component::onFilterChanged,
-						label = { filterLabel(it).get() },
-						modifier = Modifier.fillMaxWidth(),
-					)
-
-					if (state.parsedTags.isNotEmpty()) {
-						LazyRow(
-							modifier = Modifier.fillMaxWidth(),
-							horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
-						) {
-							items(state.parsedTags, key = { it }) { tag ->
-								HdTagChip(label = tag)
-							}
-						}
-					}
-
-					ResultsBody(state = state, onResultClick = component::onResultClicked)
-				}
-			}
-		}
+		GlobalSearchCard(
+			state = state,
+			onQueryChanged = component::onQueryChanged,
+			onFilterChanged = component::onFilterChanged,
+			onResultClick = component::onResultClicked,
+			onClose = { isOpen = false },
+			focusRequester = focusRequester,
+		)
 	}
 }
 
+/** The search panel without its dialog window. */
 @Composable
-private fun Masthead(
-	marker: String,
-	resultCount: Int,
+internal fun GlobalSearchCard(
+	state: GlobalSearch.State,
+	onQueryChanged: (String) -> Unit,
+	onFilterChanged: (GlobalSearchFilter) -> Unit,
+	onResultClick: (SearchResult) -> Unit,
 	onClose: () -> Unit,
+	focusRequester: FocusRequester = remember { FocusRequester() },
 ) {
-	Row(
+	Surface(
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		shadowElevation = Ui.Elevation.LARGE,
 		modifier = Modifier
-			.fillMaxWidth()
-			.padding(start = 26.dp, end = 18.dp, top = 16.dp, bottom = 14.dp),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(12.dp),
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XXL)
+			.widthIn(max = DialogMaxWidth)
+			.fillMaxWidth(),
 	) {
-		Text(
-			text = marker,
-			fontFamily = hammerMonoFontFamily(),
-			fontSize = 10.sp,
-			fontWeight = FontWeight.Medium,
-			letterSpacing = 1.8.sp,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-		if (resultCount > 0) {
-			Text(
-				text = Res.string.global_search_results_count.get(resultCount).uppercase(),
-				fontFamily = hammerMonoFontFamily(),
-				fontSize = 10.sp,
-				letterSpacing = 1.8.sp,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
+		Column(
+			modifier = Modifier.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.L, bottom = Ui.Padding.L),
+			verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
+			Row(verticalAlignment = Alignment.CenterVertically) {
+				HdSearchField(
+					value = state.query,
+					onValueChange = onQueryChanged,
+					placeholder = Res.string.global_search_placeholder.get(),
+					onClear = { onQueryChanged("") },
+					clearContentDescription = Res.string.global_search_clear.get(),
+					focusRequester = focusRequester,
+					testTag = GLOBAL_SEARCH_INPUT_TAG,
+					modifier = Modifier.weight(1f),
+				)
+				IconButton(onClick = onClose) {
+					Icon(Icons.Filled.Close, contentDescription = Res.string.global_search_close.get())
+				}
+			}
+
+			Column(
+				modifier = Modifier.padding(end = Ui.Padding.L),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			) {
+				FilterPicker(selected = state.filter, onSelect = onFilterChanged)
+
+				if (state.parsedTags.isNotEmpty()) {
+					LazyRow(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+					) {
+						items(state.parsedTags, key = { it }) { tag ->
+							HdTagChip(label = tag)
+						}
+					}
+				}
+
+				ResultsBody(state = state, onResultClick = onResultClick)
+			}
 		}
-		HdClearGlyph(
-			onClick = onClose,
-			glyphSize = 9.dp,
-		)
 	}
 }
 
@@ -226,10 +203,10 @@ private fun ResultsBody(
 
 		state.results.isEmpty() -> EmptyState(Res.string.global_search_no_results.get())
 
-		else -> {
-			val listState = rememberLazyListState()
+		else -> Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
+			HdMetaText(Res.string.global_search_results_count.get(state.results.size))
 			LazyColumn(
-				state = listState,
+				state = rememberLazyListState(),
 				modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.S),
 			) {
@@ -250,7 +227,26 @@ private fun EmptyState(message: String) {
 		modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL),
 		contentAlignment = Alignment.Center,
 	) {
-		HdMonoLabel(text = message)
+		HdMetaText(text = message)
+	}
+}
+
+/** Full width when every label fits; on narrow screens the cells hug their labels and the row scrolls. */
+@Composable
+private fun FilterPicker(selected: GlobalSearchFilter, onSelect: (GlobalSearchFilter) -> Unit) {
+	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+		val fits = maxWidth >= FILTERS_FILL_WIDTH
+		Box(modifier = if (fits) Modifier.fillMaxWidth() else Modifier.horizontalScroll(rememberScrollState())) {
+			CompositionLocalProvider(LocalHdSettingRowStacked provides fits) {
+				HdHairlineSegmentedPicker(
+					options = GlobalSearchFilter.entries.toList(),
+					selected = selected,
+					onSelect = onSelect,
+					label = { filterLabel(it).get() },
+					compact = true,
+				)
+			}
+		}
 	}
 }
 
@@ -371,3 +367,5 @@ private fun SearchResult.uniqueKey(): String = when (this) {
 }
 
 private const val MIN_QUERY_DISPLAY_LENGTH = 2
+
+private val FILTERS_FILL_WIDTH = 520.dp

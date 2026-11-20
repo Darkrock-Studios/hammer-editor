@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="global_search_button">Buscar en el proyecto</string>
-	<string name="global_search_title">Buscar en el proyecto</string>
 	<string name="global_search_placeholder">Escribe para buscar, usa #etiqueta para filtrar…</string>
 	<string name="global_search_clear">Borrar búsqueda</string>
 	<string name="global_search_no_results">Sin resultados</string>

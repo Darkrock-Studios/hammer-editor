@@ -13,6 +13,8 @@ import com.darkrockstudios.apps.hammer.common.preview.SpellCheckDictionaryAndroi
 import com.darkrockstudios.apps.hammer.common.preview.LibrariesScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.UnsavedScenesScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.UnsavedEntityConfirmsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.GlobalSearchScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.GlobalSearchEmptyScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -197,6 +199,8 @@ class ScreenGalleryTest {
 		screen("Project shell, rail expanded") { ScreenProjectShellTabletPreview(railExpanded = true) },
 		surfaced("Unsaved scenes confirm") { UnsavedScenesScrimPreview() },
 		surfaced("Unsaved note, entry and event confirms") { UnsavedEntityConfirmsScrimPreview() },
+		surfaced("Search project") { GlobalSearchScrimPreview() },
+		surfaced("Search project, too short") { GlobalSearchEmptyScrimPreview() },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
 		screen("About, update available") { ScreenAboutAppUiUpdateAvailableTabletPreview() },
 		screen("Account settings") { ScreenAccountSettingsUiTabletPreview() },

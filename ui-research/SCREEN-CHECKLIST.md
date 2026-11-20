@@ -47,7 +47,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Project shell: nav rail / bottom bar (`ProjectRootScaffold`) **no gallery** g: Project shell, Project shell, rail expanded
 - [x] Unsaved Scenes (`ConfirmUnsavedScenesDialog`) **no gallery** g: Unsaved scenes confirm
 - [x] Unsaved Note / Encyclopedia Entry / Timeline Event (`ConfirmCloseDialogs.kt`) **no gallery** g: Unsaved note, entry and event confirms
-- [ ] Search project (`GlobalSearchUi`) **no gallery**
+- [x] Search project (`GlobalSearchUi`) **no gallery** g: Search project, Search project, too short
 - [ ] Duplicate IDs (`DuplicateIdsDialog`) g: Duplicate IDs dialog
 
 ## 3. Project home
