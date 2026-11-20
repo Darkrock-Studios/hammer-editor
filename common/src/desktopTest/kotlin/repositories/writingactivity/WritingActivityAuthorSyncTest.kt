@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivity
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
@@ -25,6 +26,10 @@ import io.mockk.every
 import io.mockk.verify
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -41,6 +46,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 /** The own-slot merge rule against real slot files. */
@@ -49,6 +55,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var datasource: WritingActivityDatasource
 	private lateinit var repository: WritingActivityRepository
+	private lateinit var tracker: WritingSessionTracker
 	private val globalSettingsStore: GlobalSettingsStore = mockk(relaxed = true)
 	private val api: WritingActivityApi = mockk()
 	private val statisticsRepository: StatisticsRepository = mockk(relaxed = true)
@@ -77,6 +84,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 		fileSystem.createDirectories("/projects/Test Project".toPath())
 		datasource = WritingActivityDatasource(fileSystem, createTomlSerializer(), projectDef)
 		repository = WritingActivityRepository(datasource, globalSettingsStore, projectDef)
+		tracker = WritingSessionTracker(repository, Clock.System, projectDef)
 
 		coEvery { globalSettingsStore.userIdOrThrow() } returns me
 		coEvery { globalSettingsStore.ensureInstallId() } returns ownDeviceId
@@ -90,7 +98,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 		val operation = WritingActivitySyncOperation(
 			projectDef = projectDef,
 			repository = repository,
-			tracker = mockk<WritingSessionTracker>(relaxed = true),
+			tracker = tracker,
 			api = api,
 			globalSettingsStore = globalSettingsStore,
 			statisticsRepository = statisticsRepository,
@@ -207,5 +215,30 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 
 		sync(theirs)
 		verify(exactly = 1) { statisticsRepository.markDirty() }
+	}
+
+	@Test
+	fun `a write recorded during activity sync survives it`() = runTest {
+		tracker.rememberBaseline(1, "Start.")
+		val saving = CompletableDeferred<Unit>()
+		val resume = CompletableDeferred<Unit>()
+		var installIdCalls = 0
+		coEvery { globalSettingsStore.ensureInstallId() } coAnswers {
+			// The fourth call is the own log's save, after the sync loaded and merged it.
+			if (++installIdCalls == 4) {
+				saving.complete(Unit)
+				resume.await()
+			}
+			ownDeviceId
+		}
+		val syncing = launch { sync(WritingActivitySlot(ownDeviceId, DeviceLog("Desktop", listOf(session(9, 40))))) }
+		saving.await()
+
+		val writing = launch { tracker.onSceneSaved(1, "Start. Three new words.", UpdateSource.Editor) }
+		advanceUntilIdle()
+		resume.complete(Unit)
+		joinAll(syncing, writing)
+
+		assertEquals(43, repository.loadOwnLog().sessions.sumOf { it.wordsWritten })
 	}
 }

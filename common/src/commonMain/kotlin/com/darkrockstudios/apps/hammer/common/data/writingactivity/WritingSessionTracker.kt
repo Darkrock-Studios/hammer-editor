@@ -95,6 +95,11 @@ class WritingSessionTracker(
 		left?.let(::addSeen)
 	}
 
+	/** Re-anchors a scene the tracker holds at [content], as [rememberBaseline] does; others stay untracked. */
+	fun replaceBaseline(sceneId: Int, content: String) {
+		if (baselineLock.withReentrantLock { sceneId in anchors }) rememberBaseline(sceneId, content)
+	}
+
 	/** Drops the anchor of a deleted scene, banking its credit. What it held stays seen. */
 	fun forgetBaseline(sceneId: Int) {
 		val left = baselineLock.withReentrantLock {
@@ -114,12 +119,15 @@ class WritingSessionTracker(
 	}
 
 	/**
-	 * Forces the next [onSceneSaved] call to reload the session list from
-	 * disk. Call this after sync writes a merged log so the tracker doesn't
-	 * keep extending a stale in-memory copy.
+	 * Runs [block], which reads and rewrites this device's own log, with no write recorded in between.
+	 * The next write reloads the log from disk. [block] must not call back into the tracker.
 	 */
-	suspend fun invalidateSessionCache() = mutex.withLock {
-		sessions = null
+	suspend fun <T> updateOwnLog(block: suspend () -> T): T = mutex.withLock {
+		try {
+			block()
+		} finally {
+			sessions = null
+		}
 	}
 
 	/**
@@ -130,7 +138,7 @@ class WritingSessionTracker(
 	 */
 	suspend fun onSceneSaved(sceneId: Int, newContent: String, source: UpdateSource): Int {
 		if (source != UpdateSource.Editor) {
-			if (baselineLock.withReentrantLock { sceneId in anchors }) rememberBaseline(sceneId, newContent)
+			replaceBaseline(sceneId, newContent)
 			return 0
 		}
 

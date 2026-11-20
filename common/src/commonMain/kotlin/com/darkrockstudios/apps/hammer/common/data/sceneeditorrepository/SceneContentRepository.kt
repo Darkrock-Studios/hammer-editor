@@ -98,6 +98,12 @@ class SceneContentRepository(
 	private val tempBuffersRestored = atomic(false)
 
 	/**
+	 * Called with content from outside the editor (sync, a draft restore) as [onContentChanged]
+	 * applies it to a buffer, under the buffer lock, so no reader sees the new buffer first.
+	 */
+	var onExternalContentApplied: ((SceneContent) -> Unit)? = null
+
+	/**
 	 * Starts the content debounce pipeline, restoring temp (unsaved) buffers from disk only when
 	 * [restoreTempBuffers] is set. A scope that never restored them leaves them on disk at close.
 	 */
@@ -207,6 +213,7 @@ class SceneContentRepository(
 				if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
 					val dirty = source != UpdateSource.Sync
 					updateSceneBuffer(SceneBuffer(content, dirty, source))
+					onExternalContentApplied?.invoke(content)
 					dirty
 				} else {
 					false
