@@ -11,8 +11,6 @@
 	<string name="encyclopedia_browse_list_empty">Aucune entrée trouvée</string>
 	<string name="encyclopedia_create_button">Créer une Entrée</string>
 	<string name="encyclopedia_create_entry_header">Créer une entrée</string>
-	<string name="encyclopedia_create_entry_section_marker">Nouveau</string>
-	<string name="encyclopedia_create_entry_draft_marker">Brouillon</string>
 	<string name="encyclopedia_create_entry_name_label">Nom</string>
 	<string name="encyclopedia_create_entry_name_placeholder">p. ex. Chat du Cheshire</string>
 	<string name="encyclopedia_create_entry_tags_label">Étiquettes</string>

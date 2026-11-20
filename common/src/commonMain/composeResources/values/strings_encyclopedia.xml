@@ -14,8 +14,6 @@
 	<string name="encyclopedia_browse_list_empty">No Entries Found</string>
 	<string name="encyclopedia_create_button">Create Entry</string>
 	<string name="encyclopedia_create_entry_header">Create entry</string>
-	<string name="encyclopedia_create_entry_section_marker">New</string>
-	<string name="encyclopedia_create_entry_draft_marker">Draft</string>
 	<string name="encyclopedia_create_entry_name_label">Name</string>
 	<string name="encyclopedia_create_entry_name_placeholder">e.g. Cheshire Cat</string>
 	<string name="encyclopedia_create_entry_tags_label">Tags</string>

@@ -110,7 +110,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Add Tags (`TagAddDialog`) g: Encyclopedia add tags and alias
   - [x] Add Alias (`AliasAddDialog`) g: Encyclopedia add tags and alias
   - [x] Rename "name" everywhere (`RenameEntryDialog`) g: Rename everywhere, names, Rename everywhere, summary
-- [ ] Create entry (`CreateEntryUi`) g: Create encyclopedia entry
+- [x] Create entry (`CreateEntryUi`) g: Create encyclopedia entry
   - [ ] Discard New Entry? (`SimpleConfirm`) **no gallery**
 
 ## 7. Timeline
@@ -123,7 +123,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [ ] Discard Changes? / Delete Timeline Event? (`SimpleConfirm`) **no gallery**
   - [ ] Move to another timeline (`MoveToTimelineDialog`) g: Move to timeline dialog
 - [ ] Create Event (`CreateTimeLineEventUi`) g: Create timeline event **needs a larger redesign, not a polish pass**
-  - [x] Discard Changes? (`SimpleConfirm`) g: Discard note changes
+  - [ ] Discard Changes? (`SimpleConfirm`) **no gallery**
 
 ## 8. Sync and auth
 

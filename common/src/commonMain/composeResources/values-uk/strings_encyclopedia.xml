@@ -11,8 +11,6 @@
 	<string name="encyclopedia_browse_list_empty">Записів не знайдено</string>
 	<string name="encyclopedia_create_button">Створити запис</string>
 	<string name="encyclopedia_create_entry_header">Створити запис</string>
-	<string name="encyclopedia_create_entry_section_marker">Нове</string>
-	<string name="encyclopedia_create_entry_draft_marker">Чернетка</string>
 	<string name="encyclopedia_create_entry_name_label">Назва</string>
 	<string name="encyclopedia_create_entry_name_placeholder">напр. Чеширський кіт</string>
 	<string name="encyclopedia_create_entry_tags_label">Теги</string>

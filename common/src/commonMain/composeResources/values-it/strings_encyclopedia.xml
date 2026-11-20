@@ -11,8 +11,6 @@
 	<string name="encyclopedia_browse_list_empty">Nessuna voce trovata</string>
 	<string name="encyclopedia_create_button">Crea voce</string>
 	<string name="encyclopedia_create_entry_header">Crea voce</string>
-	<string name="encyclopedia_create_entry_section_marker">Nuovo</string>
-	<string name="encyclopedia_create_entry_draft_marker">Bozza</string>
 	<string name="encyclopedia_create_entry_name_label">Nome</string>
 	<string name="encyclopedia_create_entry_name_placeholder">es. Stregatto</string>
 	<string name="encyclopedia_create_entry_tags_label">Tag</string>

@@ -11,8 +11,6 @@
 	<string name="encyclopedia_browse_list_empty">Keine Einträge gefunden</string>
 	<string name="encyclopedia_create_button">Eintrag erstellen</string>
 	<string name="encyclopedia_create_entry_header">Eintrag erstellen</string>
-	<string name="encyclopedia_create_entry_section_marker">Neu</string>
-	<string name="encyclopedia_create_entry_draft_marker">Entwurf</string>
 	<string name="encyclopedia_create_entry_name_label">Name</string>
 	<string name="encyclopedia_create_entry_name_placeholder">z. B. Grinsekatze</string>
 	<string name="encyclopedia_create_entry_tags_label">Tags</string>

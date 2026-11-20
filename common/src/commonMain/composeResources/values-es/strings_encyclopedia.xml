@@ -11,8 +11,6 @@
 	<string name="encyclopedia_browse_list_empty">No se encontraron entradas</string>
 	<string name="encyclopedia_create_button">Crear entrada</string>
 	<string name="encyclopedia_create_entry_header">Crear entrada</string>
-	<string name="encyclopedia_create_entry_section_marker">Nuevo</string>
-	<string name="encyclopedia_create_entry_draft_marker">Borrador</string>
 	<string name="encyclopedia_create_entry_name_label">Nombre</string>
 	<string name="encyclopedia_create_entry_name_placeholder">p. ej. Gato de Cheshire</string>
 	<string name="encyclopedia_create_entry_tags_label">Etiquetas</string>

@@ -11,8 +11,6 @@
 	<string name="encyclopedia_browse_list_empty">Não Há Verbetes</string>
 	<string name="encyclopedia_create_button">Criar Verbete</string>
 	<string name="encyclopedia_create_entry_header">Criar Verbete</string>
-	<string name="encyclopedia_create_entry_section_marker">Novo</string>
-	<string name="encyclopedia_create_entry_draft_marker">Rascunho</string>
 	<string name="encyclopedia_create_entry_name_label">Nome</string>
 	<string name="encyclopedia_create_entry_name_placeholder">ex. Gato de Cheshire</string>
 	<string name="encyclopedia_create_entry_tags_label">Etiquetas</string>

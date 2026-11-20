@@ -49,7 +49,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTag
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTypePicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
 import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
 import com.darkrockstudios.apps.hammer.common.compose.images.imageAddResultMessage
 import com.darkrockstudios.apps.hammer.common.compose.images.pickImageFile
@@ -59,7 +58,6 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -69,7 +67,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_cover_art_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_create_button
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_description_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_title
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_draft_marker
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_header
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_attached
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_browse_button
@@ -77,7 +74,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_drop_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_replace
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_placeholder
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_section_marker
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_hint
@@ -147,9 +143,7 @@ internal fun CreateEntryUi(
 		) {
 			CollapseWhileTyping {
 				HairlineModalHeader(
-					marker = Res.string.encyclopedia_create_entry_section_marker.get(),
 					title = Res.string.encyclopedia_create_entry_header.get(),
-					meta = Res.string.encyclopedia_create_entry_draft_marker.get(),
 				)
 			}
 
@@ -246,7 +240,6 @@ internal fun CreateEntryUi(
 			}
 
 			HairlineModalFooter(
-				type = selectedType,
 				onCancel = { component.confirmClose() },
 				onCreate = {
 					scope.launch {
@@ -311,9 +304,7 @@ internal fun CreateEntryUi(
 
 @Composable
 private fun HairlineModalHeader(
-	marker: String,
 	title: String,
-	meta: String,
 ) {
 	Column {
 		Row(
@@ -324,16 +315,11 @@ private fun HairlineModalHeader(
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(12.dp),
 		) {
-			HdMonoLabel(text = "§ $marker")
 			Text(
 				text = title,
-				style = MaterialTheme.typography.headlineMedium,
+				style = MaterialTheme.typography.titleLarge,
 				color = MaterialTheme.colorScheme.onSurface,
 				modifier = Modifier.weight(1f),
-			)
-			HdMonoLabel(
-				text = meta,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
 		HorizontalDivider(
@@ -345,11 +331,9 @@ private fun HairlineModalHeader(
 
 @Composable
 private fun HairlineModalFooter(
-	type: EntryType,
 	onCancel: () -> Unit,
 	onCreate: () -> Unit,
 ) {
-	val typeColor = LocalHammerColors.current.colorFor(type)
 	Column {
 		HorizontalDivider(
 			thickness = Dp.Hairline,
@@ -361,34 +345,8 @@ private fun HairlineModalFooter(
 				.background(MaterialTheme.colorScheme.surfaceContainerLow)
 				.padding(horizontal = 24.dp, vertical = 12.dp),
 			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(14.dp),
+			horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.End),
 		) {
-			Row(
-				modifier = Modifier
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					)
-					.padding(horizontal = 8.dp, vertical = 4.dp),
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(6.dp),
-			) {
-				Box(
-					modifier = Modifier
-						.size(10.dp)
-						.background(typeColor, RectangleShape),
-				)
-				HdMonoLabel(
-					text = type.toStringResource().get(),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-				HdMonoLabel(
-					text = type.glyph(),
-					color = typeColor,
-				)
-			}
-			Box(modifier = Modifier.weight(1f))
 			HdHairlineButton(
 				label = Res.string.encyclopedia_create_entry_cancel_button.get(),
 				onClick = onCancel,
