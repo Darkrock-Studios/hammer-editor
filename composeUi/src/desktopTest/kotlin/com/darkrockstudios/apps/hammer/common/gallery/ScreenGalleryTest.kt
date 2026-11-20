@@ -22,6 +22,8 @@ import com.darkrockstudios.apps.hammer.common.preview.projecthome.TimelineEditor
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.TimelineModeSwitchScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ManagePluginsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.PluginSettingsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.images.RenameImageScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.images.DeleteImageScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -248,6 +250,8 @@ class ScreenGalleryTest {
 		surfaced("View encyclopedia entry, timelines") { ScreenViewEntryTimelinesPreview() },
 		surfaced("Image gallery") { ImageGalleryBrowsePreview() },
 		surfaced("Image picker") { ImageGalleryPickTabletPreview() },
+		surfaced("Rename image") { RenameImageScrimPreview() },
+		surfaced("Delete image") { DeleteImageScrimPreview() },
 		surfaced("Create encyclopedia entry") { ScreenCreateEntryPreview() },
 		screen("Timeline") { ScreenTimeLineOverviewUiTabletPreview() },
 		screen("View timeline event") { ScreenViewTimeLineEventUiTabletPreview() },

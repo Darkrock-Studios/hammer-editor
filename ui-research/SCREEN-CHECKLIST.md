@@ -64,8 +64,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Per-plugin settings (`PluginSettingsDialog`) **no gallery** g: Plugin settings dialog
 - [x] Images gallery (`ImageGalleryUi`) g: Image gallery
   - [x] Choose an image, pick mode g: Image picker
-  - [ ] Rename image (`RenameDialog`) **no gallery**
-  - [ ] Delete image (`DeleteDialog`) **no gallery**
+  - [x] Rename image (`RenameDialog`) **no gallery** g: Rename image
+  - [x] Delete image (`DeleteDialog`) **no gallery** g: Delete image
 
 ## 4. Story
 

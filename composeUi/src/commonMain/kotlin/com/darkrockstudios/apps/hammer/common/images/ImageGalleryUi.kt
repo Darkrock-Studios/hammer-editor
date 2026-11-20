@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.images
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineCheckbox
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
@@ -67,7 +69,6 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImageGallery
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
 import com.darkrockstudios.apps.hammer.common.compose.ConfirmationDialog
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
@@ -756,29 +757,55 @@ private fun RenameDialog(
 	val renaming = state.renaming?.let { id -> state.images.find { it.def.id == id } }
 	val image = lastOf(renaming) ?: return
 
-	SimpleDialog(
-		title = Res.string.images_gallery_rename_title.get(),
-		visible = renaming != null,
-		onCloseRequest = onClose,
-	) {
+	AnimatedDialog(visible = renaming != null, onCloseRequest = onClose) {
 		var name by rememberSaveable(image.def.id) { mutableStateOf(image.def.name) }
+		RenameImageCard(
+			name = name,
+			onNameChange = { name = it },
+			busy = state.busy,
+			onRename = { onRename(image.def.id, name) },
+			onCancel = { requestDismiss() },
+		)
+	}
+}
+
+/** The rename form without its dialog window. */
+@Composable
+internal fun RenameImageCard(
+	name: String,
+	onNameChange: (String) -> Unit,
+	busy: Boolean,
+	onRename: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	HdHairlineDialogShell(
+		title = Res.string.images_gallery_rename_title.get(),
+		onClose = null,
+		closeContentDescription = null,
+	) {
 		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
 			HdHairlineField(
 				label = Res.string.images_gallery_rename_label.get(),
 				value = name,
-				onValueChange = { name = it },
+				onValueChange = onNameChange,
 				error = if (name.isNotBlank() && !ImageFormat.isValidName(name.trim())) {
 					Res.string.images_toast_name_invalid.get()
 				} else {
 					null
 				},
 			)
-			HdHairlineButton(
-				label = Res.string.images_gallery_rename_button.get(),
-				emphasised = true,
-				enabled = !state.busy && ImageFormat.isValidName(name.trim()),
-				onClick = { onRename(image.def.id, name) },
-			)
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
+			) {
+				HdHairlineButton(label = Res.string.images_gallery_cancel.get(), onClick = onCancel)
+				HdHairlineButton(
+					label = Res.string.images_gallery_rename_button.get(),
+					emphasised = true,
+					enabled = !busy && ImageFormat.isValidName(name.trim()),
+					onClick = onRename,
+				)
+			}
 		}
 	}
 }
@@ -808,18 +835,19 @@ private fun DeleteDialog(
 
 /** What deleting the image would take it out of, one line per kind of entity. */
 @Composable
-private fun usageMessage(usages: ImageUsages): String {
+internal fun usageMessage(usages: ImageUsages): String {
 	if (usages.isUnused) return Res.string.images_gallery_delete_unused.get()
 	val header = Res.string.images_gallery_delete_used.get(usages.usages.size)
 	val lines = usages.usages
 		.sortedBy { usageOrder(it.referrer) }
 		.groupBy { usageTypeLabel(it.referrer) }
 		.map { (label, uses) ->
-			Res.string.images_gallery_delete_usage_line.get(
-				label.get(),
-				uses.size,
-				uses.joinToString { it.name },
-			)
+			// There is one cover, so its line is its label alone.
+			if (uses.all { it.referrer == ImageReferrer.ProjectCover }) {
+				label.get()
+			} else {
+				Res.string.images_gallery_delete_usage_line.get(label.get(), uses.joinToString { it.name })
+			}
 		}
 	return (listOf(header) + lines).joinToString("\n")
 }
