@@ -130,7 +130,7 @@ internal fun HdHairlineChipInput(
 				if (draft.isEmpty() && chips.isEmpty() && placeholder != null) {
 					Text(
 						text = placeholder,
-						style = textStyle.copy(color = muted),
+						style = textStyle.copy(color = hdPlaceholderColor),
 					)
 				}
 			}

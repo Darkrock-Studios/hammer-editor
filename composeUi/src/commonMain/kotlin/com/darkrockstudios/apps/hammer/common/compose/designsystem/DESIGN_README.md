@@ -419,7 +419,9 @@ a sort icon). Control labels are sentence case in the body face.
 - **[`HdHairlineField`](HdHairlineField.kt)** — labeled
   hairline-underline text field. Mono label + optional hint and
   counter, chrome-less `BasicTextField`, hairline rule below. The
-  default text input.
+  default text input. Every field draws its placeholder in
+  `hdPlaceholderColor`, quieter than labels and values, and the
+  placeholder is an example value (`hammer.ink`), never the label again.
 - **[`HdHairlineTagField`](HdHairlineTagField.kt)** — same vocabulary
   but the value is a `List<String>` of `HdTagChip`s; Enter / comma
   adds a tag, Backspace on empty removes the last.

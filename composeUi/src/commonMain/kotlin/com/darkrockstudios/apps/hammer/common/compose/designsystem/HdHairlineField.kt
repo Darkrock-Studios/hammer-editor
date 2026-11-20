@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
@@ -35,6 +36,14 @@ import androidx.compose.ui.unit.dp
  *     Cheshire Cat
  *     ────────────────────────────────────────────
  */
+
+/**
+ * Placeholder text in every field: the [outline] gray faded toward the surface, well quieter
+ * than labels, hints and disabled values, so an empty field never reads as filled in.
+ */
+val hdPlaceholderColor: Color
+	@Composable get() = MaterialTheme.colorScheme.outline.copy(alpha = 0.75f)
+
 @Composable
 fun HdHairlineField(
 	label: String,
@@ -128,7 +137,7 @@ fun HdHairlineField(
 				if (value.isEmpty() && placeholder != null) {
 					Text(
 						text = placeholder,
-						style = textStyle.copy(color = mutedColor),
+						style = textStyle.copy(color = hdPlaceholderColor),
 					)
 				}
 			}

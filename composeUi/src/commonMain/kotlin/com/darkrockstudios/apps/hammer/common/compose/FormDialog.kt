@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdPlaceholderColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -272,7 +273,7 @@ fun FormField(
 					if (value.isEmpty() && !placeholder.isNullOrEmpty()) {
 						Text(
 							text = placeholder,
-							style = textStyle.copy(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)),
+							style = textStyle.copy(color = hdPlaceholderColor),
 						)
 					}
 					inner()

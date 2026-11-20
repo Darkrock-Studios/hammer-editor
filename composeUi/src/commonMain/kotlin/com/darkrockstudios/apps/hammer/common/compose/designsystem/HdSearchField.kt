@@ -90,7 +90,7 @@ fun HdSearchField(
 			if (value.isEmpty()) {
 				Text(
 					text = placeholder,
-					style = textStyle.copy(color = mutedAccent),
+					style = textStyle.copy(color = hdPlaceholderColor),
 					maxLines = 1,
 					overflow = TextOverflow.Ellipsis,
 				)

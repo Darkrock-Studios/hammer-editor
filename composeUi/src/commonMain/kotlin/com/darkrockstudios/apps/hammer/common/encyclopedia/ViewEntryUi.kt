@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdPlaceholderColor
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRegion
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
@@ -706,7 +707,7 @@ private fun NameZone(
 			if (entryNameText.isEmpty()) {
 				Text(
 					text = Res.string.encyclopedia_entry_name_hint.get(),
-					style = titleStyle.copy(color = mutedColor),
+					style = titleStyle.copy(color = hdPlaceholderColor),
 				)
 			}
 		} else {
