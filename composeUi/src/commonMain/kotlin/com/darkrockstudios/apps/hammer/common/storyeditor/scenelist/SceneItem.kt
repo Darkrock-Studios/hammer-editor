@@ -106,10 +106,10 @@ internal fun SceneItem(
 						fontWeight = if (isSelected || isChapter) FontWeight.Medium else FontWeight.Normal,
 						modifier = Modifier.weight(1f),
 					)
+
+					if (hasDirtyBuffer) UnsavedMark()
 				}
 			}
-
-			Unsaved(hasDirtyBuffer)
 		}
 	}
 }

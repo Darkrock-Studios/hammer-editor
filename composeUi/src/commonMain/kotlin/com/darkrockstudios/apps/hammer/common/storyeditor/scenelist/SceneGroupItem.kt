@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdIndentStep
@@ -53,7 +52,7 @@ internal fun SceneGroupItem(
 	onCreateSceneClick: (SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 ) {
-	val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
+	val scene = sceneNode.value
 	val isTopLevel = isChapter
 	val indent = hdIndentFor(sceneNode.depth)
 	val railColor = MaterialTheme.colorScheme.outlineVariant
@@ -77,12 +76,13 @@ internal fun SceneGroupItem(
 	) {
 		Box(modifier = groupModifier) {
 			Column(modifier = Modifier.fillMaxWidth()) {
-				// A chapter break cuts the full panel; a nested rule hangs at the group's own indent.
-				HorizontalDivider(
-					modifier = Modifier.padding(start = if (isTopLevel) 0.dp else indent),
-					thickness = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-				)
+				// Only chapters get a rule; nested groups are set off by the indent rails.
+				if (isTopLevel) {
+					HorizontalDivider(
+						thickness = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+					)
+				}
 
 				Row(
 					modifier = Modifier
@@ -126,17 +126,17 @@ internal fun SceneGroupItem(
 						modifier = Modifier.weight(1f),
 					)
 
-					if (sceneCount > 0) {
+					// An open nested group lists its scenes right below, so the count would repeat them.
+					if (sceneCount > 0 && (isTopLevel || collapsed)) {
 						HdMonoLabel(
 							text = Res.string.scene_group_scene_count_format.get(sceneCount),
 							modifier = Modifier.padding(start = Ui.Padding.M),
 						)
 					}
+
+					if (collapsed && sceneNode.any { it.value.id in hasDirtyBuffer }) UnsavedMark()
 				}
 			}
-
-			val groupHasDirtyBuffer = children.any { hasDirtyBuffer.contains(it.value.id) }
-			Unsaved(groupHasDirtyBuffer)
 		}
 	}
 }

@@ -58,10 +58,12 @@ fun ScreenSceneListUiTabletPreview() {
 
 	KoinApplicationPreview {
 		TabletPreviewSurface {
+			val summary = nestedSceneSummary()
 			val component = fakeComponent(
 				SceneList.State(
 					projectDef = fakeProjectDef(),
-					sceneSummary = fakeSceneSummary()
+					sceneSummary = summary,
+					selectedSceneItem = summary.sceneTree.find { it.value.name == SELECTED_SCENE }?.value,
 				)
 			)
 			SceneListUi(component, snackbarHostState)

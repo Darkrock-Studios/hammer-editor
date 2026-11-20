@@ -1,9 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +46,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.archived_scenes_restored_snackbar
@@ -585,12 +587,15 @@ private fun SceneNode(
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Trailing mark on a row with unsaved edits. */
 @Composable
-internal fun BoxScope.Unsaved(hasDirtyBuffer: Boolean) {
-	if (hasDirtyBuffer) {
-		Badge(modifier = Modifier.align(Alignment.TopEnd).padding(Ui.Padding.M))
-	}
+internal fun UnsavedMark() {
+	Box(
+		modifier = Modifier
+			.padding(start = Ui.Padding.M)
+			.size(6.dp)
+			.background(LocalHammerColors.current.danger)
+	)
 }
 
 @Composable

@@ -70,7 +70,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 ## 4. Story
 
 - [x] Story container, list and detail (`StoryEditorUi`) g: Story, no scene selected
-- [ ] Scenes list (`SceneListUi`) g: Scene list
+- [x] Scenes list (`SceneListUi`) g: Scene list
   - [ ] Create Scene / Group / Chapter Scene / Chapter Group (`CreateDialog`) **no gallery**
   - [ ] Rename Scene / Chapter / Group (`SceneRenameDialog`) **no gallery**
   - [ ] Delete Scene / Chapter / Group (`SceneDeleteDialog`) **no gallery**
