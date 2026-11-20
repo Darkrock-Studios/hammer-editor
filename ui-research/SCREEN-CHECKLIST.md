@@ -89,7 +89,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Add tags (`AddTagDialog`) g: Add tags
 - [x] Drafts list (`DraftsListUi`) g: Drafts list
 - [x] Draft Compare (`DraftCompareUi`) g: Draft compare
-- [ ] Reader mode (`ReaderModeUi`) g: Reader mode
+- [x] Reader mode (`ReaderModeUi`) g: Reader mode
 - [ ] Focus mode (`FocusModeUi`) g: Focus mode
 
 ## 5. Notes
