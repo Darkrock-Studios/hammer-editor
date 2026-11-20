@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.notes.NoteDiscardConfirmScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.notes.NoteDeleteConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenDraftCompareUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.AddTagScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.AddReferenceScrimPreview
@@ -271,6 +273,8 @@ class ScreenGalleryTest {
 		surfaced("Archived scenes, empty") { ArchivedScenesEmptyScrimPreview() },
 		screen("Browse notes") { ScreenBrowseNotesUiTabletPreview() },
 		screen("View note") { ScreenViewNoteUiTabletPreview() },
+		surfaced("Discard note changes") { NoteDiscardConfirmScrimPreview() },
+		surfaced("Delete note confirm") { NoteDeleteConfirmScrimPreview() },
 		surfaced("Create note") { ScreenCreateNoteUiPreview() },
 		screen("Browse encyclopedia") { ScreenBrowseEntriesUiTabletPreview() },
 		screen("View encyclopedia entry") { ScreenViewEntryUiTabletPreview() },

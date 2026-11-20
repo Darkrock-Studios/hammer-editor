@@ -4,8 +4,10 @@
 	<string name="notes_list_empty">No Notes Found</string>
 	<string name="notes_create_note_button">Create Note</string>
 	<string name="notes_note_item_action_cancel">Cancel</string>
-	<string name="notes_discard_dialog_title">Discard Changes?</string>
-	<string name="notes_discard_dialog_message">You will lose any changes you have made.</string>
+	<string name="notes_discard_dialog_title">Discard your changes?</string>
+	<string name="notes_discard_confirm">Discard</string>
+	<string name="notes_discard_keep">Keep editing</string>
+	<string name="notes_discard_dialog_message">Your edits to this note will be lost.</string>
 	<string name="notes_create_header">Create Note</string>
 	<string name="notes_create_marker">III · NEW</string>
 	<string name="notes_create_draft_label">DRAFT</string>
@@ -18,9 +20,11 @@
 	<string name="notes_create_tags_label">Tags</string>
 	<string name="notes_create_tags_hint">↵ to add</string>
 	<string name="notes_create_tags_placeholder">idea, todo, follow-up…</string>
-	<string name="notes_delete_title">Delete Note?</string>
-	<string name="notes_delete_message">This action cannot be undone!</string>
-	<string name="notes_delete_toast_success">Note Deleted</string>
+	<string name="notes_delete_title">Delete this note?</string>
+	<string name="notes_delete_message">It can't be recovered.</string>
+	<string name="notes_delete_confirm">Delete</string>
+	<string name="notes_delete_cancel">Cancel</string>
+	<string name="notes_delete_toast_success">Note deleted</string>
 
 	<string name="notes_menu_group">Note</string>
 	<string name="notes_menu_delete">Delete</string>

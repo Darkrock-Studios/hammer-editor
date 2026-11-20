@@ -198,6 +198,10 @@ fun CreateNoteUi(
 		SimpleConfirm(
 			title = Res.string.notes_discard_dialog_title.get(),
 			message = Res.string.notes_discard_dialog_message.get(),
+			positiveButton = Res.string.notes_discard_confirm.get(),
+			negativeButton = Res.string.notes_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = {
 				component.cancelDiscard()
 			}

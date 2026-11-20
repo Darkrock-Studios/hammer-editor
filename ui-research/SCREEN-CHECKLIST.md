@@ -97,9 +97,9 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Notes container (`NotesUi`) no UI of its own
 - [x] Notes list (`BrowseNotesUi`) g: Browse notes
 - [x] Note view (`ViewNoteUi`) g: View note
-  - [ ] Discard Changes? / Delete Note? (`SimpleConfirm`, `ConfirmDeleteNoteDialog`) **no gallery**
-- [ ] Create Note (`CreateNoteUi`) g: Create note
-  - [ ] Discard Changes? (`SimpleConfirm`) **no gallery**
+  - [x] Discard Changes? / Delete Note? (`SimpleConfirm`, `ConfirmDeleteNoteDialog`) g: Discard note changes, Delete note confirm
+- [ ] Create Note (`CreateNoteUi`) g: Create note **needs a larger redesign, not a polish pass**
+  - [x] Discard Changes? (`SimpleConfirm`) g: Discard note changes
 
 ## 6. Encyclopedia
 
@@ -122,8 +122,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [ ] Event view and edit (`ViewTimeLineEventUi`) g: View timeline event
   - [ ] Discard Changes? / Delete Timeline Event? (`SimpleConfirm`) **no gallery**
   - [ ] Move to another timeline (`MoveToTimelineDialog`) g: Move to timeline dialog
-- [ ] Create Event (`CreateTimeLineEventUi`) g: Create timeline event
-  - [ ] Discard Changes? (`SimpleConfirm`) **no gallery**
+- [ ] Create Event (`CreateTimeLineEventUi`) g: Create timeline event **needs a larger redesign, not a polish pass**
+  - [x] Discard Changes? (`SimpleConfirm`) g: Discard note changes
 
 ## 8. Sync and auth
 
