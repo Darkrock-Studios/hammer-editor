@@ -32,7 +32,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] About Sync Servers (`ServerSetupHelpDialog`) g: About sync servers
   - [x] Terms of Service (`TermsOfServiceDialog`) g: Terms of service dialog
   - [x] Merge existing projects with the server?, and Delete all local projects? (`MergeProjectsDialog`) **no gallery** g: Merge projects dialog, Merge projects dialog, replace, Delete all local projects confirm
-  - [ ] Remove Server confirm (`SimpleConfirm`) **no gallery**
+  - [x] Remove Server confirm (`SimpleConfirm`) **no gallery** g: Remove server confirm
   - [ ] Manage Backups, and Restore Backup confirm (`BackupManagerDialog`) **no gallery**
   - [ ] Install "name"? (`InstallDialog`) **no gallery**
   - [ ] Plugin details (`DetailsDialog`) **no gallery**

@@ -35,7 +35,6 @@
 	<string name="settings_server_sync_auto_close">Close Sync Dialogs on Success</string>
 	<string name="settings_server_max_backups">Max Backups per Project</string>
 	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
-	<string name="settings_server_remove_server_button">Remove Server</string>
 	<string name="settings_remove_server_dialog_title">Remove Server</string>
 	<string name="settings_remove_server_dialog_message">Are you sure you want to remove the server?</string>
 	<string name="settings_server_setup_title">Set Up Server</string>

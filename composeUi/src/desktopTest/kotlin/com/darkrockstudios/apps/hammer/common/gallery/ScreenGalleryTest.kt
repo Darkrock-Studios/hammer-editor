@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.MergeReplaceConfirmScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.RemoveServerConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
@@ -195,6 +196,7 @@ class ScreenGalleryTest {
 		surfaced("Merge projects dialog") { MergeProjectsScrimPreview(MergeMode.Merge) },
 		surfaced("Merge projects dialog, replace") { MergeProjectsScrimPreview(MergeMode.Replace) },
 		surfaced("Delete all local projects confirm") { MergeReplaceConfirmScrimPreview() },
+		surfaced("Remove server confirm") { RemoveServerConfirmScrimPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },

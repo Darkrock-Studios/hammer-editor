@@ -32,7 +32,6 @@
 	<string name="settings_server_sync_auto_close">Chiudi le finestre di sincronizzazione in caso di successo</string>
 	<string name="settings_server_max_backups">Backup max per progetto</string>
 	<string name="settings_server_max_backups_error">Deve essere tra 1 e %1$d</string>
-	<string name="settings_server_remove_server_button">Rimuovi server</string>
 	<string name="settings_remove_server_dialog_title">Rimuovi server</string>
 	<string name="settings_remove_server_dialog_message">Vuoi davvero rimuovere il server?</string>
 	<string name="settings_server_setup_title">Configura il server</string>

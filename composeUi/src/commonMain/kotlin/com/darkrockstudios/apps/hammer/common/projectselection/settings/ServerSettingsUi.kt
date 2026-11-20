@@ -40,6 +40,8 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdControlFrame
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.settings_group_sync_options
+import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_cancel
+import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_confirm
 import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_message
 import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_title
 import com.darkrockstudios.apps.hammer.settings_row_remove_server
@@ -184,6 +186,10 @@ internal fun RemoveServerRow(component: AccountSettings, scope: CoroutineScope) 
 		SimpleConfirm(
 			title = Res.string.settings_remove_server_dialog_title.get(),
 			message = Res.string.settings_remove_server_dialog_message.get(),
+			positiveButton = Res.string.settings_remove_server_dialog_confirm.get(),
+			negativeButton = Res.string.settings_remove_server_dialog_cancel.get(),
+			destructive = true,
+			kind = "REMOVE",
 			onDismiss = { confirm = false },
 			onConfirm = {
 				scope.launch {
