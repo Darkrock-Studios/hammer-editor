@@ -321,7 +321,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
-	fun `Renaming an open scene anchors its writing baseline to the renamed text`() = runTest(mainTestDispatcher) {
+	fun `Renaming an open scene re-anchors its writing activity at the renamed text`() = runTest(mainTestDispatcher) {
 		createStack()
 		sceneEditorService.storeMetadata(sceneEditorService.loadSceneMetadata(6).copy(dismissedReferences = emptySet()), 6)
 		sceneEditorService.loadSceneBuffer(scene(6))
@@ -330,7 +330,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		applyDefaults(preview)
 		advanceUntilIdle()
 
-		verify { writingSessionTracker.rememberBaseline(6, "Robert Tolliver again.") }
+		coVerify { writingSessionTracker.onSceneSaved(6, "Robert Tolliver again.", UpdateSource.Repository) }
 	}
 
 	@Test

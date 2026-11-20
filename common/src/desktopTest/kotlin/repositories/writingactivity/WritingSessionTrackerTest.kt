@@ -149,6 +149,23 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `a non-editor save leaves an untracked scene untracked`() = runTest {
+		tracker.onSceneSaved(1, "I went home", UpdateSource.Sync)
+
+		assertEquals(0, tracker.onSceneSaved(1, "I went home and ate", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a re-ided scene keeps its anchor`() = runTest {
+		tracker.rememberBaseline(sceneId = 7, content = "I went home")
+		tracker.onSceneSaved(7, "I went home and ate", UpdateSource.Editor)
+
+		tracker.reIdBaseline(oldId = 7, newId = 42)
+
+		assertEquals(1, tracker.onSceneSaved(42, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
 	fun `Drafts and Repository sources also do not credit`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "")
 		tracker.onSceneSaved(1, "draft content here", UpdateSource.Drafts)

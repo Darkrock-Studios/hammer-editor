@@ -292,7 +292,7 @@ class SceneContentRepositoryTest : BaseTest() {
 			assertEquals("Content of chapter id 3, typed", readUtf8())
 		}
 		coVerify { writingSessionTracker.onSceneSaved(3, "Content of scene id 3, typed", UpdateSource.Editor) }
-		verify { writingSessionTracker.rememberBaseline(3, "Content of chapter id 3, typed") }
+		coVerify { writingSessionTracker.onSceneSaved(3, "Content of chapter id 3, typed", UpdateSource.Repository) }
 	}
 
 	@Test
@@ -322,7 +322,7 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Rewriting a scene that was not open gives it a baseline`() = runTest(mainTestDispatcher) {
+	fun `A scene rewritten before it was open is anchored at the rewritten text`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
@@ -332,8 +332,9 @@ class SceneContentRepositoryTest : BaseTest() {
 		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 		assertTrue(service.rewriteSceneText(sceneItem) { it.replace("scene", "chapter") })
 		advanceUntilIdle()
+		service.loadSceneBuffer(sceneItem)
 
-		verify { writingSessionTracker.rememberBaseline(3, "Content of chapter id 3") }
+		verify { writingSessionTracker.ensureBaseline(3, "Content of chapter id 3") }
 	}
 
 	@Test

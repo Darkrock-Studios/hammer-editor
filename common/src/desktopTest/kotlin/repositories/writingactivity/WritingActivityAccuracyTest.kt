@@ -26,6 +26,7 @@ import utils.TestClock
 import kotlin.test.assertEquals
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /** Each test states the count a writer would expect. */
@@ -218,6 +219,28 @@ class WritingActivityAccuracyTest : BaseTest() {
 		clock.advanceTime(7.hours)
 
 		assertEquals(3, saves("Start. Something else entirely."))
+	}
+
+	@Test
+	fun `a long gap since words were last recorded starts a new epoch`() = runTest {
+		tracker.rememberBaseline(1, "Start.")
+		saves("Start. One two three four five six seven eight nine ten.")
+		repeat(6) {
+			clock.advanceTime(1.hours)
+			saves("Start.")
+		}
+		clock.advanceTime(45.minutes)
+
+		assertEquals(3, saves("Start. Something else entirely."))
+	}
+
+	@Test
+	fun `a clock set back does not start a new epoch`() = runTest {
+		tracker.rememberBaseline(1, "Start.")
+		saves("Start. One two three four five six seven eight nine ten.", "Start.")
+		clock.advanceTime(-24.hours)
+
+		assertEquals(0, saves("Start. Something else entirely."))
 	}
 
 	@Test

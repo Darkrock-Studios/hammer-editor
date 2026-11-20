@@ -87,6 +87,7 @@ class SceneEditorService(
 	suspend fun reIdScene(oldId: Int, newId: Int) {
 		sceneEditorRepository.reIdScene(oldId, newId)
 		sceneContentRepository.reIdBuffer(oldId, newId)
+		writingSessionTracker.reIdBaseline(oldId, newId)
 	}
 
 	/**
@@ -279,7 +280,6 @@ class SceneEditorService(
 			writingSessionTracker.onSceneSaved(sceneItem.id, current, UpdateSource.Editor)
 		}
 		sceneContentRepository.replaceBuffer(SceneContent(sceneItem, rewritten))
-		writingSessionTracker.rememberBaseline(sceneItem.id, rewritten)
 		return storeSceneBuffer(sceneItem)
 	}
 
@@ -386,12 +386,15 @@ class SceneEditorService(
 		sceneContentRepository.getSceneBuffer(sceneDef)
 
 	/**
-	 * Returns the cached buffer, or loads it from disk and remembers a writing-session baseline
-	 * for the freshly-loaded content.
+	 * Returns the cached buffer, or loads it from disk, and anchors the scene's writing activity at
+	 * that text: a cached buffer only when the scene has no anchor yet, a load from disk always.
 	 */
 	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
 		val cached = sceneContentRepository.getSceneBuffer(sceneItem)
-		if (cached != null) return cached
+		if (cached != null) {
+			writingSessionTracker.ensureBaseline(sceneItem.id, cached.content.coerceMarkdown())
+			return cached
+		}
 
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val buffer = sceneContentRepository.loadBuffer(sceneItem, scenePath)
