@@ -135,6 +135,14 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_labe
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_body_empty_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_close_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_crumb_root
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import com.darkrockstudios.apps.hammer.confirm_kind_delete
+import com.darkrockstudios.apps.hammer.confirm_kind_remove
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_discard_confirm
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_discard_keep
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_confirm
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_confirm
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_confirm_cancel
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_message
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_toast
@@ -426,6 +434,10 @@ internal fun ViewEntryUi(
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_discard_title.get(),
 			message = Res.string.encyclopedia_entry_discard_message.get(),
+			positiveButton = Res.string.encyclopedia_entry_discard_confirm.get(),
+			negativeButton = Res.string.encyclopedia_entry_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { discardConfirm = false },
 			onConfirm = {
 				discardChanges()
@@ -455,6 +467,9 @@ internal fun ViewEntryUi(
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_remove_image_title.get(),
 			message = Res.string.encyclopedia_entry_remove_image_message.get(),
+			positiveButton = Res.string.encyclopedia_entry_remove_image_confirm.get(),
+			negativeButton = Res.string.encyclopedia_entry_confirm_cancel.get(),
+			kind = Res.string.confirm_kind_remove.get(),
 			onDismiss = { component.dismissRemoveImageConfirm() },
 			onConfirm = {
 				scope.launch { component.removeImage(imageId) }
@@ -465,8 +480,12 @@ internal fun ViewEntryUi(
 
 	if (state.showDeleteEntryDialog) {
 		SimpleConfirm(
-			title = Res.string.encyclopedia_entry_delete_title.get(),
+			title = Res.string.encyclopedia_entry_delete_title.get(state.entryDef.name),
 			message = Res.string.encyclopedia_entry_delete_message.get(),
+			positiveButton = Res.string.encyclopedia_entry_delete_confirm.get(),
+			negativeButton = Res.string.encyclopedia_entry_confirm_cancel.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_delete.get(),
 			onDismiss = { component.closeDeleteEntryDialog() },
 			onConfirm = {
 				scope.launch(dispatcherDefault) {
@@ -486,6 +505,10 @@ internal fun ViewEntryUi(
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_discard_title.get(),
 			message = Res.string.encyclopedia_entry_discard_message.get(),
+			positiveButton = Res.string.encyclopedia_entry_discard_confirm.get(),
+			negativeButton = Res.string.encyclopedia_entry_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { component.dismissConfirmClose() },
 			onConfirm = {
 				component.dismissConfirmClose()

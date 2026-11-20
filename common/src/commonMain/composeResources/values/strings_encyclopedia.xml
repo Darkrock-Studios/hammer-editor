@@ -49,14 +49,18 @@
 	<string name="encyclopedia_entry_edit_cancel_button">Cancel</string>
 	<string name="encyclopedia_entry_edit_save_button">Save</string>
 	<string name="encyclopedia_entry_edit_save_toast">Entry Saved</string>
-	<string name="encyclopedia_entry_discard_title">Discard Changes?</string>
-	<string name="encyclopedia_entry_discard_message">You will lose any changes you have made.
-	</string>
-	<string name="encyclopedia_entry_delete_title">Delete Entry?</string>
-	<string name="encyclopedia_entry_delete_message">This cannot be undone!</string>
-	<string name="encyclopedia_entry_delete_toast">Entry Deleted</string>
-	<string name="encyclopedia_entry_remove_image_title">Remove Image?</string>
+	<string name="encyclopedia_entry_discard_title">Discard your changes?</string>
+	<string name="encyclopedia_entry_discard_message">Your edits to this entry will be lost.</string>
+	<string name="encyclopedia_entry_delete_title">Delete “%1$s”?</string>
+	<string name="encyclopedia_entry_delete_message">It can't be recovered.</string>
+	<string name="encyclopedia_entry_delete_toast">Entry deleted</string>
+	<string name="encyclopedia_entry_remove_image_title">Remove this image?</string>
 	<string name="encyclopedia_entry_remove_image_message">The image is taken off this entry only. It stays in the project and can be added again.</string>
+	<string name="encyclopedia_entry_discard_confirm">Discard</string>
+	<string name="encyclopedia_entry_discard_keep">Keep editing</string>
+	<string name="encyclopedia_entry_delete_confirm">Delete</string>
+	<string name="encyclopedia_entry_remove_image_confirm">Remove</string>
+	<string name="encyclopedia_entry_confirm_cancel">Cancel</string>
 	<string name="encyclopedia_entry_name_hint">Name</string>
 	<string name="encyclopedia_entry_close_button">Close Entry</string>
 	<string name="encyclopedia_entry_menu_group">Entry</string>
