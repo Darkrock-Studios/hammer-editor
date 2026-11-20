@@ -1,11 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
+import androidx.compose.ui.Alignment
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
+import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,19 +26,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationDialog
+import androidx.compose.foundation.layout.fillMaxSize
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdButtonBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 private val DialogMaxWidth = 480.dp
@@ -81,20 +83,39 @@ fun MergeProjectsDialog(component: AccountSettings) {
 		}
 	}
 
-	ConfirmationDialog(
+	AnimatedDialog(
 		visible = confirmReplace,
+		onCloseRequest = { confirmReplace = false },
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center,
+	) {
+		MergeReplaceConfirmCard(
+			onConfirm = {
+				confirmReplace = false
+				component.chooseReplace()
+			},
+			onCancel = { confirmReplace = false },
+		)
+	}
+}
+
+/** The last check before Replace deletes every local project, without its dialog window. */
+@Composable
+internal fun MergeReplaceConfirmCard(onConfirm: () -> Unit, onCancel: () -> Unit) {
+	IndexStripCard(
 		title = Res.string.merge_projects_replace_confirm_title.get(),
 		message = Res.string.merge_projects_replace_confirm_message.get(),
-		confirmLabel = Res.string.merge_projects_replace_confirm_button.get(),
-		cancelLabel = Res.string.confirm_dialog_negative.get(),
-		onConfirm = {
-			confirmReplace = false
-			component.chooseReplace()
-		},
-		onDismiss = { confirmReplace = false },
 		destructive = true,
 		kind = "DELETE",
-	)
+	) {
+		ConfirmationActions(
+			confirmLabel = Res.string.merge_projects_replace_confirm_button.get(),
+			onConfirm = onConfirm,
+			cancelLabel = Res.string.merge_projects_cancel_button.get(),
+			onCancel = onCancel,
+			destructive = true,
+		)
+	}
 }
 
 /**
@@ -124,41 +145,20 @@ fun MergeProjectsDialogContent(
 		),
 	) {
 		Column {
-			HdMasthead(
-				section = "SYNC PROJECTS",
-				trailing = {
-					HdMastheadAction(label = "× CLOSE", onClick = onCancel)
-				},
-			)
-			HdFolioDivider()
-
 			Text(
 				text = Res.string.merge_projects_dialog_title.get(),
-				style = MaterialTheme.typography.headlineSmall,
+				style = MaterialTheme.typography.titleLarge,
 				color = MaterialTheme.colorScheme.onSurface,
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						top = Ui.Padding.L,
-						bottom = Ui.Padding.S,
-					),
+				modifier = Modifier.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, top = Ui.Padding.XL),
 			)
 
 			Column(
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						top = Ui.Padding.L,
-						bottom = Ui.Padding.L,
-					),
+					.padding(Ui.Padding.XL),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
 				HdHairlineSegmentedPicker(
-					title = Res.string.merge_projects_mode_label.get(),
 					options = MergeMode.entries,
 					selected = mode,
 					onSelect = onModeChange,
@@ -167,18 +167,29 @@ fun MergeProjectsDialogContent(
 
 				Text(
 					text = mode.explanation(),
-					style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+					style = MaterialTheme.typography.bodyMedium,
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
 
-			HdButtonBar(
-				cancelLabel = Res.string.settings_server_setup_cancel_button.get(),
-				primaryLabel = Res.string.merge_projects_continue_button.get(),
-				onCancel = onCancel,
-				onPrimary = onContinue,
-				primaryDanger = mode == MergeMode.Replace,
-			)
+			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
+			) {
+				HdHairlineButton(label = Res.string.merge_projects_cancel_button.get(), onClick = onCancel)
+				HdHairlineButton(
+					label = when (mode) {
+						MergeMode.Merge -> Res.string.merge_projects_merge_button.get()
+						MergeMode.Replace -> Res.string.merge_projects_replace_button.get()
+					},
+					onClick = onContinue,
+					emphasised = mode == MergeMode.Merge,
+					danger = mode == MergeMode.Replace,
+				)
+			}
 		}
 	}
 }

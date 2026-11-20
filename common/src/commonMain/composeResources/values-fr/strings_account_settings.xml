@@ -47,12 +47,10 @@
 	<string name="settings_server_setup_create_button">Créer</string>
 	<string name="settings_server_setup_cancel_button">Annuler</string>
 	<string name="merge_projects_dialog_title">Fusionner les projets existants avec le serveur ?</string>
-	<string name="merge_projects_mode_label">DONNÉES DU PROJET</string>
 	<string name="merge_projects_mode_merge">Fusionner</string>
 	<string name="merge_projects_mode_replace">Remplacer</string>
 	<string name="merge_projects_explain_merge">Hammer fera correspondre vos projets locaux aux projets déjà présents sur le serveur. Les projets qui n'existent que sur le serveur seront téléchargés, et les projets présents en local seront téléversés sur le serveur.</string>
 	<string name="merge_projects_explain_replace">Tous vos projets locaux seront supprimés et remplacés par ceux présents sur le serveur.</string>
-	<string name="merge_projects_continue_button">Continuer</string>
 	<string name="merge_projects_replace_confirm_title">Supprimer tous les projets locaux ?</string>
 	<string name="merge_projects_replace_confirm_message">Cela supprime de façon permanente tous les projets de cet appareil et les remplacera avec les projets présents sur le serveur. Cette action ne peut pas être annulé.</string>
 	<string name="merge_projects_replace_confirm_button">Supprimer et remplacer</string>

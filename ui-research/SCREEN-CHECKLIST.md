@@ -31,7 +31,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Set Up Server, with MFA step (`ServerSetupDialog`, `MfaCodeStep`) g: Server setup dialog, Server setup dialog, MFA
   - [x] About Sync Servers (`ServerSetupHelpDialog`) g: About sync servers
   - [x] Terms of Service (`TermsOfServiceDialog`) g: Terms of service dialog
-  - [ ] Merge existing projects with the server?, and Delete all local projects? (`MergeProjectsDialog`) **no gallery**
+  - [x] Merge existing projects with the server?, and Delete all local projects? (`MergeProjectsDialog`) **no gallery** g: Merge projects dialog, Merge projects dialog, replace, Delete all local projects confirm
   - [ ] Remove Server confirm (`SimpleConfirm`) **no gallery**
   - [ ] Manage Backups, and Restore Backup confirm (`BackupManagerDialog`) **no gallery**
   - [ ] Install "name"? (`InstallDialog`) **no gallery**
