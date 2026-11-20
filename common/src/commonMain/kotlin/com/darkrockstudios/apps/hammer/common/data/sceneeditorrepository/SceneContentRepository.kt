@@ -82,8 +82,7 @@ class SceneContentRepository(
 	private val storeTempJobs = mutableMapOf<Int, Job>()
 
 	/**
-	 * Called with text from outside the editor (sync, a draft restore, restored unsaved edits)
-	 * under the buffer lock, just before it replaces the scene's buffer, so no reader sees the new
+	 * Called with text from outside the editor (sync, a draft restore) under the buffer lock, just before it replaces the scene's buffer, so no reader sees the new
 	 * buffer first. Must be quick.
 	 */
 	var onExternalContentApplied: ((SceneContent) -> Unit)? = null
@@ -92,10 +91,8 @@ class SceneContentRepository(
 	suspend fun initialize() {
 		val tempContent = sceneDatasource.getSceneTempBufferContents()
 		for (content in tempContent) {
-			sceneBuffersLock.withLock {
-				onExternalContentApplied?.invoke(content)
-				updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository))
-			}
+			val buffer = SceneBuffer(content, true, UpdateSource.Repository)
+			updateSceneBuffer(buffer)
 		}
 
 		contentUpdateJob = editorScope.launch {

@@ -10,6 +10,7 @@ import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock as withReentrantLock
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentHashSetOf
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.TimeZone
@@ -82,6 +83,9 @@ class WritingSessionTracker(
 	private var sessions: List<WritingSession>? = null
 	private var sessionsUnsaved = false
 
+	/** Whether the scene has an anchor, so a caller can skip preparing text it would not use. */
+	fun holdsBaseline(sceneId: Int): Boolean = baselineLock.withReentrantLock { sceneId in anchors }
+
 	/** Anchors a scene to [content] unless it already has an anchor. */
 	fun ensureBaseline(sceneId: Int, content: String) {
 		baselineLock.withReentrantLock {
@@ -127,10 +131,7 @@ class WritingSessionTracker(
 			block()
 		} finally {
 			// Still unwritten: kept over whatever the block wrote, for the next write to retry.
-			sessions = unsaved?.let {
-				val written = runCatching { repository.loadOwnLog().sessions }.getOrDefault(emptyList())
-				mergeOwnSlotSessions(written, it)
-			}
+			sessions = unsaved?.let { mergeOwnSlotSessions(loadWrittenSessions(), it) }
 		}
 	}
 
@@ -259,6 +260,17 @@ class WritingSessionTracker(
 		val updated = mergeWriting(current, words, at, TimeZone.currentSystemDefault())
 		sessions = updated
 		persist(updated)
+	}
+
+	/** Under [mutex]. What the own log holds on disk, or nothing when it cannot be read. */
+	@Suppress("TooGenericExceptionCaught") // An unreadable log leaves only the unsaved sessions to keep
+	private suspend fun loadWrittenSessions(): List<WritingSession> = try {
+		repository.loadOwnLog().sessions
+	} catch (e: CancellationException) {
+		throw e
+	} catch (e: Exception) {
+		Napier.w("Could not reload writing activity after sync", e)
+		emptyList()
 	}
 
 	/** Under [mutex]. A failed write keeps the sessions in memory for the next one to retry. */

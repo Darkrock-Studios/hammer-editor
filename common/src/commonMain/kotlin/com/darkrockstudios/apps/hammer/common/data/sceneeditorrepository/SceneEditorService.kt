@@ -59,7 +59,9 @@ class SceneEditorService(
 		// Re-anchored as the buffer is replaced, so an editor save is never diffed against the
 		// wrong text on either side of the replacement.
 		sceneContentRepository.onExternalContentApplied = { content ->
-			writingSessionTracker.replaceBaseline(content.scene.id, content.coerceMarkdown())
+			if (writingSessionTracker.holdsBaseline(content.scene.id)) {
+				writingSessionTracker.replaceBaseline(content.scene.id, content.coerceMarkdown())
+			}
 		}
 		// Autosave persists from the content repo's debounce engine fire here; run the
 		// save side-effects (writing-activity, timestamp, stats) the content repo
@@ -68,7 +70,8 @@ class SceneEditorService(
 		// next sync, scene switch, or app close to flush the buffer.
 		serviceScope.launch {
 			sceneContentRepository.bufferPersistedFlow.collect { event ->
-				if (event.source == UpdateSource.Editor) {
+				// A scene deleted since the save has no buffer, and must not be anchored again.
+				if (event.source == UpdateSource.Editor && sceneContentRepository.getSceneBuffer(event.sceneId) != null) {
 					writingSessionTracker.onSceneSaved(
 						sceneId = event.sceneId,
 						newContent = event.content.coerceMarkdown(),
@@ -335,7 +338,9 @@ class SceneEditorService(
 	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
 		val cached = sceneContentRepository.getSceneBuffer(sceneItem)
 		if (cached != null) {
-			writingSessionTracker.ensureBaseline(sceneItem.id, cached.content.coerceMarkdown())
+			if (!writingSessionTracker.holdsBaseline(sceneItem.id)) {
+				writingSessionTracker.ensureBaseline(sceneItem.id, cached.content.coerceMarkdown())
+			}
 			return cached
 		}
 
