@@ -87,7 +87,6 @@ import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
 import com.darkrockstudios.apps.hammer.timeline_filter_filtered
 import com.darkrockstudios.apps.hammer.timeline_frame_story
-import com.darkrockstudios.apps.hammer.timeline_header_meta
 import com.darkrockstudios.apps.hammer.timeline_no_events
 import com.darkrockstudios.apps.hammer.timeline_search_button
 import com.darkrockstudios.apps.hammer.timeline_search_clear
@@ -258,12 +257,6 @@ fun TimeLineOverviewUi(
 									verticalAlignment = Alignment.CenterVertically,
 									horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 								) {
-									HdMonoLabel(
-										text = Res.string.timeline_header_meta.get(
-											rows.size,
-											tagIndex.size,
-										),
-									)
 									if (dated) {
 										HdMonoLabel(
 											text = (state.calendar ?: CalendarDef()).displayName(),

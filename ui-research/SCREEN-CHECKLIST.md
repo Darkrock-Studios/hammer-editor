@@ -115,8 +115,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 
 ## 7. Timeline
 
-- [ ] Timeline container (`TimeLineUi`) **no gallery**
-- [ ] Timeline overview (`TimeLineOverviewUi`) g: Timeline
+- [x] Timeline container (`TimeLineUi`) no UI of its own (event dialog frame is under Event view)
+- [x] Timeline overview (`TimeLineOverviewUi`) g: Timeline
   - [ ] New / Rename / Delete timeline (`TimelineSwitcherDialogs`) **no gallery**
   - [ ] Delete N events?, from the deleted-timeline notice (`TimelineSwitcher.kt`) **no gallery**
 - [ ] Event view and edit (`ViewTimeLineEventUi`) g: View timeline event

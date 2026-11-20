@@ -38,7 +38,6 @@
 	<string name="timeline_view_confirm_delete_title">Delete Timeline Event?</string>
 	<string name="timeline_view_confirm_delete_message">This cannot be undone!</string>
 	<string name="timeline_header">Timeline</string>
-	<string name="timeline_header_meta">%1$d ENTRIES · %2$d TAGS</string>
 	<string name="timeline_search_button">Search timeline</string>
 	<string name="timeline_search_placeholder">Search timeline</string>
 	<string name="timeline_search_close">Close search</string>

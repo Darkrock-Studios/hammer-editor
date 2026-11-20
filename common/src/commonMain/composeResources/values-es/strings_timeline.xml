@@ -38,7 +38,6 @@
 	<string name="timeline_view_confirm_delete_title">¿Eliminar el evento de cronología?</string>
 	<string name="timeline_view_confirm_delete_message">¡Esta acción no se puede deshacer!</string>
 	<string name="timeline_header">Cronología</string>
-	<string name="timeline_header_meta">%1$d ENTRADAS · %2$d ETIQUETAS</string>
 	<string name="timeline_search_button">Buscar en la cronología</string>
 	<string name="timeline_search_placeholder">Buscar en la cronología</string>
 	<string name="timeline_search_close">Cerrar búsqueda</string>

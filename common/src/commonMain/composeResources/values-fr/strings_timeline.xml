@@ -38,7 +38,6 @@
 	<string name="timeline_view_confirm_delete_title">Supprimer l'événement de chronologie ?</string>
 	<string name="timeline_view_confirm_delete_message">Cette action est irréversible !</string>
 	<string name="timeline_header">Chronologie</string>
-	<string name="timeline_header_meta">%1$d ENTRÉES · %2$d TAGS</string>
 	<string name="timeline_search_button">Rechercher dans la chronologie</string>
 	<string name="timeline_search_placeholder">Rechercher dans la chronologie</string>
 	<string name="timeline_search_close">Fermer la recherche</string>
