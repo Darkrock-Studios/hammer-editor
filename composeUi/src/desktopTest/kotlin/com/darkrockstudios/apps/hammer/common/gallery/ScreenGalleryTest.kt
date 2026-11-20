@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.ScreenDraftCompareUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.AddTagScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.AddReferenceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.EditorRenameSceneScrimPreview
@@ -262,6 +263,7 @@ class ScreenGalleryTest {
 		surfaced("Add tags") { AddTagScrimPreview() },
 		screen("Focus mode") { ScreenFocusModeUiTabletPreview() },
 		screen("Drafts list") { ScreenDraftsListUiTabletPreview() },
+		screen("Draft compare") { ScreenDraftCompareUiTabletPreview() },
 		screen("Reader mode") { ScreenReaderModeUiTabletPreview() },
 		screen("Outline overview") { ScreenOutlineOverviewUiTabletPreview() },
 		surfaced("Move scene dialog") { ScreenMoveSceneDialogPreview() },

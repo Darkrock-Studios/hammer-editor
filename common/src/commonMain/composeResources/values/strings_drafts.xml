@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="draft_compare_current_header">Merge with Current</string>
-	<string name="draft_compare_current_subheader">Copy parts of the draft into here</string>
-	<string name="draft_compare_current_accept_button">Take Merged</string>
-	<string name="draft_compare_draft_header">Draft: %1$s</string>
-	<string name="draft_compare_draft_subheader">Copy desired parts into current, or accept all of this.</string>
-	<string name="draft_compare_draft_accept_button">Take this whole draft</string>
+	<string name="draft_compare_current_header">Current scene</string>
+	<string name="draft_compare_current_subheader">Edit this text, copying in what you want from the draft, then save it.</string>
+	<string name="draft_compare_current_accept_button">Save this version</string>
+	<string name="draft_compare_draft_header">Draft “%1$s”</string>
+	<string name="draft_compare_draft_subheader">Read only. Copy what you want into the current scene, or use the whole draft.</string>
+	<string name="draft_compare_draft_accept_button">Use this draft</string>
+	<string name="draft_compare_title">Compare drafts of “%1$s”</string>
+	<string name="draft_compare_show_changes">Show changes</string>
+	<string name="draft_compare_hide_changes">Hide changes</string>
+	<string name="draft_compare_close">Close</string>
 	<string name="draft_compare_tab_title_draft">Draft</string>
 	<string name="draft_compare_tab_title_current">Current</string>
 

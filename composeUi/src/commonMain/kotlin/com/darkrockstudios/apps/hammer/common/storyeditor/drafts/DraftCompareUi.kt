@@ -2,6 +2,11 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.drafts
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -9,9 +14,11 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
@@ -55,7 +62,6 @@ private const val DIFF_HIGHLIGHT_ALPHA = 0.28f
 fun DraftCompareUi(component: DraftCompare) {
 	val screen = LocalScreenCharacteristic.current
 	val state by component.state.subscribeAsState()
-	val draftName = component.draftDef.draftName
 	val richTextStyles = LocalRichTextStyles.current
 
 	// Hoisted above the width branch: the two layouts are separate composables, so building
@@ -69,20 +75,43 @@ fun DraftCompareUi(component: DraftCompare) {
 	}
 
 	Column(modifier = Modifier.fillMaxSize()) {
-		HdMasthead(
-			section = "DRAFT COMPARE",
-			leadingMeta = listOf(draftName),
-			trailing = {
-				HdMastheadAction(
-					label = if (state.showDiff) "DIFF: ON" else "DIFF: OFF",
-					onClick = { component.setShowDiff(!state.showDiff) },
-				)
-				if (screen.needsExplicitClose) {
-					HdMastheadAction(label = "× CLOSE", onClick = component::cancel)
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.S, bottom = Ui.Padding.S),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+		) {
+			Text(
+				text = Res.string.draft_compare_title.get(component.sceneItem.name),
+				style = MaterialTheme.typography.titleLarge,
+				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 2,
+				overflow = TextOverflow.Ellipsis,
+				modifier = Modifier.weight(1f),
+			)
+			HdHairlineButton(
+				label = if (state.showDiff) {
+					Res.string.draft_compare_hide_changes.get()
+				} else {
+					Res.string.draft_compare_show_changes.get()
+				},
+				onClick = { component.setShowDiff(!state.showDiff) },
+			)
+			if (screen.needsExplicitClose) {
+				IconButton(onClick = component::cancel) {
+					Icon(
+						imageVector = Icons.Filled.Close,
+						contentDescription = Res.string.draft_compare_close.get(),
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
 				}
-			},
+			}
+		}
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
 		)
-		HdFolioDivider()
 
 		when (screen.windowWidthClass) {
 			WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> {
@@ -140,14 +169,14 @@ private fun CompactDraftCompareUi(
 		if (pane == PANE_DRAFT) {
 			DraftPane(
 				modifier = Modifier.fillMaxSize(),
-				sectionNumber = 1,
+				sectionNumber = null,
 				component = component,
 				markdownExtension = draftMarkdown,
 			)
 		} else {
 			CurrentPane(
 				modifier = Modifier.fillMaxSize(),
-				sectionNumber = 1,
+				sectionNumber = null,
 				component = component,
 				markdownExtension = currentMarkdown,
 			)
@@ -196,11 +225,10 @@ private fun ExpandedDraftCompareUi(
 @Composable
 private fun DraftPane(
 	modifier: Modifier,
-	sectionNumber: Int,
+	sectionNumber: Int?,
 	component: DraftCompare,
 	markdownExtension: MarkdownExtension,
 ) {
-	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val deletedHighlight = rememberDeletedHighlight()
 	val textEditorState = markdownExtension.editorState
@@ -212,11 +240,6 @@ private fun DraftPane(
 	val spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList()
 	DiffHighlightEffect(textEditorState, spans, deletedHighlight)
 
-	var title by remember { mutableStateOf("") }
-	LaunchedEffect(component.draftDef.draftName) {
-		title = strRes.get(Res.string.draft_compare_draft_header, component.draftDef.draftName)
-	}
-
 	Column(
 		modifier = modifier.padding(
 			horizontal = Ui.Padding.XL,
@@ -224,21 +247,16 @@ private fun DraftPane(
 		),
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdSectionHeader(
-			section = sectionNumber,
-			title = title,
-			trailing = { HdMonoLabel(text = "READ ONLY") },
-		)
-		Text(
-			text = Res.string.draft_compare_draft_subheader.get(),
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		HdHairlineButton(
-			label = Res.string.draft_compare_draft_accept_button.get(),
-			onClick = { component.pickDraft() },
-			emphasised = true,
+		if (sectionNumber != null) {
+			HdSectionHeader(
+				section = sectionNumber,
+				title = Res.string.draft_compare_draft_header.get(component.draftDef.draftName),
+			)
+		}
+		PaneActions(
+			hint = Res.string.draft_compare_draft_subheader.get(),
+			actionLabel = Res.string.draft_compare_draft_accept_button.get(),
+			onAction = { component.pickDraft() },
 		)
 		Box(
 			modifier = Modifier
@@ -254,7 +272,11 @@ private fun DraftPane(
 			TextEditor(
 				modifier = Modifier.fillMaxSize(),
 				state = textEditorState,
-				style = rememberHammerEditorStyle(textStyle = LocalEditorTextStyle.current),
+				style = rememberHammerEditorStyle(
+					textStyle = LocalEditorTextStyle.current,
+					focusedBorderColor = Color.Transparent,
+					unfocusedBorderColor = Color.Transparent,
+				),
 				enabled = false,
 			)
 		}
@@ -264,7 +286,7 @@ private fun DraftPane(
 @Composable
 private fun CurrentPane(
 	modifier: Modifier,
-	sectionNumber: Int,
+	sectionNumber: Int?,
 	component: DraftCompare,
 	markdownExtension: MarkdownExtension,
 ) {
@@ -297,21 +319,16 @@ private fun CurrentPane(
 		),
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdSectionHeader(
-			section = sectionNumber,
-			title = Res.string.draft_compare_current_header.get(),
-			trailing = { HdMonoLabel(text = "EDITABLE") },
-		)
-		Text(
-			text = Res.string.draft_compare_current_subheader.get(),
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		HdHairlineButton(
-			label = Res.string.draft_compare_current_accept_button.get(),
-			onClick = { component.pickMerged() },
-			emphasised = true,
+		if (sectionNumber != null) {
+			HdSectionHeader(
+				section = sectionNumber,
+				title = Res.string.draft_compare_current_header.get(),
+			)
+		}
+		PaneActions(
+			hint = Res.string.draft_compare_current_subheader.get(),
+			actionLabel = Res.string.draft_compare_current_accept_button.get(),
+			onAction = { component.pickMerged() },
 		)
 		Box(
 			modifier = Modifier
@@ -327,9 +344,33 @@ private fun CurrentPane(
 			TextEditor(
 				modifier = Modifier.fillMaxSize(),
 				state = textEditorState,
-				style = rememberHammerEditorStyle(textStyle = LocalEditorTextStyle.current),
+				style = rememberHammerEditorStyle(
+					textStyle = LocalEditorTextStyle.current,
+					focusedBorderColor = Color.Transparent,
+					unfocusedBorderColor = Color.Transparent,
+				),
 			)
 		}
+	}
+}
+
+@Composable
+private fun PaneActions(hint: String, actionLabel: String, onAction: () -> Unit) {
+	Row(
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		Text(
+			text = hint,
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.weight(1f),
+		)
+		HdHairlineButton(
+			label = actionLabel,
+			onClick = onAction,
+			emphasised = true,
+		)
 	}
 }
 
