@@ -107,7 +107,7 @@ Mono is the most recognizable signal of the design, so it is spent
 where it helps and never on primary content. The line between mono
 and sans:
 
-- **Mono: things people scan or compare.** Numbers, dates, counts,
+- **Readable mono: values people scan or compare while doing a task.** Numbers, dates, counts,
   codes, IDs, and identifiers such as host names, emails and paths,
   even inside a sentence ("Connected to `hammer.ink` as
   `you@example.com`"). Equal-width digits line values up down a column. Set
@@ -115,9 +115,10 @@ and sans:
   weight, near-normal tracking ("Opened 11 Nov 2026", "35,048 words").
 - **Sans: words people read or act on.** Titles, control labels,
   hints, descriptions, sentences. Sentence case.
-- **Tracked mono caps** ([`HdMonoLabel`](HdMonoLabel.kt)) only for
-  true greebles: entity IDs, section markers, folio stamps. All caps
-  costs reading speed, so it never carries text people need to read.
+- **Tracked mono caps** ([`HdMonoLabel`](HdMonoLabel.kt)) are the
+  [greeble](#greebles) voice, in their terse form: `24 W`, `02 JUL \`26`,
+  `§ II`. All caps costs reading speed, so it never carries control
+  labels, instructions or prose.
 
 Section titles are introduced with a roman-numeral marker
 (`§ I  Structure`) — see [`HdSectionHeader`](HdSectionHeader.kt) and
@@ -150,6 +151,9 @@ readers who struggle to parse dense screens pay that cost most.
 - Show a state on the control that changes it (the Sync button), not
   in a separate caption.
 
+[Greebles](#greebles) are exempt. They sit in their own zones, and a
+folio footer or masthead stamp may echo a fact said elsewhere.
+
 ---
 
 ## Greebles
@@ -160,11 +164,13 @@ typeset texture without doing structural work — entity IDs
 (`§ I`), folio captions, masthead stamps. They're the small-caps
 mono lines that make a page feel set in lead rather than rendered
 from a template, and they're a big part of why the design system
-works. Each one also costs attention, so each has to earn its place.
+works. We want more of them, not fewer.
 
-The rule is **a greeble has to mean something, and say something
-nothing else on the screen says** ([Say it once](#6-say-it-once)).
-It has to encode a real value the user could in principle verify,
+A greeble's job is to look good. Keep the terse form (`24 W`, not
+`24 words`); readability comes second, which is why greebles stay out
+of anything people have to read to use the screen.
+
+The rule is **a greeble has to mean something**. It has to encode a real value the user could in principle verify,
 even if they never would. `ENT-034` is the entry's actual id. `256 W` is the actual
 word count. `§ I  Structure` numbers the actual first section of
 the screen. The shape is decorative; the content is not.
@@ -176,14 +182,25 @@ catalogue-card credibility of every other greeble drops with it.
 
 When the obvious source isn't there, **find a less obvious real
 one** before reaching for filler. Examples that have anchored
-real greebles in this codebase: section counts (`§§ 3`),
-last-edit timestamps, locale codes, format versions, dictionary
-status, on/off toggles (`ON · 1,000 W / WEEK`). Counts of items
-already in view (`9 ENTRIES`) and captions restating the screen,
-app or version don't qualify. A faint real number reads better than a
+real greebles in this codebase: section counts (`§§ 3`), entity
+counts (`9 ENTRIES`), last-edit timestamps, locale codes, format
+versions, dictionary status, sync state, on/off toggles
+(`ON · 1,000 W / WEEK`). A faint real number reads better than a
 confident invented one. If after looking you genuinely can't find
 something real for the slot — leave the slot empty rather than
 fabricate.
+
+### Where greebles live
+
+- **The masthead:** the `§` folio mark before the title, and a stamp
+  at the end of the rule (`3 IDEAS · 5 TAGS`).
+- **Card header strips:** date and size (`02 JUL \`26 · 24 W`).
+- **Folio footers:** a hairline-topped strip at the foot of a view or
+  dialog (`30 W · 3 TAGS`, `§ IV · SYNC`).
+- **Status stamps** on an item (`PROMOTED · 01 JUL \`26`), one per item.
+
+Not on buttons, menus, filter chips, form labels or body copy. Those
+are read to be used, so they're sans, sentence case.
 
 ---
 
@@ -308,11 +325,12 @@ The handwriting of the system. Reach for these instead of styling
 `Text` by hand.
 
 - **[`HdMonoLabel`](HdMonoLabel.kt)**: auto-uppercase, tracked mono
-  caption. For true greebles: IDs, section markers, folio stamps. Not
-  for text people need to read.
+  caption. The greeble voice: folio marks, masthead stamps, card
+  headers, footers, status stamps. Not for text people need to read.
 - **[`HdMetaText`](HdMetaText.kt)**: mono in sentence case at regular
-  weight. The default for scannable metadata: dates, counts, word
-  totals. `hdMetaStyle()` gives the style for custom `Text`.
+  weight. For values read while doing a task ("Opened 11 Nov 2026"),
+  outside the greeble zones. `hdMetaStyle()` gives the style for
+  custom `Text`.
 - **[`HdEntityId`](HdEntityId.kt)** — catalogue-card identifier
   greeble: `ENT-034`, `SCN-12`, `NOTE-007`. Short type prefix +
   zero-padded id, rendered as a [`HdMonoLabel`](HdMonoLabel.kt). Sits
