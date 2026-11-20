@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
+import com.darkrockstudios.apps.hammer.common.preview.TermsOfServiceScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupHelpPreview
 import com.darkrockstudios.apps.hammer.common.preview.ServerSetupDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiPluginsTabletPreview
@@ -187,6 +188,7 @@ class ScreenGalleryTest {
 		surfaced("Server setup dialog") { ServerSetupDialogScrimPreview() },
 		surfaced("Server setup dialog, MFA") { ServerSetupDialogScrimPreview(mfa = true) },
 		surfaced("About sync servers") { ServerSetupHelpPreview() },
+		surfaced("Terms of service dialog") { TermsOfServiceScrimPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },

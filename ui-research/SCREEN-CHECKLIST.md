@@ -30,7 +30,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Plugins tab (`PluginSettingsSection`, `RuntimePluginsSection`) g: Account settings, plugins
   - [x] Set Up Server, with MFA step (`ServerSetupDialog`, `MfaCodeStep`) g: Server setup dialog, Server setup dialog, MFA
   - [x] About Sync Servers (`ServerSetupHelpDialog`) g: About sync servers
-  - [ ] Terms of Service (`TermsOfServiceDialog`) **no gallery**
+  - [x] Terms of Service (`TermsOfServiceDialog`) g: Terms of service dialog
   - [ ] Merge existing projects with the server?, and Delete all local projects? (`MergeProjectsDialog`) **no gallery**
   - [ ] Remove Server confirm (`SimpleConfirm`) **no gallery**
   - [ ] Manage Backups, and Restore Backup confirm (`BackupManagerDialog`) **no gallery**

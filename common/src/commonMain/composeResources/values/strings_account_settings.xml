@@ -174,10 +174,10 @@
 	<string name="settings_server_setup_mfa_back_button">Back</string>
 
 	<!-- Terms of Service -->
-	<string name="settings_server_tos_title">Terms of Service</string>
+	<string name="settings_server_tos_title">Terms of service</string>
 	<string name="settings_server_tos_accept">Accept</string>
 	<string name="settings_server_tos_decline">Decline</string>
-	<string name="settings_server_tos_declined">You must accept the Terms of Service to create an account.</string>
+	<string name="settings_server_tos_declined">You must accept the terms of service to create an account.</string>
 
 	<!-- Network Errors -->
 	<string
