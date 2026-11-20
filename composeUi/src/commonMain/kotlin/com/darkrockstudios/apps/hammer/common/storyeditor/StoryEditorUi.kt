@@ -1,16 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -27,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftCompareUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
@@ -201,25 +197,13 @@ private fun DetailsPane(
 }
 
 @Composable
-private fun EmptySceneEditor(isMultipane: Boolean) {
+internal fun EmptySceneEditor(isMultipane: Boolean) {
 	Box(modifier = Modifier.fillMaxSize()) {
 		if (isMultipane) {
-			Column(
+			HdMetaText(
+				text = Res.string.scene_editor_no_scene_selected.get(),
 				modifier = Modifier.align(Alignment.Center),
-				horizontalAlignment = CenterHorizontally
-			) {
-				Icon(
-					Icons.Default.EditNote,
-					contentDescription = null,
-					tint = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.size(96.dp)
-				)
-				Text(
-					Res.string.scene_editor_no_scene_selected.get(),
-					style = MaterialTheme.typography.labelSmall,
-					color = MaterialTheme.colorScheme.onBackground
-				)
-			}
+			)
 		}
 	}
 }

@@ -63,6 +63,7 @@ import com.darkrockstudios.apps.hammer.common.preview.SceneConflictCompactPrevie
 import com.darkrockstudios.apps.hammer.common.preview.SceneConflictPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenCreateEntryPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.ScreenStoryNoSceneTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiGroupedTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiSearchingTabletPreview
@@ -233,6 +234,7 @@ class ScreenGalleryTest {
 		surfaced("Full command dialog") { FullCommandScrimPreview() },
 		surfaced("Spell check dictionary, Android") { SpellCheckDictionaryAndroidPreview() },
 		surfaced("Open source libraries") { LibrariesScrimPreview() },
+		screen("Story, no scene selected") { ScreenStoryNoSceneTabletPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },

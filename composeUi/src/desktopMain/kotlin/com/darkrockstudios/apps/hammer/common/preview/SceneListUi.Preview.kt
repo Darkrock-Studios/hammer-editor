@@ -1,5 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
+import com.darkrockstudios.apps.hammer.common.storyeditor.EmptySceneEditor
+import com.darkrockstudios.apps.hammer.common.compose.rightBorder
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -54,6 +65,32 @@ fun ScreenSceneListUiTabletPreview() {
 				)
 			)
 			SceneListUi(component, snackbarHostState)
+		}
+	}
+}
+
+/** The story split view before a scene is opened: the list, and beside it on wide screens the empty editor. */
+@Composable
+fun ScreenStoryNoSceneTabletPreview() {
+	val snackbarHostState = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			val component = fakeComponent(SceneList.State(projectDef = fakeProjectDef(), sceneSummary = fakeSceneSummary()))
+			BoxWithConstraints(Modifier.fillMaxSize()) {
+				if (maxWidth < 600.dp) {
+					SceneListUi(component, snackbarHostState)
+				} else {
+					Row(Modifier.fillMaxSize()) {
+						Box(
+							Modifier.width(300.dp).fillMaxHeight()
+								.rightBorder(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
+						) {
+							SceneListUi(component, snackbarHostState, inSplitPane = true)
+						}
+						Box(Modifier.weight(1f).fillMaxHeight()) { EmptySceneEditor(isMultipane = true) }
+					}
+				}
+			}
 		}
 	}
 }
