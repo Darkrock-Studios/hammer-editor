@@ -62,8 +62,8 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Switch to a dated / manual timeline (`ModeSwitchDialog`) **no gallery** g: Switch timeline mode
   - [x] Plugins manage dialog (`ManagePluginsDialog`) **no gallery** g: Manage plugins dialog
   - [x] Per-plugin settings (`PluginSettingsDialog`) **no gallery** g: Plugin settings dialog
-- [ ] Images gallery (`ImageGalleryUi`) g: Image gallery
-  - [ ] Choose an image, pick mode g: Image picker
+- [x] Images gallery (`ImageGalleryUi`) g: Image gallery
+  - [x] Choose an image, pick mode g: Image picker
   - [ ] Rename image (`RenameDialog`) **no gallery**
   - [ ] Delete image (`DeleteDialog`) **no gallery**
 

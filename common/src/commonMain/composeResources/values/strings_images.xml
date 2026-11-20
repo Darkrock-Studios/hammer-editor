@@ -3,12 +3,11 @@
 	<string name="images_menu_group">Images</string>
 	<string name="images_menu_item">Image Gallery</string>
 
-	<string name="images_gallery_section">IMAGES</string>
-	<string name="images_gallery_pick_section">CHOOSE AN IMAGE</string>
-	<string name="images_gallery_close">× Close</string>
-	<string name="images_gallery_add">+ Add</string>
-	<string name="images_gallery_filter_unused">Unused</string>
-	<string name="images_gallery_filter_all">All</string>
+	<string name="images_gallery_section">Images</string>
+	<string name="images_gallery_pick_section">Choose an image</string>
+	<string name="images_gallery_close">Close images</string>
+	<string name="images_gallery_add">Add image</string>
+	<string name="images_gallery_filter_unused">Unused only</string>
 	<string name="images_gallery_unused_badge">Unused</string>
 	<string name="images_gallery_empty_title">No images yet</string>
 	<string name="images_gallery_empty_message">Add an image, or drop image files here.</string>
