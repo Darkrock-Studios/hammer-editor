@@ -371,23 +371,41 @@ fun TimelineSwitcherDialogs(
 	val shown = lastOf(switcher.dialog)
 	AnimatedDialog(visible = switcher.dialog != null, onCloseRequest = onDismiss) {
 		val dialog = shown ?: return@AnimatedDialog
-		val error = switcher.error.takeIf { switcher.dialog == dialog }
-		val title = when (dialog) {
-			is TimelineSwitcher.Dialog.Create -> Res.string.timeline_new_title.get()
-			is TimelineSwitcher.Dialog.Rename -> Res.string.timeline_rename_title.get()
-			is TimelineSwitcher.Dialog.Delete -> Res.string.timeline_delete_title.get(dialog.name)
-		}
-		HdHairlineDialogShell(
-			title = title,
+		TimelineSwitcherDialogCard(
+			dialog = dialog,
+			error = switcher.error.takeIf { switcher.dialog == dialog },
+			onCreate = onCreate,
+			onRename = onRename,
+			onConfirmDelete = onConfirmDelete,
 			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.timeline_switcher_close.get(),
-		) {
-			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-				when (dialog) {
-					is TimelineSwitcher.Dialog.Create -> CreateFields(dialog, error, onCreate, onCancel = { requestDismiss() })
-					is TimelineSwitcher.Dialog.Rename -> RenameFields(dialog, error, onRename, onCancel = { requestDismiss() })
-					is TimelineSwitcher.Dialog.Delete -> DeleteFields(dialog, error, onConfirmDelete, onCancel = { requestDismiss() })
-				}
+		)
+	}
+}
+
+@Composable
+internal fun TimelineSwitcherDialogCard(
+	dialog: TimelineSwitcher.Dialog,
+	error: TimeLineEventError?,
+	onCreate: (name: String, mode: TimelineMode, preset: CalendarPreset) -> Unit,
+	onRename: (name: String) -> Unit,
+	onConfirmDelete: () -> Unit,
+	onClose: () -> Unit,
+) {
+	val title = when (dialog) {
+		is TimelineSwitcher.Dialog.Create -> Res.string.timeline_new_title.get()
+		is TimelineSwitcher.Dialog.Rename -> Res.string.timeline_rename_title.get(dialog.name)
+		is TimelineSwitcher.Dialog.Delete -> Res.string.timeline_delete_title.get(dialog.name)
+	}
+	HdHairlineDialogShell(
+		title = title,
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+			when (dialog) {
+				is TimelineSwitcher.Dialog.Create -> CreateFields(dialog, error, onCreate, onCancel = onClose)
+				is TimelineSwitcher.Dialog.Rename -> RenameFields(dialog, error, onRename, onCancel = onClose)
+				is TimelineSwitcher.Dialog.Delete -> DeleteFields(dialog, error, onConfirmDelete, onCancel = onClose)
 			}
 		}
 	}

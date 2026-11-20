@@ -218,7 +218,7 @@
 	<string name="timeline_new_title">New timeline</string>
 	<string name="timeline_new_confirm">Create</string>
 	<string name="timeline_name_label">Name</string>
-	<string name="timeline_rename_title">Rename timeline</string>
+	<string name="timeline_rename_title">Rename “%1$s”</string>
 	<string name="timeline_rename_confirm">Rename</string>
 	<string name="timeline_delete_title">Delete “%1$s”?</string>
 	<plurals name="timeline_delete_detail">
