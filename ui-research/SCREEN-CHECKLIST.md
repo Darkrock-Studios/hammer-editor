@@ -27,7 +27,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Story Ideas list and idea view (`StoryIdeasUi`) g: Story ideas, Story idea
   - [x] Discard Changes / Delete Idea / Create Project from Idea (`SimpleConfirm`) g: Story idea confirms
 - [x] Settings (`AccountSettingsUi`, all tabs) g: Account settings, Account settings, writing, Account settings, sync, Account settings, sync not set up
-  - [ ] Plugins tab (`PluginSettingsSection`, `RuntimePluginsSection`) **no gallery**
+  - [x] Plugins tab (`PluginSettingsSection`, `RuntimePluginsSection`) g: Account settings, plugins
   - [ ] Set Up Server, with MFA step (`ServerSetupDialog`, `MfaCodeStep`) **no gallery**
   - [ ] About Sync Servers (`ServerSetupHelpDialog`) **no gallery**
   - [ ] Terms of Service (`TermsOfServiceDialog`) **no gallery**

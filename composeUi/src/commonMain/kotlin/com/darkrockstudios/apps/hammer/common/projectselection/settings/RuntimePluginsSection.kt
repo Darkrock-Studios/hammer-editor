@@ -20,14 +20,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Output
 import androidx.compose.material.icons.outlined.Spellcheck
 import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
@@ -53,11 +57,14 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
 import com.darkrockstudios.apps.hammer.common.compose.lastOf
 import com.darkrockstudios.apps.hammer.common.compose.linkify
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
@@ -148,25 +155,16 @@ internal fun ColumnScope.RuntimePluginsSection(
 		appScope.launch(ioDispatcher) { fileSystem.delete(install.path, mustExist = false) }
 	}
 
-	HdMonoLabel(text = Res.string.plugin_runtime_header.get(), color = MaterialTheme.colorScheme.onSurface)
-
 	val plugins = installed
-	if (plugins != null && plugins.isEmpty()) {
-		Text(Res.string.plugin_runtime_empty.get(), style = MaterialTheme.typography.bodyMedium)
-	}
-	plugins?.forEach { plugin ->
-		InstalledPluginRow(
-			plugin = plugin,
-			onEnabledChange = { enabled -> change { runtimePlugins.setEnabled(plugin.id, enabled) } },
-			onDetails = { details = plugin },
-			onSettings = settings(plugin.id)?.let { { onOpenSettings(plugin.id) } },
-			onUninstall = { change { runtimePlugins.uninstall(plugin.id) } },
-		)
-	}
-
-	HdHairlineButton(
-		label = Res.string.plugin_runtime_install.get(),
-		onClick = {
+	RuntimePluginsList(
+		installed = plugins,
+		failure = failure,
+		hasSettings = { id -> settings(id) != null },
+		onEnabledChange = { id, enabled -> change { runtimePlugins.setEnabled(id, enabled) } },
+		onDetails = { details = it },
+		onSettings = onOpenSettings,
+		onUninstall = { id -> change { runtimePlugins.uninstall(id) } },
+		onInstall = {
 			scope.launch {
 				// Deleted unless the prompt takes it, even when leaving Settings cancels this part way.
 				var staged: Path? = null
@@ -191,14 +189,6 @@ internal fun ColumnScope.RuntimePluginsSection(
 			}
 		},
 	)
-
-	failure?.let { message ->
-		Text(
-			text = Res.string.plugin_install_failed.get(message),
-			color = MaterialTheme.colorScheme.error,
-			style = MaterialTheme.typography.bodyMedium,
-		)
-	}
 
 	InstallDialog(
 		pending = pending,
@@ -228,6 +218,61 @@ internal fun ColumnScope.RuntimePluginsSection(
 	)
 
 	DetailsDialog(plugin = details, operations = operations, onDismiss = { details = null })
+}
+
+/** The installed plugins as a setting group, then the install button; [installed] is null while it loads. */
+@Composable
+internal fun ColumnScope.RuntimePluginsList(
+	installed: List<InstalledPlugin>?,
+	failure: String?,
+	hasSettings: (pluginId: String) -> Boolean,
+	onEnabledChange: (pluginId: String, enabled: Boolean) -> Unit,
+	onDetails: (InstalledPlugin) -> Unit,
+	onSettings: (pluginId: String) -> Unit,
+	onUninstall: (pluginId: String) -> Unit,
+	onInstall: () -> Unit,
+) {
+	var uninstalling by remember { mutableStateOf<InstalledPlugin?>(null) }
+
+	HdSettingGroup(title = Res.string.plugin_runtime_header.get()) {
+		if (installed != null && installed.isEmpty()) {
+			Text(Res.string.plugin_runtime_empty.get(), style = MaterialTheme.typography.bodyMedium)
+		}
+		installed?.forEach { plugin ->
+			InstalledPluginRow(
+				plugin = plugin,
+				onEnabledChange = { enabled -> onEnabledChange(plugin.id, enabled) },
+				onDetails = { onDetails(plugin) },
+				onSettings = if (hasSettings(plugin.id)) ({ onSettings(plugin.id) }) else null,
+				onUninstall = { uninstalling = plugin },
+			)
+		}
+	}
+
+	HdHairlineButton(label = Res.string.plugin_runtime_install.get(), onClick = onInstall)
+
+	failure?.let { message ->
+		Text(
+			text = Res.string.plugin_install_failed.get(message),
+			color = MaterialTheme.colorScheme.error,
+			style = MaterialTheme.typography.bodyMedium,
+		)
+	}
+
+	uninstalling?.let { plugin ->
+		SimpleConfirm(
+			title = Res.string.plugin_runtime_uninstall_title.get(plugin.manifest?.name ?: plugin.id),
+			message = Res.string.plugin_runtime_uninstall_message.get(),
+			positiveButton = Res.string.plugin_runtime_uninstall.get(),
+			negativeButton = Res.string.plugin_runtime_uninstall_cancel.get(),
+			destructive = true,
+			kind = "UNINSTALL",
+			onDismiss = { uninstalling = null },
+		) {
+			uninstalling = null
+			onUninstall(plugin.id)
+		}
+	}
 }
 
 /** [size] is the package's, which is what installing it keeps. */
@@ -304,7 +349,6 @@ private fun stage(fileSystem: FileSystem, file: PlatformFile, path: Path) {
 private const val STAGING_DIRECTORY = "plugin-install"
 private const val STAGING_CHUNK_BYTES = 64 * 1024
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InstalledPluginRow(
 	plugin: InstalledPlugin,
@@ -315,47 +359,72 @@ private fun InstalledPluginRow(
 	onUninstall: () -> Unit,
 ) {
 	val manifest = plugin.manifest
-	val toggle: @Composable (Modifier) -> Unit = { modifier ->
-		HdHairlineToggleRow(
-			checked = plugin.enabled,
-			onCheckedChange = onEnabledChange,
-			label = manifest?.name ?: plugin.id,
-			hint = when {
-				manifest == null -> Res.string.plugin_runtime_unreadable.get()
-				plugin.turnedOffAfterCrash -> Res.string.plugin_runtime_turned_off_after_crash.get()
-				else -> Res.string.plugin_runtime_details.get(manifest.version)
-			},
-			enabled = manifest != null,
-			modifier = modifier,
-		)
-	}
-	val buttons: @Composable () -> Unit = {
-		if (manifest != null) HdHairlineButton(label = Res.string.plugin_runtime_details_open.get(), onClick = onDetails)
+	val name = manifest?.name ?: plugin.id
+	val settings: @Composable () -> Unit = {
 		onSettings?.let { HdHairlineButton(label = Res.string.plugin_settings_open.get(), onClick = it) }
-		var confirming by remember(plugin.id) { mutableStateOf(false) }
-		HdHairlineButton(
-			label = if (confirming) Res.string.plugin_runtime_uninstall_confirm.get() else Res.string.plugin_runtime_uninstall.get(),
-			onClick = { if (confirming) onUninstall() else confirming = true },
-			danger = true,
-		)
 	}
+	val compact = LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact
 
-	// On a phone the buttons go under the toggle, which would otherwise be squeezed to a sliver.
-	if (LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact) {
-		Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-			toggle(Modifier.fillMaxWidth())
-			FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-				buttons()
-			}
-		}
-	} else {
+	Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(12.dp),
 		) {
-			toggle(Modifier.weight(1f))
-			buttons()
+			HdHairlineToggleRow(
+				checked = plugin.enabled,
+				onCheckedChange = onEnabledChange,
+				label = name,
+				hint = when {
+					manifest == null -> Res.string.plugin_runtime_unreadable.get()
+					plugin.turnedOffAfterCrash -> Res.string.plugin_runtime_turned_off_after_crash.get()
+					else -> Res.string.plugin_runtime_details.get(manifest.version)
+				},
+				enabled = manifest != null,
+				modifier = Modifier.weight(1f),
+			)
+			// On a phone Settings goes under the toggle, which would otherwise be squeezed to a sliver.
+			if (!compact) settings()
+			PluginRowMenu(
+				name = name,
+				onDetails = onDetails.takeIf { manifest != null },
+				onUninstall = onUninstall,
+			)
+		}
+		// Indented to the name, past the toggle's checkbox.
+		if (compact) Box(Modifier.padding(start = 18.dp + Ui.Padding.M)) { settings() }
+	}
+}
+
+/** Details and Uninstall, kept off the row so a list of plugins is not a wall of buttons. */
+@Composable
+private fun PluginRowMenu(name: String, onDetails: (() -> Unit)?, onUninstall: () -> Unit) {
+	var expanded by remember { mutableStateOf(false) }
+	Box {
+		IconButton(onClick = { expanded = true }) {
+			Icon(
+				imageVector = Icons.Default.MoreVert,
+				contentDescription = Res.string.plugin_runtime_more.get(name),
+				tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+			onDetails?.let {
+				DropdownMenuItem(
+					text = { Text(Res.string.plugin_runtime_details_open.get()) },
+					onClick = {
+						expanded = false
+						it()
+					},
+				)
+			}
+			DropdownMenuItem(
+				text = { Text(Res.string.plugin_runtime_uninstall.get(), color = MaterialTheme.colorScheme.error) },
+				onClick = {
+					expanded = false
+					onUninstall()
+				},
+			)
 		}
 	}
 }

@@ -78,9 +78,11 @@ internal fun AccountSettingsUi(
 	modifier: Modifier = Modifier,
 	runtimePlugins: RuntimePlugins? = null,
 	initialTab: SettingsTab = SettingsTab.General,
+	/** The Plugins tab; left out where plugins cannot be installed. */
+	pluginsTab: (@Composable ColumnScope.() -> Unit)? = runtimePlugins?.let { plugins -> { PluginsTab(plugins) } },
 ) {
 	val scope = rememberCoroutineScope()
-	val tabs = SettingsTab.entries.filter { it != SettingsTab.Plugins || runtimePlugins != null }
+	val tabs = SettingsTab.entries.filter { it != SettingsTab.Plugins || pluginsTab != null }
 	var tab by rememberSaveable { mutableStateOf(initialTab) }
 
 	Toaster(component, rootSnackbar)
@@ -100,7 +102,7 @@ internal fun AccountSettingsUi(
 			SettingsTab.General -> GeneralTab(component, rootSnackbar)
 			SettingsTab.Writing -> WritingTab(component)
 			SettingsTab.Sync -> SyncSettingsTab(component, scope)
-			SettingsTab.Plugins -> runtimePlugins?.let { PluginsTab(it) }
+			SettingsTab.Plugins -> pluginsTab?.invoke(this)
 		}
 	}
 

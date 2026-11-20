@@ -7,9 +7,12 @@
 	<string name="plugin_runtime_empty">No plugins installed.</string>
 	<string name="plugin_runtime_install">Install plugin…</string>
 	<string name="plugin_runtime_uninstall">Uninstall</string>
-	<string name="plugin_runtime_uninstall_confirm">Really uninstall?</string>
+	<string name="plugin_runtime_uninstall_title">Uninstall %1$s?</string>
+	<string name="plugin_runtime_uninstall_message">You can install it again from its package file.</string>
+	<string name="plugin_runtime_uninstall_cancel">Cancel</string>
+	<string name="plugin_runtime_more">More for %1$s</string>
 	<string name="plugin_runtime_details">Version %1$s</string>
-	<string name="plugin_runtime_details_open">Info</string>
+	<string name="plugin_runtime_details_open">Details</string>
 	<string name="plugin_details_close">Close details</string>
 	<string name="plugin_details_done">Close</string>
 	<string name="plugin_details_languages">Works with projects in</string>

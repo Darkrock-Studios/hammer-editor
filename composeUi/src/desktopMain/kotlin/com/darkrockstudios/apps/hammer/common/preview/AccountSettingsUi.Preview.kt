@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
@@ -95,12 +96,16 @@ private val connectedState get() = defaultAccountSettingsComponentState.copy(
 )
 
 @Composable
-private fun TabletSettings(state: AccountSettings.State, tab: SettingsTab) {
+private fun TabletSettings(
+	state: AccountSettings.State,
+	tab: SettingsTab,
+	pluginsTab: (@Composable ColumnScope.() -> Unit)? = null,
+) {
 	val component = accountSettingsComponent(state)
 	val rootSnackbar = rememberRootSnackbarHostState()
 	KoinApplicationPreview {
 		TabletPreviewSurface {
-			AccountSettingsUi(component, rootSnackbar, initialTab = tab)
+			AccountSettingsUi(component, rootSnackbar, initialTab = tab, pluginsTab = pluginsTab)
 		}
 	}
 }
@@ -117,3 +122,8 @@ internal fun ScreenAccountSettingsUiSyncTabletPreview() = TabletSettings(connect
 @Composable
 internal fun ScreenAccountSettingsUiSyncNotSetUpTabletPreview() =
 	TabletSettings(defaultAccountSettingsComponentState.copy(serverSetup = false), SettingsTab.Sync)
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+internal fun ScreenAccountSettingsUiPluginsTabletPreview() =
+	TabletSettings(connectedState, SettingsTab.Plugins) { RuntimePluginsListPreview() }
