@@ -17,6 +17,11 @@ import com.darkrockstudios.apps.hammer.chapter_cannot_delete_dialog_message
 import com.darkrockstudios.apps.hammer.chapter_cannot_delete_dialog_title
 import com.darkrockstudios.apps.hammer.confirm_kind_blocked
 import com.darkrockstudios.apps.hammer.cannot_delete_dialog_ok
+import com.darkrockstudios.apps.hammer.confirm_kind_archive
+import com.darkrockstudios.apps.hammer.scene_archive_dialog_archive_button
+import com.darkrockstudios.apps.hammer.scene_archive_dialog_dismiss_button
+import com.darkrockstudios.apps.hammer.scene_archive_dialog_message
+import com.darkrockstudios.apps.hammer.scene_archive_dialog_title
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_message
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_title
 import com.darkrockstudios.apps.hammer.confirm_kind_delete
@@ -65,6 +70,31 @@ internal fun ChapterCannotDeleteScrimPreview() {
 				confirmLabel = Res.string.cannot_delete_dialog_ok.get(),
 				onConfirm = {},
 				cancelLabel = null,
+				onCancel = {},
+				destructive = false,
+			)
+		}
+	}
+}
+
+/** Archiving a scene, over a scrim. */
+@Composable
+internal fun SceneArchiveConfirmScrimPreview() {
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		IndexStripCard(
+			title = Res.string.scene_archive_dialog_title.get("Bottom of Chimney"),
+			message = Res.string.scene_archive_dialog_message.get("Bottom of Chimney"),
+			kind = Res.string.confirm_kind_archive.get(),
+		) {
+			ConfirmationActions(
+				confirmLabel = Res.string.scene_archive_dialog_archive_button.get(),
+				onConfirm = {},
+				cancelLabel = Res.string.scene_archive_dialog_dismiss_button.get(),
 				onCancel = {},
 				destructive = false,
 			)

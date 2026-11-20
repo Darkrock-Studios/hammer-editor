@@ -26,10 +26,6 @@
 	<string name="scene_editor_menu_item_close">Закрити</string>
 	<string name="scene_editor_menu_item_read">Read</string>
 	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
-	<string name="archive_scene_dialog_title">Архівувати сцену</string>
-	<string name="archive_scene_dialog_message">Ви впевнені, що хочете архівувати «%1$s»? Сцену буде приховано зі списку сцен, але її можна відновити пізніше.</string>
-	<string name="archive_scene_dialog_confirm">Архівувати</string>
-	<string name="archive_scene_dialog_cancel">Скасувати</string>
 	<string name="discard_buffer_dialog_title">Відхилити зміни</string>
 	<string name="discard_buffer_dialog_message">Ви впевнені, що хочете відхилити всі незбережені зміни в «%1$s»? Це перезавантажить останню збережену версію з диска.</string>
 	<string name="discard_buffer_dialog_confirm">Відхилити</string>

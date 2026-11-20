@@ -26,10 +26,6 @@
 	<string name="scene_editor_menu_item_close">Fermer</string>
 	<string name="scene_editor_menu_item_read">Lire</string>
 	<string name="scene_editor_add_to_dictionary">Ajouter au dictionnaire</string>
-	<string name="archive_scene_dialog_title">Archiver la scène</string>
-	<string name="archive_scene_dialog_message">Voulez-vous vraiment archiver « %1$s » ? La scène sera masquée de la liste des scènes mais pourra être restaurée plus tard.</string>
-	<string name="archive_scene_dialog_confirm">Archiver</string>
-	<string name="archive_scene_dialog_cancel">Annuler</string>
 	<string name="discard_buffer_dialog_title">Abandonner les modifications</string>
 	<string name="discard_buffer_dialog_message">Voulez-vous vraiment abandonner toutes les modifications non enregistrées de « %1$s » ? La dernière version enregistrée sera rechargée depuis le disque.</string>
 	<string name="discard_buffer_dialog_confirm">Abandonner</string>

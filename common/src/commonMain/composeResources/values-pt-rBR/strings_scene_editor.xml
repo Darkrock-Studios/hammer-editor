@@ -26,10 +26,6 @@
 	<string name="scene_editor_menu_item_close">Fechar</string>
 	<string name="scene_editor_menu_item_read">Read</string>
 	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
-	<string name="archive_scene_dialog_title">Arquivar Cena</string>
-	<string name="archive_scene_dialog_message">Tem certeza que deseja arquivar '%1$s'? A cena será ocultada da lista de cenas, mas pode ser restaurada mais tarde.</string>
-	<string name="archive_scene_dialog_confirm">Arquivar</string>
-	<string name="archive_scene_dialog_cancel">Cancelar</string>
 	<string name="discard_buffer_dialog_title">Descartar Alterações</string>
 	<string name="discard_buffer_dialog_message">Tem certeza que deseja descartar todas as alterações não salvas em '%1$s'? Isso irá recarregar a última versão salva do disco.</string>
 	<string name="discard_buffer_dialog_confirm">Descartar</string>

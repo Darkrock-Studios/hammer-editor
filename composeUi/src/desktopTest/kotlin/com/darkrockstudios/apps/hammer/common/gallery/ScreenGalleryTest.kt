@@ -67,6 +67,7 @@ import com.darkrockstudios.apps.hammer.common.preview.CreateSceneDialogScrimPrev
 import com.darkrockstudios.apps.hammer.common.preview.SceneRenameDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneDeleteConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ChapterCannotDeleteScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.SceneArchiveConfirmScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenStoryNoSceneTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiGroupedTabletPreview
@@ -244,6 +245,7 @@ class ScreenGalleryTest {
 		surfaced("Rename chapter dialog") { SceneRenameDialogScrimPreview() },
 		surfaced("Delete scene confirm") { SceneDeleteConfirmScrimPreview() },
 		surfaced("Cannot delete chapter") { ChapterCannotDeleteScrimPreview() },
+		surfaced("Archive scene confirm") { SceneArchiveConfirmScrimPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
 		screen("Focus mode") { ScreenFocusModeUiTabletPreview() },

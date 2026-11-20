@@ -4,7 +4,6 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.ConfirmationDialog
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 
@@ -12,17 +11,10 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 @ExperimentalComposeApi
 @Composable
 internal fun SceneArchiveDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
-	val strRes = rememberStrRes()
-
-	var messageText by remember { mutableStateOf("") }
-	LaunchedEffect(scene.name) {
-		messageText = strRes.get(Res.string.scene_archive_dialog_message, scene.name)
-	}
-
 	ConfirmationDialog(
 		visible = true,
-		title = Res.string.scene_archive_dialog_title.get(),
-		message = messageText,
+		title = Res.string.scene_archive_dialog_title.get(scene.name),
+		message = Res.string.scene_archive_dialog_message.get(scene.name),
 		confirmLabel = Res.string.scene_archive_dialog_archive_button.get(),
 		cancelLabel = Res.string.scene_archive_dialog_dismiss_button.get(),
 		onConfirm = { dismissDialog(true) },

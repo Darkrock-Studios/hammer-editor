@@ -75,14 +75,14 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Rename Scene / Chapter / Group (`SceneRenameDialog`) g: Rename chapter dialog
   - [x] Delete Scene / Chapter / Group (`SceneDeleteDialog`) g: Delete scene confirm
   - [x] Cannot Delete Chapter / Group (`GroupDeleteNotAllowedDialog`) g: Cannot delete chapter
-  - [ ] Archive Scene, from the list (`SceneArchiveDialog`) **no gallery**
+  - [x] Archive Scene, from the list (`SceneArchiveDialog`) g: Archive scene confirm
   - [ ] Move scene (`MoveSceneDialog`) g: Move scene dialog
   - [ ] Archived Scenes (`ArchivedScenesDialog`) **no gallery**
 - [ ] Story Outline (`OutlineOverviewUi`) g: Outline overview
 - [ ] Scene editor (`SceneEditorUi`) g: Scene editor
   - [ ] Start New Draft (`SaveDraftDialog`) **no gallery**
   - [ ] Discard Changes (`DiscardBufferDialog`) **no gallery**
-  - [ ] Archive Scene, from the editor (`ArchiveSceneDialog`; duplicates the list's archive dialog) **no gallery**
+  - [x] Archive Scene, from the editor (merged into `SceneArchiveDialog`) g: Archive scene confirm
   - [ ] Rename Scene, Android / iOS top bar (`RenameSceneDialog`) **no gallery**
 - [ ] Scene metadata panel (`SceneMetadataPanelUi`) g: Scene metadata, timelines
   - [ ] Add reference (`AddReferenceDialog`) **no gallery**
