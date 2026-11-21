@@ -159,10 +159,11 @@ class SceneContentRepository(
 		}
 	}
 
-	private fun updateSceneBuffer(newBuffer: SceneBuffer, revision: Long = lastRevision.incrementAndGet()) {
+	/** A buffer replaced with new content takes a new revision, allocated under the lock to keep them in order. */
+	private fun updateSceneBuffer(newBuffer: SceneBuffer, revision: Long? = null) {
 		sceneBuffersLock.withLock {
 			sceneBuffers[newBuffer.content.scene.id] = newBuffer
-			revisions[newBuffer.content.scene.id] = revision
+			revisions[newBuffer.content.scene.id] = revision ?: lastRevision.incrementAndGet()
 			// Snapshot + publish under the lock so the dirty set can't lose a concurrent update.
 			_dirtyBufferIds.value = getDirtyBufferIds()
 		}
@@ -240,13 +241,17 @@ class SceneContentRepository(
 	suspend fun persistBuffer(snapshot: BufferSnapshot, scenePath: HPath): Boolean {
 		val buffer = snapshot.buffer
 		val success = sceneDatasource.storeSceneBuffer(buffer, scenePath)
-		// A buffer that changed during the write keeps its newer text, unsaved.
-		val unchanged = success && sceneBuffersLock.withLock {
-			(revisions[buffer.content.scene.id] == snapshot.revision).also { unchanged ->
-				if (unchanged) updateSceneBuffer(buffer.copy(dirty = false), snapshot.revision)
+		// A buffer that changed during the write keeps its newer text; its temp file goes only if it is clean.
+		val clean = success && sceneBuffersLock.withLock {
+			val sceneId = buffer.content.scene.id
+			if (revisions[sceneId] == snapshot.revision) {
+				updateSceneBuffer(buffer.copy(dirty = false), snapshot.revision)
+				true
+			} else {
+				sceneBuffers[sceneId]?.dirty != true
 			}
 		}
-		if (unchanged) clearTempScene(buffer.content.scene)
+		if (clean) clearTempScene(buffer.content.scene)
 		return success
 	}
 

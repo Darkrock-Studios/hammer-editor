@@ -75,8 +75,11 @@ class SceneEditorService(
 						source = event.source,
 						revision = event.revision,
 					)
-					sceneMetadataRepository.recordSceneActivity(event.sceneId)
-					statisticsRepository.markDirty()
+					// A scene deleted or re-ided since has no buffer under this id, and no activity to stamp.
+					if (sceneContentRepository.getSceneBuffer(event.sceneId) != null) {
+						sceneMetadataRepository.recordSceneActivity(event.sceneId)
+						statisticsRepository.markDirty()
+					}
 				}
 			}
 		}
@@ -334,26 +337,30 @@ class SceneEditorService(
 	 * that text: a cached buffer only when the scene has no anchor yet, a load from disk always.
 	 */
 	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
-		val cached = sceneContentRepository.withBufferSnapshot(sceneItem.id) { cached ->
-			cached?.also { snapshot ->
-				writingSessionTracker.ensureBaseline(sceneItem.id, snapshot.revision) {
-					snapshot.buffer.content.coerceMarkdown()
-				}
-			}
-		}
-		if (cached != null) return cached.buffer
+		anchorBuffer(sceneItem.id, reanchor = false)?.let { return it }
 
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val loaded = sceneContentRepository.loadBuffer(sceneItem, scenePath)
-		// Under the buffer lock, so outside text that replaced the loaded text since is anchored instead.
-		return sceneContentRepository.withBufferSnapshot(sceneItem.id) { current ->
-			val anchorAt = current ?: loaded
-			writingSessionTracker.rememberBaseline(
-				sceneItem.id,
-				anchorAt.buffer.content.coerceMarkdown(),
-				anchorAt.revision,
-			)
-			anchorAt.buffer
+		return anchorBuffer(sceneItem.id, reanchor = true) ?: loaded.buffer
+	}
+
+	/**
+	 * Anchors the scene's writing activity at its buffer, or re-anchors it with [reanchor], and returns
+	 * the buffer; null without one. The text is converted outside the buffer lock and anchored under it,
+	 * only if the buffer has not changed meanwhile, so no replacement can land between the two.
+	 */
+	private fun anchorBuffer(sceneId: Int, reanchor: Boolean): SceneBuffer? {
+		while (true) {
+			val snapshot = sceneContentRepository.snapshotBuffer(sceneId) ?: return null
+			if (!reanchor && writingSessionTracker.holdsBaseline(sceneId)) return snapshot.buffer
+			val text = snapshot.buffer.content.coerceMarkdown()
+			val anchored = sceneContentRepository.withBufferSnapshot(sceneId) { current ->
+				(current?.revision == snapshot.revision).also { same ->
+					if (same && reanchor) writingSessionTracker.rememberBaseline(sceneId, text, snapshot.revision)
+					if (same && !reanchor) writingSessionTracker.ensureBaseline(sceneId, text, snapshot.revision)
+				}
+			}
+			if (anchored) return snapshot.buffer
 		}
 	}
 

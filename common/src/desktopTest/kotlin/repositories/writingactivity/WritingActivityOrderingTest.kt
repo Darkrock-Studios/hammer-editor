@@ -144,4 +144,13 @@ class WritingActivityOrderingTest : BaseTest() {
 		assertEquals(0, late)
 		assertEquals(1, save("Synced. More.", revision = 6))
 	}
+
+	@Test
+	fun `a save captured before a re-anchor still counts after an epoch restart`() = runTest {
+		tracker.rememberBaseline(1, "I went home", revision = 1)
+		tracker.replaceBaseline(1, "Synced text from somewhere else", revision = 3)
+		clock.advanceTime(24.hours)
+
+		assertEquals(2, save("I went home and ate", revision = 2))
+	}
 }
