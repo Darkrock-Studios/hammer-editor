@@ -141,11 +141,11 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 
 ## 9. Plugin actions
 
-- [ ] Action page (`PageDialog`) **no gallery**
-- [ ] Start over? confirm **no gallery**
-- [ ] Scene chooser (`SceneChooser`) **no gallery**
-- [ ] Run that cannot continue, and Start afresh? (`ChangedDialog`) **no gallery**
-- [ ] Working / progress (`WorkingDialog`) **no gallery**
+- [x] Action page (`PageDialog`) g: Plugin action dialogs (shared frame)
+- [x] Start over? confirm g: Plugin action dialogs (shared frame)
+- [x] Scene chooser (`SceneChooser`) g: Plugin action dialogs (shared frame)
+- [x] Run that cannot continue, and Start afresh? (`ChangedDialog`) g: Plugin action dialogs (shared frame)
+- [x] Working / progress (`WorkingDialog`) g: Plugin action dialogs (shared frame)
 
 ## 10. Platform-only
 

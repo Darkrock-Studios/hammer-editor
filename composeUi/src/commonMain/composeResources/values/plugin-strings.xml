@@ -62,7 +62,7 @@
 	<string name="plugin_document_copy">Copy</string>
 	<string name="plugin_document_copied">Copied</string>
 	<string name="plugin_document_save">Save as note</string>
-	<string name="plugin_document_close">× CLOSE</string>
+	<string name="plugin_document_close">Close</string>
 	<string name="plugin_action_run">Run</string>
 	<string name="plugin_action_stop">Stop</string>
 	<string name="plugin_action_working">Working…</string>

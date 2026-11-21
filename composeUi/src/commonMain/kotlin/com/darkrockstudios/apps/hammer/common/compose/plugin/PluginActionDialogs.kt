@@ -46,11 +46,13 @@ import com.darkrockstudios.apps.hammer.common.compose.ConfirmationDialog
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityChip
 import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityPickerDialog
@@ -236,7 +238,7 @@ private fun showsProgress(working: ActionRunState.Working?): Boolean {
 }
 
 @Composable
-private fun DialogSurface(title: String, onClose: (() -> Unit)?, content: @Composable () -> Unit) {
+internal fun PluginDialogSurface(title: String, onClose: (() -> Unit)?, content: @Composable () -> Unit) {
 	Surface(
 		shape = RectangleShape,
 		color = MaterialTheme.colorScheme.surface,
@@ -248,13 +250,33 @@ private fun DialogSurface(title: String, onClose: (() -> Unit)?, content: @Compo
 			.fillMaxWidth(),
 	) {
 		Column {
-			HdMasthead(
-				section = title.uppercase(),
-				trailing = {
-					if (onClose != null) HdMastheadAction(label = Res.string.plugin_document_close.get(), onClick = onClose)
-				},
-			)
-			HdFolioDivider()
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(
+						start = Ui.Padding.XL,
+						end = if (onClose != null) Ui.Padding.M else Ui.Padding.XL,
+						top = Ui.Padding.L,
+						bottom = if (onClose != null) Ui.Padding.S else Ui.Padding.L,
+					),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				Text(
+					text = title,
+					style = MaterialTheme.typography.titleLarge,
+					modifier = Modifier.weight(1f),
+				)
+				if (onClose != null) {
+					IconButton(onClick = onClose) {
+						Icon(
+							imageVector = Icons.Default.Close,
+							contentDescription = Res.string.plugin_document_close.get(),
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
+				}
+			}
+			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
 			content()
 		}
 	}
@@ -287,7 +309,7 @@ private fun PageDialog(
 		val content = current.page
 		val markdown = content.markdown
 		// Only Stop ends a call, as when there is no page.
-		DialogSurface(content.title ?: current.run.action.label, onClose = runner::dismiss.takeIf { working == null }) {
+		PluginDialogSurface(content.title ?: current.run.action.label, onClose = runner::dismiss.takeIf { working == null }) {
 			val scrollState = rememberScrollState()
 			Box(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
 				Column(
@@ -481,7 +503,7 @@ private fun StopRow(runner: PluginActionRunner) {
 private fun Progress(working: ActionRunState.Working) {
 	val fraction = working.progress?.fraction
 	if (fraction != null) {
-		LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+		HdHairlineProgressBar(progress = fraction, color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth())
 	} else {
 		LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 	}
@@ -687,7 +709,7 @@ private fun SceneChooser(
 	val shown = lastOf(field)
 	AnimatedDialog(visible = field != null, onCloseRequest = onDone) {
 		val current = shown ?: return@AnimatedDialog
-		DialogSurface(current.label, onClose = onDone) {
+		PluginDialogSurface(current.label, onClose = onDone) {
 			Column(modifier = Modifier.padding(Ui.Padding.XL).heightIn(max = 480.dp)) {
 				SceneSelector(entries = entries, selected = selected, multiple = current.multiple, onSelectionChanged = onChange)
 			}
@@ -713,7 +735,7 @@ private fun ChangedDialog(changed: ActionRunState.Changed?, runner: PluginAction
 	AnimatedDialog(visible = changed != null, onCloseRequest = runner::dismiss) {
 		val current = shown ?: return@AnimatedDialog
 		val markdown = answersMarkdown(current.answers.values, Res.string.plugin_action_yes.get(), Res.string.plugin_action_no.get())
-		DialogSurface(current.run.action.label, onClose = runner::dismiss) {
+		PluginDialogSurface(current.run.action.label, onClose = runner::dismiss) {
 			val scrollState = rememberScrollState()
 			Box(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
 				Column(
@@ -782,7 +804,7 @@ private fun WorkingDialog(working: ActionRunState.Working?, runner: PluginAction
 	val shown = lastOf(working)
 	AnimatedDialog(visible = visible && working != null, onCloseRequest = {}) {
 		val current = shown ?: return@AnimatedDialog
-		DialogSurface(current.run.action.label, onClose = null) {
+		PluginDialogSurface(current.run.action.label, onClose = null) {
 			Column(modifier = Modifier.padding(Ui.Padding.XL), verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
 				Progress(current)
 				StopRow(runner)

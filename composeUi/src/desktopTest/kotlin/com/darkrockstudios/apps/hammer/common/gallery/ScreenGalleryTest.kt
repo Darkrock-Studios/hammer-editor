@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.plugin.PluginActionDialogsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ReauthenticationScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ReauthenticationMfaScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ProjectSyncInProgressPreview
@@ -351,6 +352,7 @@ class ScreenGalleryTest {
 		},
 		screen("Sync conflict, timeline event", note = "Preview hardcodes a white backdrop and its own size class.") { TabletPreviewSurface { TimelineConflictPreview() } },
 		screen("Sync conflict, project data", note = "Preview hardcodes a white backdrop and its own size class.") { TabletPreviewSurface { ProjectDataConflictPreview() } },
+		surfaced("Plugin action dialogs", note = "Shared frame with stand-in bodies.") { PluginActionDialogsScrimPreview() },
 		surfaced("Reauthorize") { ReauthenticationScrimPreview() },
 		surfaced("Reauthorize, MFA") { ReauthenticationMfaScrimPreview() },
 		Screen("Sync conflict", note = "Preview hardcodes a white backdrop and its own size class.") { formFactor ->
