@@ -328,17 +328,16 @@ class SceneContentRepository(
 	suspend fun persistBuffer(snapshot: BufferSnapshot, scenePath: HPath): Boolean {
 		val buffer = snapshot.buffer
 		val success = sceneDatasource.storeSceneBuffer(buffer, scenePath)
-		// A buffer that changed during the write keeps its newer text; its temp file goes only if it is clean.
-		val clean = success && sceneBuffersLock.withLock {
-			val sceneId = buffer.content.scene.id
-			if (revisions[sceneId] == snapshot.revision) {
-				updateSceneBuffer(buffer.copy(dirty = false), snapshot.revision)
-				true
-			} else {
-				sceneBuffers[sceneId]?.dirty != true
+		// A buffer that changed during the write keeps its newer text; its temp file goes only if it is
+		// clean, and under the lock, so a temp save for newer text cannot be deleted after it is written.
+		if (success) {
+			sceneBuffersLock.withLock {
+				val sceneId = buffer.content.scene.id
+				val unchanged = revisions[sceneId] == snapshot.revision
+				if (unchanged) updateSceneBuffer(buffer.copy(dirty = false), snapshot.revision)
+				if (unchanged || sceneBuffers[sceneId]?.dirty == false) clearTempScene(buffer.content.scene)
 			}
 		}
-		if (clean) clearTempScene(buffer.content.scene)
 		return success
 	}
 

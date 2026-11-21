@@ -78,8 +78,9 @@ class SceneEditorService(
 						source = event.source,
 						revision = event.revision,
 					)
-					// A scene deleted or re-ided since has no buffer under this id, and no activity to stamp.
-					if (sceneContentRepository.getSceneBuffer(event.sceneId) != null) {
+					// Stamped only while the buffer still holds this save: a later save stamps for itself, and
+					// a scene deleted or re-ided since, or replaced under this id, has nothing to stamp.
+					if (sceneContentRepository.snapshotBuffer(event.sceneId)?.revision == event.revision) {
 						sceneMetadataRepository.recordSceneActivity(event.sceneId)
 						statisticsRepository.markDirty()
 					}
@@ -260,7 +261,7 @@ class SceneEditorService(
 				source = buffer.source,
 				revision = snapshot.revision,
 			)
-			if (buffer.source == UpdateSource.Editor) {
+			if (buffer.source == UpdateSource.Editor && sceneContentRepository.getSceneBuffer(sceneItem.id) != null) {
 				sceneMetadataRepository.recordSceneActivity(sceneItem.id)
 			}
 		}
@@ -409,21 +410,26 @@ class SceneEditorService(
 
 	/**
 	 * Anchors the scene's writing activity at its buffer, or re-anchors it with [reanchor], and returns
-	 * the buffer; null without one. The text is converted outside the buffer lock and anchored under it,
-	 * only if the buffer has not changed meanwhile, so no replacement can land between the two.
+	 * the buffer; null without one. The text is converted outside the buffer lock and anchored under it
+	 * if the buffer has not changed meanwhile; after [ANCHOR_ATTEMPTS] changes it is converted under it.
 	 */
 	private fun anchorBuffer(sceneId: Int, reanchor: Boolean): SceneBuffer? {
-		while (true) {
+		fun anchor(snapshot: BufferSnapshot, text: String) = if (reanchor) {
+			writingSessionTracker.rememberBaseline(sceneId, text, snapshot.revision)
+		} else {
+			writingSessionTracker.ensureBaseline(sceneId, text, snapshot.revision)
+		}
+		repeat(ANCHOR_ATTEMPTS) {
 			val snapshot = sceneContentRepository.snapshotBuffer(sceneId) ?: return null
 			if (!reanchor && writingSessionTracker.holdsBaseline(sceneId)) return snapshot.buffer
 			val text = snapshot.buffer.content.coerceMarkdown()
 			val anchored = sceneContentRepository.withBufferSnapshot(sceneId) { current ->
-				(current?.revision == snapshot.revision).also { same ->
-					if (same && reanchor) writingSessionTracker.rememberBaseline(sceneId, text, snapshot.revision)
-					if (same && !reanchor) writingSessionTracker.ensureBaseline(sceneId, text, snapshot.revision)
-				}
+				(current?.revision == snapshot.revision).also { same -> if (same) anchor(snapshot, text) }
 			}
 			if (anchored) return snapshot.buffer
+		}
+		return sceneContentRepository.withBufferSnapshot(sceneId) { current ->
+			current?.also { anchor(it, it.buffer.content.coerceMarkdown()) }?.buffer
 		}
 	}
 
@@ -479,5 +485,9 @@ class SceneEditorService(
 
 	override fun onScopeClose(scope: Scope) {
 		serviceScope.cancel("Editor Closed")
+	}
+
+	private companion object {
+		const val ANCHOR_ATTEMPTS = 3
 	}
 }
