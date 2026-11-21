@@ -78,6 +78,8 @@ internal fun ProjectSynchronization(
 		SimpleConfirm(
 			title = Res.string.account_sync_confirm_cancel_title.get(),
 			message = Res.string.account_sync_confirm_cancel_message.get(),
+			positiveButton = Res.string.account_sync_confirm_cancel_stop.get(),
+			negativeButton = Res.string.account_sync_confirm_cancel_keep.get(),
 			onDismiss = { confirmCancel = false },
 			onConfirm = {
 				component.cancelSync()

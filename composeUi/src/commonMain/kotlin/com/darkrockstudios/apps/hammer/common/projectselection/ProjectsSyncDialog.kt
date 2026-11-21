@@ -37,7 +37,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.account_sync_confirm_cancel_keep
 import com.darkrockstudios.apps.hammer.account_sync_confirm_cancel_message
+import com.darkrockstudios.apps.hammer.account_sync_confirm_cancel_stop
 import com.darkrockstudios.apps.hammer.account_sync_confirm_cancel_title
 import com.darkrockstudios.apps.hammer.account_sync_dialog_header
 import com.darkrockstudios.apps.hammer.account_sync_dialog_status_canceled
@@ -124,6 +126,8 @@ fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostSt
 		SimpleConfirm(
 			title = Res.string.account_sync_confirm_cancel_title.get(),
 			message = Res.string.account_sync_confirm_cancel_message.get(),
+			positiveButton = Res.string.account_sync_confirm_cancel_stop.get(),
+			negativeButton = Res.string.account_sync_confirm_cancel_keep.get(),
 			onDismiss = { confirmCancel = false },
 			onConfirm = {
 				component.cancelProjectsSync()

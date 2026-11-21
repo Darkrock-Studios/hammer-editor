@@ -136,8 +136,10 @@
 	<string name="backup_delete_dialog_title">Delete this backup?</string>
 	<string name="backup_delete_dialog_message">The backup from %1$s is removed from this device. Your project isn't changed.</string>
 	<string name="backup_delete_dialog_cancel">Cancel</string>
-	<string name="account_sync_confirm_cancel_title">Cancel sync?</string>
-	<string name="account_sync_confirm_cancel_message">Are you sure you want to cancel the sync?</string>
+	<string name="account_sync_confirm_cancel_title">Stop syncing?</string>
+	<string name="account_sync_confirm_cancel_message">The sync stops where it is. You can sync again any time.</string>
+	<string name="account_sync_confirm_cancel_stop">Stop sync</string>
+	<string name="account_sync_confirm_cancel_keep">Keep syncing</string>
 	<string name="account_sync_toast_canceled">Sync canceled</string>
 
 	<!-- Server Setup Validation Errors -->
