@@ -331,5 +331,3 @@ private fun HomeButton(onClose: () -> Unit, modifier: Modifier = Modifier) {
 		label = Res.string.project_settings_breadcrumb_home.get(),
 	)
 }
-
-/** Says there is no Save button: every change applies as it's made. */

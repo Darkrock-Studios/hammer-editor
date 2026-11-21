@@ -102,8 +102,6 @@ internal fun AccountSettingsUi(
 	TermsOfServiceDialog(component)
 }
 
-/** Says there is no Save button: every change applies as it's made. */
-
 @Composable
 private fun ColumnScope.GeneralTab(component: AccountSettings, rootSnackbar: RootSnackbarHostState) {
 	val state by component.state.subscribeAsState()

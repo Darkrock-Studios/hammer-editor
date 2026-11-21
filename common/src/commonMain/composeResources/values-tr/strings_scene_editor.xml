@@ -23,8 +23,6 @@
 	<string name="scene_editor_menu_item_close">Close</string>
 	<string name="scene_editor_menu_item_read">Read</string>
 	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
-	<string name="discard_buffer_dialog_title">Discard Changes</string>
-	<string name="discard_buffer_dialog_message">Are you sure you want to discard all unsaved changes to '%1$s'? This will reload the last saved version from disk.</string>
 	<string name="discard_buffer_dialog_confirm">Discard</string>
 	<string name="discard_buffer_dialog_cancel">Cancel</string>
 	<string name="archived_scenes_dialog_title">Archived Scenes</string>

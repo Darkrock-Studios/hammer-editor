@@ -68,4 +68,22 @@ class HdTagFilterBarTest {
 		assertTrue(shown("tag number 4 · 4"))
 		assertEquals(emptyList(), toggled)
 	}
+
+	@Test
+	fun `A tag named like the bar's own leading item still shows`() {
+		compose.setContent {
+			HdTagFilterBar(
+				tags = listOf(TagCount("scrolling-leading", 2), TagCount("scrolling-leading-rule", 1)),
+				allLabel = "ALL · 2",
+				activeTags = emptySet(),
+				onToggle = {},
+				onClear = {},
+				modifier = Modifier.requiredWidth(360.dp),
+				scrollingLeading = { androidx.compose.material3.Text("Sort") },
+			)
+		}
+
+		assertTrue(shown("scrolling-leading · 2"))
+		assertTrue(shown("scrolling-leading-rule · 1"))
+	}
 }
