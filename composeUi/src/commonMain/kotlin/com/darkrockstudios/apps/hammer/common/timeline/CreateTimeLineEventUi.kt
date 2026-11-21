@@ -1,18 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
@@ -99,231 +94,189 @@ fun CreateTimeLineEventUi(
 	val wordCount = remember(contentText) { countWords(contentText) }
 	val charCount = contentText.length
 
-	BoxWithConstraints(
-		modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL),
-		contentAlignment = Alignment.Center,
-	) {
-		Column(
-			modifier = modifier
-				.widthIn(max = Ui.MaxWidth.Modal)
-				.fillMaxWidth()
-				.heightIn(max = maxHeight)
-				.background(MaterialTheme.colorScheme.surface, RectangleShape)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outline,
-					shape = RectangleShape,
-				),
-		) {
-
-			CollapseWhileTyping {
-				Column(modifier = Modifier.fillMaxWidth()) {
-					Text(
-						text = Res.string.timeline_create_header.get(),
-						style = MaterialTheme.typography.titleLarge,
-						color = MaterialTheme.colorScheme.onSurface,
-						modifier = Modifier.padding(start = 28.dp, end = 28.dp, top = Ui.Padding.XL, bottom = Ui.Padding.L),
-					)
-
-					HorizontalDivider(
-						thickness = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-					)
-				}
-			}
-
-			val fields: @Composable () -> Unit = {
-				Column(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(horizontal = 28.dp, vertical = 22.dp),
-					verticalArrangement = Arrangement.spacedBy(22.dp),
-				) {
-					CollapseWhileTyping {
-						HdHairlineSegmentedPicker(
-							options = Kinds,
-							selected = state.kind,
-							onSelect = component::setKind,
-							label = { it.label() },
-							title = Res.string.timeline_kind_label.get(),
-							modifier = Modifier.testTag(TIME_LINE_CREATE_KIND_TAG),
-						)
-					}
-
-					// Each field below hides while the body editor has focus, but stays while it holds focus
-					// itself so it remains reachable.
-					if (isEvent) {
-						CollapseWhileTyping(keepVisible = titleFocused) {
-							HdHairlineField(
-								label = Res.string.timeline_title_label.get(),
-								value = state.title,
-								onValueChange = component::setTitle,
-								hint = Res.string.timeline_title_hint.get(),
-								placeholder = Res.string.timeline_title_placeholder.get(),
-								onFocusChanged = { titleFocused = it },
-								testTag = TIME_LINE_CREATE_TITLE_TAG,
-							)
-						}
-					} else {
-						SubjectRow(
-							kind = state.kind,
-							subject = state.subject,
-							onChoose = { pickingSubject = true },
-							onClear = { component.setSubject(null) },
-						)
-					}
-
-					if (state.isDated) {
-						CollapseWhileTyping(keepVisible = datesFocused) {
-							DateRows(
-								calendar = state.calendar ?: CalendarDef(),
-								start = state.start,
-								end = state.end,
-								onStartChange = component::setStart,
-								onEndChange = component::setEnd,
-								onFocusChanged = { datesFocused = it },
-								startTag = TIME_LINE_CREATE_START_TAG,
-								endTag = TIME_LINE_CREATE_END_TAG,
-								addEndTag = TIME_LINE_CREATE_ADD_END_TAG,
-							)
-						}
-					} else {
-						CollapseWhileTyping(keepVisible = dateFocused) {
-							HdHairlineField(
-								label = Res.string.timeline_when_label.get(),
-								value = dateText,
-								onValueChange = { dateText = it },
-								hint = Res.string.timeline_create_date_hint.get(),
-								placeholder = Res.string.timeline_create_date_placeholder.get(),
-								onFocusChanged = { dateFocused = it },
-								testTag = TIME_LINE_CREATE_DATE_TAG,
-							)
-						}
-					}
-
-					CollapseWhileTyping(keepVisible = laneFocused) {
-						Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-							LaneField(
-								value = state.lane,
-								onValueChange = component::setLane,
-								lanes = state.lanes,
-								suggest = component::suggestLanes,
-								onFocusChanged = { laneFocused = it },
-								testTag = TIME_LINE_CREATE_LANE_TAG,
-							)
-							HdHairlineToggleRow(
-								checked = state.milestone,
-								onCheckedChange = component::setMilestone,
-								label = Res.string.timeline_milestone_label.get(),
-								hint = Res.string.timeline_milestone_hint.get(),
-								modifier = Modifier.testTag(TIME_LINE_CREATE_MILESTONE_TAG),
-							)
-						}
-					}
-
-					if (isEvent) {
-						HdHairlineTagField(
-							label = Res.string.timeline_create_tags_label.get(),
-							tags = tags,
-							onTagsChange = {
-								tags.clear()
-								tags.addAll(it)
-							},
-							hint = Res.string.timeline_create_tags_hint.get(),
-							placeholder = Res.string.timeline_create_tags_placeholder.get(),
-							suggestTags = component::suggestTags,
-							testTag = TIME_LINE_CREATE_TAGS_TAG,
-						)
-
-						CollapseWhileTyping {
-							ReferencesSection(
-								references = state.references,
-								onAdd = { pickingReferences = true },
-								onRemove = { component.removeReference(it.id) },
-							)
-						}
-					}
-				}
-			}
-
-			// One FieldsOverBody for every kind, so switching kind keeps the fields' own state.
-			FieldsOverBody(
-				bodyMinHeight = EventBodyMinHeight + 22.dp,
-				modifier = Modifier.weight(1f, fill = isEvent),
-				fields = fields,
-				body = if (isEvent) {
-					{
-						Column(
-							modifier = Modifier
-								.padding(horizontal = 28.dp)
-								.padding(bottom = 22.dp)
-								.fillMaxWidth()
-								.testTag(TIME_LINE_CREATE_BODY_TAG),
-							verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-						) {
-							HdMonoLabel(text = Res.string.timeline_create_body_label.get())
-							key(resetVersion) {
-								MarkdownEditField(
-									initialMarkdown = contentText,
-									onMarkdownChanged = { component.onContentChanged(it) },
-									enableSpellChecking = state.spellCheckAllowed,
-									contentPadding = PaddingValues(Ui.Padding.XL),
-									testTag = TIME_LINE_CREATE_CONTENT_TAG,
-									modifier = Modifier.fillMaxWidth(),
-								)
+	HdCreateModal(
+		title = Res.string.timeline_create_header.get(),
+		modifier = modifier,
+		footerMeta = if (isEvent) {
+			{ HdMonoLabel(text = Res.string.timeline_create_word_count.get(wordCount, charCount)) }
+		} else {
+			null
+		},
+		actions = {
+			HdHairlineButton(
+				label = Res.string.timeline_create_cancel_button.get(),
+				onClick = { component.closeCreation() },
+			)
+			HdHairlineButton(
+				label = Res.string.timeline_create_create_button.get(),
+				emphasised = true,
+				enabled = canCreate,
+				modifier = Modifier.testTag(TIME_LINE_CREATE_CONFIRM_TAG),
+				onClick = {
+					scope.launch {
+						val error = component.create(dateText, contentText, tags.toSet())
+						if (error == TimeLineEventError.NONE) {
+							launch {
+								rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
 							}
+							dateText = ""
+							tags.clear()
+							resetVersion++
+							component.closeCreation()
+						} else {
+							error.toastText(strRes)?.let { launch { rootSnackbar.showSnackbar(it) } }
 						}
 					}
-				} else {
-					null
 				},
 			)
-
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-
-			Row(
+		},
+	) {
+		val fields: @Composable () -> Unit = {
+			Column(
 				modifier = Modifier
 					.fillMaxWidth()
-					.background(MaterialTheme.colorScheme.surfaceContainerLow)
-					.padding(horizontal = 24.dp, vertical = 12.dp),
-				horizontalArrangement = Arrangement.spacedBy(14.dp),
-				verticalAlignment = Alignment.CenterVertically,
+					.padding(HdCreateModalDefaults.BodyPadding),
+				verticalArrangement = Arrangement.spacedBy(HdCreateModalDefaults.BodySpacing),
 			) {
-				if (isEvent) {
-					HdMonoLabel(text = Res.string.timeline_create_word_count.get(wordCount, charCount))
+				CollapseWhileTyping {
+					HdHairlineSegmentedPicker(
+						options = Kinds,
+						selected = state.kind,
+						onSelect = component::setKind,
+						label = { it.label() },
+						title = Res.string.timeline_kind_label.get(),
+						modifier = Modifier.testTag(TIME_LINE_CREATE_KIND_TAG),
+					)
 				}
-				Spacer(modifier = Modifier.weight(1f))
-				HdHairlineButton(
-					label = Res.string.timeline_create_cancel_button.get(),
-					onClick = { component.closeCreation() },
-				)
-				HdHairlineButton(
-					label = Res.string.timeline_create_create_button.get(),
-					emphasised = true,
-					enabled = canCreate,
-					modifier = Modifier.testTag(TIME_LINE_CREATE_CONFIRM_TAG),
-					onClick = {
-						scope.launch {
-							val error = component.create(dateText, contentText, tags.toSet())
-							if (error == TimeLineEventError.NONE) {
-								launch {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
-								}
-								dateText = ""
-								tags.clear()
-								resetVersion++
-								component.closeCreation()
-							} else {
-								error.toastText(strRes)?.let { launch { rootSnackbar.showSnackbar(it) } }
-							}
-						}
-					},
-				)
+
+				// Each field below hides while the body editor has focus, but stays while it holds focus
+				// itself so it remains reachable.
+				if (isEvent) {
+					CollapseWhileTyping(keepVisible = titleFocused) {
+						HdHairlineField(
+							label = Res.string.timeline_title_label.get(),
+							value = state.title,
+							onValueChange = component::setTitle,
+							hint = Res.string.timeline_title_hint.get(),
+							placeholder = Res.string.timeline_title_placeholder.get(),
+							onFocusChanged = { titleFocused = it },
+							testTag = TIME_LINE_CREATE_TITLE_TAG,
+						)
+					}
+				} else {
+					SubjectRow(
+						kind = state.kind,
+						subject = state.subject,
+						onChoose = { pickingSubject = true },
+						onClear = { component.setSubject(null) },
+					)
+				}
+
+				if (state.isDated) {
+					CollapseWhileTyping(keepVisible = datesFocused) {
+						DateRows(
+							calendar = state.calendar ?: CalendarDef(),
+							start = state.start,
+							end = state.end,
+							onStartChange = component::setStart,
+							onEndChange = component::setEnd,
+							onFocusChanged = { datesFocused = it },
+							startTag = TIME_LINE_CREATE_START_TAG,
+							endTag = TIME_LINE_CREATE_END_TAG,
+							addEndTag = TIME_LINE_CREATE_ADD_END_TAG,
+						)
+					}
+				} else {
+					CollapseWhileTyping(keepVisible = dateFocused) {
+						HdHairlineField(
+							label = Res.string.timeline_when_label.get(),
+							value = dateText,
+							onValueChange = { dateText = it },
+							hint = Res.string.timeline_create_date_hint.get(),
+							placeholder = Res.string.timeline_create_date_placeholder.get(),
+							onFocusChanged = { dateFocused = it },
+							testTag = TIME_LINE_CREATE_DATE_TAG,
+						)
+					}
+				}
+
+				CollapseWhileTyping(keepVisible = laneFocused) {
+					Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+						LaneField(
+							value = state.lane,
+							onValueChange = component::setLane,
+							lanes = state.lanes,
+							suggest = component::suggestLanes,
+							onFocusChanged = { laneFocused = it },
+							testTag = TIME_LINE_CREATE_LANE_TAG,
+						)
+						HdHairlineToggleRow(
+							checked = state.milestone,
+							onCheckedChange = component::setMilestone,
+							label = Res.string.timeline_milestone_label.get(),
+							hint = Res.string.timeline_milestone_hint.get(),
+							modifier = Modifier.testTag(TIME_LINE_CREATE_MILESTONE_TAG),
+						)
+					}
+				}
+
+				if (isEvent) {
+					HdHairlineTagField(
+						label = Res.string.timeline_create_tags_label.get(),
+						tags = tags,
+						onTagsChange = {
+							tags.clear()
+							tags.addAll(it)
+						},
+						hint = Res.string.timeline_create_tags_hint.get(),
+						placeholder = Res.string.timeline_create_tags_placeholder.get(),
+						suggestTags = component::suggestTags,
+						testTag = TIME_LINE_CREATE_TAGS_TAG,
+					)
+
+					CollapseWhileTyping {
+						ReferencesSection(
+							references = state.references,
+							onAdd = { pickingReferences = true },
+							onRemove = { component.removeReference(it.id) },
+						)
+					}
+				}
 			}
 		}
+
+		// One FieldsOverBody for every kind, so switching kind keeps the fields' own state.
+		FieldsOverBody(
+			bodyMinHeight = EventBodyMinHeight + 22.dp,
+			modifier = Modifier.weight(1f, fill = isEvent),
+			fields = fields,
+			body = if (isEvent) {
+				{
+					Column(
+						modifier = Modifier
+							.padding(horizontal = 28.dp)
+							.padding(bottom = 22.dp)
+							.fillMaxWidth()
+							.testTag(TIME_LINE_CREATE_BODY_TAG),
+						verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+					) {
+						HdMonoLabel(text = Res.string.timeline_create_body_label.get())
+						key(resetVersion) {
+							MarkdownEditField(
+								initialMarkdown = contentText,
+								onMarkdownChanged = { component.onContentChanged(it) },
+								enableSpellChecking = state.spellCheckAllowed,
+								contentPadding = PaddingValues(Ui.Padding.XL),
+								testTag = TIME_LINE_CREATE_CONTENT_TAG,
+								modifier = Modifier.fillMaxWidth(),
+							)
+						}
+					}
+				}
+			} else {
+				null
+			},
+		)
 	}
 
 	val subjectKind = state.kind

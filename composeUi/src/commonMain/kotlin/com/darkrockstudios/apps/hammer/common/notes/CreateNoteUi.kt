@@ -1,23 +1,19 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModal
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModalDefaults
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
@@ -91,46 +87,43 @@ fun CreateNoteUi(
 		}
 	}
 
-	BoxWithConstraints(
-		modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL),
-		contentAlignment = Alignment.Center,
+	HdCreateModal(
+		title = Res.string.notes_create_header.get(),
+		modifier = modifier,
+		footerMeta = {
+			HdMonoLabel(
+				text = Res.string.notes_view_status_word_char.get(wordCount, charCount),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.testTag(NOTES_CREATE_META_TAG),
+			)
+		},
+		actions = {
+			HdHairlineButton(
+				label = Res.string.notes_create_cancel_button.get(),
+				onClick = { component.closeCreate() },
+				modifier = Modifier.testTag(NOTES_CREATE_CANCEL_TAG),
+			)
+			HdHairlineButton(
+				label = Res.string.notes_create_create_button.get(),
+				emphasised = true,
+				enabled = canCreate,
+				modifier = Modifier.testTag(NOTES_CREATE_CONFIRM_TAG),
+				onClick = create,
+			)
+		},
 	) {
 		Column(
-			modifier = modifier
-				.widthIn(max = Ui.MaxWidth.Modal)
+			modifier = Modifier
 				.fillMaxWidth()
-				.heightIn(max = maxHeight)
-				.background(MaterialTheme.colorScheme.surface, RectangleShape)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outline,
-					shape = RectangleShape,
-				),
+				.weight(1f, fill = false)
+				.padding(HdCreateModalDefaults.BodyPadding),
+			verticalArrangement = Arrangement.spacedBy(HdCreateModalDefaults.BodySpacing),
 		) {
-			CollapseWhileTyping {
-				Column {
-					Text(
-						text = Res.string.notes_create_header.get(),
-						style = MaterialTheme.typography.titleLarge,
-						color = MaterialTheme.colorScheme.onSurface,
-						modifier = Modifier.padding(start = 28.dp, end = 28.dp, top = Ui.Padding.XL, bottom = Ui.Padding.L),
-					)
-					HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
-				}
-			}
-
 			Column(
-				modifier = Modifier
-					.fillMaxWidth()
-					.weight(1f, fill = false)
-					.padding(horizontal = 28.dp, vertical = 22.dp),
-				verticalArrangement = Arrangement.spacedBy(22.dp),
+				modifier = Modifier.weight(1f, fill = false),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 			) {
-				Text(
-					text = Res.string.notes_create_body_label.get(),
-					style = MaterialTheme.typography.labelMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
+				HdMonoLabel(text = Res.string.notes_create_body_label.get())
 				key(resetVersion) {
 					MarkdownEditField(
 						initialMarkdown = noteText,
@@ -145,48 +138,19 @@ fun CreateNoteUi(
 							.heightIn(min = 240.dp),
 					)
 				}
-
-				HdHairlineTagField(
-					label = Res.string.notes_create_tags_label.get(),
-					tags = tags,
-					onTagsChange = {
-						tags.clear()
-						tags.addAll(it)
-					},
-					hint = Res.string.notes_create_tags_hint.get(),
-					placeholder = Res.string.notes_create_tags_placeholder.get(),
-					suggestTags = component::suggestTags,
-				)
 			}
 
-			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.background(MaterialTheme.colorScheme.surfaceContainerLow)
-					.padding(horizontal = 24.dp, vertical = 12.dp),
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(14.dp),
-			) {
-				HdMonoLabel(
-					text = Res.string.notes_view_status_word_char.get(wordCount, charCount),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					modifier = Modifier.testTag(NOTES_CREATE_META_TAG),
-				)
-				Spacer(modifier = Modifier.weight(1f))
-				HdHairlineButton(
-					label = Res.string.notes_create_cancel_button.get(),
-					onClick = { component.closeCreate() },
-					modifier = Modifier.testTag(NOTES_CREATE_CANCEL_TAG),
-				)
-				HdHairlineButton(
-					label = Res.string.notes_create_create_button.get(),
-					emphasised = true,
-					enabled = canCreate,
-					modifier = Modifier.testTag(NOTES_CREATE_CONFIRM_TAG),
-					onClick = create,
-				)
-			}
+			HdHairlineTagField(
+				label = Res.string.notes_create_tags_label.get(),
+				tags = tags,
+				onTagsChange = {
+					tags.clear()
+					tags.addAll(it)
+				},
+				hint = Res.string.notes_create_tags_hint.get(),
+				placeholder = Res.string.notes_create_tags_placeholder.get(),
+				suggestTags = component::suggestTags,
+			)
 		}
 	}
 
