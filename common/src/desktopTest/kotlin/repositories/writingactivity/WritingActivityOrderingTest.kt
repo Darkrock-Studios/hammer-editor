@@ -148,6 +148,17 @@ class WritingActivityOrderingTest : BaseTest() {
 	}
 
 	@Test
+	fun `a stale save into a re-anchored scene changes nothing after an epoch restart`() = runTest {
+		tracker.rememberBaseline(1, "I went home", revision = 1)
+		tracker.replaceBaseline(1, "Synced text from somewhere else", revision = 3)
+		save("Synced text from somewhere else and more", revision = 5)
+		clock.advanceTime(24.hours)
+		save("Synced text from somewhere else and more today", revision = 6)
+
+		assertEquals(0, save("Synced text from somewhere else and a wrong turn", revision = 4))
+	}
+
+	@Test
 	fun `a save captured before a re-anchor still counts after an epoch restart`() = runTest {
 		tracker.rememberBaseline(1, "I went home", revision = 1)
 		tracker.replaceBaseline(1, "Synced text from somewhere else", revision = 3)

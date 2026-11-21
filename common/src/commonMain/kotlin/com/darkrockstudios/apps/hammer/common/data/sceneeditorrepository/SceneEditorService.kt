@@ -72,7 +72,7 @@ class SceneEditorService(
 		serviceScope.launch {
 			sceneContentRepository.bufferPersistedFlow.collect { event ->
 				if (event.source == UpdateSource.Editor) {
-					writingSessionTracker.onSceneSaved(
+					val recorded = writingSessionTracker.onSceneSaved(
 						sceneId = event.sceneId,
 						newContent = event.content.coerceMarkdown(),
 						source = event.source,
@@ -80,10 +80,9 @@ class SceneEditorService(
 					)
 					// Stamped only while the buffer still holds this save: a later save stamps for itself, and
 					// a scene deleted or re-ided since, or replaced under this id, has nothing to stamp.
-					if (sceneContentRepository.snapshotBuffer(event.sceneId)?.revision == event.revision) {
-						sceneMetadataRepository.recordSceneActivity(event.sceneId)
-						statisticsRepository.markDirty()
-					}
+					val current = sceneContentRepository.snapshotBuffer(event.sceneId)?.revision == event.revision
+					if (current) sceneMetadataRepository.recordSceneActivity(event.sceneId)
+					if (current || recorded > 0) statisticsRepository.markDirty()
 				}
 			}
 		}

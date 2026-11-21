@@ -61,7 +61,7 @@ class WritingSessionTracker(
 		/** Revision of the newest content seen: the anchor's own, or the latest editor save's. */
 		var newest: Long? = revision
 
-		/** The anchor this one replaced, still credited by saves captured before the replacement. */
+		/** The anchor this one replaced: saves captured before the replacement resolve to it. */
 		var replaced: Anchor? = null
 
 		/** Anchored at [content] with no editor save since, so re-anchoring there changes nothing. */
@@ -270,8 +270,8 @@ class WritingSessionTracker(
 
 		for (entry in anchors.entries) {
 			val anchor = entry.value
-			// The old anchor itself can take no late save: everything up to its newest is past.
-			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords, anchor.newest).replacing(anchor.replaced))
+			// The old anchor stays in the chain so a stale save into it is not taken for an older anchor's.
+			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords, anchor.newest).replacing(anchor))
 			if (anchor.lastSeenWords !== anchor.words) unseen += anchor.lastSeenWords
 		}
 		banked = 0
