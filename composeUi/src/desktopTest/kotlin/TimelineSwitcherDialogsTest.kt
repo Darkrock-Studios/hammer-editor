@@ -14,9 +14,9 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.StrResImpl
-import org.koin.compose.KoinApplication
 import org.koin.dsl.module
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_DELETE_CONFIRM_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_NEW_CONFIRM_TAG
@@ -46,7 +46,7 @@ class TimelineSwitcherDialogsTest : BaseTest() {
 		switcher = initial
 		compose.setContent {
 			// The real strings, so a refusal's reason can be read.
-			KoinApplication(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
+			KoinApplicationPreview(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
 				TimelineSwitcherDialogs(
 					switcher = switcher,
 					onCreate = { name, mode, preset -> created += Created(name, mode, preset) },
