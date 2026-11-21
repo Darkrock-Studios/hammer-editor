@@ -34,7 +34,7 @@
     <string name="story_info_widget_words_label">MOTS</string>
     <string name="story_info_widget_goal_summary">%1$d%% SUR %2$s %3$s</string>
     <string name="story_info_widget_cadence_today">AUJOURD\'HUI</string>
-    <string name="story_info_widget_cadence_this_week">CETTE SEMAINE</string>
+    <string name="story_info_widget_cadence_this_week">LAST 7 DAYS</string>
     <string name="story_info_widget_today_words">+%1$d AUJOURD\'HUI</string>
     <string name="story_info_widget_no_session_today">AUCUNE SESSION AUJOURD\'HUI</string>
     <string name="story_info_widget_streak">SERIE DE %1$dJ</string>
