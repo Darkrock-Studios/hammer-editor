@@ -32,6 +32,22 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.12.2" date="2026-11-21">
+            <description>
+                <p>- Projects with several files claiming the same id now open. Identical copies are merged automatically, and a new dialog lets you choose which of the rest to keep. Sync waits until they are resolved</p>
+                <p>- Items of different types that share an id are renumbered, so sync uploads all of them instead of only one</p>
+                <p>- Writing statistics: autosaves landing mid-word, fixed typos, undone deletions, moved or pasted-back text and text arriving by sync or a draft restore no longer add words, and punctuation or formatting changes are not new words. &quot;This week&quot; is now &quot;Last 7 days&quot;, which is what it always measured</p>
+                <p>- Sync no longer leaves synced scenes behind as unsaved edits, and skips downloading a scene that has unsaved edits</p>
+                <p>- Sync keeps a scene&apos;s missing created and edited dates missing instead of filling them per device, which made other devices conflict on scenes they had only opened</p>
+                <p>- Settings shows a sync server whose login has lapsed, with Log In Again and Remove Server</p>
+                <p>- Projects open even when a file sync tool such as Syncthing leaves its own files in the scene buffers folder</p>
+                <p>- Fix a crash when renaming the same scene twice</p>
+                <p>- Fix a crash when an encyclopedia entry can&apos;t be read</p>
+                <p>- Story ideas show a warning when the ideas folder can&apos;t be read</p>
+                <p>- Show an error when deleting a project fails</p>
+                <p>- Updated translations</p>
+            </description>
+        </release>
         <release version="3.12.1" date="2026-10-24">
             <description>
                 <p>- Fix crash with syncthing conflict files</p>

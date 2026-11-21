@@ -1,3 +1,12 @@
-- Fix crash with syncthing conflict files
-- Fixed several crashes in text editor
-- Improved text editor format buttons
+- Projects with several files claiming the same id now open. Identical copies are merged automatically, and a new dialog lets you choose which of the rest to keep. Sync waits until they are resolved
+- Items of different types that share an id are renumbered, so sync uploads all of them instead of only one
+- Writing statistics: autosaves landing mid-word, fixed typos, undone deletions, moved or pasted-back text and text arriving by sync or a draft restore no longer add words, and punctuation or formatting changes are not new words. "This week" is now "Last 7 days", which is what it always measured
+- Sync no longer leaves synced scenes behind as unsaved edits, and skips downloading a scene that has unsaved edits
+- Sync keeps a scene's missing created and edited dates missing instead of filling them per device, which made other devices conflict on scenes they had only opened
+- Settings shows a sync server whose login has lapsed, with Log In Again and Remove Server
+- Projects open even when a file sync tool such as Syncthing leaves its own files in the scene buffers folder
+- Fix a crash when renaming the same scene twice
+- Fix a crash when an encyclopedia entry can't be read
+- Story ideas show a warning when the ideas folder can't be read
+- Show an error when deleting a project fails
+- Updated translations
