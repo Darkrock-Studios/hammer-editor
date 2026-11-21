@@ -1,7 +1,7 @@
-- Writing stats no longer count mid-word autosaves, fixed typos, undone deletions, moved text or synced text as new words. "This week" is now "Last 7 days"
-- Sync no longer leaves synced scenes as unsaved edits, or overwrites a scene that has them
-- Sync no longer causes conflicts on scenes another device only opened
-- Fix a crash when an encyclopedia entry can't be read
+- Projects with files sharing an id open again; a new dialog lets you pick which copies to keep
+- Writing stats no longer count autosaves, typo fixes, undone deletions or synced text as new words
+- Sync fixes: unsaved edits are kept, fewer false conflicts, and items sharing an id all upload
+- Fixed crashes renaming a scene twice and reading a bad encyclopedia entry
 - Updated translations
 
 Full changelog:
