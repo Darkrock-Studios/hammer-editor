@@ -180,4 +180,4 @@ Over everything the pass touched (all `4_0/ui-redesign-prototype` commits since 
 
 - [x] `/simplify`: duplicate code and repeated implementations of common things (cards, title rows, confirm wiring, previews)
 - [x] Compose stability and performance review (unstable params, needless recomposition, remember/derivedStateOf misuse, lambdas, lazy list keys)
-- [ ] `/code-review` for correctness
+- [x] `/code-review` for correctness
