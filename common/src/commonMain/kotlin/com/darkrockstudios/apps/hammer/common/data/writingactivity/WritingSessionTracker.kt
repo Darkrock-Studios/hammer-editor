@@ -145,8 +145,8 @@ class WritingSessionTracker(
 	fun reIdBaseline(oldId: Int, newId: Int) {
 		baselineLock.withReentrantLock {
 			retired += oldId
-			val moved = anchors.remove(oldId) ?: return@withReentrantLock
 			retired -= newId
+			val moved = anchors.remove(oldId) ?: return@withReentrantLock
 			anchors.put(newId, moved)?.let(::retire)
 		}
 	}
@@ -270,7 +270,8 @@ class WritingSessionTracker(
 
 		for (entry in anchors.entries) {
 			val anchor = entry.value
-			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords, anchor.newest).replacing(anchor))
+			// The old anchor itself can take no late save: everything up to its newest is past.
+			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords, anchor.newest).replacing(anchor.replaced))
 			if (anchor.lastSeenWords !== anchor.words) unseen += anchor.lastSeenWords
 		}
 		banked = 0

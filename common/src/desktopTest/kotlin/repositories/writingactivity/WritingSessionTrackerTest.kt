@@ -205,6 +205,16 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `a scene re-ided onto a deleted scene's id is tracked`() = runTest {
+		tracker.rememberBaseline(sceneId = 42, content = "Old scene")
+		tracker.forgetBaseline(42)
+		tracker.reIdBaseline(oldId = 5, newId = 42)
+		tracker.onSceneSaved(42, "I went home", UpdateSource.Editor)
+
+		assertEquals(2, tracker.onSceneSaved(42, "I went home and ate", UpdateSource.Editor))
+	}
+
+	@Test
 	fun `loading a scene again after its deletion anchors it`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "I went home")
 		tracker.forgetBaseline(1)
