@@ -272,6 +272,26 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `A save of older text keeps the newer text typed during it`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		createStack(projDef)
+		service.initialize()
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(sceneItem)
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Saved text"), UpdateSource.Editor)
+		advanceUntilIdle()
+		val snapshot = assertNotNull(contentRepo.snapshotBuffer(3))
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Saved text and more"), UpdateSource.Editor)
+		advanceUntilIdle()
+
+		assertTrue(contentRepo.persistBuffer(snapshot, repo.getSceneFilePath(3)))
+
+		assertEquals("Saved text and more", contentRepo.getSceneBuffer(3)?.content?.markdown)
+		assertTrue(contentRepo.hasDirtyBuffer(3))
+	}
+
+	@Test
 	fun `Rewriting scene text keeps edits still in the debounce`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)

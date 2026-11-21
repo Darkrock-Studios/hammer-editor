@@ -85,6 +85,15 @@ class WritingActivityOrderingTest : BaseTest() {
 	}
 
 	@Test
+	fun `a save captured before two re-anchors is credited against the text it was typed into`() = runTest {
+		tracker.rememberBaseline(1, "I went home", revision = 1)
+		tracker.replaceBaseline(1, "Synced text from somewhere else", revision = 3)
+		tracker.replaceBaseline(1, "Synced again from another device", revision = 4)
+
+		assertEquals(2, save("I went home and ate", revision = 2))
+	}
+
+	@Test
 	fun `a late save keeps the words already typed into the anchor it was typed into`() = runTest {
 		tracker.rememberBaseline(1, "I went home", revision = 1)
 		save("I went home and", revision = 2)

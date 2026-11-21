@@ -64,9 +64,6 @@ class WritingSessionTracker(
 		/** The anchor this one replaced, still credited by saves captured before the replacement. */
 		var replaced: Anchor? = null
 
-		/** Seen text when this anchor was replaced, before its own typing joined it. */
-		var seenWhenReplaced: Set<Long>? = null
-
 		/** Anchored at [content] with no editor save since, so re-anchoring there changes nothing. */
 		fun isAt(content: String): Boolean = lastSeenWords === words && text == content
 
@@ -192,9 +189,9 @@ class WritingSessionTracker(
 		if (revision == null || anchor.revision == null || revision >= anchor.revision) {
 			return anchor.takeUnless { it.isPast(revision) }
 		}
-		val replaced = anchor.replaced ?: return null
-		val typedInto = replaced.revision == null || revision >= replaced.revision
-		return replaced.takeIf { typedInto && !it.isPast(revision) }
+		val typedInto = generateSequence(anchor.replaced) { it.replaced }
+			.firstOrNull { it.revision == null || revision >= it.revision }
+		return typedInto?.takeUnless { it.isPast(revision) }
 	}
 
 	private fun creditEditorSave(
@@ -210,8 +207,7 @@ class WritingSessionTracker(
 				restartEpochIfDue(now)
 				val anchor = anchors[sceneId]
 				val target = anchor?.let { targetFor(it, revision) }
-				val seen = target?.seenWhenReplaced ?: reproduced
-				if (unseen.isEmpty()) EditorSaveSnapshot(now, anchor, target, seen) else null
+				if (unseen.isEmpty()) EditorSaveSnapshot(now, anchor, target, reproduced) else null
 			} ?: continue
 			val anchor = snapshot.anchor
 			if (anchor == null) {
@@ -224,7 +220,12 @@ class WritingSessionTracker(
 			}
 			val target = snapshot.target ?: return 0 to snapshot.now
 
-			val credit = countOriginalWords(target.words.value, words, snapshot.seen)
+			// A replaced anchor's own typing is seen now, so a late save adds what it typed since.
+			val credit = if (target === anchor) {
+				countOriginalWords(target.words.value, words, snapshot.seen)
+			} else {
+				target.credit + countOriginalWords(target.lastSeenWords.value, words, snapshot.seen)
+			}
 
 			val recorded = baselineLock.withReentrantLock {
 				when {
@@ -282,10 +283,10 @@ class WritingSessionTracker(
 	private fun reanchor(sceneId: Int, content: String, revision: Long?) {
 		val old = anchors[sceneId]
 		if (old != null && (old.isPast(revision) || old.isAt(content))) return
-		old?.seenWhenReplaced = reproduced
 		old?.let(::retire)
 		install(sceneId, content, lazy { ActivityWords.of(content) }, revision)
-		anchors.getValue(sceneId).replaced = old?.also { it.replaced = null }
+		anchors.getValue(sceneId).replaced = old
+		generateSequence(old) { it.replaced }.drop(MAX_REPLACED - 1).firstOrNull()?.replaced = null
 	}
 
 	/** Under [baselineLock]: banks a dropped anchor's credit and keeps its text seen. */
@@ -345,6 +346,9 @@ class WritingSessionTracker(
 
 	companion object {
 		val MERGE_GAP: Duration = 6.hours
+
+		/** Replaced anchors kept per scene for saves that arrive after re-anchors. */
+		private const val MAX_REPLACED = 3
 
 		/**
 		 * Pure lifecycle math. Given the current session list and a new

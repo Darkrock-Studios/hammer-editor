@@ -281,10 +281,10 @@ class SceneEditorService(
 	 */
 	suspend fun rewriteSceneText(sceneItem: SceneItem, transform: (String) -> String): Boolean {
 		sceneContentRepository.flushPendingContent(sceneItem.id)
-		val current = getCurrentSceneContentOrNull(sceneItem) ?: return false
+		val snapshot = sceneContentRepository.snapshotBuffer(sceneItem.id)
+		val current = snapshot?.buffer?.content?.coerceMarkdown() ?: getCurrentSceneContentOrNull(sceneItem) ?: return false
 		val rewritten = transform(current)
 		if (rewritten == current) return false
-		val snapshot = sceneContentRepository.snapshotBuffer(sceneItem.id)
 		if (snapshot != null && snapshot.buffer.dirty && snapshot.buffer.source == UpdateSource.Editor) {
 			writingSessionTracker.onSceneSaved(sceneItem.id, current, UpdateSource.Editor, snapshot.revision)
 		}
@@ -397,16 +397,27 @@ class SceneEditorService(
 	 * that text: a cached buffer only when the scene has no anchor yet, a load from disk always.
 	 */
 	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
-		val cached = sceneContentRepository.snapshotBuffer(sceneItem.id)
-		if (cached != null) {
-			writingSessionTracker.ensureBaseline(sceneItem.id, cached.revision) { cached.buffer.content.coerceMarkdown() }
-			return cached.buffer
+		val cached = sceneContentRepository.withBufferSnapshot(sceneItem.id) { cached ->
+			cached?.also { snapshot ->
+				writingSessionTracker.ensureBaseline(sceneItem.id, snapshot.revision) {
+					snapshot.buffer.content.coerceMarkdown()
+				}
+			}
 		}
+		if (cached != null) return cached.buffer
 
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val loaded = sceneContentRepository.loadBuffer(sceneItem, scenePath)
-		writingSessionTracker.rememberBaseline(sceneItem.id, loaded.buffer.content.coerceMarkdown(), loaded.revision)
-		return loaded.buffer
+		// Under the buffer lock, so outside text that replaced the loaded text since is anchored instead.
+		return sceneContentRepository.withBufferSnapshot(sceneItem.id) { current ->
+			val anchorAt = current ?: loaded
+			writingSessionTracker.rememberBaseline(
+				sceneItem.id,
+				anchorAt.buffer.content.coerceMarkdown(),
+				anchorAt.revision,
+			)
+			anchorAt.buffer
+		}
 	}
 
 	suspend fun loadSceneBufferAsync(sceneItem: SceneItem): SceneBuffer = withContext(dispatcherIo) {
