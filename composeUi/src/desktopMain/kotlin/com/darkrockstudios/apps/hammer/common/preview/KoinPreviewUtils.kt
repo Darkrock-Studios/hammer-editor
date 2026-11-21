@@ -34,9 +34,9 @@ fun KoinApplicationPreview(
 			single { previewImageLoader() }
 			single { StoryExporterRegistry(emptyList()) }
 			single { PluginUiRegistry(PluginRegistry()) }
-
-			if (application != null) application()
 		}))
+		// Last, so the caller's definitions override the defaults above.
+		if (application != null) application()
 	})
 
 	if (GlobalContext.getOrNull() != null) {

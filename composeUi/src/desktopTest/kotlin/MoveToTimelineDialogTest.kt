@@ -21,11 +21,11 @@ import com.darkrockstudios.apps.hammer.common.timeline.MOVE_TO_TIMELINE_ERROR_TA
 import com.darkrockstudios.apps.hammer.common.timeline.MOVE_TO_TIMELINE_NEEDS_DATE_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.MOVE_TO_TIMELINE_START_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.MoveToTimelineDialog
+import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.StrResImpl
 import org.junit.Rule
 import org.junit.Test
-import org.koin.compose.KoinApplication
 import org.koin.dsl.module
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -51,7 +51,7 @@ class MoveToTimelineDialogTest : BaseTest() {
 		val pending = answers.toMutableList()
 		compose.setContent {
 			// The real strings, so a refusal's reason can be read.
-			KoinApplication(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
+			KoinApplicationPreview(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
 				MoveToTimelineDialog(
 					visible = true,
 					targets = listOf(backstory, scratch),
