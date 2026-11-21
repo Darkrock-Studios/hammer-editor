@@ -205,7 +205,6 @@
 	<string name="timeline_switcher_delete">Delete “%1$s”…</string>
 	<string name="timeline_switcher_settings">Timeline settings…</string>
 	<string name="timeline_switcher_cancel">Cancel</string>
-	<string name="timeline_switcher_close">Close</string>
 	<plurals name="timeline_deleted_notice_title">
 		<item quantity="one">%1$d event was added on another device to a timeline that has since been deleted.</item>
 		<item quantity="other">%1$d events were added on another device to a timeline that has since been deleted.</item>

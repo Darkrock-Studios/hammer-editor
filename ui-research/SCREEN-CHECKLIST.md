@@ -121,7 +121,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Delete N events?, from the deleted-timeline notice (`TimelineSwitcher.kt`) g: Delete events of a deleted timeline
 - [x] Event view and edit (`ViewTimeLineEventUi`) g: View timeline event
   - [x] Discard Changes? / Delete Timeline Event? (`SimpleConfirm`) g: Timeline event confirms
-  - [ ] Move to another timeline (`MoveToTimelineDialog`) g: Move to timeline dialog
+  - [x] Move to another timeline (`MoveToTimelineDialog`) g: Move to timeline dialog
 - [ ] Create Event (`CreateTimeLineEventUi`) g: Create timeline event **needs a larger redesign, not a polish pass**
   - [x] Discard Changes? (`SimpleConfirm`) g: Timeline event confirms
 
