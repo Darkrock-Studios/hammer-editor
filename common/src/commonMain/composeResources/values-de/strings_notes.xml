@@ -7,8 +7,6 @@
 	<string name="notes_discard_dialog_title">Änderungen verwerfen?</string>
 	<string name="notes_discard_dialog_message">Alle vorgenommenen Änderungen gehen verloren.</string>
 	<string name="notes_create_header">Notiz erstellen</string>
-	<string name="notes_create_marker">III · NEU</string>
-	<string name="notes_create_draft_label">ENTWURF</string>
 	<string name="notes_create_create_button">Erstellen</string>
 	<string name="notes_create_cancel_button">Abbruch</string>
 	<string name="notes_create_toast_success">Notiz erstellt</string>

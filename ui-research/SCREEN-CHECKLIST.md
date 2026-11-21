@@ -98,7 +98,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Notes list (`BrowseNotesUi`) g: Browse notes
 - [x] Note view (`ViewNoteUi`) g: View note
   - [x] Discard Changes? / Delete Note? (`SimpleConfirm`, `ConfirmDeleteNoteDialog`) g: Discard note changes, Delete note confirm
-- [ ] Create Note (`CreateNoteUi`) g: Create note **needs a larger redesign, not a polish pass**
+- [x] Create Note (`CreateNoteUi`) g: Create note, redesigned on the Create entry pattern
   - [x] Discard Changes? (`SimpleConfirm`) g: Discard note changes
 
 ## 6. Encyclopedia

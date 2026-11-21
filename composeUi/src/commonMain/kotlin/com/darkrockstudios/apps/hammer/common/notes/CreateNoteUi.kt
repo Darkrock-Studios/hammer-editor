@@ -1,27 +1,26 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
-import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -56,92 +55,122 @@ fun CreateNoteUi(
 	val charCount = noteText.length
 	val canCreate = noteText.isNotBlank()
 
-	Card(
-		modifier = modifier.padding(Ui.Padding.XL)
-			.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
-		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL),
-		shape = RectangleShape,
+	val create: () -> Unit = {
+		scope.launch {
+			val result = component.createNote(noteText, tags.toSet())
+			newNoteError = !result.isSuccess
+			when (result) {
+				NoteError.TOO_LONG -> scope.launch {
+					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
+				}
+
+				NoteError.EMPTY -> scope.launch {
+					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
+				}
+
+				NoteError.TAG_TOO_LONG -> scope.launch {
+					rootSnackbar.showSnackbar(
+						strRes.get(
+							Res.string.notes_create_toast_tag_too_long,
+							NotesRepository.MAX_TAG_SIZE,
+						)
+					)
+				}
+
+				NoteError.NONE -> {
+					withContext(mainDispatcher) {
+						component.clearText()
+						tags.clear()
+						resetVersion++
+					}
+					scope.launch {
+						rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
+					}
+				}
+			}
+		}
+	}
+
+	BoxWithConstraints(
+		modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL),
+		contentAlignment = Alignment.Center,
 	) {
-		Column(modifier = Modifier.fillMaxWidth()) {
-
+		Column(
+			modifier = modifier
+				.widthIn(max = Ui.MaxWidth.Modal)
+				.fillMaxWidth()
+				.heightIn(max = maxHeight)
+				.background(MaterialTheme.colorScheme.surface, RectangleShape)
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outline,
+					shape = RectangleShape,
+				),
+		) {
 			CollapseWhileTyping {
-				Column(modifier = Modifier.fillMaxWidth()) {
-					HdSectionHeader(
-						marker = Res.string.notes_create_marker.get(),
-						title = Res.string.notes_create_header.get(),
-						trailing = {
-							HdMonoLabel(text = Res.string.notes_create_draft_label.get())
-						},
-						modifier = Modifier
-							.fillMaxWidth()
-							.height(Ui.TOP_BAR_HEIGHT)
-							.padding(horizontal = Ui.Padding.XL),
+				Column {
+					Text(
+						text = Res.string.notes_create_header.get(),
+						style = MaterialTheme.typography.titleLarge,
+						color = MaterialTheme.colorScheme.onSurface,
+						modifier = Modifier.padding(start = 28.dp, end = 28.dp, top = Ui.Padding.XL, bottom = Ui.Padding.L),
 					)
-
-					HorizontalDivider(
-						thickness = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-					)
+					HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
 				}
 			}
 
-			HdHairlineTagField(
-				label = Res.string.notes_create_tags_label.get(),
-				tags = tags,
-				onTagsChange = {
-					tags.clear()
-					tags.addAll(it)
-				},
-				hint = Res.string.notes_create_tags_hint.get(),
-				placeholder = Res.string.notes_create_tags_placeholder.get(),
-				suggestTags = component::suggestTags,
+			Column(
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-			)
-
-			// Body editor framed in a hairline so it reads as its own block.
-			Box(
-				modifier = Modifier
-					.padding(horizontal = Ui.Padding.XL)
-					.padding(bottom = Ui.Padding.L)
-					.fillMaxWidth()
-					.weight(1f, fill = true)
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					),
+					.weight(1f, fill = false)
+					.padding(horizontal = 28.dp, vertical = 22.dp),
+				verticalArrangement = Arrangement.spacedBy(22.dp),
 			) {
+				Text(
+					text = Res.string.notes_create_body_label.get(),
+					style = MaterialTheme.typography.labelMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
 				key(resetVersion) {
 					MarkdownEditField(
 						initialMarkdown = noteText,
 						onMarkdownChanged = { component.onTextChanged(it) },
 						enableSpellChecking = state.spellCheckAllowed,
+						autoFocus = true,
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						testTag = NOTES_CREATE_BODY_TAG,
 						modifier = Modifier
 							.fillMaxWidth()
-							.widthIn(max = TextEditorDefaults.MAX_WIDTH),
+							.weight(1f, fill = false)
+							.heightIn(min = 240.dp),
 					)
 				}
+
+				HdHairlineTagField(
+					label = Res.string.notes_create_tags_label.get(),
+					tags = tags,
+					onTagsChange = {
+						tags.clear()
+						tags.addAll(it)
+					},
+					hint = Res.string.notes_create_tags_hint.get(),
+					placeholder = Res.string.notes_create_tags_placeholder.get(),
+					suggestTags = component::suggestTags,
+				)
 			}
 
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-
-			// Footer — word/char meta, keyboard hint, actions.
+			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+					.background(MaterialTheme.colorScheme.surfaceContainerLow)
+					.padding(horizontal = 24.dp, vertical = 12.dp),
 				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(14.dp),
 			) {
 				HdMonoLabel(
-					text = "$wordCount W · $charCount CH",
+					text = Res.string.notes_view_status_word_char.get(wordCount, charCount),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
 					modifier = Modifier.testTag(NOTES_CREATE_META_TAG),
 				)
 				Spacer(modifier = Modifier.weight(1f))
@@ -152,43 +181,10 @@ fun CreateNoteUi(
 				)
 				HdHairlineButton(
 					label = Res.string.notes_create_create_button.get(),
-					emphasised = canCreate,
+					emphasised = true,
+					enabled = canCreate,
 					modifier = Modifier.testTag(NOTES_CREATE_CONFIRM_TAG),
-					onClick = {
-						scope.launch {
-							val result = component.createNote(noteText, tags.toSet())
-							newNoteError = !result.isSuccess
-							when (result) {
-								NoteError.TOO_LONG -> scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
-								}
-
-								NoteError.EMPTY -> scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
-								}
-
-								NoteError.TAG_TOO_LONG -> scope.launch {
-									rootSnackbar.showSnackbar(
-										strRes.get(
-											Res.string.notes_create_toast_tag_too_long,
-											NotesRepository.MAX_TAG_SIZE,
-										)
-									)
-								}
-
-								NoteError.NONE -> {
-									withContext(mainDispatcher) {
-										component.clearText()
-										tags.clear()
-										resetVersion++
-									}
-									scope.launch {
-										rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
-									}
-								}
-							}
-						}
-					},
+					onClick = create,
 				)
 			}
 		}

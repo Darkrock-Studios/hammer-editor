@@ -7,8 +7,6 @@
 	<string name="notes_discard_dialog_title">Abandonner les modifications ?</string>
 	<string name="notes_discard_dialog_message">Vous perdrez toutes les modifications effectuées.</string>
 	<string name="notes_create_header">Créer une note</string>
-	<string name="notes_create_marker">III · NOUVEAU</string>
-	<string name="notes_create_draft_label">BROUILLON</string>
 	<string name="notes_create_create_button">Créer</string>
 	<string name="notes_create_cancel_button">Annuler</string>
 	<string name="notes_create_toast_success">Note créée</string>

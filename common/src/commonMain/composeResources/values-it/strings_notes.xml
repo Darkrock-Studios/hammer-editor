@@ -7,8 +7,6 @@
 	<string name="notes_discard_dialog_title">Scartare le modifiche?</string>
 	<string name="notes_discard_dialog_message">Perderai tutte le modifiche apportate.</string>
 	<string name="notes_create_header">Crea nota</string>
-	<string name="notes_create_marker">III · NUOVO</string>
-	<string name="notes_create_draft_label">BOZZA</string>
 	<string name="notes_create_create_button">Crea</string>
 	<string name="notes_create_cancel_button">Annulla</string>
 	<string name="notes_create_toast_success">Nota creata</string>

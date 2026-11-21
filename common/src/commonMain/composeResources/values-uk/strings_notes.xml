@@ -7,8 +7,6 @@
 	<string name="notes_discard_dialog_title">Відхилити зміни?</string>
 	<string name="notes_discard_dialog_message">Ви втратите всі внесені зміни.</string>
 	<string name="notes_create_header">Створити нотатку</string>
-	<string name="notes_create_marker">III · НОВЕ</string>
-	<string name="notes_create_draft_label">ЧЕРНЕТКА</string>
 	<string name="notes_create_create_button">Створити</string>
 	<string name="notes_create_cancel_button">Скасувати</string>
 	<string name="notes_create_toast_success">Нотатку створено</string>

@@ -7,8 +7,6 @@
 	<string name="notes_discard_dialog_title">Descartar Alterações?</string>
 	<string name="notes_discard_dialog_message">Você perderá todas as alterações que fez.</string>
 	<string name="notes_create_header">Criar Anotação</string>
-	<string name="notes_create_marker">III · NOVO</string>
-	<string name="notes_create_draft_label">RASCUNHO</string>
 	<string name="notes_create_create_button">Criar</string>
 	<string name="notes_create_cancel_button">Cancelar</string>
 	<string name="notes_create_toast_success">Anotação Criada</string>

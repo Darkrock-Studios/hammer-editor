@@ -8,12 +8,11 @@
 	<string name="notes_discard_confirm">Discard</string>
 	<string name="notes_discard_keep">Keep editing</string>
 	<string name="notes_discard_dialog_message">Your edits to this note will be lost.</string>
-	<string name="notes_create_header">Create Note</string>
-	<string name="notes_create_marker">III · NEW</string>
-	<string name="notes_create_draft_label">DRAFT</string>
+	<string name="notes_create_header">Create note</string>
+	<string name="notes_create_body_label">Note</string>
 	<string name="notes_create_create_button">Create</string>
 	<string name="notes_create_cancel_button">Cancel</string>
-	<string name="notes_create_toast_success">Note Created</string>
+	<string name="notes_create_toast_success">Note created</string>
 	<string name="notes_create_toast_too_long">Note was too long</string>
 	<string name="notes_create_toast_empty">Note was empty</string>
 	<string name="notes_create_toast_tag_too_long">Tag was too long (max %1$d)</string>

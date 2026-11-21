@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
@@ -37,8 +38,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
-private val ModalMaxHeight = 760.dp
+internal val NoteModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
+internal val NoteModalMaxHeight = 760.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -78,8 +79,8 @@ fun ViewNoteUi(
 					.padding(
 						horizontal = Ui.Padding.XL,
 					)
-					.widthIn(max = ModalMaxWidth)
-					.heightIn(max = ModalMaxHeight)
+					.widthIn(max = NoteModalMaxWidth)
+					.heightIn(max = NoteModalMaxHeight)
 					.fillMaxWidth()
 					.then(if (isEditing) Modifier.fillMaxHeight() else Modifier)
 					.background(MaterialTheme.colorScheme.surface)
@@ -125,7 +126,7 @@ fun ViewNoteUi(
 				)
 
 				if (isEditing) {
-					EditBody(
+					NoteEditBody(
 						tags = state.tags.toList(),
 						onTagsChanged = { component.onTagsChanged(it.toSet()) },
 						noteText = noteText,
@@ -136,7 +137,7 @@ fun ViewNoteUi(
 						modifier = Modifier.weight(1f),
 					)
 
-					EditStatusFooter(text = noteText)
+					NoteEditStatusFooter(text = noteText)
 				} else {
 					ViewBody(
 						note = state.note,
@@ -374,17 +375,35 @@ private fun ViewBody(
 }
 
 @Composable
-private fun EditBody(
+internal fun NoteEditBody(
 	tags: List<String>,
 	onTagsChanged: (List<String>) -> Unit,
 	noteText: String,
 	onNoteTextChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
 	enableSpellChecking: Boolean,
-	imagePicker: suspend () -> ImageDef?,
+	imagePicker: (suspend () -> ImageDef?)?,
 	modifier: Modifier = Modifier,
+	editorTestTag: String? = null,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
+		MarkdownEditField(
+			initialMarkdown = noteText,
+			onMarkdownChanged = onNoteTextChanged,
+			enableSpellChecking = enableSpellChecking,
+			imagePicker = imagePicker,
+			contentPadding = PaddingValues(Ui.Padding.XL),
+			testTag = editorTestTag,
+			modifier = Modifier
+				.fillMaxWidth()
+				.weight(1f),
+		)
+
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
+
 		HdHairlineTagField(
 			label = Res.string.notes_create_tags_label.get(),
 			tags = tags,
@@ -396,24 +415,6 @@ private fun EditBody(
 				horizontal = Ui.Padding.XL,
 				vertical = Ui.Padding.L,
 			),
-		)
-
-		CollapseWhileTyping {
-			HorizontalDivider(
-				thickness = 2.dp,
-				color = MaterialTheme.colorScheme.outline,
-			)
-		}
-
-		MarkdownEditField(
-			initialMarkdown = noteText,
-			onMarkdownChanged = onNoteTextChanged,
-			enableSpellChecking = enableSpellChecking,
-			imagePicker = imagePicker,
-			contentPadding = PaddingValues(Ui.Padding.XL),
-			modifier = Modifier
-				.fillMaxWidth()
-				.weight(1f),
 		)
 	}
 }
@@ -441,21 +442,11 @@ private fun ViewFolioFooter(note: NoteContent?, noteText: String) {
 		HdMonoLabel(
 			text = Res.string.notes_word_count_short.get(words),
 		)
-		val tagCount = note?.tags?.size ?: 0
-		if (tagCount > 0) {
-			Box(
-				modifier = Modifier
-					.height(14.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
-			HdMonoLabel(text = "$tagCount TAGS")
-		}
 	}
 }
 
 @Composable
-private fun EditStatusFooter(text: String) {
+internal fun NoteEditStatusFooter(text: String, metaTestTag: String? = null) {
 	val words = remember(text) {
 		countWords(text)
 	}
@@ -473,7 +464,10 @@ private fun EditStatusFooter(text: String) {
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdMonoLabel(text = Res.string.notes_view_status_word_char.get(words, chars))
+		HdMonoLabel(
+			text = Res.string.notes_view_status_word_char.get(words, chars),
+			modifier = if (metaTestTag != null) Modifier.testTag(metaTestTag) else Modifier,
+		)
 		Spacer(modifier = Modifier.weight(1f))
 		HdMonoLabel(text = Res.string.notes_view_status_hint.get())
 	}
