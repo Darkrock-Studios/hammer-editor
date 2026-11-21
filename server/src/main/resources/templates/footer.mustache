@@ -73,6 +73,12 @@
 				<span class="footer-colophon__sep" aria-hidden="true">&middot;</span>
 				<span class="footer-version">v{{version}}</span>
 			{{/version}}
+			{{#mastheadCredit}}
+				<span class="footer-colophon__sep" aria-hidden="true">&middot;</span>
+				<span class="footer-credit">{{msg.footer_masthead_credit}}
+					<a href="https://commons.wikimedia.org/wiki/File:Epreuves_corrig%C3%A9es_pour_le_Panth%C3%A9on,_peintures_murales_par_Chenavard,_BAL_99-721.jpg"
+					   target="_blank" rel="noopener noreferrer">{{msg.footer_masthead_credit_source}}</a></span>
+			{{/mastheadCredit}}
 		</div>
 	</div>
 </footer>

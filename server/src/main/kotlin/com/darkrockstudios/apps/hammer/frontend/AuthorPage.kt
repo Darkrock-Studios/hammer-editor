@@ -80,6 +80,7 @@ fun Route.authorPage(
 						call.canonicalUrl("/assets/images/og-author.png")
 					},
 					"penName" to penName,
+					"penInitial" to ProjectName.penInitial(penName),
 					"urlPenName" to penNameForUrl,
 					"bio" to (account.bio ?: ""),
 					"bioHtml" to (bioHtml ?: ""),

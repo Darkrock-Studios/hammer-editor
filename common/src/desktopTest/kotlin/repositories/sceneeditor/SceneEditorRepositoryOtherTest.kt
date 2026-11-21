@@ -597,6 +597,32 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	}
 
 	@Test
+	fun `Rename Scene twice with the item from before the first rename`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
+
+		repo.initializeSceneEditor()
+
+		val sceneItem = SceneItem(
+			projectDef = getProject1Def(),
+			type = SceneItem.Type.Scene,
+			id = 1,
+			name = "Scene ID 1",
+			order = 0
+		)
+
+		assertTrue(repo.renameScene(sceneItem, "First Name"))
+		assertTrue(repo.renameScene(sceneItem, "Second Name"))
+
+		assertEquals("Second Name", repo.getSceneItemFromId(sceneItem.id)?.name)
+
+		val path = repo.getSceneFilePath(sceneItem.id)
+		assertEquals("Second Name", sceneDatasource.getSceneFromFilename(path).name)
+		assertTrue(ffs.exists(path.toOkioPath()))
+	}
+
+	@Test
 	fun `Rename Scene with invalid name`() = runTest {
 		configure(PROJECT_1_NAME)
 

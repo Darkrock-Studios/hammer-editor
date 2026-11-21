@@ -53,6 +53,18 @@ object ProjectName {
 	fun penNameForUrl(penName: String): String =
 		URLEncoder.encode(penName.replace(' ', '-'), "UTF-8")
 
+	/**
+	 * The letter shown in an author's avatar circle: the pen name's first character, capitalised.
+	 * Templates can't take it themselves, since mustache.java reads `{{penName.0}}` as a property
+	 * named "0" and prints nothing. A whole code point, so a name opening outside the Basic
+	 * Multilingual Plane isn't cut in half.
+	 */
+	fun penInitial(penName: String): String {
+		val name = penName.trim()
+		if (name.isEmpty()) return ""
+		return String(Character.toChars(name.codePointAt(0))).uppercase()
+	}
+
 	/** Inverse used for pen-name lookups; the router has already percent-decoded the segment. */
 	fun penNameFromUrl(segment: String): String = segment.replace('-', ' ')
 }

@@ -17,7 +17,8 @@
 		{{#hasStack}}
 			<div class="mon-error__stack-wrap">
 				<button type="button" class="btn btn--ghost mon-error__copy-btn"
-				        data-copy-stack data-copied-label="{{msg.admin_mon_errors_copied}}">
+				        data-copy=".mon-error__stack" data-copied-label="{{msg.admin_mon_errors_copied}}"
+				        data-copy-failed-label="{{msg.admin_mon_copy_failed}}">
 					<i class="fa-solid fa-copy"></i> {{msg.admin_mon_errors_copy_stack}}
 				</button>
 				<pre class="mon-error__stack">{{stackTrace}}</pre>

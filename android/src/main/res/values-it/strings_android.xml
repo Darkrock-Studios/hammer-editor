@@ -34,7 +34,7 @@
     <string name="story_info_widget_words_label">PAROLE</string>
     <string name="story_info_widget_goal_summary">%1$d%% DI %2$s %3$s</string>
     <string name="story_info_widget_cadence_today">OGGI</string>
-    <string name="story_info_widget_cadence_this_week">QUESTA SETTIMANA</string>
+    <string name="story_info_widget_cadence_this_week">LAST 7 DAYS</string>
     <string name="story_info_widget_today_words">+%1$d OGGI</string>
     <string name="story_info_widget_no_session_today">NESSUNA SESSIONE OGGI</string>
     <string name="story_info_widget_streak">SERIE DI %1$dG</string>

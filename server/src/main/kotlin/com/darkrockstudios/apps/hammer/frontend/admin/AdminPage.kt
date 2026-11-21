@@ -42,6 +42,7 @@ fun Route.adminPage(
 	userActivityRepository: com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository,
 	storyReaderRepository: com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository,
 	recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry,
+	healthService: com.darkrockstudios.apps.hammer.health.HealthService,
 	projectsSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<Long, com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession>,
 	projectSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<*, com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession>,
 	clock: kotlin.time.Clock,
@@ -53,7 +54,7 @@ fun Route.adminPage(
 			adminSettingsPage(configRepository)
 			adminMonitoringPages(
 				metricsRepository, configRepository, errorRepository, securityRepository,
-				userActivityRepository, storyReaderRepository, recurringTaskRegistry,
+				userActivityRepository, storyReaderRepository, recurringTaskRegistry, healthService,
 				projectsSyncManager, projectSyncManager, clock,
 			)
 			adminAllowedUsersPage()

@@ -116,6 +116,17 @@ class HomePageTest : BaseTest() {
 	}
 
 	@Test
+	fun `GET credits the masthead photograph in the footer`() = testApplication {
+		mockPageModelDependencies("")
+		configureApp()
+
+		val body = getHome().bodyAsText()
+
+		assertContains(body, "footer-credit")
+		assertContains(body, "Maison de Balzac")
+	}
+
+	@Test
 	fun `GET offers the iOS app through a smart app banner`() = testApplication {
 		mockPageModelDependencies("")
 		configureApp()

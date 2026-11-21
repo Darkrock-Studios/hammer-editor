@@ -4,9 +4,11 @@ import com.darkrockstudios.apps.hammer.email.MailgunConfig
 import com.darkrockstudios.apps.hammer.email.PostmarkConfig
 import com.darkrockstudios.apps.hammer.email.SendGridConfig
 import com.darkrockstudios.apps.hammer.email.SmtpConfig
+import com.darkrockstudios.apps.hammer.health.HealthToken
 import com.darkrockstudios.apps.hammer.monitoring.IgnoredErrorRule
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringConfig
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
 
 data class ServerConfigKey<T>(
@@ -61,16 +63,24 @@ object AdminServerConfig {
 
 	// Lenient so an unknown field (e.g. after a version rollback) can't silently
 	// void the whole rule list and resurrect suppressed alert emails.
-	private val ignoredRulesJson = Json { ignoreUnknownKeys = true }
+	private val lenientJson = Json { ignoreUnknownKeys = true }
 	val IGNORED_ERROR_RULES = ServerConfigKey(
 		key = "ignored_error_rules",
 		default = emptyList<IgnoredErrorRule>(),
-		parse = { ignoredRulesJson.decodeFromString<List<IgnoredErrorRule>>(it) },
+		parse = { lenientJson.decodeFromString<List<IgnoredErrorRule>>(it) },
 		serialize = {
-			ignoredRulesJson.encodeToString(
+			lenientJson.encodeToString(
 				ListSerializer(IgnoredErrorRule.serializer()),
 				it
 			)
 		}
+	)
+
+	// Lenient for the same rollback reason; null means no token has been issued.
+	val HEALTH_TOKEN = ServerConfigKey<HealthToken?>(
+		key = "health_token",
+		default = null,
+		parse = { lenientJson.decodeFromString(HealthToken.serializer().nullable, it) },
+		serialize = { lenientJson.encodeToString(HealthToken.serializer().nullable, it) }
 	)
 }

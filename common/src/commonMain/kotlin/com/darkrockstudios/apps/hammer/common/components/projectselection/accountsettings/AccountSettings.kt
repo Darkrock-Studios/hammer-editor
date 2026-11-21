@@ -66,6 +66,8 @@ interface AccountSettings : ComponentToaster {
 		val currentUrl: String? = null,
 		val currentEmail: String? = null,
 		val serverSetup: Boolean = false,
+		/** A server is set up and sync will run, even if its session has lapsed. */
+		val serverIsConfigured: Boolean = false,
 		val serverIsLoggedIn: Boolean = false,
 		val serverUrl: String? = null,
 		/** The typed URL would connect in the clear, so the setup screen warns about it. */

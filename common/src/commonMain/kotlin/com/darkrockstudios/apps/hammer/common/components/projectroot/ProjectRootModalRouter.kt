@@ -6,6 +6,7 @@ import com.arkivanov.decompose.router.slot.SlotNavigation
 import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.duplicateids.DuplicateIdsComponent
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchComponent
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
@@ -89,6 +90,14 @@ class ProjectRootModalRouter(
 				)
 			)
 
+			Config.DuplicateIds -> DuplicateIdsModal(
+				DuplicateIdsComponent(
+					componentContext,
+					projectDef,
+					dismissDialog = ::dismissDuplicateIds,
+				)
+			)
+
 			is Config.ProtocolMismatch -> ProtocolMismatchModal(
 				ProtocolMismatchComponent(
 					componentContext,
@@ -138,6 +147,14 @@ class ProjectRootModalRouter(
 		navigation.activate(Config.None)
 	}
 
+	fun showDuplicateIds() {
+		navigation.activate(Config.DuplicateIds)
+	}
+
+	fun dismissDuplicateIds() {
+		navigation.activate(Config.None)
+	}
+
 	fun showFocusMode(sceneItem: SceneItem) {
 		navigation.activate(Config.FocusMode(sceneItem))
 	}
@@ -166,6 +183,9 @@ class ProjectRootModalRouter(
 
 		@Serializable
 		data class FocusMode(val sceneItem: SceneItem) : Config()
+
+		@Serializable
+		data object DuplicateIds : Config()
 
 		@Serializable
 		data class ProtocolMismatch(

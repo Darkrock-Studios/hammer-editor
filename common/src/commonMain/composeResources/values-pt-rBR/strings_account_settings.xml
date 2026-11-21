@@ -23,6 +23,9 @@
 	<string name="settings_example_project_success_message">Exemplo de projeto criado.</string>
 	<string name="settings_server_status_connected">CONECTADO</string>
 	<string name="settings_server_status_not_connected">NÃO CONECTADO</string>
+	<string name="settings_server_status_signed_out">SIGNED OUT</string>
+	<string name="settings_server_signed_out_message">Your session with this server has ended. Log in again to resume syncing.</string>
+	<string name="settings_server_log_in_again_button">Log In Again</string>
 	<string name="settings_server_url_greeble">URL</string>
 	<string name="settings_server_help_link">AJUDA ↗</string>
 	<string name="settings_server_description">Configurar sincronização de dados</string>

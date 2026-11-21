@@ -329,6 +329,10 @@ for this yet.
 The protocol for synchronizing data between client and server is outlined here:
 [SYNCING-PROTOCOL.md](docs/SYNCING-PROTOCOL.md)
 
+## Writing Activity
+
+How words written are counted is in [WRITING-ACTIVITY.md](docs/WRITING-ACTIVITY.md).
+
 ## How to Release
 
 When `develop` is ready to release, run: `./gradlew prepareForRelease`

@@ -44,6 +44,7 @@ fun ServerSettingsUi(
 
 	val connectedLabel = Res.string.settings_server_status_connected.get()
 	val notConnectedLabel = Res.string.settings_server_status_not_connected.get()
+	val signedOutLabel = Res.string.settings_server_status_signed_out.get()
 	val urlGreebleLabel = Res.string.settings_server_url_greeble.get()
 	val topEnd = if (state.serverIsLoggedIn) {
 		val email = state.currentEmail
@@ -52,11 +53,13 @@ fun ServerSettingsUi(
 		} else {
 			connectedLabel
 		}
+	} else if (state.serverIsConfigured) {
+		signedOutLabel
 	} else {
 		notConnectedLabel
 	}
 	val bottomStart = state.currentUrl
-		?.takeIf { state.serverIsLoggedIn && it.isNotBlank() }
+		?.takeIf { state.serverIsConfigured && it.isNotBlank() }
 		?.let { "$urlGreebleLabel · ${truncate(it, EMAIL_GREEBLE_MAX)}" }
 
 	HdCatalogueCard(
@@ -85,15 +88,17 @@ fun ServerSettingsUi(
 
 		Spacer(Modifier.size(20.dp))
 
-		AnimatedContent(targetState = state.serverIsLoggedIn) { loggedIn ->
-			if (loggedIn) {
-				LoggedInBody(
+		AnimatedContent(targetState = state.serverIsConfigured) { configured ->
+			if (configured) {
+				ConfiguredBody(
+					loggedIn = state.serverIsLoggedIn,
 					autoSync = state.syncAutomaticSync,
 					autoCloseDialog = state.syncAutoCloseDialog,
 					autoBackups = state.syncAutomaticBackups,
 					onAutoSyncChange = { scope.launch { component.setAutoSyncing(it) } },
 					onAutoCloseChange = { scope.launch { component.setAutoCloseDialogs(it) } },
 					onAutoBackupsChange = { scope.launch { component.setAutomaticBackups(it) } },
+					onLogInAgain = { component.reauthenticate() },
 					onRemoveServer = { showConfirmRemoveServer = true },
 				)
 			} else {
@@ -147,16 +152,32 @@ private fun LoggedOutBody(
 }
 
 @Composable
-private fun LoggedInBody(
+private fun ConfiguredBody(
+	loggedIn: Boolean,
 	autoSync: Boolean,
 	autoCloseDialog: Boolean,
 	autoBackups: Boolean,
 	onAutoSyncChange: (Boolean) -> Unit,
 	onAutoCloseChange: (Boolean) -> Unit,
 	onAutoBackupsChange: (Boolean) -> Unit,
+	onLogInAgain: () -> Unit,
 	onRemoveServer: () -> Unit,
 ) {
 	Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+		if (!loggedIn) {
+			Text(
+				text = Res.string.settings_server_signed_out_message.get(),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+			HdHairlineButton(
+				label = Res.string.settings_server_log_in_again_button.get(),
+				onClick = onLogInAgain,
+				emphasised = true,
+			)
+			Spacer(Modifier.size(8.dp))
+		}
+
 		HdMonoLabel(text = Res.string.settings_server_sync_backup_preferences.get())
 
 		HdHairlineToggleRow(

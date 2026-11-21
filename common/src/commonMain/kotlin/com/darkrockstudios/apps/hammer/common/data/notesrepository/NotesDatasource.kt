@@ -76,7 +76,7 @@ class NotesDatasource(
 	}
 
 	suspend fun reIdNote(oldId: Int, newId: Int): NoteContent = withContext(ioDispatcher) {
-		val oldPath = getNotePath(oldId).toOkioPath()
+		val oldPath = findNotePath(oldId)
 		val newPath = getNotePath(newId).toOkioPath()
 		fileSystem.atomicMove(oldPath, newPath)
 
@@ -88,6 +88,15 @@ class NotesDatasource(
 		}
 
 		return@withContext newNote
+	}
+
+	// The loader reads every note file and takes the id from its content, so the file can sit elsewhere.
+	private fun findNotePath(id: Int): Path {
+		val expected = getNotePath(id).toOkioPath()
+		if (fileSystem.exists(expected)) return expected
+		return fileSystem.listRecursively(getNotesDirectory().toOkioPath()).filterNotePathsOkio()
+			.firstOrNull { path -> loadNoteOrNull(path)?.note?.id == id }
+			?: expected
 	}
 
 	companion object {

@@ -41,8 +41,9 @@ class EncyclopediaDatasource(
 
 	/**
 	 * Where this entry lives on disk: the current `~`-delimited filename, or the pre-v3
-	 * `-`-delimited one when that is what is actually there. Falls back to the current format so
-	 * callers writing a new file always produce it.
+	 * `-`-delimited one when that is what is actually there, in this type's directory or, failing
+	 * that, in another type's. Falls back to the current format so callers writing a new file
+	 * always produce it.
 	 */
 	private fun resolveEntryPath(id: Int, type: EntryType, name: String): Path {
 		val dir = getTypeDirectory(type).toOkioPath()
@@ -50,7 +51,14 @@ class EncyclopediaDatasource(
 		if (fileSystem.exists(current)) return current
 
 		val legacy = dir / getLegacyEntryFilename(id, type, name)
-		return if (fileSystem.exists(legacy)) legacy else current
+		if (fileSystem.exists(legacy)) return legacy
+
+		val misplaced = listEntryPaths().firstOrNull { it.name == current.name || it.name == legacy.name }
+		if (misplaced != null) {
+			Napier.w("Entry $id lives at $misplaced, not in its ${type.text} directory")
+			return misplaced
+		}
+		return current
 	}
 
 	fun getEntryPath(id: Int): HPath {
@@ -185,7 +193,19 @@ class EncyclopediaDatasource(
 
 		val oldPath = getEntryPath(oldDef).toOkioPath()
 		val newPath = getEntryPath(newDef).toOkioPath()
+		val content = try {
+			loadEntry(oldPath.toHPath()).entry
+		} catch (e: EntryLoadError) {
+			Napier.w("Re-id of entry $oldId moves it without updating its unreadable content", e)
+			null
+		}
 		fileSystem.atomicMove(oldPath, newPath)
+		// The id inside the file is what the entry's image and sync entity are looked up by.
+		if (content != null) {
+			fileSystem.write(newPath) {
+				writeUtf8(toml.encodeToString(EntryContainer(content.copy(id = newId))))
+			}
+		}
 
 		loadEntriesImperative()
 	}
@@ -324,6 +344,7 @@ class EncyclopediaDatasource(
 		// Old name set was the restricted `[\d\p{L}+ _']` so `-` is unambiguously a delimiter.
 		val LEGACY_ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\d\p{L}+ _']+)\.toml""")
 		val LEGACY_ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-image\.([a-zA-Z0-9]+)""")
+		val ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)~(\d+)~image\.([a-zA-Z0-9]+)""")
 
 		const val ENCYCLOPEDIA_DIRECTORY = "encyclopedia"
 
@@ -352,7 +373,7 @@ class EncyclopediaDatasource(
 			return "${type.text}~$id~${ProjectsRepository.encodeForFilename(name)}.toml"
 		}
 
-		private fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
+		fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
 			return "${type.text}~$id~image.$fileExtension"
 		}
 

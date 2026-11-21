@@ -4,12 +4,18 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataUpdate
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -32,7 +38,9 @@ import kotlin.test.assertEquals
 class SceneMetadataPanelComponentTest : ComponentTest() {
 
 	private lateinit var sceneEditor: SceneEditorService
+	private lateinit var encyclopediaService: EncyclopediaService
 	private lateinit var metadataUpdateFlow: MutableSharedFlow<SceneMetadataUpdate>
+	private lateinit var entryListFlow: MutableSharedFlow<List<EntryDef>>
 
 	private val sceneItem
 		get() = SceneItem(
@@ -54,8 +62,9 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 		every { sceneEditor.getSceneFilePathOrNull(any()) } returns null
 		coEvery { sceneEditor.loadSceneMetadata(any()) } returns SceneMetadata()
 
-		val encyclopediaService = mockk<EncyclopediaService>(relaxed = true)
-		every { encyclopediaService.entryListFlow } returns MutableSharedFlow()
+		encyclopediaService = mockk(relaxed = true)
+		entryListFlow = MutableSharedFlow()
+		every { encyclopediaService.entryListFlow } returns entryListFlow
 		coEvery { encyclopediaService.ensureEntriesLoaded() } returns emptyList()
 
 		setupComponentKoin(module {
@@ -74,6 +83,43 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 		showEntry = { },
 		onShowGlobalSearchForTag = { },
 	)
+
+	private fun entry(id: Int, name: String) = EntryContent(
+		id = id,
+		name = name,
+		type = EntryType.PERSON,
+		text = "",
+		tags = emptySet(),
+	)
+
+	@Test
+	fun `An unreadable entry is skipped and the rest stay searchable`() = runTest(mainTestDispatcher) {
+		val readable = entry(1, "Alice")
+		val unreadable = entry(2, "Bob")
+		every { encyclopediaService.loadEntry(readable.toDef(projectDef)) } returns EntryContainer(readable)
+		every { encyclopediaService.loadEntry(unreadable.toDef(projectDef)) } throws
+			EntryLoadError(HPath("/projects/Test/bob.toml", "bob.toml", true), IOException("missing"))
+
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		entryListFlow.emit(listOf(readable.toDef(projectDef), unreadable.toDef(projectDef)))
+		advanceUntilIdle()
+
+		val suggestions = component.searchEntriesForAdd("alice", EntryType.entries.toSet(), 10)
+		assertEquals(listOf(readable.toDef(projectDef)), suggestions.map { it.entryDef })
+		assertEquals(emptyList(), component.searchEntriesForAdd("bob", EntryType.entries.toSet(), 10))
+
+		// The collector is still alive: a later list is picked up.
+		val later = entry(3, "Carol")
+		every { encyclopediaService.loadEntry(later.toDef(projectDef)) } returns EntryContainer(later)
+		entryListFlow.emit(listOf(later.toDef(projectDef)))
+		advanceUntilIdle()
+
+		val laterSuggestions = component.searchEntriesForAdd("carol", EntryType.entries.toSet(), 10)
+		assertEquals(listOf(later.toDef(projectDef)), laterSuggestions.map { it.entryDef })
+	}
 
 	@Test
 	fun `A changed scene item updates the title`() = runTest(mainTestDispatcher) {

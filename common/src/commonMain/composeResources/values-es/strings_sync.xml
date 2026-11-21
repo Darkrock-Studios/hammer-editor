@@ -137,12 +137,14 @@
 	<string name="sync_log_entity_download_failed_general">No se pudo descargar la entidad %1$d</string>
 	<string name="sync_log_entity_download_failed_not_found">Entidad %1$d no encontrada en el servidor</string>
 	<string name="sync_log_entity_download_not_modified">Entidad %1$d sin modificar</string>
+	<string name="sync_log_entity_download_skipped_unsaved">Skipped downloading entity %1$d: it has unsaved edits. Open the project to save or discard them.</string>
 	<string name="sync_log_entity_download_rejected_mismatch">Descarga de la entidad %1$d rechazada: el servidor devolvió un id o tipo no coincidente</string>
 	<string name="sync_log_entity_upload_entity_not_owned">No se pudo subir la entidad %1$d: el tipo no pertenece a nada, probablemente eliminada</string>
 	<string name="sync_log_entity_delete_failed">No se pudo eliminar el ID %1$d en el servidor: %2$s</string>
 	<string name="sync_log_entity_delete_success">ID %1$d eliminado en el servidor</string>
 	<string name="sync_log_entity_conflict">Se encontró un conflicto para una nueva entidad, ¡esto no debería ser posible! ID: %1$d TIPO: %2$s</string>
 	<string name="sync_log_entity_failed">La sincronización falló: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_stale_hash_detected">El hash en caché del servidor está obsoleto para la entidad %1$d. Reparando mediante subida forzada.</string>
 	<string name="sync_log_stale_hash_healed">Caché del servidor reparada correctamente para la entidad %1$d mediante subida forzada</string>
 	<string name="sync_log_stale_hash_heal_failed">No se pudo reparar la caché del servidor para la entidad %1$d — la subida forzada falló</string>

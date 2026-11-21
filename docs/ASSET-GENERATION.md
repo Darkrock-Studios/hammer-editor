@@ -100,3 +100,14 @@ width.
 Edit the `fonts:`, `palette:`, or `sources:` section in `scripts/assets.yaml`,
 then re-run `scripts/generate-assets.sh`. Every downstream asset that references
 the changed value will pick it up.
+
+## Home page masthead
+
+`server/src/main/resources/assets/images/masthead-*.{jpg,webp}` are not in the manifest.
+They are a composite of three sheets from Théophile Gautier's corrected proofs of 1848
+(Maison de Balzac, Paris Musées, CC0), with coffee rings, red pen marks and a folded edge
+added over the scans, placed on a dark desk. Source scans:
+<https://commons.wikimedia.org/wiki/File:Epreuves_corrig%C3%A9es_pour_le_Panth%C3%A9on,_peintures_murales_par_Chenavard,_BAL_99-721.jpg>
+(sheets 1, 3 and 5 of that set). The 1920 file is the whole band; the 960 file is a centred
+full-height slice, because the phone masthead is taller than it is wide and `cover` on the wide
+band zooms in far too much. The footer credit on the home page must stay with the image.

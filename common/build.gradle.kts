@@ -98,6 +98,7 @@ kotlin {
 				implementation(libs.epub4kmp.core)
 				implementation(libs.pdfkmp)
 				implementation(libs.kotlinx.html)
+				implementation(libs.kotlin.multiplatform.diff)
 			}
 		}
 		val commonTest by getting {

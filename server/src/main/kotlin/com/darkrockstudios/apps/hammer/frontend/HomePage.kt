@@ -45,6 +45,7 @@ fun Route.homePage(
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/home.css"
 			model["preloadImages"] = MASTHEAD_PRELOADS
+			model["mastheadCredit"] = true
 			val serverMessageHtml = markdownService.markdownToSafeHtml(
 				configRepository.get(AdminServerConfig.SERVER_MESSAGE)
 			)

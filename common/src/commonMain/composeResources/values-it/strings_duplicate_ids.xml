@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="duplicate_ids_section">DUPLICATE FILES</string>
+	<string name="duplicate_ids_remaining">%1$d TO RESOLVE</string>
+	<string name="duplicate_ids_close">× LATER</string>
+	<string name="duplicate_ids_title_entry">%1$d encyclopedia entries share the ID %2$d</string>
+	<string name="duplicate_ids_title_entry_image">Encyclopedia entry %2$d has %1$d images</string>
+	<string name="duplicate_ids_title_scene">%1$d scenes share the ID %2$d</string>
+	<string name="duplicate_ids_title_draft">%1$d drafts share the ID %2$d</string>
+	<string name="duplicate_ids_title_note">%1$d notes share the ID %2$d</string>
+	<string name="duplicate_ids_body_several">File-sync tools such as Syncthing can leave copies like this when two devices change the same file, or both create something at the same time. Tick the copies to keep; unticked copies are deleted after a backup of the project is made. Any extra copy you keep becomes a separate item.</string>
+	<string name="duplicate_ids_body_single">Pick the image to keep. The others are deleted after a backup of the project is made.</string>
+	<string name="duplicate_ids_body_groups">Scenes inside a deleted group are moved into the kept one, not deleted.</string>
+	<string name="duplicate_ids_in_use">IN USE</string>
+	<string name="duplicate_ids_group">Gruppo</string>
+	<string name="duplicate_ids_archived">ARCHIVED</string>
+	<string name="duplicate_ids_modified">EDITED %1$s</string>
+	<string name="duplicate_ids_show_differences">SHOW DIFFERENCES ↓</string>
+	<string name="duplicate_ids_hide_differences">HIDE DIFFERENCES ↑</string>
+	<string name="duplicate_ids_identical">SAME CONTENT AS IN USE</string>
+	<string name="duplicate_ids_keep_prefix">KEEP</string>
+	<string name="duplicate_ids_keep_one">This copy</string>
+	<string name="duplicate_ids_keep_many">%1$d copies</string>
+	<string name="duplicate_ids_decide_later">Decide later</string>
+	<string name="duplicate_ids_working">WORKING…</string>
+	<string name="duplicate_ids_error_backup_label">BACKUP FAILED</string>
+	<string name="duplicate_ids_error_backup">The project backup could not be made, so nothing was deleted.</string>
+	<string name="duplicate_ids_error_stale_label">FILES CHANGED</string>
+	<string name="duplicate_ids_error_stale">These files changed on disk while the dialog was open. The list has been refreshed.</string>
+</resources>

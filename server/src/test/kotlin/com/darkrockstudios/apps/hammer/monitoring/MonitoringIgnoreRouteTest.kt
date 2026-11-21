@@ -56,6 +56,7 @@ class MonitoringIgnoreRouteTest : BaseTest() {
 				userActivityRepository = mockk(relaxed = true),
 				storyReaderRepository = mockk(relaxed = true),
 				recurringTaskRegistry = RecurringTaskRegistry(),
+				healthService = mockk(relaxed = true),
 				projectsSyncManager = mockk<SyncSessionManager<Long, ProjectsSynchronizationSession>>(
 					relaxed = true
 				),

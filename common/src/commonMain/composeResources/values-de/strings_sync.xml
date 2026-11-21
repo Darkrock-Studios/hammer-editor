@@ -137,12 +137,14 @@
 	<string name="sync_log_entity_download_failed_general">Entität %1$d konnte nicht heruntergeladen werden</string>
 	<string name="sync_log_entity_download_failed_not_found">Entität %1$d nicht auf dem Server gefunden</string>
 	<string name="sync_log_entity_download_not_modified">Entität %1$d nicht geändert</string>
+	<string name="sync_log_entity_download_skipped_unsaved">Skipped downloading entity %1$d: it has unsaved edits. Open the project to save or discard them.</string>
 	<string name="sync_log_entity_download_rejected_mismatch">Download für Entität %1$d abgelehnt: Server lieferte eine nicht übereinstimmende ID oder Typ</string>
 	<string name="sync_log_entity_upload_entity_not_owned">Entität %1$d konnte nicht hochgeladen werden: Typ gehört zu nichts, wahrscheinlich gelöscht</string>
 	<string name="sync_log_entity_delete_failed">ID %1$d konnte auf dem Server nicht gelöscht werden: %2$s</string>
 	<string name="sync_log_entity_delete_success">ID %1$d auf dem Server gelöscht</string>
 	<string name="sync_log_entity_conflict">Konflikt für neue Entität aufgetreten, das sollte nicht möglich sein! ID: %1$d TYP: %2$s</string>
 	<string name="sync_log_entity_failed">Synchronisierung fehlgeschlagen: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_stale_hash_detected">Der zwischengespeicherte Server-Hash für Entität %1$d ist veraltet. Wird durch erzwungenes Hochladen repariert.</string>
 	<string name="sync_log_stale_hash_healed">Server-Cache für Entität %1$d durch erzwungenes Hochladen erfolgreich repariert</string>
 	<string name="sync_log_stale_hash_heal_failed">Server-Cache für Entität %1$d konnte nicht repariert werden – erzwungenes Hochladen fehlgeschlagen</string>

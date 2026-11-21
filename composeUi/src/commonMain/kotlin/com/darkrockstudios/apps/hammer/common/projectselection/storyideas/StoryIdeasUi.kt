@@ -100,6 +100,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdWarningNotice
 import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
@@ -135,6 +136,8 @@ import com.darkrockstudios.apps.hammer.ideas_header
 import com.darkrockstudios.apps.hammer.ideas_header_meta
 import com.darkrockstudios.apps.hammer.ideas_list_empty
 import com.darkrockstudios.apps.hammer.ideas_list_empty_archived
+import com.darkrockstudios.apps.hammer.ideas_load_failed_label
+import com.darkrockstudios.apps.hammer.ideas_load_failed_message
 import com.darkrockstudios.apps.hammer.ideas_promote_button
 import com.darkrockstudios.apps.hammer.ideas_promote_dialog_message
 import com.darkrockstudios.apps.hammer.ideas_promote_dialog_title
@@ -260,6 +263,7 @@ fun StoryIdeasUi(
 				IdeasBrowse(
 					component = component,
 					ideas = state.ideas,
+					loadFailed = state.loadFailed,
 					sharedTransitionScope = this@SharedTransitionLayout,
 					animatedVisibilityScope = this@AnimatedContent,
 				)
@@ -273,6 +277,7 @@ fun StoryIdeasUi(
 private fun IdeasBrowse(
 	component: StoryIdeas,
 	ideas: List<StoryIdea>,
+	loadFailed: Boolean,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -488,7 +493,18 @@ private fun IdeasBrowse(
 					),
 					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				) {
-					if (visibleIdeas.isEmpty()) {
+					if (loadFailed) {
+						item(span = StaggeredGridItemSpan.FullLine) {
+							HdWarningNotice(
+								label = Res.string.ideas_load_failed_label.get(),
+								message = Res.string.ideas_load_failed_message.get(),
+								modifier = Modifier.padding(bottom = Ui.Padding.L),
+							)
+						}
+					}
+
+					// With nothing loaded, the notice stands in for the empty text
+					if (visibleIdeas.isEmpty() && !(loadFailed && ideas.isEmpty())) {
 						item(span = StaggeredGridItemSpan.FullLine) {
 							Box(
 								modifier = Modifier

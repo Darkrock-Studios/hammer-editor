@@ -137,12 +137,14 @@
 	<string name="sync_log_entity_download_failed_general">Falha ao baixar a entidade %1$d</string>
 	<string name="sync_log_entity_download_failed_not_found">Entidade %1$d não encontrada no servidor</string>
 	<string name="sync_log_entity_download_not_modified">Entidade %1$d não modificada</string>
+	<string name="sync_log_entity_download_skipped_unsaved">Skipped downloading entity %1$d: it has unsaved edits. Open the project to save or discard them.</string>
 	<string name="sync_log_entity_download_rejected_mismatch">Download da entidade %1$d rejeitado: o servidor retornou um id ou tipo incompatível</string>
 	<string name="sync_log_entity_upload_entity_not_owned">Falha ao enviar a entidade %1$d: o tipo não pertence a nada, provavelmente excluída</string>
 	<string name="sync_log_entity_delete_failed">Falha ao excluir ID %1$d no servidor: %2$s</string>
 	<string name="sync_log_entity_delete_success">ID %1$d excluído no servidor</string>
 	<string name="sync_log_entity_conflict">Encontrado um conflito para a nova Entidade, isso não deveria ser possível! ID: %1$d TYPE: %2$s</string>
 	<string name="sync_log_entity_failed">Sincronização falhou: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_stale_hash_detected">O hash em cache no servidor está desatualizado para a entidade %1$d. Corrigindo através do 'upload' forçado.</string>
 	<string name="sync_log_stale_hash_healed">Cache do servidor para a entidade %1$d corrigido com sucesso através do 'upload' forçado</string>
 	<string name="sync_log_stale_hash_heal_failed">Falha ao corrigir a cache do servidor para a entidade%1$d , 'upload' forçado falhou .</string>
