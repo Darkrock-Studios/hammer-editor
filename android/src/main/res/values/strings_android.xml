@@ -34,7 +34,7 @@
     <string name="story_info_widget_words_label">WORDS</string>
     <string name="story_info_widget_goal_summary">%1$d%% OF %2$s %3$s</string>
     <string name="story_info_widget_cadence_today">TODAY</string>
-    <string name="story_info_widget_cadence_this_week">THIS WEEK</string>
+    <string name="story_info_widget_cadence_this_week">LAST 7 DAYS</string>
     <string name="story_info_widget_today_words">+%1$d TODAY</string>
     <string name="story_info_widget_no_session_today">NO SESSION TODAY</string>
     <string name="story_info_widget_streak">%1$dD STREAK</string>
