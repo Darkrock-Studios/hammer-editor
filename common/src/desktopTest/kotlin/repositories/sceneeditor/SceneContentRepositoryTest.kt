@@ -291,8 +291,8 @@ class SceneContentRepositoryTest : BaseTest() {
 		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
 			assertEquals("Content of chapter id 3, typed", readUtf8())
 		}
-		coVerify { writingSessionTracker.onSceneSaved(3, "Content of scene id 3, typed", UpdateSource.Editor) }
-		coVerify { writingSessionTracker.onSceneSaved(3, "Content of chapter id 3, typed", UpdateSource.Repository) }
+		coVerify { writingSessionTracker.onSceneSaved(3, "Content of scene id 3, typed", UpdateSource.Editor, any()) }
+		coVerify { writingSessionTracker.onSceneSaved(3, "Content of chapter id 3, typed", UpdateSource.Repository, any()) }
 	}
 
 	@Test
@@ -334,7 +334,9 @@ class SceneContentRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 		service.loadSceneBuffer(sceneItem)
 
-		verify { writingSessionTracker.ensureBaseline(3, "Content of chapter id 3") }
+		val content = slot<() -> String>()
+		verify { writingSessionTracker.ensureBaseline(3, any(), capture(content)) }
+		assertEquals("Content of chapter id 3", content.captured())
 	}
 
 	@Test
@@ -352,7 +354,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertFalse(service.hasDirtyBuffer(sceneItem.id))
-		coVerify(exactly = 0) { writingSessionTracker.onSceneSaved(any(), any(), any()) }
+		coVerify(exactly = 0) { writingSessionTracker.onSceneSaved(any(), any(), any(), any()) }
 		coVerify(exactly = 0) { statisticsRepository.markDirty() }
 	}
 

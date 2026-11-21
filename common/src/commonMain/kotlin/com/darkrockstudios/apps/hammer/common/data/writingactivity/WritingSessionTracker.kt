@@ -39,6 +39,10 @@ import kotlin.time.Instant
  *
  * Anchoring only records text; it is tokenized and its shingles added by the next editor save, on
  * that save's thread.
+ *
+ * Callers pass the buffer revision their text was captured at, so saves and re-anchors that arrive
+ * out of order are put back in order: a save older than the scene's newest one changes nothing, and
+ * a save captured before a re-anchor is credited against the anchor it was typed into.
  */
 class WritingSessionTracker(
 	private val repository: WritingActivityRepository,
@@ -48,16 +52,26 @@ class WritingSessionTracker(
 
 	override val projectScope = ProjectDefScope(projectDef)
 
-	private class Anchor(val text: String, val words: Lazy<ActivityWords>) {
+	/** [revision] is the buffer revision of [text]; null where the caller had none. */
+	private class Anchor(val text: String, val words: Lazy<ActivityWords>, val revision: Long?) {
 		var credit = 0
 		var lastSeen: String = text
 		var lastSeenWords: Lazy<ActivityWords> = words
 
-		/** Ticket of the editor save [credit] and [lastSeen] come from. */
-		var ticket = 0L
+		/** Revision of the newest content seen: the anchor's own, or the latest editor save's. */
+		var newest: Long? = revision
+
+		/** The anchor this one replaced, still credited by saves captured before the replacement. */
+		var replaced: Anchor? = null
+
+		/** Seen text when this anchor was replaced, before its own typing joined it. */
+		var seenWhenReplaced: Set<Long>? = null
 
 		/** Anchored at [content] with no editor save since, so re-anchoring there changes nothing. */
 		fun isAt(content: String): Boolean = lastSeenWords === words && text == content
+
+		/** Content at [revision] is older than what this anchor has already seen. */
+		fun isPast(revision: Long?): Boolean = revision != null && newest?.let { revision <= it } == true
 	}
 
 	/** Guards the session log and its cache. */
@@ -82,7 +96,6 @@ class WritingSessionTracker(
 	private var highWater = 0
 	private var epochStart: Instant? = null
 	private var lastRecorded: Instant? = null
-	private var nextTicket = 0L
 
 	// Cached in memory once loaded from disk; kept in sync with every save.
 	private var sessions: List<WritingSession>? = null
@@ -91,24 +104,37 @@ class WritingSessionTracker(
 	/** Whether the scene has an anchor, so a caller can skip preparing text it would not use. */
 	fun holdsBaseline(sceneId: Int): Boolean = baselineLock.withReentrantLock { sceneId in anchors }
 
-	/** Anchors a scene to [content] unless it already has an anchor. */
-	fun ensureBaseline(sceneId: Int, content: String) {
+	/** Anchors a scene to [content], read only when it has no anchor yet. */
+	fun ensureBaseline(sceneId: Int, revision: Long?, content: () -> String) {
+		if (holdsBaseline(sceneId)) return
+		val text = content()
 		baselineLock.withReentrantLock {
-			if (sceneId !in anchors) install(sceneId, content, lazy { ActivityWords.of(content) })
+			if (sceneId !in anchors) install(sceneId, text, lazy { ActivityWords.of(text) }, revision)
 		}
 	}
+
+	fun ensureBaseline(sceneId: Int, content: String, revision: Long? = null) =
+		ensureBaseline(sceneId, revision) { content }
 
 	/** Anchors a scene to [content], banking the credit of any anchor it had. */
-	fun rememberBaseline(sceneId: Int, content: String) {
-		baselineLock.withReentrantLock { reanchor(sceneId, content) }
+	fun rememberBaseline(sceneId: Int, content: String, revision: Long? = null) {
+		baselineLock.withReentrantLock { reanchor(sceneId, content, revision) }
 	}
 
-	/** Re-anchors a scene the tracker holds at [content], as [rememberBaseline] does; others stay untracked. */
-	fun replaceBaseline(sceneId: Int, content: String) {
+	/**
+	 * Re-anchors a scene the tracker holds at [content], read only then, as [rememberBaseline] does;
+	 * others stay untracked.
+	 */
+	fun replaceBaseline(sceneId: Int, revision: Long?, content: () -> String) {
+		if (!holdsBaseline(sceneId)) return
+		val text = content()
 		baselineLock.withReentrantLock {
-			if (sceneId in anchors) reanchor(sceneId, content)
+			if (sceneId in anchors) reanchor(sceneId, text, revision)
 		}
 	}
+
+	fun replaceBaseline(sceneId: Int, content: String, revision: Long? = null) =
+		replaceBaseline(sceneId, revision) { content }
 
 	/** Drops the anchor of a deleted scene, banking its credit. What it held stays seen. */
 	fun forgetBaseline(sceneId: Int) {
@@ -144,51 +170,77 @@ class WritingSessionTracker(
 	}
 
 	/**
-	 * Processes a successful scene save and returns the words recorded for it. An editor save is
-	 * credited against the scene's anchor, or anchors a scene that has none and credits nothing. Any
-	 * other source re-anchors a scene the tracker holds. Call off the main thread: an editor save
-	 * diffs the scene against its anchor.
+	 * Processes a successful scene save of [newContent], captured at buffer [revision], and returns the
+	 * words recorded for it. An editor save is credited against the scene's anchor, or anchors a scene
+	 * that has none and credits nothing. Any other source re-anchors a scene the tracker holds. Call
+	 * off the main thread: an editor save diffs the scene against its anchor.
 	 */
-	suspend fun onSceneSaved(sceneId: Int, newContent: String, source: UpdateSource): Int {
+	suspend fun onSceneSaved(sceneId: Int, newContent: String, source: UpdateSource, revision: Long? = null): Int {
 		if (source != UpdateSource.Editor) {
-			replaceBaseline(sceneId, newContent)
+			replaceBaseline(sceneId, newContent, revision)
 			return 0
 		}
 
 		val words = ActivityWords.of(newContent)
-		val (recorded, at) = creditEditorSave(sceneId, newContent, words)
+		val (recorded, at) = creditEditorSave(sceneId, newContent, words, revision)
 		if (recorded > 0) recordWriting(recorded, at)
 		return recorded
 	}
 
-	private fun creditEditorSave(sceneId: Int, content: String, words: ActivityWords): Pair<Int, Instant> {
-		val ticket = baselineLock.withReentrantLock { ++nextTicket }
+	/** Under [baselineLock]. The anchor content at [revision] was typed into, or null when it is stale. */
+	private fun targetFor(anchor: Anchor, revision: Long?): Anchor? {
+		if (revision == null || anchor.revision == null || revision >= anchor.revision) {
+			return anchor.takeUnless { it.isPast(revision) }
+		}
+		val replaced = anchor.replaced ?: return null
+		val typedInto = replaced.revision == null || revision >= replaced.revision
+		return replaced.takeIf { typedInto && !it.isPast(revision) }
+	}
+
+	private fun creditEditorSave(
+		sceneId: Int,
+		content: String,
+		words: ActivityWords,
+		revision: Long?,
+	): Pair<Int, Instant> {
 		while (true) {
 			markSeen()
 			val snapshot = baselineLock.withReentrantLock {
 				val now = clock.now()
 				restartEpochIfDue(now)
-				if (unseen.isEmpty()) EditorSaveSnapshot(now, anchors[sceneId], reproduced) else null
+				val anchor = anchors[sceneId]
+				val target = anchor?.let { targetFor(it, revision) }
+				val seen = target?.seenWhenReplaced ?: reproduced
+				if (unseen.isEmpty()) EditorSaveSnapshot(now, anchor, target, seen) else null
 			} ?: continue
 			val anchor = snapshot.anchor
 			if (anchor == null) {
 				baselineLock.withReentrantLock {
-					if (sceneId !in anchors && sceneId !in retired) install(sceneId, content, lazyOf(words))
+					if (sceneId !in anchors && sceneId !in retired) {
+						install(sceneId, content, lazyOf(words), revision)
+					}
 				}
 				return 0 to snapshot.now
 			}
+			val target = snapshot.target ?: return 0 to snapshot.now
 
-			val credit = countOriginalWords(anchor.words.value, words, snapshot.seen)
+			val credit = countOriginalWords(target.words.value, words, snapshot.seen)
 
 			val recorded = baselineLock.withReentrantLock {
 				when {
 					anchors[sceneId] !== anchor -> null
-					ticket < anchor.ticket -> 0
+					targetFor(anchor, revision) !== target -> 0
 					else -> {
-						anchor.credit = credit
-						anchor.lastSeen = content
-						anchor.lastSeenWords = lazyOf(words)
-						anchor.ticket = ticket
+						if (target === anchor) {
+							anchor.lastSeen = content
+							anchor.lastSeenWords = lazyOf(words)
+						} else {
+							// Typed before the re-anchor: its credit is banked, and its text is gone.
+							banked += credit - target.credit
+							unseen += lazyOf(words)
+						}
+						target.credit = credit
+						if (revision != null) target.newest = revision
 						val total = banked + anchors.values.sumOf { it.credit }
 						val growth = (total - highWater).coerceAtLeast(0)
 						highWater = maxOf(highWater, total)
@@ -201,7 +253,7 @@ class WritingSessionTracker(
 		}
 	}
 
-	private class EditorSaveSnapshot(val now: Instant, val anchor: Anchor?, val seen: Set<Long>)
+	private class EditorSaveSnapshot(val now: Instant, val anchor: Anchor?, val target: Anchor?, val seen: Set<Long>)
 
 	/** Under [baselineLock]. Starts a new epoch when one is due, re-anchoring every scene at its last seen text. */
 	private fun restartEpochIfDue(now: Instant) {
@@ -217,7 +269,7 @@ class WritingSessionTracker(
 
 		for (entry in anchors.entries) {
 			val anchor = entry.value
-			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords).also { it.ticket = anchor.ticket })
+			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords, anchor.newest))
 			if (anchor.lastSeenWords !== anchor.words) unseen += anchor.lastSeenWords
 		}
 		banked = 0
@@ -226,12 +278,14 @@ class WritingSessionTracker(
 		lastRecorded = null
 	}
 
-	/** Under [baselineLock]. */
-	private fun reanchor(sceneId: Int, content: String) {
+	/** Under [baselineLock]. Text older than the scene's newest content changes nothing. */
+	private fun reanchor(sceneId: Int, content: String, revision: Long?) {
 		val old = anchors[sceneId]
-		if (old?.isAt(content) == true) return
+		if (old != null && (old.isPast(revision) || old.isAt(content))) return
+		old?.seenWhenReplaced = reproduced
 		old?.let(::retire)
-		install(sceneId, content, lazy { ActivityWords.of(content) })
+		install(sceneId, content, lazy { ActivityWords.of(content) }, revision)
+		anchors.getValue(sceneId).replaced = old?.also { it.replaced = null }
 	}
 
 	/** Under [baselineLock]: banks a dropped anchor's credit and keeps its text seen. */
@@ -241,9 +295,9 @@ class WritingSessionTracker(
 	}
 
 	/** Under [baselineLock]. */
-	private fun install(sceneId: Int, content: String, words: Lazy<ActivityWords>) {
+	private fun install(sceneId: Int, content: String, words: Lazy<ActivityWords>, revision: Long?) {
 		retired -= sceneId
-		anchors[sceneId] = Anchor(content, words)
+		anchors[sceneId] = Anchor(content, words, revision)
 		unseen += words
 	}
 

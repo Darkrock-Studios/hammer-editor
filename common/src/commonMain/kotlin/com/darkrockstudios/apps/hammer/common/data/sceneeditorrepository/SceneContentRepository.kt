@@ -81,6 +81,10 @@ class SceneContentRepository(
 	private val sceneBuffersLock = reentrantLock()
 	private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
 
+	/** Per scene, the revision of its buffer's content. Guarded by [sceneBuffersLock]. */
+	private val revisions = mutableMapOf<Int, Long>()
+	private val lastRevision = atomic(0L)
+
 	private val updateSequence = atomic(0L)
 
 	/**
@@ -103,7 +107,7 @@ class SceneContentRepository(
 	 * buffer lock, just before it replaces the scene's buffer, so no reader sees the new buffer
 	 * first. Must be quick.
 	 */
-	var onExternalContentApplied: ((SceneContent) -> Unit)? = null
+	var onExternalContentApplied: ((content: SceneContent, revision: Long) -> Unit)? = null
 
 	/**
 	 * Starts the content debounce pipeline, restoring temp (unsaved) buffers from disk only when
@@ -157,8 +161,9 @@ class SceneContentRepository(
 		sceneBuffersLock.withLock {
 			staleThrough[content.scene.id] = updateSequence.incrementAndGet()
 			pendingUpdates.remove(content.scene.id)
-			onExternalContentApplied?.invoke(content)
-			updateSceneBuffer(SceneBuffer(content, dirty = true, source = UpdateSource.Repository))
+			val revision = lastRevision.incrementAndGet()
+			onExternalContentApplied?.invoke(content, revision)
+			updateSceneBuffer(SceneBuffer(content, dirty = true, source = UpdateSource.Repository), revision)
 		}
 	}
 
@@ -230,8 +235,9 @@ class SceneContentRepository(
 				val oldBuffer = sceneBuffers[content.scene.id]
 				if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
 					val dirty = source != UpdateSource.Sync
-					onExternalContentApplied?.invoke(content)
-					updateSceneBuffer(SceneBuffer(content, dirty, source))
+					val revision = lastRevision.incrementAndGet()
+					onExternalContentApplied?.invoke(content, revision)
+					updateSceneBuffer(SceneBuffer(content, dirty, source), revision)
 					dirty
 				} else {
 					false
@@ -240,9 +246,10 @@ class SceneContentRepository(
 		}
 	}
 
-	private fun updateSceneBuffer(newBuffer: SceneBuffer) {
+	private fun updateSceneBuffer(newBuffer: SceneBuffer, revision: Long = lastRevision.incrementAndGet()) {
 		sceneBuffersLock.withLock {
 			sceneBuffers[newBuffer.content.scene.id] = newBuffer
+			revisions[newBuffer.content.scene.id] = revision
 			// Snapshot + publish under the lock so the dirty set can't lose a concurrent update.
 			_dirtyBufferIds.value = getDirtyBufferIds()
 		}
@@ -251,6 +258,10 @@ class SceneContentRepository(
 
 	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = getSceneBuffer(sceneDef.id)
 	fun getSceneBuffer(sceneId: Int): SceneBuffer? = sceneBuffersLock.withLock { sceneBuffers[sceneId] }
+
+	fun snapshotBuffer(sceneId: Int): BufferSnapshot? = sceneBuffersLock.withLock {
+		sceneBuffers[sceneId]?.let { BufferSnapshot(it, revisions.getValue(sceneId)) }
+	}
 
 	fun hasDirtyBuffer(sceneId: Int): Boolean =
 		getSceneBuffer(sceneId)?.dirty == true
@@ -271,18 +282,19 @@ class SceneContentRepository(
 	}
 
 	/** Loads a buffer from disk at the given path and caches it. Does not set a writing baseline. */
-	fun loadBuffer(sceneItem: SceneItem, scenePath: HPath): SceneBuffer {
-		val cachedBuffer = getSceneBuffer(sceneItem)
-		return if (cachedBuffer != null) {
-			cachedBuffer
+	fun loadBuffer(sceneItem: SceneItem, scenePath: HPath): BufferSnapshot {
+		val cached = snapshotBuffer(sceneItem.id)
+		return if (cached != null) {
+			cached
 		} else {
 			val content = sceneDatasource.loadSceneBuffer(scenePath)
 			val newBuffer = SceneBuffer(
 				SceneContent(sceneItem, content),
 				source = UpdateSource.Repository
 			)
-			updateSceneBuffer(newBuffer)
-			newBuffer
+			val revision = lastRevision.incrementAndGet()
+			updateSceneBuffer(newBuffer, revision)
+			BufferSnapshot(newBuffer, revision)
 		}
 	}
 
@@ -303,11 +315,12 @@ class SceneContentRepository(
 	}
 
 	/** Persists a buffer to its on-disk path, marks it clean, and clears its temp file. */
-	suspend fun persistBuffer(buffer: SceneBuffer, scenePath: HPath): Boolean {
+	suspend fun persistBuffer(snapshot: BufferSnapshot, scenePath: HPath): Boolean {
+		val buffer = snapshot.buffer
 		val success = sceneDatasource.storeSceneBuffer(buffer, scenePath)
 		if (success) {
 			val cleanBuffer = buffer.copy(dirty = false)
-			updateSceneBuffer(cleanBuffer)
+			updateSceneBuffer(cleanBuffer, snapshot.revision)
 			clearTempScene(buffer.content.scene)
 		}
 		return success
@@ -317,13 +330,14 @@ class SceneContentRepository(
 	 * Drops the in-memory buffer + temp file and reloads from disk. Returns the reloaded buffer
 	 * (so the caller can re-establish a writing baseline), or null if nothing was buffered.
 	 */
-	fun discardBuffer(sceneItem: SceneItem, scenePath: HPath): SceneBuffer? =
+	fun discardBuffer(sceneItem: SceneItem, scenePath: HPath): BufferSnapshot? =
 		if (dropBuffer(sceneItem)) loadBuffer(sceneItem, scenePath) else null
 
 	/** Drops the in-memory buffer + temp file without reloading. Returns whether one was buffered. */
 	fun dropBuffer(sceneItem: SceneItem): Boolean {
 		val wasPresent = sceneBuffersLock.withLock {
 			val removed = sceneBuffers.remove(sceneItem.id) != null
+			revisions.remove(sceneItem.id)
 			if (removed) _dirtyBufferIds.value = getDirtyBufferIds()
 			removed
 		}
@@ -341,6 +355,7 @@ class SceneContentRepository(
 			staleThrough[sceneItem.id] = updateSequence.incrementAndGet()
 			pendingUpdates.remove(sceneItem.id)
 			if (sceneBuffers.remove(sceneItem.id) != null) _dirtyBufferIds.value = getDirtyBufferIds()
+			revisions.remove(sceneItem.id)
 			storeTempJobs.remove(sceneItem.id)
 		}
 		// Joined, so a temp save already writing cannot recreate the file after it is cleared.
@@ -357,7 +372,11 @@ class SceneContentRepository(
 			val moved = sceneBuffers.remove(oldId)?.let { old ->
 				old.copy(content = old.content.copy(scene = old.content.scene.copy(id = newId)))
 			}
-			if (moved != null) sceneBuffers[newId] = moved
+			if (moved != null) {
+				sceneBuffers[newId] = moved
+				revisions[newId] = revisions.getValue(oldId)
+			}
+			revisions.remove(oldId)
 			_dirtyBufferIds.value = getDirtyBufferIds()
 			moved to storeTempJobs.remove(oldId)
 		}
@@ -386,16 +405,17 @@ class SceneContentRepository(
 	}
 
 	private suspend fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean {
-		val buffer = getSceneBuffer(sceneItem)
-		if (buffer == null) {
+		val snapshot = snapshotBuffer(sceneItem.id)
+		if (snapshot == null) {
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
+		val buffer = snapshot.buffer
 		// Saved or replaced by synced content since this job was launched.
 		if (!buffer.dirty) return false
 		val success = sceneDatasource.storeTempSceneBuffer(buffer)
 		if (success) {
-			_bufferPersistedFlow.tryEmit(BufferPersistedEvent(sceneItem.id, buffer.source, buffer.content))
+			_bufferPersistedFlow.tryEmit(BufferPersistedEvent(sceneItem.id, buffer.source, buffer.content, snapshot.revision))
 		}
 		return success
 	}
@@ -405,8 +425,9 @@ class SceneContentRepository(
 		if (!tempBuffersRestored.compareAndSet(expect = false, update = true)) return
 		for (content in sceneDatasource.getSceneTempBufferContents()) {
 			sceneBuffersLock.withLock {
-				onExternalContentApplied?.invoke(content)
-				updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository))
+				val revision = lastRevision.incrementAndGet()
+				onExternalContentApplied?.invoke(content, revision)
+				updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository), revision)
 			}
 		}
 	}

@@ -330,7 +330,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		applyDefaults(preview)
 		advanceUntilIdle()
 
-		coVerify { writingSessionTracker.onSceneSaved(6, "Robert Tolliver again.", UpdateSource.Repository) }
+		coVerify { writingSessionTracker.onSceneSaved(6, "Robert Tolliver again.", UpdateSource.Repository, any()) }
 	}
 
 	@Test

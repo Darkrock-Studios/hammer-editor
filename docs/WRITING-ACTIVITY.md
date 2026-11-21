@@ -54,6 +54,11 @@ is replaced, so an editor save is never compared with the wrong anchor. A scene 
 not hold yet is left alone and anchored when it is opened. A rewrite first credits any words typed
 into the buffer it rewrites. A deleted scene's credit is banked and its text stays seen.
 
+**Order.** Every buffer change gets a revision, and each save and re-anchor carries the revision
+its text was read at, so ones handled out of order are put back in order. A save older than one
+already counted, or an outside text older than the newest save, changes nothing. A save read
+before a re-anchor but handled after it is credited against the anchor it was typed into.
+
 ## Accepted limits
 
 - Text pasted from another app counts as written.
