@@ -1,7 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
@@ -133,15 +134,14 @@ fun SyncLogList(
 		}
 	}
 
-	val pinnedToTail by remember {
-		derivedStateOf {
-			val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-			last < 0 || last >= log.size - 2
-		}
-	}
+	// Appending doesn't move the visible indices, so comparing them to the size before this
+	// update tells whether the reader was at the tail.
+	var seenSize by remember { mutableIntStateOf(0) }
 	LaunchedEffect(log.size) {
-		if (log.isNotEmpty() && pinnedToTail) {
+		val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+		if (log.isNotEmpty() && (last < 0 || last >= seenSize - 2)) {
 			listState.scrollToItem(log.size - 1)
 		}
+		seenSize = log.size
 	}
 }

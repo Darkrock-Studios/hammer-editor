@@ -1,5 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -39,6 +43,9 @@ fun HdSettingRow(
 	destructive: Boolean = false,
 	control: @Composable () -> Unit,
 ) {
+	// Movable, so a field's text and focus survive the row restacking at the width threshold.
+	val currentControl by rememberUpdatedState(control)
+	val movableControl = remember { movableContentOf { currentControl() } }
 	BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
 		val text: @Composable () -> Unit = {
 			Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -60,7 +67,7 @@ fun HdSettingRow(
 		if (maxWidth < 420.dp) {
 			Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 				text()
-				CompositionLocalProvider(LocalHdSettingRowStacked provides true) { control() }
+				CompositionLocalProvider(LocalHdSettingRowStacked provides true) { movableControl() }
 			}
 		} else {
 			Row(
@@ -69,7 +76,7 @@ fun HdSettingRow(
 				horizontalArrangement = Arrangement.spacedBy(24.dp),
 			) {
 				Column(modifier = Modifier.weight(1f)) { text() }
-				control()
+				movableControl()
 			}
 		}
 	}

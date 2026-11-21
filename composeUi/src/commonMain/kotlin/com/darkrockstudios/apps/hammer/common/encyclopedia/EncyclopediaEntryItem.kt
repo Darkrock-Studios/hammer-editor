@@ -123,6 +123,7 @@ internal fun EncyclopediaEntryItem(
 	val paletteState = rememberPaletteState(loader = FilePathLoader)
 
 	LaunchedEffect(entryDef) {
+		entryContent = null
 		entryImagePath = null
 		entryImageHash = null
 		hasImage = null
@@ -384,7 +385,7 @@ internal fun EncyclopediaEntryItem(
 				verticalAlignment = Alignment.CenterVertically,
 				horizontalArrangement = Arrangement.SpaceBetween,
 			) {
-				val wordCount = entryContent?.text?.let { countWords(it) } ?: 0
+				val wordCount = remember(entryContent?.text) { entryContent?.text?.let { countWords(it) } ?: 0 }
 				HdMonoLabel(
 					text = Res.string.encyclopedia_entry_card_words.get(wordCount),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,

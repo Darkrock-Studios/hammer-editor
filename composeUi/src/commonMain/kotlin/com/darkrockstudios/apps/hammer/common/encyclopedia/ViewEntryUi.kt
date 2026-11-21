@@ -1094,6 +1094,7 @@ private fun TagAddDialog(
 		visible = state.showTagAdd,
 		onCloseRequest = component::endTagAdd,
 		dismissOnTapOutside = true,
+		onDismissed = { newTagsText = "" },
 	) {
 		AddTagCard(
 			draft = newTagsText,
@@ -1132,6 +1133,7 @@ private fun AliasAddDialog(
 		visible = state.showAliasAdd,
 		onCloseRequest = component::endAliasAdd,
 		dismissOnTapOutside = true,
+		onDismissed = { newAliasText = "" },
 	) {
 		AliasAddCard(
 			alias = newAliasText,

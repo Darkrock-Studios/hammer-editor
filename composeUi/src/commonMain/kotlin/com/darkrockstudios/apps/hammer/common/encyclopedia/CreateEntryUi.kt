@@ -218,7 +218,7 @@ internal fun CreateEntryUi(
 			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
 				HdMonoLabel(text = Res.string.encyclopedia_create_entry_description_label.get())
 				MarkdownEditField(
-					initialMarkdown = description,
+					initialMarkdown = remember { description },
 					onMarkdownChanged = { description = it },
 					enableSpellChecking = state.spellCheckAllowed,
 					contentPadding = PaddingValues(Ui.Padding.XL),

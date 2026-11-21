@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -98,7 +99,8 @@ fun ProjectGroupRow(
 	val group = row.data.definition
 	val collapsed = row.data.collapsed
 	val indent = hdIndentFor(row.depth, gutter = ProjectTreeGutter)
-	val menuItems = actions.menuItems(group, row.depth)
+	val menuItems = remember(group, row.depth, actions) { actions.menuItems(group, row.depth) }
+	val menuLabels = remember(menuItems) { menuItems.map { it.label } }
 	val rowDescription = Res.string.projects_list_group_content_description.get(group.name)
 	val stateDescription = if (collapsed) {
 		Res.string.projects_list_group_collapsed.get()
@@ -170,7 +172,7 @@ fun ProjectGroupRow(
 					)
 				}
 
-				ProjectOptionsMenu(items = menuItems.map { it.label }) { clicked ->
+				ProjectOptionsMenu(items = menuLabels) { clicked ->
 					menuItems.first { it.label == clicked }.onClick()
 				}
 			}

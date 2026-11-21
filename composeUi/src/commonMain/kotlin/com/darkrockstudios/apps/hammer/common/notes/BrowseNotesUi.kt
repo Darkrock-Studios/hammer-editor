@@ -36,7 +36,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -125,8 +124,8 @@ private fun NoteContent.firstLine(): String = content.firstNonBlankLine()
 private fun applySort(notes: List<NoteContent>, mode: NotesSortMode): List<NoteContent> = when (mode) {
 	NotesSortMode.DateDesc -> notes.sortedByDescending { it.created }
 	NotesSortMode.DateAsc -> notes.sortedBy { it.created }
-	NotesSortMode.WordsDesc -> notes.sortedByDescending { it.wordCount() }
-	NotesSortMode.WordsAsc -> notes.sortedBy { it.wordCount() }
+	NotesSortMode.WordsDesc -> notes.map { it to it.wordCount() }.sortedByDescending { it.second }.map { it.first }
+	NotesSortMode.WordsAsc -> notes.map { it to it.wordCount() }.sortedBy { it.second }.map { it.first }
 	NotesSortMode.TitleAsc -> notes.sortedBy { it.firstLine().lowercase() }
 }
 
@@ -160,21 +159,19 @@ fun BrowseNotesUi(
 	// header — same affordance pattern Encyclopedia uses.
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
-	val visibleNotes by remember(state.notes, searchQuery, sortMode, activeTags) {
-		derivedStateOf {
-			val byText = if (searchQuery.isBlank()) {
-				state.notes
-			} else {
-				val query = searchQuery.trim()
-				state.notes.filter { noteMatchesQuery(it, query) }
-			}
-			val byTags = if (activeTags.isEmpty()) {
-				byText
-			} else {
-				byText.filter { note -> activeTags.all { it in note.tags } }
-			}
-			applySort(byTags, sortMode)
+	val visibleNotes = remember(state.notes, searchQuery, sortMode, activeTags) {
+		val byText = if (searchQuery.isBlank()) {
+			state.notes
+		} else {
+			val query = searchQuery.trim()
+			state.notes.filter { noteMatchesQuery(it, query) }
 		}
+		val byTags = if (activeTags.isEmpty()) {
+			byText
+		} else {
+			byText.filter { note -> activeTags.all { it in note.tags } }
+		}
+		applySort(byTags, sortMode)
 	}
 
 	val toggleTag: (String) -> Unit = { tag ->

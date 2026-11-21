@@ -53,7 +53,6 @@ fun ViewNoteUi(
 
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
-	val noteText by component.noteText.subscribeAsState()
 	val isEditing = state.isEditing
 
 	val saveChanges: () -> Unit = {
@@ -125,10 +124,11 @@ fun ViewNoteUi(
 				)
 
 				if (isEditing) {
+					val tags = remember(state.tags) { state.tags.toList() }
 					NoteEditBody(
-						tags = state.tags.toList(),
+						tags = tags,
 						onTagsChanged = { component.onTagsChanged(it.toSet()) },
-						noteText = noteText,
+						noteText = remember { component.noteText.value },
 						onNoteTextChanged = { component.onContentChanged(it) },
 						suggestTags = component::suggestTags,
 						enableSpellChecking = state.spellCheckAllowed,
@@ -136,8 +136,9 @@ fun ViewNoteUi(
 						modifier = Modifier.weight(1f),
 					)
 
-					NoteEditStatusFooter(text = noteText)
+					LiveNoteStatusFooter(component)
 				} else {
+					val noteText by component.noteText.subscribeAsState()
 					ViewBody(
 						note = state.note,
 						noteText = noteText,
@@ -420,6 +421,13 @@ private fun ViewFolioFooter(note: NoteContent?, noteText: String) {
 			text = Res.string.notes_word_count_short.get(words),
 		)
 	}
+}
+
+/** The edit footer, subscribed on its own so typing recomposes only it. */
+@Composable
+private fun LiveNoteStatusFooter(component: ViewNote) {
+	val text by component.noteText.subscribeAsState()
+	NoteEditStatusFooter(text = text)
 }
 
 @Composable

@@ -224,7 +224,7 @@ private fun ImportPreviewPane(
 				// A manuscript can split into thousands of scenes; only compose the visible rows.
 				val rows = remember(preview) { preview.toRows() }
 				LazyColumn(contentPadding = PaddingValues(Ui.Padding.M)) {
-					items(rows) { row ->
+					items(rows, contentType = { it::class }) { row ->
 						when (row) {
 							is PreviewRow.Group -> PreviewGroupRow(row.name)
 							is PreviewRow.Scene -> PreviewSceneRow(row)

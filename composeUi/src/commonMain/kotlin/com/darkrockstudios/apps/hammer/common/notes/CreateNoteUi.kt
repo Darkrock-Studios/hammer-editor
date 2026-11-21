@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -36,7 +37,7 @@ fun CreateNoteUi(
 	rootSnackbar: RootSnackbarHostState
 ) {
 	val state by component.state.subscribeAsState()
-	val noteText by component.noteText.subscribeAsState()
+	val noteText = component.noteText.subscribeAsState()
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	val strRes = rememberStrRes()
@@ -44,15 +45,11 @@ fun CreateNoteUi(
 	var resetVersion by remember { mutableStateOf(0) }
 	val tags = rememberSaveableStringList()
 
-	val wordCount = remember(noteText) {
-		countWords(noteText)
-	}
-	val charCount = noteText.length
-	val canCreate = noteText.isNotBlank()
+	val canCreate by remember { derivedStateOf { noteText.value.isNotBlank() } }
 
 	val create: () -> Unit = {
 		scope.launch {
-			val result = component.createNote(noteText, tags.toSet())
+			val result = component.createNote(noteText.value, tags.toSet())
 			newNoteError = !result.isSuccess
 			when (result) {
 				NoteError.TOO_LONG -> scope.launch {
@@ -90,8 +87,10 @@ fun CreateNoteUi(
 		title = Res.string.notes_create_header.get(),
 		modifier = modifier,
 		footerMeta = {
+			val text = noteText.value
+			val wordCount = remember(text) { countWords(text) }
 			HdMonoLabel(
-				text = Res.string.notes_view_status_word_char.get(wordCount, charCount),
+				text = Res.string.notes_view_status_word_char.get(wordCount, text.length),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				modifier = Modifier.testTag(NOTES_CREATE_META_TAG),
 			)
@@ -125,7 +124,7 @@ fun CreateNoteUi(
 				HdMonoLabel(text = Res.string.notes_create_body_label.get())
 				key(resetVersion) {
 					MarkdownEditField(
-						initialMarkdown = noteText,
+						initialMarkdown = remember { noteText.value },
 						onMarkdownChanged = { component.onTextChanged(it) },
 						enableSpellChecking = state.spellCheckAllowed,
 						autoFocus = true,

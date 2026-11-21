@@ -169,7 +169,7 @@ internal fun ViewFolioFooter(event: TimeLineEvent?, eventText: String?) {
 		Spacer(modifier = Modifier.weight(1f))
 		if (eventText != null) {
 			HdMonoLabel(
-				text = Res.string.timeline_view_word_count_short.get(countWords(eventText)),
+				text = Res.string.timeline_view_word_count_short.get(remember(eventText) { countWords(eventText) }),
 			)
 		}
 	}

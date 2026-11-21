@@ -10,9 +10,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 
@@ -20,7 +19,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HdPulsingDot(modifier: Modifier = Modifier) {
 	val transition = rememberInfiniteTransition(label = "hdPulsingDot")
-	val alpha by transition.animateFloat(
+	val alpha = transition.animateFloat(
 		initialValue = 1f,
 		targetValue = 0.35f,
 		animationSpec = infiniteRepeatable(
@@ -32,7 +31,7 @@ fun HdPulsingDot(modifier: Modifier = Modifier) {
 	Box(
 		modifier = modifier
 			.size(7.dp)
-			.alpha(alpha)
+			.graphicsLayer { this.alpha = alpha.value }
 			.background(MaterialTheme.colorScheme.primary, RectangleShape),
 	)
 }

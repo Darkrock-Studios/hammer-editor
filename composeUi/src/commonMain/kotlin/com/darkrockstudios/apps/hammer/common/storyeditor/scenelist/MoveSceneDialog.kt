@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -145,7 +146,7 @@ internal fun MoveSceneDialog(
 	onMove: (MoveRequest) -> Unit,
 ) {
 	val state = remember(item.id) { MoveSceneDialogState(item, tree) }
-	state.updateTree(tree)
+	LaunchedEffect(state, tree) { state.updateTree(tree) }
 
 	fun submit() {
 		val request = state.buildRequest() ?: return

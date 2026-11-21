@@ -57,6 +57,14 @@ fun SceneMetadataPanelUi(
 	val state by component.state.subscribeAsState()
 	var showAddDialog by rememberSaveable { mutableStateOf(false) }
 	var showAddTagDialog by rememberSaveable { mutableStateOf(false) }
+	// Narrow reads, so the sections skip while the word count changes with every keystroke.
+	val confirmedRefs = state.confirmedRefs
+	val dismissedRefs = state.dismissedRefs
+	val timelines = state.timelines
+	val tags = state.metadata.tags
+	val sceneId = state.sceneItem.id
+	val filename = state.filename
+	val path = state.path
 
 	Surface(
 		modifier = modifier.widthIn(min = SCENE_METADATA_MIN_WIDTH),
@@ -160,7 +168,7 @@ fun SceneMetadataPanelUi(
 								onClick = { showAddDialog = true },
 							)
 						},
-						body = { ReferencesBody(state, component) }
+						body = { ReferencesBody(confirmedRefs, component) }
 					)
 
 					if (state.dismissedRefs.isNotEmpty()) {
@@ -180,7 +188,7 @@ fun SceneMetadataPanelUi(
 									)
 								}
 							},
-							body = { DismissedBody(state, component) }
+							body = { DismissedBody(dismissedRefs, component) }
 						)
 					}
 
@@ -196,7 +204,7 @@ fun SceneMetadataPanelUi(
 							},
 							body = {
 								TimelinePlacementChips(
-									placements = state.timelines,
+									placements = timelines,
 									onShow = component::showTimelinePlacement,
 									modifier = Modifier.padding(top = Ui.Padding.M),
 								)
@@ -220,7 +228,7 @@ fun SceneMetadataPanelUi(
 								onClick = { showAddTagDialog = true },
 							)
 						},
-						body = { TagsBody(state, component) }
+						body = { TagsBody(tags, component) }
 					)
 
 					SpacerXL()
@@ -232,7 +240,7 @@ fun SceneMetadataPanelUi(
 								modifier = Modifier.padding(end = Ui.Padding.M),
 							)
 						},
-						body = { AdvancedBody(state) }
+						body = { AdvancedBody(sceneId, filename, path) }
 					)
 				}
 			}
@@ -260,11 +268,11 @@ fun SceneMetadataPanelUi(
 
 @Composable
 private fun ReferencesBody(
-	state: SceneMetadataPanel.State,
+	confirmedRefs: List<EntryDef>,
 	component: SceneMetadataPanel,
 ) {
 	Column(modifier = Modifier.padding(top = Ui.Padding.M)) {
-		if (state.confirmedRefs.isEmpty()) {
+		if (confirmedRefs.isEmpty()) {
 			Text(
 				Res.string.scene_editor_metadata_references_empty.get(),
 				style = MaterialTheme.typography.bodySmall,
@@ -273,7 +281,7 @@ private fun ReferencesBody(
 			return@Column
 		}
 		EntryRefBuckets(
-			refs = state.confirmedRefs,
+			refs = confirmedRefs,
 			variant = HdReferenceChipVariant.Active,
 			onClickRef = component::navigateToEntry,
 			onActionRef = component::dismissReference,
@@ -284,12 +292,12 @@ private fun ReferencesBody(
 
 @Composable
 private fun DismissedBody(
-	state: SceneMetadataPanel.State,
+	dismissedRefs: List<EntryDef>,
 	component: SceneMetadataPanel,
 ) {
 	Column(modifier = Modifier.padding(top = Ui.Padding.M)) {
 		EntryRefBuckets(
-			refs = state.dismissedRefs,
+			refs = dismissedRefs,
 			variant = HdReferenceChipVariant.Dismissed,
 			onClickRef = component::navigateToEntry,
 			onActionRef = component::restoreDismissedReference,
@@ -341,12 +349,12 @@ private fun TimestampStrip(
 		)
 		TimestampCell(
 			label = Res.string.scene_editor_metadata_created_label.get(),
-			value = created?.let(::formatStamp) ?: unset,
+			value = remember(created) { created?.let(::formatStamp) } ?: unset,
 			modifier = Modifier.weight(1f),
 		)
 		TimestampCell(
 			label = Res.string.scene_editor_metadata_edited_label.get(),
-			value = edited?.let(::formatStamp) ?: unset,
+			value = remember(edited) { edited?.let(::formatStamp) } ?: unset,
 			modifier = Modifier.weight(1f),
 		)
 	}
@@ -380,24 +388,24 @@ private fun formatStamp(instant: Instant): String =
 		.uppercase()
 
 @Composable
-private fun AdvancedBody(state: SceneMetadataPanel.State) {
+private fun AdvancedBody(sceneId: Int, filename: String, path: String) {
 	Column(
 		modifier = Modifier.padding(top = Ui.Padding.M),
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		HdMetadataItem(
 			label = Res.string.scene_editor_metadata_entity_id.get(),
-			value = state.sceneItem.id.toString(),
+			value = sceneId.toString(),
 			selectable = true,
 		)
 		HdMetadataItem(
 			label = Res.string.scene_editor_metadata_entity_filename.get(),
-			value = state.filename,
+			value = filename,
 			selectable = true,
 		)
 		HdMetadataItem(
 			label = Res.string.scene_editor_metadata_entity_path.get(),
-			value = state.path,
+			value = path,
 			selectable = true,
 		)
 	}
@@ -529,10 +537,9 @@ internal fun AddReferenceCard(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TagsBody(
-	state: SceneMetadataPanel.State,
+	tags: Set<String>,
 	component: SceneMetadataPanel,
 ) {
-	val tags = state.metadata.tags
 	if (tags.isEmpty()) {
 		Text(
 			Res.string.scene_editor_metadata_tags_empty.get(),

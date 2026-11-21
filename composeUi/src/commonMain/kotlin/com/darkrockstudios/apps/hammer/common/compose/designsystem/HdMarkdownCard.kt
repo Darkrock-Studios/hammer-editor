@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,7 @@ fun HdMarkdownCard(
 	onTagClick: (String) -> Unit = {},
 	header: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
+	val sortedTags = remember(tags) { tags.sorted() }
 	// `wrapContentHeight()` is defensive — staggered grid items already give children unbounded
 	// height, but this guarantees the card sizes to its content even when a sibling modifier
 	// propagates a max.
@@ -118,7 +120,7 @@ fun HdMarkdownCard(
 				verticalArrangement = Arrangement.spacedBy(6.dp),
 			) {
 				CompositionLocalProvider(LocalHdInRegion provides tonal) {
-					tags.sorted().forEach { tag ->
+					sortedTags.forEach { tag ->
 						val isActive = tag in activeTags
 						HdTagChip(
 							label = tag,

@@ -60,7 +60,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -300,39 +299,33 @@ private fun IdeasBrowse(
 	var showArchived by rememberSaveable { mutableStateOf(false) }
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
-	val scopedIdeas by remember(ideas, showArchived) {
-		derivedStateOf {
-			ideas.filter { (it.archived != null) == showArchived }
-		}
+	val scopedIdeas = remember(ideas, showArchived) {
+		ideas.filter { (it.archived != null) == showArchived }
 	}
 
-	val rankedTags by remember(scopedIdeas) {
-		derivedStateOf {
+	val rankedTags = remember(scopedIdeas) {
+		scopedIdeas
+			.flatMap { it.tags }
+			.groupingBy { it }
+			.eachCount()
+			.entries
+			.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+			.map { TagCount(it.key, it.value) }
+	}
+
+	val visibleIdeas = remember(scopedIdeas, searchQuery, sortMode, activeTags) {
+		val query = searchQuery.trim()
+		val byText = if (query.isBlank()) {
 			scopedIdeas
-				.flatMap { it.tags }
-				.groupingBy { it }
-				.eachCount()
-				.entries
-				.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-				.map { TagCount(it.key, it.value) }
+		} else {
+			scopedIdeas.filter { ideaMatchesQuery(it, query) }
 		}
-	}
-
-	val visibleIdeas by remember(scopedIdeas, searchQuery, sortMode, activeTags) {
-		derivedStateOf {
-			val query = searchQuery.trim()
-			val byText = if (query.isBlank()) {
-				scopedIdeas
-			} else {
-				scopedIdeas.filter { ideaMatchesQuery(it, query) }
-			}
-			val byTags = if (activeTags.isEmpty()) {
-				byText
-			} else {
-				byText.filter { idea -> activeTags.all { it in idea.tags } }
-			}
-			applySort(byTags, sortMode)
+		val byTags = if (activeTags.isEmpty()) {
+			byText
+		} else {
+			byText.filter { idea -> activeTags.all { it in idea.tags } }
 		}
+		applySort(byTags, sortMode)
 	}
 
 	val toggleTag: (String) -> Unit = { tag ->
@@ -804,32 +797,34 @@ private fun IdeaDetail(
 		else component.closeEditor()
 	}
 
-	val menuItems = if (existing == null) {
-		emptySet()
-	} else {
-		setOf(
-			MenuItemDescriptor("idea-delete", Res.string.ideas_delete_button, "") {
-				confirmDelete = true
-			},
-			MenuItemDescriptor(
-				"idea-archive",
-				if (existing.archived == null) Res.string.ideas_archive_button
-				else Res.string.ideas_unarchive_button,
-				"",
-			) {
-				scope.launch {
-					val toast = if (existing.archived == null) {
-						component.archiveIdea(existing.id)
-						Res.string.ideas_toast_archived
-					} else {
-						component.unarchiveIdea(existing.id)
-						Res.string.ideas_toast_unarchived
+	val menuItems = remember(existing) {
+		if (existing == null) {
+			emptySet()
+		} else {
+			setOf(
+				MenuItemDescriptor("idea-delete", Res.string.ideas_delete_button, "") {
+					confirmDelete = true
+				},
+				MenuItemDescriptor(
+					"idea-archive",
+					if (existing.archived == null) Res.string.ideas_archive_button
+					else Res.string.ideas_unarchive_button,
+					"",
+				) {
+					scope.launch {
+						val toast = if (existing.archived == null) {
+							component.archiveIdea(existing.id)
+							Res.string.ideas_toast_archived
+						} else {
+							component.unarchiveIdea(existing.id)
+							Res.string.ideas_toast_unarchived
+						}
+						withContext(mainDispatcher) { component.closeEditor() }
+						rootSnackbar.showSnackbar(strRes.get(toast))
 					}
-					withContext(mainDispatcher) { component.closeEditor() }
-					rootSnackbar.showSnackbar(strRes.get(toast))
-				}
-			},
-		)
+				},
+			)
+		}
 	}
 
 	Box(

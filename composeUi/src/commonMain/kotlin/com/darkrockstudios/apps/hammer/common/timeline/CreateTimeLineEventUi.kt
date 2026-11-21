@@ -78,7 +78,7 @@ fun CreateTimeLineEventUi(
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
-	val contentText by component.contentText.subscribeAsState()
+	val contentText = component.contentText.subscribeAsState()
 	var dateText by rememberSaveable { mutableStateOf("") }
 	var dateFocused by remember { mutableStateOf(false) }
 	var titleFocused by remember { mutableStateOf(false) }
@@ -91,14 +91,16 @@ fun CreateTimeLineEventUi(
 
 	val isEvent = state.kind == TimelineKind.EVENT
 	val canCreate = state.canCreate
-	val wordCount = remember(contentText) { countWords(contentText) }
-	val charCount = contentText.length
 
 	HdCreateModal(
 		title = Res.string.timeline_create_header.get(),
 		modifier = modifier,
 		footerMeta = if (isEvent) {
-			{ HdMonoLabel(text = Res.string.timeline_create_word_count.get(wordCount, charCount)) }
+			{
+				val text = contentText.value
+				val wordCount = remember(text) { countWords(text) }
+				HdMonoLabel(text = Res.string.timeline_create_word_count.get(wordCount, text.length))
+			}
 		} else {
 			null
 		},
@@ -114,7 +116,7 @@ fun CreateTimeLineEventUi(
 				modifier = Modifier.testTag(TIME_LINE_CREATE_CONFIRM_TAG),
 				onClick = {
 					scope.launch {
-						val error = component.create(dateText, contentText, tags.toSet())
+						val error = component.create(dateText, contentText.value, tags.toSet())
 						if (error == TimeLineEventError.NONE) {
 							launch {
 								rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
@@ -263,7 +265,7 @@ fun CreateTimeLineEventUi(
 						HdMonoLabel(text = Res.string.timeline_create_body_label.get())
 						key(resetVersion) {
 							MarkdownEditField(
-								initialMarkdown = contentText,
+								initialMarkdown = remember { contentText.value },
 								onMarkdownChanged = { component.onContentChanged(it) },
 								enableSpellChecking = state.spellCheckAllowed,
 								contentPadding = PaddingValues(Ui.Padding.XL),
@@ -291,7 +293,7 @@ fun CreateTimeLineEventUi(
 			items = state.subjectChoices,
 			filter = subjectFilter(subjectKind),
 			multiple = false,
-			selected = listOfNotNull(state.subject?.ref),
+			selected = remember(state.subject) { listOfNotNull(state.subject?.ref) },
 			onSelectedChange = { refs -> component.setSubject(refs.firstOrNull()?.let { state.catalog.find(it) }) },
 			onDismiss = { pickingSubject = false },
 		)
@@ -303,7 +305,7 @@ fun CreateTimeLineEventUi(
 		items = state.catalog,
 		filter = ReferenceFilter,
 		multiple = true,
-		selected = state.references.map { it.ref },
+		selected = remember(state.references) { state.references.map { it.ref } },
 		onSelectedChange = { refs ->
 			applyReferencePicks(state.references, refs, state.catalog, component::addReference, component::removeReference)
 		},

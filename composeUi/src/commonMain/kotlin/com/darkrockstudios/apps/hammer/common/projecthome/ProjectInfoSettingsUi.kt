@@ -100,7 +100,12 @@ internal fun AuthorField(
 	modifier: Modifier = Modifier,
 	label: String = Res.string.project_info_author_label.get(),
 ) {
-	var text by remember(initial) { mutableStateOf(initial) }
+	var text by remember { mutableStateOf(initial) }
+	var focused by remember { mutableStateOf(false) }
+	// Saves echo back asynchronously; while typing, an older echo must not replace newer text.
+	LaunchedEffect(initial, focused) {
+		if (!focused && initial.trim() != text.trim()) text = initial
+	}
 	HdHairlineField(
 		modifier = modifier,
 		label = label,
@@ -109,6 +114,7 @@ internal fun AuthorField(
 			text = it
 			onChange(it.takeIf { v -> v.isNotBlank() })
 		},
+		onFocusChanged = { focused = it },
 		imeAction = ImeAction.Done,
 		capitalization = KeyboardCapitalization.Words,
 	)

@@ -359,8 +359,10 @@ private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: 
 @Composable
 private fun EpochField(initial: String, onChange: (String) -> Unit) {
 	var text by remember { mutableStateOf(initial) }
-	LaunchedEffect(initial) {
-		if (initial.trim() != text.trim()) text = initial
+	var focused by remember { mutableStateOf(false) }
+	// Saves echo back asynchronously; while typing, an older echo must not replace newer text.
+	LaunchedEffect(initial, focused) {
+		if (!focused && initial.trim() != text.trim()) text = initial
 	}
 	HdHairlineField(
 		label = Res.string.timeline_settings_epoch_label.get(),
@@ -369,6 +371,7 @@ private fun EpochField(initial: String, onChange: (String) -> Unit) {
 			text = it
 			onChange(it)
 		},
+		onFocusChanged = { focused = it },
 		hint = Res.string.timeline_settings_epoch_hint.get(),
 		placeholder = Res.string.timeline_settings_epoch_placeholder.get(),
 		testTag = TIMELINE_SETTINGS_EPOCH_TAG,

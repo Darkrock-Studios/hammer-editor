@@ -266,8 +266,8 @@ fun ProjectIndexRow(
 			}
 
 			ProjectOptionsMenu(
-				items = projectMenuItems(shared, syncEnabled, isServerSynced),
-				toggles = mapOf(Res.string.project_select_card_sync_button to syncEnabled),
+				items = remember(shared, syncEnabled, isServerSynced) { projectMenuItems(shared, syncEnabled, isServerSynced) },
+				toggles = remember(syncEnabled) { mapOf(Res.string.project_select_card_sync_button to syncEnabled) },
 			) {
 				when (it) {
 					Res.string.project_select_card_delete_button, Res.string.project_select_card_leave_button ->

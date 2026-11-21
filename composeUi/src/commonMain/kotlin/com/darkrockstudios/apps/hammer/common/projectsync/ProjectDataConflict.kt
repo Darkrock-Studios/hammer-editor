@@ -82,14 +82,14 @@ internal fun ProjectDataConflict(
 	component: ProjectSynchronization,
 	screenCharacteristics: WindowSizeClass,
 ) {
-	var authorChoice by remember { mutableStateOf(DataChoice.LOCAL) }
-	var themeChoice by remember { mutableStateOf(DataChoice.LOCAL) }
-	var goalChoice by remember { mutableStateOf(DataChoice.LOCAL) }
-	var tagsChoice by remember { mutableStateOf(DataChoice.LOCAL) }
-	var languageChoice by remember { mutableStateOf(DataChoice.LOCAL) }
-	var dictionaryChoice by remember { mutableStateOf(DataChoice.LOCAL) }
-	var coverChoice by remember { mutableStateOf(DataChoice.LOCAL) }
-	var timelinesChoice by remember { mutableStateOf(DataChoice.LOCAL) }
+	var authorChoice by remember(conflictState) { mutableStateOf(DataChoice.LOCAL) }
+	var themeChoice by remember(conflictState) { mutableStateOf(DataChoice.LOCAL) }
+	var goalChoice by remember(conflictState) { mutableStateOf(DataChoice.LOCAL) }
+	var tagsChoice by remember(conflictState) { mutableStateOf(DataChoice.LOCAL) }
+	var languageChoice by remember(conflictState) { mutableStateOf(DataChoice.LOCAL) }
+	var dictionaryChoice by remember(conflictState) { mutableStateOf(DataChoice.LOCAL) }
+	var coverChoice by remember(conflictState) { mutableStateOf(DataChoice.LOCAL) }
+	var timelinesChoice by remember(conflictState) { mutableStateOf(DataChoice.LOCAL) }
 
 	val authorConflict = conflictState.local.authorName != conflictState.server.authorName
 	val themeConflict = conflictState.local.theme != conflictState.server.theme

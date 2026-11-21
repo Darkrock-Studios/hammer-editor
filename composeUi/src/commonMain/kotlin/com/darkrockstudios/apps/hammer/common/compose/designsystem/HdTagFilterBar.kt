@@ -97,7 +97,7 @@ fun HdTagFilterBar(
 					}
 				}
 			}
-			items(count = tags.size) { i ->
+			items(count = tags.size, key = { tags[it].tag }) { i ->
 				val (label, count) = tags[i]
 				val isActive = label in activeTags
 				HdTagChip(

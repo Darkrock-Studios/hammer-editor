@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -98,6 +99,7 @@ fun BrowseEntriesUi(
 	// and the project list do it; the query field itself keeps the literal text
 	// so `#` is typeable and the tags round-trip.
 	val activeTags = remember(searchText) { parseQuery(searchText).tags }
+	val activeTagSet = remember(activeTags) { activeTags.toSet() }
 
 	// Keyed on `tagIndex` (not just its counts) so results recompute whenever the
 	// async index rebuilds - membership can change without the entry list changing.
@@ -236,15 +238,15 @@ fun BrowseEntriesUi(
 						)
 					}
 				} else {
-					items(filteredEntries.size) { index ->
+					items(filteredEntries, key = { it.id }) { entryDef ->
 						EncyclopediaEntryItem(
-							entryDef = filteredEntries[index],
+							entryDef = entryDef,
 							component = component,
 							viewEntry = viewEntry,
 							scope = scope,
 							sharedTransitionScope = sharedTransitionScope,
 							animatedVisibilityScope = animatedVisibilityScope,
-							activeTags = activeTags.toSet(),
+							activeTags = activeTagSet,
 							tagsScrollHorizontally = !isWide,
 							filterByType = onSelectType,
 						)

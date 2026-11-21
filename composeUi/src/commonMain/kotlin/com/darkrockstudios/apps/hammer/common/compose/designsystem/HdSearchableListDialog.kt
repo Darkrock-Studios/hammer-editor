@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.Icons
@@ -185,6 +186,8 @@ internal fun <T> HdSearchableListDialogContent(
 			} else {
 				val initialIndex = remember { filtered.indexOfFirst(isSelected).coerceAtLeast(0) }
 				val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+				// The keyed list would otherwise stay anchored on the selected item while filtering.
+				LaunchedEffect(query) { if (query.isNotBlank()) listState.scrollToItem(0) }
 				LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
 					items(filtered, key = itemKey) { item ->
 						PickerRow(

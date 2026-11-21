@@ -195,10 +195,13 @@ fun ProjectListUi(
 			onDelete = component::showGroupDelete,
 		)
 	}
-	val onTagClick: (String) -> Unit = { tag ->
-		showSearchBar = true
-		if (parsed.tags.none { it.equals(tag, ignoreCase = true) }) {
-			query = "$query #$tag".trim()
+	// Reads the query when clicked, so the lambda stays the same across keystrokes and rows skip.
+	val onTagClick: (String) -> Unit = remember {
+		{ tag ->
+			showSearchBar = true
+			if (parseQuery(query).tags.none { it.equals(tag, ignoreCase = true) }) {
+				query = "$query #$tag".trim()
+			}
 		}
 	}
 
@@ -253,6 +256,9 @@ fun ProjectListUi(
 			)
 		}
 
+		// Captured as plain values so sync progress ticks don't rebuild the list's items.
+		val isServerSynced = state.isServerSynced
+		val libraryEmpty = state.projects.isEmpty() && state.groups.isEmpty()
 		Box(modifier = Modifier.weight(1f).clipToBounds()) {
 			LazyColumn(
 				modifier = Modifier
@@ -267,7 +273,7 @@ fun ProjectListUi(
 			) {
 				if (rows.isEmpty()) {
 					item(key = "empty") {
-						if (state.projects.isEmpty() && state.groups.isEmpty()) {
+						if (libraryEmpty) {
 							EmptyState(horizontalPadding = horizontalPadding)
 						} else {
 							NoMatchesState(horizontalPadding = horizontalPadding)
@@ -289,7 +295,7 @@ fun ProjectListUi(
 							onProjectSyncClick = component::setProjectSync,
 							depth = row.depth,
 							groupPath = row.groupPath,
-							isServerSynced = state.isServerSynced,
+							isServerSynced = isServerSynced,
 						)
 					}
 				}
