@@ -11,7 +11,6 @@
 	<string name="unsaved_entity_dialog_negative_button">Відхилити</string>
 	<string name="unsaved_entity_dialog_neutral_button">Скасувати</string>
 	<string name="unsaved_entity_dialog_positive_button">Зберегти</string>
-	<string name="close_dialog_button">Закрити</string>
 	<string name="more_menu_button">Більше</string>
 	<string name="network_request_failure_parse_body">Не вдалося розібрати тіло відповіді: %1$s</string>
 	<string name="confirm_dialog_positive">Так</string>

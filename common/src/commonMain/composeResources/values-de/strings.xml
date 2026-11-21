@@ -11,7 +11,6 @@
 	<string name="unsaved_entity_dialog_negative_button">Verwerfen</string>
 	<string name="unsaved_entity_dialog_neutral_button">Abbrechen</string>
 	<string name="unsaved_entity_dialog_positive_button">Speichern</string>
-	<string name="close_dialog_button">Schließen</string>
 	<string name="more_menu_button">Mehr</string>
 	<string name="network_request_failure_parse_body">Fehler beim Analysieren der Antwort: %1$s</string>
 	<string name="confirm_dialog_positive">Ja</string>

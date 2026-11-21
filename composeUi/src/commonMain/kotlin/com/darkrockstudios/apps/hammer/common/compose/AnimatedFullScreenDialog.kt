@@ -57,7 +57,7 @@ class AnimatedDialogScope internal constructor(
 
 /**
  * Shared shell that animates a [Dialog] in/out and wires predictive-back. Used by
- * [AnimatedFullScreenDialog] and [SimpleDialog] — most callers should reach for one of those
+ * [AnimatedFullScreenDialog] and [AnimatedDialog]; most callers should reach for one of those
  * rather than this directly. The content is kept below the window's own title bar
  * ([LocalWindowTitleBarHeight]), which the dialog layer would otherwise cover.
  *
@@ -125,12 +125,9 @@ internal fun AnimatedDialogContainer(
 
 /**
  * Bare animated modal dialog with fade+scale enter/exit and predictive-back support.
- * Unlike [SimpleDialog] this provides no built-in chrome — the caller supplies their own
- * container (Card, Surface, etc.). Useful when the dialog content already has its own
- * header / close affordance and you don't want SimpleDialog's title bar fighting with it.
- *
- * For a card-with-title-bar dialog, use [SimpleDialog]. For a full-screen one, use
- * [AnimatedFullScreenDialog].
+ * It provides no chrome; the caller supplies the card, usually
+ * [com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell].
+ * For a full-screen one, use [AnimatedFullScreenDialog].
  *
  * @param visible drives the enter/exit transition. Flip to `false` to start the exit
  *   animation. The dialog stays mounted while the exit plays.

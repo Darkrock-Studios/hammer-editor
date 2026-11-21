@@ -11,7 +11,6 @@
 	<string name="unsaved_entity_dialog_negative_button">Scarta</string>
 	<string name="unsaved_entity_dialog_neutral_button">Annulla</string>
 	<string name="unsaved_entity_dialog_positive_button">Salva</string>
-	<string name="close_dialog_button">Chiudi</string>
 	<string name="more_menu_button">Altro</string>
 	<string name="network_request_failure_parse_body">Impossibile analizzare il corpo della risposta: %1$s</string>
 	<string name="confirm_dialog_positive">Sì</string>

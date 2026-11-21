@@ -11,7 +11,6 @@
 	<string name="unsaved_entity_dialog_negative_button">Discard</string>
 	<string name="unsaved_entity_dialog_neutral_button">Cancel</string>
 	<string name="unsaved_entity_dialog_positive_button">Save</string>
-	<string name="close_dialog_button">Close</string>
 	<string name="more_menu_button">More</string>
 	<string name="network_request_failure_parse_body">Failed to parse response body: %1$s</string>
 	<string name="confirm_dialog_positive">Yes</string>

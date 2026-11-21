@@ -163,14 +163,14 @@ Android:
 
 ## Shared building blocks
 
-- [ ] `ConfirmationDialog`, `IndexStripDialog`
-- [ ] `SimpleConfirm` (used by ~20 confirms above)
-- [ ] `SimpleDialog`
-- [ ] `FormDialog`, `FormDialogScaffold`
-- [ ] `AnimatedDialog`, `AnimatedFullScreenDialog`
-- [ ] `HdHairlineDialogShell`
+- [x] `ConfirmationDialog`, `IndexStripDialog` reworked through its confirms (captions, verb buttons, destructive styling)
+- [x] `SimpleConfirm` (used by ~20 confirms above) reworked through its confirms
+- [x] `SimpleDialog` deleted; every caller moved to `HdHairlineDialogShell`
+- [x] `FormDialog`, `FormDialogScaffold` reworked through its dialogs
+- [x] `AnimatedDialog`, `AnimatedFullScreenDialog` no chrome of their own
+- [x] `HdHairlineDialogShell` close made optional; dropped wherever Cancel already closes
 - [ ] `HdSearchableListDialog`
-- [ ] `UnsavedScenesConfirmDialog`
+- [x] `UnsavedScenesConfirmDialog` reworked in f3e764edb
 - [ ] `EntityPickerDialog` (Add references, Place a scene / event, plugin entity fields)
 - [ ] `ImageViewerDialog` (cover, entry and gallery images)
 

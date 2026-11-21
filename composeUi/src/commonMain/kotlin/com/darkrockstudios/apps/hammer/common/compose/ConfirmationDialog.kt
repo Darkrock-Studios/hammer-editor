@@ -53,7 +53,7 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
  * Card-style confirmation dialog with a left-side index gutter and a vertical mono caption
  * (DISCARD / DELETE / CONFIRM) that doubles as a redundant signal alongside accent color.
  * Built on the predictive-back gesture container, so callers get the same dismissal model
- * as [SimpleDialog].
+ * as [AnimatedDialog].
  *
  * Pass [cancelLabel] = null for a single-button info-alert variant.
  *

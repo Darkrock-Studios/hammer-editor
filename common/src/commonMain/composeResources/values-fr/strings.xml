@@ -11,7 +11,6 @@
 	<string name="unsaved_entity_dialog_negative_button">Abandonner</string>
 	<string name="unsaved_entity_dialog_neutral_button">Annuler</string>
 	<string name="unsaved_entity_dialog_positive_button">Enregistrer</string>
-	<string name="close_dialog_button">Fermer</string>
 	<string name="more_menu_button">Plus</string>
 	<string name="network_request_failure_parse_body">Échec de l'analyse du corps de la réponse : %1$s</string>
 	<string name="confirm_dialog_positive">Oui</string>
