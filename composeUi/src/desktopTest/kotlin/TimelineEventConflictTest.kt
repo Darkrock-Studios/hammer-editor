@@ -144,7 +144,7 @@ class TimelineEventConflictTest : BaseTest() {
 		compose.onNodeWithText("LOCAL").performClick()
 		compose.onNodeWithText("Alice").performTextReplacement("Queen's garden")
 		compose.onNodeWithTag(TIMELINE_CONFLICT_START_TAG).performTextReplacement("year=97 day=211")
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		assertEquals(
 			placement.copy(lane = "Queen's garden", start = StoryDate(mapOf("year" to 97L, "day" to 211L))),
@@ -159,7 +159,7 @@ class TimelineEventConflictTest : BaseTest() {
 
 		compose.onNodeWithText("LOCAL").performClick()
 		compose.onNodeWithTag(TIMELINE_CONFLICT_START_TAG).performTextReplacement("the next morning")
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		assertTrue(component.resolved.isEmpty())
 		compose.onNodeWithText("unit=number pairs", substring = true, ignoreCase = true).assertExists()
@@ -175,7 +175,7 @@ class TimelineEventConflictTest : BaseTest() {
 		showConflict(server = placement.copy(lane = "Wonderland"), client = placement, component = component)
 
 		compose.onNodeWithText("LOCAL").performClick()
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		compose.onNodeWithText("A placement cannot have content.", ignoreCase = true).assertExists()
 	}
@@ -193,7 +193,7 @@ class TimelineEventConflictTest : BaseTest() {
 		showConflict(server = event.copy(lane = "Wonderland"), client = event, component = component)
 
 		compose.onNodeWithText("LOCAL").performClick()
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		compose.onNodeWithText("Start has day out of range: 400", ignoreCase = true).assertExists()
 	}
@@ -207,7 +207,7 @@ class TimelineEventConflictTest : BaseTest() {
 
 		compose.onNodeWithText("LOCAL").performClick()
 		compose.onNodeWithText("BEFORE THE EVENING").performClick()
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		compose.onNodeWithText("already placed on that timeline", substring = true, ignoreCase = true).assertExists()
 	}
@@ -219,7 +219,7 @@ class TimelineEventConflictTest : BaseTest() {
 		)
 		showConflict(server = placement.copy(timeline = evening.id), client = placement, component = component)
 
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		compose.onNodeWithText("already placed on that timeline", substring = true, ignoreCase = true).assertExists()
 		compose.onNodeWithText("LOCAL").performClick()
@@ -233,7 +233,7 @@ class TimelineEventConflictTest : BaseTest() {
 
 		compose.onNodeWithText("LOCAL").performClick()
 		compose.onNodeWithText("BEFORE THE EVENING").performClick()
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		val resolved = component.resolved.single() as ApiProjectEntity.TimelineEventEntity
 		assertEquals(evening.id to 9, resolved.timeline to resolved.order)
@@ -274,9 +274,9 @@ class TimelineEventConflictTest : BaseTest() {
 		showConflict(server = placement.copy(timeline = evening.id), client = placement, component = component)
 
 		compose.onNodeWithText("LOCAL").performClick()
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 		compose.onNodeWithText("BEFORE THE EVENING").performClick()
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		assertEquals(listOf(null, evening.id), component.resolved.map { (it as ApiProjectEntity.TimelineEventEntity).timeline })
 	}

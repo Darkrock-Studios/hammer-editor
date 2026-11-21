@@ -106,7 +106,7 @@ class TimelineSwitcherDialogsTest : BaseTest() {
 	fun `Rename starts from the current name`() {
 		show(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Rename(timelineId = "backstory", name = "Backstory")))
 
-		compose.onNodeWithText("Rename timeline").assertIsDisplayed()
+		compose.onNodeWithText("Rename “Backstory”").assertIsDisplayed()
 		compose.onNodeWithTag(TIME_LINE_RENAME_NAME_TAG).performTextClearance()
 		compose.onNodeWithTag(TIME_LINE_RENAME_CONFIRM_TAG).assertIsNotEnabled()
 		compose.onNodeWithTag(TIME_LINE_RENAME_NAME_TAG).performTextInput("Before the evening")
@@ -151,6 +151,6 @@ class TimelineSwitcherDialogsTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertEquals(1, dismissed)
-		compose.onNodeWithText("Rename timeline").assertDoesNotExist()
+		compose.onNodeWithText("Rename “Backstory”").assertDoesNotExist()
 	}
 }
