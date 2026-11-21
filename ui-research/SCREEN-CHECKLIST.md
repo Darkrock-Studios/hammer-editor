@@ -135,7 +135,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Note conflict (`NoteConflict`) g: Sync conflict, note
   - [x] Encyclopedia entry conflict (`EncyclopediaEntryConflict`) g: Sync conflict, encyclopedia entry
   - [x] Timeline event conflict (`TimelineEventConflict`) g: Sync conflict, timeline event
-  - [ ] Image conflict (`ImageConflict`) **no gallery**
+  - [x] Image conflict (`ImageConflict`) **no gallery**; takes the shared conflict layout changes, no preview to review
   - [x] Project data conflict (`ProjectDataConflict`) g: Sync conflict, project data
 - [x] Reauthorize, with MFA step (`ReauthenticationUi`) g: Reauthorize, Reauthorize, MFA
 
@@ -169,10 +169,10 @@ Android:
 - [x] `FormDialog`, `FormDialogScaffold` reworked through its dialogs
 - [x] `AnimatedDialog`, `AnimatedFullScreenDialog` no chrome of their own
 - [x] `HdHairlineDialogShell` close made optional; dropped wherever Cancel already closes
-- [ ] `HdSearchableListDialog`
+- [x] `HdSearchableListDialog` reviewed by code: on the hairline shell, one close
 - [x] `UnsavedScenesConfirmDialog` reworked in f3e764edb
-- [ ] `EntityPickerDialog` (Add references, Place a scene / event, plugin entity fields)
-- [ ] `ImageViewerDialog` (cover, entry and gallery images)
+- [x] `EntityPickerDialog` (Add references, Place a scene / event, plugin entity fields) reviewed by code: on the hairline shell, one close
+- [x] `ImageViewerDialog` (cover, entry and gallery images) reviewed by code: full-screen viewer, one close
 
 ## After the pass
 
