@@ -23,8 +23,6 @@
 	<string name="timeline_view_toast_save_success">Salvato</string>
 	<string name="timeline_view_toast_save_failure">Impossibile salvare</string>
 	<string name="timeline_create_header">Crea evento</string>
-	<string name="timeline_create_marker">III · NUOVO</string>
-	<string name="timeline_create_draft_label">BOZZA</string>
 	<string name="timeline_create_word_count">%1$d PAR · %2$d CAR</string>
 	<string name="timeline_create_cancel_button">Annulla</string>
 	<string name="timeline_create_create_button">Crea</string>

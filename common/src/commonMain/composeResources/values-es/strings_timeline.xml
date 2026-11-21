@@ -23,8 +23,6 @@
 	<string name="timeline_view_toast_save_success">Guardado</string>
 	<string name="timeline_view_toast_save_failure">No se pudo guardar</string>
 	<string name="timeline_create_header">Crear evento</string>
-	<string name="timeline_create_marker">III · NUEVO</string>
-	<string name="timeline_create_draft_label">BORRADOR</string>
 	<string name="timeline_create_word_count">%1$d PAL · %2$d CAR</string>
 	<string name="timeline_create_cancel_button">Cancelar</string>
 	<string name="timeline_create_create_button">Crear</string>

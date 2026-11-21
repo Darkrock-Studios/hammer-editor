@@ -23,8 +23,6 @@
 	<string name="timeline_view_toast_save_success">Enregistré</string>
 	<string name="timeline_view_toast_save_failure">Échec de l'enregistrement</string>
 	<string name="timeline_create_header">Créer un événement</string>
-	<string name="timeline_create_marker">III · NOUVEAU</string>
-	<string name="timeline_create_draft_label">BROUILLON</string>
 	<string name="timeline_create_word_count">%1$d M · %2$d C</string>
 	<string name="timeline_create_cancel_button">Annuler</string>
 	<string name="timeline_create_create_button">Créer</string>

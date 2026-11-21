@@ -1,9 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,12 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
-import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
@@ -100,35 +99,31 @@ fun CreateTimeLineEventUi(
 	val wordCount = remember(contentText) { countWords(contentText) }
 	val charCount = contentText.length
 
-	Card(
-		modifier = modifier.padding(Ui.Padding.XL)
-			.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
-		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL),
-		shape = RectangleShape,
+	BoxWithConstraints(
+		modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL),
+		contentAlignment = Alignment.Center,
 	) {
-		Column(modifier = Modifier.fillMaxWidth()) {
+		Column(
+			modifier = modifier
+				.widthIn(max = Ui.MaxWidth.Modal)
+				.fillMaxWidth()
+				.heightIn(max = maxHeight)
+				.background(MaterialTheme.colorScheme.surface, RectangleShape)
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outline,
+					shape = RectangleShape,
+				),
+		) {
 
 			CollapseWhileTyping {
 				Column(modifier = Modifier.fillMaxWidth()) {
-					Column(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(
-								start = Ui.Padding.XL,
-								end = Ui.Padding.XL,
-								top = Ui.Padding.XL,
-								bottom = Ui.Padding.L,
-							),
-						verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-					) {
-						HdSectionHeader(
-							marker = Res.string.timeline_create_marker.get(),
-							title = Res.string.timeline_create_header.get(),
-							trailing = {
-								HdMonoLabel(text = Res.string.timeline_create_draft_label.get())
-							},
-						)
-					}
+					Text(
+						text = Res.string.timeline_create_header.get(),
+						style = MaterialTheme.typography.titleLarge,
+						color = MaterialTheme.colorScheme.onSurface,
+						modifier = Modifier.padding(start = 28.dp, end = 28.dp, top = Ui.Padding.XL, bottom = Ui.Padding.L),
+					)
 
 					HorizontalDivider(
 						thickness = Dp.Hairline,
@@ -141,8 +136,8 @@ fun CreateTimeLineEventUi(
 				Column(
 					modifier = Modifier
 						.fillMaxWidth()
-						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+						.padding(horizontal = 28.dp, vertical = 22.dp),
+					verticalArrangement = Arrangement.spacedBy(22.dp),
 				) {
 					CollapseWhileTyping {
 						HdHairlineSegmentedPicker(
@@ -253,23 +248,20 @@ fun CreateTimeLineEventUi(
 
 			// One FieldsOverBody for every kind, so switching kind keeps the fields' own state.
 			FieldsOverBody(
-				bodyMinHeight = EventBodyMinHeight + Ui.Padding.L,
+				bodyMinHeight = EventBodyMinHeight + 22.dp,
 				modifier = Modifier.weight(1f, fill = isEvent),
 				fields = fields,
 				body = if (isEvent) {
 					{
-						Box(
+						Column(
 							modifier = Modifier
-								.padding(horizontal = Ui.Padding.XL)
-								.padding(bottom = Ui.Padding.L)
+								.padding(horizontal = 28.dp)
+								.padding(bottom = 22.dp)
 								.fillMaxWidth()
-								.border(
-									width = Dp.Hairline,
-									color = MaterialTheme.colorScheme.outlineVariant,
-									shape = RectangleShape,
-								)
 								.testTag(TIME_LINE_CREATE_BODY_TAG),
+							verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 						) {
+							HdMonoLabel(text = Res.string.timeline_create_body_label.get())
 							key(resetVersion) {
 								MarkdownEditField(
 									initialMarkdown = contentText,
@@ -277,9 +269,7 @@ fun CreateTimeLineEventUi(
 									enableSpellChecking = state.spellCheckAllowed,
 									contentPadding = PaddingValues(Ui.Padding.XL),
 									testTag = TIME_LINE_CREATE_CONTENT_TAG,
-									modifier = Modifier
-										.fillMaxWidth()
-										.widthIn(max = TextEditorDefaults.MAX_WIDTH),
+									modifier = Modifier.fillMaxWidth(),
 								)
 							}
 						}
@@ -297,8 +287,9 @@ fun CreateTimeLineEventUi(
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+					.background(MaterialTheme.colorScheme.surfaceContainerLow)
+					.padding(horizontal = 24.dp, vertical = 12.dp),
+				horizontalArrangement = Arrangement.spacedBy(14.dp),
 				verticalAlignment = Alignment.CenterVertically,
 			) {
 				if (isEvent) {
@@ -311,7 +302,7 @@ fun CreateTimeLineEventUi(
 				)
 				HdHairlineButton(
 					label = Res.string.timeline_create_create_button.get(),
-					emphasised = canCreate && (!isEvent || contentText.isNotBlank()),
+					emphasised = true,
 					enabled = canCreate,
 					modifier = Modifier.testTag(TIME_LINE_CREATE_CONFIRM_TAG),
 					onClick = {
