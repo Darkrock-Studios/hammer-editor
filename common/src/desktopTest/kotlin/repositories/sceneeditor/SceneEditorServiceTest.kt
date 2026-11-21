@@ -25,6 +25,7 @@ import createProject
 import getProject1Def
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -143,11 +144,13 @@ class SceneEditorServiceTest : BaseTest() {
 	private lateinit var activity: WritingActivityRepository
 
 	/** A service whose writing activity is counted by a real tracker into [activity]. Not initialized. */
-	private fun serviceCountingActivity(): SceneEditorService {
+	private fun serviceCountingActivity(
+		settings: GlobalSettingsStore = mockk<GlobalSettingsStore>(relaxed = true).also {
+			coEvery { it.ensureInstallId() } returns "device-test"
+		},
+	): SceneEditorService {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
-		val settings = mockk<GlobalSettingsStore>(relaxed = true)
-		coEvery { settings.ensureInstallId() } returns "device-test"
 		activity = WritingActivityRepository(WritingActivityDatasource(ffs, toml, projDef), settings, projDef)
 		return createService(projDef, WritingSessionTracker(activity, Clock.System, projDef))
 	}
@@ -334,7 +337,7 @@ class SceneEditorServiceTest : BaseTest() {
 			val buffer = service.loadSceneBuffer(scene)
 			assertEquals(scene, buffer.content.scene)
 			assertEquals("Content of scene id 3", buffer.content.markdown)
-			coVerify { writingSessionTracker.rememberBaseline(3, "Content of scene id 3") }
+			coVerify { writingSessionTracker.rememberBaseline(3, "Content of scene id 3", any()) }
 		}
 
 	@Test
@@ -355,7 +358,7 @@ class SceneEditorServiceTest : BaseTest() {
 
 			assertFalse(service.hasDirtyBuffers())
 			coVerify { statisticsRepository.markDirty() }
-			coVerify { writingSessionTracker.onSceneSaved(eq(3), any(), any()) }
+			coVerify { writingSessionTracker.onSceneSaved(eq(3), any(), any(), any()) }
 		}
 
 	@Test
@@ -378,6 +381,7 @@ class SceneEditorServiceTest : BaseTest() {
 					eq(3),
 					eq("Content of scene id 3 plus several freshly typed words"),
 					eq(UpdateSource.Editor),
+					any(),
 				)
 			}
 		}
@@ -397,6 +401,35 @@ class SceneEditorServiceTest : BaseTest() {
 			advanceUntilIdle()
 
 			assertEquals(3, wordsRecorded())
+		}
+
+	@Test
+	fun `An autosave handled after a sync landed is credited against the text it was typed into`() =
+		runTest(mainTestDispatcher) {
+			// The first log write waits, holding up the autosave collector behind it.
+			val logWrite = CompletableDeferred<Unit>()
+			var installIdCalls = 0
+			val settings = mockk<GlobalSettingsStore>(relaxed = true)
+			coEvery { settings.ensureInstallId() } coAnswers {
+				if (++installIdCalls == 1) logWrite.await()
+				"device-test"
+			}
+			val service = serviceCountingActivity(settings).also { it.initialize() }
+			val scene = service.getSceneItemFromId(3)!!
+			service.loadSceneBuffer(scene)
+			service.onContentChanged(SceneContent(scene, "Content of scene id 3 alpha"), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			service.onContentChanged(SceneContent(scene, "Content of scene id 3 alpha beta gamma"), UpdateSource.Editor)
+			advanceUntilIdle()
+			service.onContentChanged(SceneContent(scene, SYNCED_TEXT), UpdateSource.Sync)
+			advanceUntilIdle()
+			logWrite.complete(Unit)
+			advanceUntilIdle()
+			service.onContentChanged(SceneContent(scene, "$SYNCED_TEXT Two more."), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			assertEquals(5, wordsRecorded())
 		}
 
 	@Test

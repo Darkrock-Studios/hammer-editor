@@ -55,6 +55,11 @@ compared with the wrong anchor; a scene the tracker does not hold yet is left al
 when it is opened. Discarding unsaved edits re-anchors the scene at the reloaded text. A deleted
 scene's credit is banked and its text stays seen.
 
+**Order.** Every buffer change gets a revision, and each save and re-anchor carries the revision
+its text was read at, so ones handled out of order are put back in order. A save older than one
+already counted, or an outside text older than the newest save, changes nothing. A save read
+before a re-anchor but handled after it is credited against the anchor it was typed into.
+
 ## Accepted limits
 
 - Text pasted from another app counts as written.
