@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="wear_pairing_masthead">ASSOCIA OROLOGIO</string>
 	<string name="wear_pairing_title">Accedere come %1$s su Hammer?</string>
 	<string name="wear_pairing_body">L’orologio si sincronizzerà come %1$s con una propria sessione. Puoi disconnetterlo dall’orologio in qualsiasi momento.</string>
 	<string name="wear_pairing_not_signed_in">Accedi prima a un server di sincronizzazione su questo telefono, poi associa nuovamente l’orologio.</string>

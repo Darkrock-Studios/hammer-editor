@@ -151,15 +151,15 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 
 Desktop:
 - [x] Splash (`SplashScreen`) reviewed by code, brand screen left as is
-- [ ] Editor window menu bar (`ProjectEditorWindow`) **no gallery**
+- [x] Editor window menu bar (`ProjectEditorWindow`) reviewed by code, platform title-case menus left as is
 - [x] Close-window unsaved confirms (`desktop/.../ConfirmCloseDialogs.kt`; copies of the project-root confirms) reviewed by code, matched to the project-root confirms
-- [ ] macOS sandbox: Welcome to Hammer, retry, choose a projects folder (`SandboxStartup`, native alerts)
+- [x] macOS sandbox: Welcome to Hammer, retry, choose a projects folder (`SandboxStartup`, native alerts) reviewed by code, native alerts left as is
 
 Android:
-- [ ] Add Note to:, and Discard Note? (`AddNoteActivity` widget) **no gallery**
-- [ ] Configure Note Widget (`AddNoteWidgetConfigActivity`) **no gallery**
-- [ ] Story Info Widget config (`StoryInfoWidgetConfigActivity`) **no gallery**
-- [ ] Sign in watch to Hammer?, gms only (`WearPairingDialog`) **no gallery**
+- [x] Add Note to:, and Discard Note? (`AddNoteActivity` widget) reviewed by code
+- [x] Configure Note Widget (`AddNoteWidgetConfigActivity`) reviewed by code
+- [x] Story Info Widget config (`StoryInfoWidgetConfigActivity`) reviewed by code
+- [x] Sign in watch to Hammer?, gms only (`WearPairingDialog`) reviewed by code
 
 ## Shared building blocks
 
