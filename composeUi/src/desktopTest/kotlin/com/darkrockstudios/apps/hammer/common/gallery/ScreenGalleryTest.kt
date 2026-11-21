@@ -80,6 +80,12 @@ import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiWri
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiSyncTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiSyncNotSetUpTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneConflictCompactPreview
+import com.darkrockstudios.apps.hammer.common.preview.NoteConflictPreview
+import com.darkrockstudios.apps.hammer.common.preview.SceneDraftConflictPreview
+import com.darkrockstudios.apps.hammer.common.preview.EncyclopediaEntryConflictPreview
+import com.darkrockstudios.apps.hammer.common.preview.EncyclopediaEntryConflictCompactPreview
+import com.darkrockstudios.apps.hammer.common.preview.TimelineConflictPreview
+import com.darkrockstudios.apps.hammer.common.preview.ProjectDataConflictPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneConflictPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenCreateEntryPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
@@ -334,6 +340,15 @@ class ScreenGalleryTest {
 		Screen("Project sync, log") { formFactor ->
 			TabletPreviewSurface { ProjectSyncLogPreview(compact = formFactor == FormFactor.Phone) }
 		},
+		screen("Sync conflict, note", note = "Preview hardcodes a white backdrop and its own size class.") { TabletPreviewSurface { NoteConflictPreview() } },
+		screen("Sync conflict, scene draft", note = "Preview hardcodes a white backdrop and its own size class.") { TabletPreviewSurface { SceneDraftConflictPreview() } },
+		Screen("Sync conflict, encyclopedia entry", note = "Preview hardcodes a white backdrop and its own size class.") { formFactor ->
+			TabletPreviewSurface {
+				if (formFactor == FormFactor.Phone) EncyclopediaEntryConflictCompactPreview() else EncyclopediaEntryConflictPreview()
+			}
+		},
+		screen("Sync conflict, timeline event", note = "Preview hardcodes a white backdrop and its own size class.") { TabletPreviewSurface { TimelineConflictPreview() } },
+		screen("Sync conflict, project data", note = "Preview hardcodes a white backdrop and its own size class.") { TabletPreviewSurface { ProjectDataConflictPreview() } },
 		Screen("Sync conflict", note = "Preview hardcodes a white backdrop and its own size class.") { formFactor ->
 			TabletPreviewSurface {
 				if (formFactor == FormFactor.Phone) SceneConflictCompactPreview() else SceneConflictPreview()

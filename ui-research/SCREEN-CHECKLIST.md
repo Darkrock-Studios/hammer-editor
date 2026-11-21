@@ -131,12 +131,12 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Cancel Sync? (`SimpleConfirm`)
 - [x] Conflicts, shared layout (`ConflictSplit`)
   - [x] Scene conflict (`SceneConflict`) g: Sync conflict
-  - [ ] Scene draft conflict (`SceneDraftConflict`) **no gallery**
-  - [ ] Note conflict (`NoteConflict`) **no gallery**
-  - [ ] Encyclopedia entry conflict (`EncyclopediaEntryConflict`) **no gallery**
-  - [ ] Timeline event conflict (`TimelineEventConflict`) **no gallery**
+  - [x] Scene draft conflict (`SceneDraftConflict`) g: Sync conflict, scene draft
+  - [x] Note conflict (`NoteConflict`) g: Sync conflict, note
+  - [x] Encyclopedia entry conflict (`EncyclopediaEntryConflict`) g: Sync conflict, encyclopedia entry
+  - [x] Timeline event conflict (`TimelineEventConflict`) g: Sync conflict, timeline event
   - [ ] Image conflict (`ImageConflict`) **no gallery**
-  - [ ] Project data conflict (`ProjectDataConflict`) **no gallery**
+  - [x] Project data conflict (`ProjectDataConflict`) g: Sync conflict, project data
 - [ ] Reauthorize, with MFA step (`ReauthenticationUi`) **no gallery**
 
 ## 9. Plugin actions
@@ -173,3 +173,11 @@ Android:
 - [ ] `UnsavedScenesConfirmDialog`
 - [ ] `EntityPickerDialog` (Add references, Place a scene / event, plugin entity fields)
 - [ ] `ImageViewerDialog` (cover, entry and gallery images)
+
+## After the pass
+
+Over everything the pass touched (all `4_0/ui-redesign-prototype` commits since the pass began):
+
+- [ ] `/simplify`: duplicate code and repeated implementations of common things (cards, title rows, confirm wiring, previews)
+- [ ] Compose stability and performance review (unstable params, needless recomposition, remember/derivedStateOf misuse, lambdas, lazy list keys)
+- [ ] `/code-review` for correctness

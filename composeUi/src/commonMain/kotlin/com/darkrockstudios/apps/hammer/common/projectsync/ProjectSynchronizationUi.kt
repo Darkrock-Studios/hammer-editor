@@ -382,7 +382,7 @@ private fun rememberConflictSummary(
 			is ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict -> ConflictSummary(
 				label = encyclopediaLabel,
 				name = entity.serverEntity.name,
-				meta = "ENC · ${entity.serverEntity.entryType.uppercase()}",
+				meta = null,
 			)
 			is ProjectSynchronization.EntityConflict.SceneDraftConflict -> ConflictSummary(
 				label = sceneDraftLabel,
@@ -392,10 +392,10 @@ private fun rememberConflictSummary(
 			is ProjectSynchronization.EntityConflict.ImageConflict -> ConflictSummary(
 				label = imageLabel,
 				name = entity.serverEntity.name,
-				meta = "IMG · ${entity.serverEntity.fileExtension.uppercase()}",
+				meta = entity.serverEntity.fileExtension.uppercase(),
 			)
 			null -> ConflictSummary(
-				label = if (projectData != null) projectDataLabel else "Conflict",
+				label = projectDataLabel,
 				name = null,
 				meta = null,
 			)

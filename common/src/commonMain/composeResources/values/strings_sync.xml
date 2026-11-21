@@ -19,11 +19,11 @@
 	<string name="sync_conflict_header_title">%1$s conflict</string>
 	<string name="sync_conflict_entity_label_scene">Scene</string>
 	<string name="sync_conflict_entity_label_note">Note</string>
-	<string name="sync_conflict_entity_label_timeline_event">Timeline Event</string>
-	<string name="sync_conflict_entity_label_encyclopedia_entry">Encyclopedia Entry</string>
-	<string name="sync_conflict_entity_label_scene_draft">Scene Draft</string>
+	<string name="sync_conflict_entity_label_timeline_event">Timeline event</string>
+	<string name="sync_conflict_entity_label_encyclopedia_entry">Encyclopedia entry</string>
+	<string name="sync_conflict_entity_label_scene_draft">Scene draft</string>
 	<string name="sync_conflict_entity_label_image">Image</string>
-	<string name="sync_conflict_entity_label_project_data">Project Settings</string>
+	<string name="sync_conflict_entity_label_project_data">Project settings</string>
 
 
 	<string
@@ -97,7 +97,7 @@
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 
 	<string name="sync_conflict_project_data_title">Project settings conflict</string>
-	<string name="sync_conflict_project_data_explanation">Pick a side for each field. Local is what you have on this device; Server is what was synced from another device.</string>
+	<string name="sync_conflict_project_data_explanation">Pick a side for each field. Local is what you have on this device; Remote is what was synced from another device.</string>
 	<string name="sync_conflict_project_data_field_author">Author Name</string>
 	<string name="sync_conflict_project_data_field_theme">Project Theme</string>
 	<string name="sync_conflict_project_data_field_word_goal">Word Count Goal</string>
@@ -124,13 +124,13 @@
 	</plurals>
 
 
-	<string name="sync_conflict_encyclopedia_label_name">Name:</string>
-	<string name="sync_conflict_encyclopedia_label_type">Type:</string>
-	<string name="sync_conflict_encyclopedia_label_image">Image:</string>
-	<string name="sync_conflict_encyclopedia_label_content">Content:</string>
+	<string name="sync_conflict_encyclopedia_label_name">Name</string>
+	<string name="sync_conflict_encyclopedia_label_type">Type</string>
+	<string name="sync_conflict_encyclopedia_label_image">Image</string>
+	<string name="sync_conflict_encyclopedia_label_content">Content</string>
 	<string name="sync_conflict_encyclopedia_image_not_local">#%1$d</string>
 	<string name="sync_conflict_encyclopedia_image_not_local_description">Image %1$d, not on this device yet</string>
-	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
+	<string name="sync_conflict_encyclopedia_label_tags">Tags</string>
 
 
 	<string name="sync_conflict_title_scene_field_name">Name</string>
@@ -143,7 +143,7 @@
 	<string name="sync_conflict_references_confirmed_label">Confirmed</string>
 	<string name="sync_conflict_references_dismissed_label">Dismissed</string>
 	<string name="sync_conflict_references_empty">None</string>
-	<string name="sync_conflict_encyclopedia_label_aliases">Aliases:</string>
+	<string name="sync_conflict_encyclopedia_label_aliases">Aliases</string>
 
 	<string name="sync_conflict_title_scene_draft_field_name">Name</string>
 	<string name="sync_conflict_title_scene_draft_field_content">Scene Content</string>

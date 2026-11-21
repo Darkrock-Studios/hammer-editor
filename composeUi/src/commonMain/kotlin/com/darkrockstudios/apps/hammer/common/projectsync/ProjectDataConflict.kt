@@ -243,7 +243,7 @@ internal fun ProjectDataConflict(
 			horizontalArrangement = Arrangement.End,
 		) {
 			HdHairlineButton(
-				label = Res.string.sync_conflict_project_data_resolve_button.get().uppercase(),
+				label = Res.string.sync_conflict_project_data_resolve_button.get(),
 				onClick = {
 					component.resolveProjectDataConflict(
 						buildResolved(
