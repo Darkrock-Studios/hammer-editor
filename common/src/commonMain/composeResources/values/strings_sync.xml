@@ -4,18 +4,19 @@
 	<string name="sync_project_dialog_close">Close</string>
 	<string name="sync_project_dialog_percent">%1$d%</string>
 
-	<string name="sync_conflict_scene_title">Scene Conflict</string>
-	<string name="sync_conflict_scene_draft_title">Scene Draft Conflict</string>
-	<string name="sync_conflict_note_title">Note Conflict</string>
-	<string name="sync_conflict_timeline_title">Timeline Event Conflict</string>
-	<string name="sync_conflict_image_title">Image Conflict</string>
+	<string name="sync_conflict_use_version">Use this version</string>
+	<string name="sync_conflict_scene_title">Scene conflict</string>
+	<string name="sync_conflict_scene_draft_title">Scene draft conflict</string>
+	<string name="sync_conflict_note_title">Note conflict</string>
+	<string name="sync_conflict_timeline_title">Timeline event conflict</string>
+	<string name="sync_conflict_image_title">Image conflict</string>
 
 	<string name="sync_conflict_timeline_event_missing_date">No Date</string>
 
 	<string name="sync_conflict_tab_local">Local</string>
 	<string name="sync_conflict_tab_remote">Remote</string>
 
-	<string name="sync_conflict_header_title">%1$s Conflict</string>
+	<string name="sync_conflict_header_title">%1$s conflict</string>
 	<string name="sync_conflict_entity_label_scene">Scene</string>
 	<string name="sync_conflict_entity_label_note">Note</string>
 	<string name="sync_conflict_entity_label_timeline_event">Timeline Event</string>
@@ -30,7 +31,7 @@
 	</string>
 
 
-	<string name="sync_conflict_encyclopedia_title">Encyclopedia Entry Conflict</string>
+	<string name="sync_conflict_encyclopedia_title">Encyclopedia entry conflict</string>
 
 	<string name="project_info_author_label">Author</string>
 	<string name="project_info_theme_section_title">Custom theme</string>
@@ -95,7 +96,7 @@
 	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 
-	<string name="sync_conflict_project_data_title">Project Settings Conflict</string>
+	<string name="sync_conflict_project_data_title">Project settings conflict</string>
 	<string name="sync_conflict_project_data_explanation">Pick a side for each field. Local is what you have on this device; Server is what was synced from another device.</string>
 	<string name="sync_conflict_project_data_field_author">Author Name</string>
 	<string name="sync_conflict_project_data_field_theme">Project Theme</string>

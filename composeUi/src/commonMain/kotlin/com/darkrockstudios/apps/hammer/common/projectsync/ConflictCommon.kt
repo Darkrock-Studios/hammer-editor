@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,9 +31,10 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPrimaryAction
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.sync_conflict_use_version
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_local
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_remote
 
@@ -173,7 +175,7 @@ private fun CompactConflictUi(
 		)
 		val isRemote = side == Side.REMOTE
 		ConflictPane(
-			sideLabel = if (isRemote) remoteLabel else localLabel,
+			sideLabel = null,
 			onUse = if (isRemote) onUseRemote else onUseLocal,
 			modifier = Modifier.fillMaxWidth().weight(1f),
 		) {
@@ -188,7 +190,7 @@ private fun CompactConflictUi(
 
 @Composable
 private fun ConflictPane(
-	sideLabel: String,
+	sideLabel: String?,
 	onUse: () -> Unit,
 	modifier: Modifier = Modifier,
 	content: @Composable () -> Unit,
@@ -206,22 +208,25 @@ private fun ConflictPane(
 }
 
 @Composable
-private fun PaneMast(sideLabel: String, onUse: () -> Unit) {
+private fun PaneMast(sideLabel: String?, onUse: () -> Unit) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
 			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
 		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.SpaceBetween,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		HdMonoLabel(
-			text = sideLabel,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		HdPrimaryAction(
-			prefix = "USE",
-			label = sideLabel,
+		if (sideLabel != null) {
+			HdMonoLabel(
+				text = sideLabel,
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+		}
+		Spacer(modifier = Modifier.weight(1f))
+		HdHairlineButton(
+			label = Res.string.sync_conflict_use_version.get(),
 			onClick = onUse,
+			emphasised = true,
 		)
 	}
 }
