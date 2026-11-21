@@ -15,6 +15,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import okio.FileNotFoundException
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -103,6 +104,9 @@ class ActionSessionStore(
 		if (!fileSystem.exists(path)) return null
 		val file = try {
 			json.decodeFromString(SessionFile.serializer(), fileSystem.read(path) { readUtf8() })
+		} catch (_: FileNotFoundException) {
+			// Removed since it was found.
+			return null
 		} catch (e: IOException) {
 			setAside(path, e)
 		} catch (e: IllegalArgumentException) {
