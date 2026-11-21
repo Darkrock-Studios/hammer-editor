@@ -354,9 +354,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 		service.loadSceneBuffer(sceneItem)
 
-		val content = slot<() -> String>()
-		verify { writingSessionTracker.ensureBaseline(3, any(), capture(content)) }
-		assertEquals("Content of chapter id 3", content.captured())
+		verify { writingSessionTracker.ensureBaseline(3, "Content of chapter id 3", any()) }
 	}
 
 	@Test

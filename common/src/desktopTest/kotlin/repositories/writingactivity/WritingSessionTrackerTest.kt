@@ -211,6 +211,14 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `a late save under the old id of a scene re-ided before it was anchored does not anchor it`() = runTest {
+		tracker.reIdBaseline(oldId = 7, newId = 42)
+		tracker.onSceneSaved(7, "I went home and ate", UpdateSource.Editor)
+
+		assertEquals(0, tracker.onSceneSaved(7, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
 	fun `loading a scene again after its deletion anchors it`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "I went home")
 		tracker.forgetBaseline(1)

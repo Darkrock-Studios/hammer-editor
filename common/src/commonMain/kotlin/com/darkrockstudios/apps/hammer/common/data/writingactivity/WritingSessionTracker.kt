@@ -144,8 +144,8 @@ class WritingSessionTracker(
 	/** Moves a scene's anchor to [newId]; an anchor already there is retired, its credit banked. */
 	fun reIdBaseline(oldId: Int, newId: Int) {
 		baselineLock.withReentrantLock {
-			val moved = anchors.remove(oldId) ?: return@withReentrantLock
 			retired += oldId
+			val moved = anchors.remove(oldId) ?: return@withReentrantLock
 			retired -= newId
 			anchors.put(newId, moved)?.let(::retire)
 		}
@@ -270,7 +270,7 @@ class WritingSessionTracker(
 
 		for (entry in anchors.entries) {
 			val anchor = entry.value
-			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords, anchor.newest))
+			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords, anchor.newest).replacing(anchor))
 			if (anchor.lastSeenWords !== anchor.words) unseen += anchor.lastSeenWords
 		}
 		banked = 0
@@ -285,7 +285,12 @@ class WritingSessionTracker(
 		if (old != null && (old.isPast(revision) || old.isAt(content))) return
 		old?.let(::retire)
 		install(sceneId, content, lazy { ActivityWords.of(content) }, revision)
-		anchors.getValue(sceneId).replaced = old
+		anchors.getValue(sceneId).replacing(old)
+	}
+
+	/** Under [baselineLock]. Keeps [old] and up to [MAX_REPLACED] anchors in all for saves that arrive late. */
+	private fun Anchor.replacing(old: Anchor?): Anchor = also {
+		replaced = old
 		generateSequence(old) { it.replaced }.drop(MAX_REPLACED - 1).firstOrNull()?.replaced = null
 	}
 
