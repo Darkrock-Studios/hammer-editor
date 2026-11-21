@@ -172,7 +172,6 @@
 	<string name="protocol_mismatch_dismiss_button">Descartar</string>
 	<string name="reauth_title">Volver a autorizar</string>
 	<string name="reauth_explanation">Tu token ha caducado; vuelve a autorizarte con tu servidor de sincronización.</string>
-	<string name="reauth_token_expired">Token caducado</string>
 	<string name="reauth_server_url">Dirección</string>
 	<string name="reauth_server_email">Correo</string>
 	<string name="server_setup_help_title">Acerca de los servidores de sincronización</string>

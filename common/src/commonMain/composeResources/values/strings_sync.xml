@@ -344,11 +344,10 @@
 	<string name="protocol_mismatch_open_release_button">Get the update</string>
 	<string name="protocol_mismatch_dismiss_button">Dismiss</string>
 
-	<string name="reauth_title">Reauthorize</string>
-	<string name="reauth_explanation">Your token has expired, please reauthorize with your sync server.</string>
-	<string name="reauth_token_expired">Token Expired</string>
+	<string name="reauth_title">Sign in again</string>
+	<string name="reauth_explanation">Your sign-in to the sync server has expired. Enter your password to keep syncing.</string>
 	<string name="reauth_server_url">Address</string>
-	<string name="reauth_server_email">E-Mail</string>
+	<string name="reauth_server_email">Email</string>
 
 	<string name="server_setup_help_title">About sync servers</string>
 	<string

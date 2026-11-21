@@ -172,7 +172,6 @@
 	<string name="protocol_mismatch_dismiss_button">Закрити</string>
 	<string name="reauth_title">Повторна авторизація</string>
 	<string name="reauth_explanation">Термін дії вашого токена минув, будь ласка, авторизуйтеся повторно на сервері синхронізації.</string>
-	<string name="reauth_token_expired">Термін дії токена минув</string>
 	<string name="reauth_server_url">Адреса</string>
 	<string name="reauth_server_email">Ел. пошта</string>
 	<string name="server_setup_help_title">Про сервери синхронізації</string>

@@ -137,7 +137,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
   - [x] Timeline event conflict (`TimelineEventConflict`) g: Sync conflict, timeline event
   - [ ] Image conflict (`ImageConflict`) **no gallery**
   - [x] Project data conflict (`ProjectDataConflict`) g: Sync conflict, project data
-- [ ] Reauthorize, with MFA step (`ReauthenticationUi`) **no gallery**
+- [x] Reauthorize, with MFA step (`ReauthenticationUi`) g: Reauthorize, Reauthorize, MFA
 
 ## 9. Plugin actions
 

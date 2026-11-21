@@ -172,7 +172,6 @@
 	<string name="protocol_mismatch_dismiss_button">Ignora</string>
 	<string name="reauth_title">Autorizza di nuovo</string>
 	<string name="reauth_explanation">Il tuo token è scaduto, autorizza di nuovo con il tuo server di sincronizzazione.</string>
-	<string name="reauth_token_expired">Token scaduto</string>
 	<string name="reauth_server_url">Indirizzo</string>
 	<string name="reauth_server_email">E-mail</string>
 	<string name="server_setup_help_title">Informazioni sui server di sincronizzazione</string>

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -45,30 +46,48 @@ private fun ReauthPreviewScaffold(
 	state: ServerReauthentication.State,
 	darkTheme: Boolean,
 ) {
+	AppTheme(globalSettingsPreview, useDarkTheme = darkTheme) {
+		ReauthScrim(state, Modifier.padding(24.dp))
+	}
+}
+
+@Composable
+private fun ReauthScrim(state: ServerReauthentication.State, modifier: Modifier) {
 	var password by remember { mutableStateOf(state.serverPassword) }
 	var passwordVisible by remember { mutableStateOf(false) }
 
-	AppTheme(globalSettingsPreview, useDarkTheme = darkTheme) {
-		Box(
-			modifier = Modifier
-				.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
-				.padding(24.dp),
-			contentAlignment = Alignment.Center,
-		) {
-			ReauthenticationContent(
-				state = state.copy(serverPassword = password),
-				passwordVisible = passwordVisible,
-				onPasswordVisibleChange = { passwordVisible = it },
-				onPasswordChange = { password = it },
-				onClose = {},
-				onLogin = {},
-				onMfaCodeSubmit = {},
-				onMfaCancel = {},
-				modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
-			)
-		}
+	Box(
+		modifier = modifier.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		contentAlignment = Alignment.Center,
+	) {
+		ReauthenticationContent(
+			state = state.copy(serverPassword = password),
+			passwordVisible = passwordVisible,
+			onPasswordVisibleChange = { passwordVisible = it },
+			onPasswordChange = { password = it },
+			onClose = {},
+			onLogin = {},
+			onMfaCodeSubmit = {},
+			onMfaCancel = {},
+			modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
+		)
 	}
 }
+
+/** Signing back in to the sync server, over a scrim in the gallery's theme. */
+@Composable
+internal fun ReauthenticationScrimPreview() =
+	ReauthScrim(previewState(password = "hunter2"), Modifier.fillMaxSize())
+
+/** The MFA step of signing back in, over a scrim in the gallery's theme. */
+@Composable
+internal fun ReauthenticationMfaScrimPreview() = ReauthScrim(
+	previewState(
+		password = "hunter2",
+		mfaChallenge = MfaChallenge(token = "preview", methods = listOf(MfaMethod.TOTP, MfaMethod.RECOVERY)),
+	),
+	Modifier.fillMaxSize(),
+)
 
 @Preview
 @Composable

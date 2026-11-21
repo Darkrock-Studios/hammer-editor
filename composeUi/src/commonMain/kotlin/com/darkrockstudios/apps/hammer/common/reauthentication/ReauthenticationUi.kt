@@ -93,21 +93,6 @@ internal fun ReauthenticationContent(
 		),
 	) {
 		Column {
-			HdMasthead(
-				section = Res.string.reauth_title.get(),
-				leadingMeta = buildList {
-					add(Res.string.reauth_token_expired.get())
-					if (challenge != null) add(Res.string.settings_server_setup_mfa_meta.get())
-				},
-				trailing = {
-					HdMastheadAction(
-						label = "× " + Res.string.close_dialog_button.get(),
-						onClick = onClose,
-					)
-				},
-			)
-			HdFolioDivider()
-
 			Header()
 
 			if (state.serverWorking) {
@@ -218,7 +203,7 @@ private fun Header() {
 			.padding(
 				start = Ui.Padding.XL,
 				end = Ui.Padding.XL,
-				top = Ui.Padding.L,
+				top = Ui.Padding.XL,
 				bottom = Ui.Padding.S,
 			),
 	)

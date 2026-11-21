@@ -172,7 +172,6 @@
 	<string name="protocol_mismatch_dismiss_button">Ignorer</string>
 	<string name="reauth_title">Réautoriser</string>
 	<string name="reauth_explanation">Votre jeton a expiré, veuillez vous réautoriser auprès de votre serveur de synchronisation.</string>
-	<string name="reauth_token_expired">Jeton expiré</string>
 	<string name="reauth_server_url">Adresse</string>
 	<string name="reauth_server_email">E-mail</string>
 	<string name="server_setup_help_title">À propos des serveurs de synchronisation</string>

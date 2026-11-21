@@ -172,7 +172,6 @@
 	<string name="protocol_mismatch_dismiss_button">Schließen</string>
 	<string name="reauth_title">Erneut autorisieren</string>
 	<string name="reauth_explanation">Ihr Token ist abgelaufen. Bitte autorisieren Sie sich erneut bei Ihrem Sync-Server.</string>
-	<string name="reauth_token_expired">Token abgelaufen</string>
 	<string name="reauth_server_url">Adresse</string>
 	<string name="reauth_server_email">E-Mail</string>
 	<string name="server_setup_help_title">Über Sync-Server</string>
