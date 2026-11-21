@@ -115,7 +115,8 @@ class SceneContentRepository(
 		contentUpdateJob = editorScope.launch {
 			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN)
 				.collect { contentUpdate ->
-					if (updateSceneBufferContent(contentUpdate)) {
+					val check = if (contentUpdate.source == UpdateSource.Editor) checkRepeat(contentUpdate) else null
+					if (updateSceneBufferContent(contentUpdate, check)) {
 						launchSaveJob(contentUpdate.content.scene)
 					}
 				}
@@ -187,15 +188,17 @@ class SceneContentRepository(
 	fun loadUnrestoredEdits(sceneItem: SceneItem): String? =
 		if (hasUnrestoredEdits(sceneItem)) sceneDatasource.loadTempSceneBuffer(sceneItem) else null
 
-	/** The clean loaded buffer an editor update merely repeats, compared outside the buffer lock. */
-	private fun loadedBufferRepeatedBy(update: SceneContentUpdate): SceneBuffer? =
-		if (update.source != UpdateSource.Editor) {
-			null
-		} else {
-			getSceneBuffer(update.content.scene.id)?.takeIf {
-				!it.dirty && it.content.markdown != null && it.content == update.content
-			}
-		}
+	/** The buffer an editor update was checked against, and whether it merely repeats that clean loaded text. */
+	private class RepeatCheck(val buffer: SceneBuffer?, val repeats: Boolean)
+
+	/** On the debounce path this runs outside the buffer lock; the comparison can export the whole scene. */
+	private fun checkRepeat(update: SceneContentUpdate): RepeatCheck {
+		val buffer = getSceneBuffer(update.content.scene.id)
+		return RepeatCheck(buffer, buffer.isRepeatedBy(update.content))
+	}
+
+	private fun SceneBuffer?.isRepeatedBy(content: SceneContent): Boolean =
+		this != null && !dirty && this.content.markdown != null && this.content == content
 
 	/**
 	 * Returns whether the buffer now holds unsaved edits that need a temp file. Held under the lock
@@ -203,7 +206,7 @@ class SceneContentRepository(
 	 */
 	private fun updateSceneBufferContent(
 		update: SceneContentUpdate,
-		repeated: SceneBuffer? = loadedBufferRepeatedBy(update),
+		check: RepeatCheck? = null,
 	): Boolean = sceneBuffersLock.withLock {
 		val (content, source) = update
 		val sceneId = content.scene.id
@@ -213,7 +216,9 @@ class SceneContentRepository(
 		when {
 			source == UpdateSource.Editor -> {
 				// The editor also reports the text it was just loaded with; that is not an edit.
-				if (repeated != null && sceneBuffers[sceneId] === repeated) {
+				val current = sceneBuffers[sceneId]
+				val repeats = if (check != null && check.buffer === current) check.repeats else current.isRepeatedBy(content)
+				if (repeats) {
 					false
 				} else {
 					updateSceneBuffer(SceneBuffer(content, dirty = true, source = source))

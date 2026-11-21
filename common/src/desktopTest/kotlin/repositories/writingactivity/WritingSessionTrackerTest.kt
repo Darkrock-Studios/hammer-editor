@@ -193,6 +193,33 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `a late save for a deleted scene does not anchor it again`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.forgetBaseline(1)
+		tracker.onSceneSaved(1, "I went home and ate", UpdateSource.Editor)
+
+		assertEquals(0, tracker.onSceneSaved(1, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a late save under a re-ided scene's old id does not anchor it`() = runTest {
+		tracker.rememberBaseline(sceneId = 7, content = "I went home")
+		tracker.reIdBaseline(oldId = 7, newId = 42)
+		tracker.onSceneSaved(7, "I went home and ate", UpdateSource.Editor)
+
+		assertEquals(0, tracker.onSceneSaved(7, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `loading a scene again after its deletion anchors it`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.forgetBaseline(1)
+		tracker.rememberBaseline(sceneId = 1, content = "A new scene")
+
+		assertEquals(2, tracker.onSceneSaved(1, "A new scene begins here", UpdateSource.Editor))
+	}
+
+	@Test
 	fun `Drafts and Repository sources also do not credit`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "")
 		tracker.onSceneSaved(1, "draft content here", UpdateSource.Drafts)

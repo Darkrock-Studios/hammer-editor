@@ -11,8 +11,10 @@ import kotlinx.atomicfu.locks.withLock as withReentrantLock
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -68,6 +70,9 @@ class WritingSessionTracker(
 	private val baselineLock = reentrantLock()
 	private val anchors = mutableMapOf<Int, Anchor>()
 
+	/** Scenes deleted or re-ided away: a late editor save for one must not anchor it again. */
+	private val retired = mutableSetOf<Int>()
+
 	/** Shingles of every text anchored or left behind since the project opened. Only grows. */
 	private var reproduced: PersistentSet<Long> = persistentHashSetOf()
 
@@ -109,6 +114,7 @@ class WritingSessionTracker(
 	fun forgetBaseline(sceneId: Int) {
 		baselineLock.withReentrantLock {
 			anchors.remove(sceneId)?.let(::retire)
+			retired += sceneId
 		}
 	}
 
@@ -116,6 +122,8 @@ class WritingSessionTracker(
 	fun reIdBaseline(oldId: Int, newId: Int) {
 		baselineLock.withReentrantLock {
 			val moved = anchors.remove(oldId) ?: return@withReentrantLock
+			retired += oldId
+			retired -= newId
 			anchors.put(newId, moved)?.let(::retire)
 		}
 	}
@@ -131,7 +139,7 @@ class WritingSessionTracker(
 			block()
 		} finally {
 			// Still unwritten: kept over whatever the block wrote, for the next write to retry.
-			sessions = unsaved?.let { mergeOwnSlotSessions(loadWrittenSessions(), it) }
+			sessions = unsaved?.let { mergeOwnSlotSessions(withContext(NonCancellable) { loadWrittenSessions() }, it) }
 		}
 	}
 
@@ -155,7 +163,6 @@ class WritingSessionTracker(
 
 	private fun creditEditorSave(sceneId: Int, content: String, words: ActivityWords): Pair<Int, Instant> {
 		val ticket = baselineLock.withReentrantLock { ++nextTicket }
-		var hadAnchor = false
 		while (true) {
 			markSeen()
 			val snapshot = baselineLock.withReentrantLock {
@@ -164,16 +171,12 @@ class WritingSessionTracker(
 				if (unseen.isEmpty()) EditorSaveSnapshot(now, anchors[sceneId], reproduced) else null
 			} ?: continue
 			val anchor = snapshot.anchor
-			// An anchor dropped while this save was counted belonged to a deleted scene: no new one.
 			if (anchor == null) {
-				if (!hadAnchor) {
-					baselineLock.withReentrantLock {
-						if (sceneId !in anchors) install(sceneId, content, lazyOf(words))
-					}
+				baselineLock.withReentrantLock {
+					if (sceneId !in anchors && sceneId !in retired) install(sceneId, content, lazyOf(words))
 				}
 				return 0 to snapshot.now
 			}
-			hadAnchor = true
 
 			val credit = countOriginalWords(anchor.words.value, words, snapshot.seen)
 
@@ -239,6 +242,7 @@ class WritingSessionTracker(
 
 	/** Under [baselineLock]. */
 	private fun install(sceneId: Int, content: String, words: Lazy<ActivityWords>) {
+		retired -= sceneId
 		anchors[sceneId] = Anchor(content, words)
 		unseen += words
 	}

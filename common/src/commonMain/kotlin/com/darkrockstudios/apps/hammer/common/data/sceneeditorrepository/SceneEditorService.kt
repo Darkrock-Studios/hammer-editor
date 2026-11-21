@@ -73,8 +73,7 @@ class SceneEditorService(
 		// next sync, scene switch, or app close to flush the buffer.
 		serviceScope.launch {
 			sceneContentRepository.bufferPersistedFlow.collect { event ->
-				// A scene deleted since the save has no buffer, and must not be anchored again.
-				if (event.source == UpdateSource.Editor && sceneContentRepository.getSceneBuffer(event.sceneId) != null) {
+				if (event.source == UpdateSource.Editor) {
 					writingSessionTracker.onSceneSaved(
 						sceneId = event.sceneId,
 						newContent = event.content.coerceMarkdown(),
