@@ -25,7 +25,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -322,9 +321,8 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
-	fun `Renaming an open scene transforms its writing baseline instead of resetting it`() = runTest(mainTestDispatcher) {
+	fun `Renaming an open scene re-anchors its writing activity at the renamed text`() = runTest(mainTestDispatcher) {
 		createStack()
-		every { writingSessionTracker.transformBaseline(any(), any()) } returns true
 		sceneEditorService.storeMetadata(sceneEditorService.loadSceneMetadata(6).copy(dismissedReferences = emptySet()), 6)
 		sceneEditorService.loadSceneBuffer(scene(6))
 		val preview = useCase.preview(request())
@@ -332,10 +330,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		applyDefaults(preview)
 		advanceUntilIdle()
 
-		val transform = slot<(String) -> String>()
-		verify { writingSessionTracker.transformBaseline(6, capture(transform)) }
-		assertEquals("Robert Tolliver again.", transform.captured("Robert Tallow again."))
-		verify(exactly = 1) { writingSessionTracker.rememberBaseline(6, any()) }
+		coVerify { writingSessionTracker.onSceneSaved(6, "Robert Tolliver again.", UpdateSource.Repository, any()) }
 	}
 
 	@Test

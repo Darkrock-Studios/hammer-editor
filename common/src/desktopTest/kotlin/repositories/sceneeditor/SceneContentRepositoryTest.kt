@@ -86,7 +86,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
 	}
 
-	private fun createStack(projectDef: ProjectDef, tracker: WritingSessionTracker = trackerWithBaselines()) {
+	private fun createStack(projectDef: ProjectDef, tracker: WritingSessionTracker = mockk(relaxed = true)) {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		contentRepo = SceneContentRepository(projectDef, sceneDatasource)
@@ -272,6 +272,26 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `A save of older text keeps the newer text typed during it`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		createStack(projDef)
+		service.initialize()
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(sceneItem)
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Saved text"), UpdateSource.Editor)
+		advanceUntilIdle()
+		val snapshot = assertNotNull(contentRepo.snapshotBuffer(3))
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Saved text and more"), UpdateSource.Editor)
+		advanceUntilIdle()
+
+		assertTrue(contentRepo.persistBuffer(snapshot, repo.getSceneFilePath(3)))
+
+		assertEquals("Saved text and more", contentRepo.getSceneBuffer(3)?.content?.markdown)
+		assertTrue(contentRepo.hasDirtyBuffer(3))
+	}
+
+	@Test
 	fun `Rewriting scene text keeps edits still in the debounce`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
@@ -291,8 +311,8 @@ class SceneContentRepositoryTest : BaseTest() {
 		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
 			assertEquals("Content of chapter id 3, typed", readUtf8())
 		}
-		verify { writingSessionTracker.transformBaseline(3, any()) }
-		verify(exactly = 1) { writingSessionTracker.rememberBaseline(3, any()) }
+		coVerify { writingSessionTracker.onSceneSaved(3, "Content of scene id 3, typed", UpdateSource.Editor, any()) }
+		coVerify { writingSessionTracker.onSceneSaved(3, "Content of chapter id 3, typed", UpdateSource.Repository, any()) }
 	}
 
 	@Test
@@ -322,7 +342,7 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Rewriting a scene that was not open gives it a baseline`() = runTest(mainTestDispatcher) {
+	fun `A scene rewritten before it was open is anchored at the rewritten text`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
@@ -332,8 +352,9 @@ class SceneContentRepositoryTest : BaseTest() {
 		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 		assertTrue(service.rewriteSceneText(sceneItem) { it.replace("scene", "chapter") })
 		advanceUntilIdle()
+		service.loadSceneBuffer(sceneItem)
 
-		verify { writingSessionTracker.rememberBaseline(3, "Content of chapter id 3") }
+		verify { writingSessionTracker.ensureBaseline(3, "Content of chapter id 3", any()) }
 	}
 
 	@Test
@@ -351,7 +372,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertFalse(service.hasDirtyBuffer(sceneItem.id))
-		verify(exactly = 0) { writingSessionTracker.transformBaseline(any(), any()) }
+		coVerify(exactly = 0) { writingSessionTracker.onSceneSaved(any(), any(), any(), any()) }
 		coVerify(exactly = 0) { statisticsRepository.markDirty() }
 	}
 
@@ -734,6 +755,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		contentRepo.onContentChanged(SceneContent(scene, "From the server"), UpdateSource.Sync)
 		advanceUntilIdle()
 
+		assertEquals("From the server", contentRepo.getSceneBuffer(1)?.content?.markdown)
 		assertFalse(contentRepo.hasDirtyBuffer(1))
 		assertFalse(ffs.exists(getTempBufferPath(1)))
 
@@ -864,9 +886,4 @@ class SceneContentRepositoryTest : BaseTest() {
 		assertNotEquals(oldPath1, newPath1)
 		assertNotEquals(oldPath6, newPath6)
 	}
-}
-
-/** A tracker that behaves as if every scene has a baseline, so rewrites transform rather than reset it. */
-private fun trackerWithBaselines(): WritingSessionTracker = mockk(relaxed = true) {
-	every { transformBaseline(any(), any()) } returns true
 }

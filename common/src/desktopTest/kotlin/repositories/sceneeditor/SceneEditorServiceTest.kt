@@ -19,6 +19,9 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDa
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -26,6 +29,7 @@ import createProject
 import getProject1Def
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -106,7 +110,10 @@ class SceneEditorServiceTest : BaseTest() {
 		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 	}
 
-	private fun createService(projectDef: ProjectDef): SceneEditorService {
+	private fun createService(
+		projectDef: ProjectDef,
+		tracker: WritingSessionTracker = writingSessionTracker,
+	): SceneEditorService {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		sceneMetadataRepository = SceneMetadataRepository(
@@ -137,10 +144,26 @@ class SceneEditorServiceTest : BaseTest() {
 			sceneMetadataRepository = sceneMetadataRepository,
 			referenceIndexRepository = referenceIndexRepository,
 			statisticsRepository = statisticsRepository,
-			writingSessionTracker = writingSessionTracker,
+			writingSessionTracker = tracker,
 			timeLineRepository = timeLineRepository,
 		)
 	}
+
+	private lateinit var activity: WritingActivityRepository
+
+	/** A service whose writing activity is counted by a real tracker into [activity]. Not initialized. */
+	private fun serviceCountingActivity(
+		settings: GlobalSettingsStore = mockk<GlobalSettingsStore>(relaxed = true).also {
+			coEvery { it.ensureInstallId() } returns "device-test"
+		},
+	): SceneEditorService {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		activity = WritingActivityRepository(WritingActivityDatasource(ffs, toml, projDef), settings, projDef)
+		return createService(projDef, WritingSessionTracker(activity, Clock.System, projDef))
+	}
+
+	private suspend fun wordsRecorded(): Int = activity.loadOwnLog().sessions.sumOf { it.wordsWritten }
 
 	private suspend fun initializedService(): SceneEditorService {
 		val projDef = getProject1Def()
@@ -368,7 +391,7 @@ class SceneEditorServiceTest : BaseTest() {
 			val buffer = service.loadSceneBuffer(scene)
 			assertEquals(scene, buffer.content.scene)
 			assertEquals("Content of scene id 3", buffer.content.markdown)
-			coVerify { writingSessionTracker.rememberBaseline(3, "Content of scene id 3") }
+			coVerify { writingSessionTracker.rememberBaseline(3, "Content of scene id 3", any()) }
 		}
 
 	@Test
@@ -389,7 +412,7 @@ class SceneEditorServiceTest : BaseTest() {
 
 			assertFalse(service.hasDirtyBuffers())
 			coVerify { statisticsRepository.markDirty() }
-			coVerify { writingSessionTracker.onSceneSaved(eq(3), any(), any()) }
+			coVerify { writingSessionTracker.onSceneSaved(eq(3), any(), any(), any()) }
 		}
 
 	@Test
@@ -412,9 +435,119 @@ class SceneEditorServiceTest : BaseTest() {
 					eq(3),
 					eq("Content of scene id 3 plus several freshly typed words"),
 					eq(UpdateSource.Editor),
+					any(),
 				)
 			}
 		}
+
+	@Test
+	fun `Text synced into an open scene is not credited, words typed after it are`() =
+		runTest(mainTestDispatcher) {
+			val service = serviceCountingActivity().also { it.initialize() }
+			val scene = service.getSceneItemFromId(3)!!
+			service.loadSceneBuffer(scene)
+			service.onContentChanged(SceneContent(scene, "Content of scene id 3 typed"), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			service.onContentChanged(SceneContent(scene, SYNCED_TEXT), UpdateSource.Sync)
+			advanceUntilIdle()
+			service.onContentChanged(SceneContent(scene, "$SYNCED_TEXT Two more."), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			assertEquals(3, wordsRecorded())
+		}
+
+	@Test
+	fun `An autosave handled after a sync landed is credited against the text it was typed into`() =
+		runTest(mainTestDispatcher) {
+			// The first log write waits, holding up the autosave collector behind it.
+			val logWrite = CompletableDeferred<Unit>()
+			var installIdCalls = 0
+			val settings = mockk<GlobalSettingsStore>(relaxed = true)
+			coEvery { settings.ensureInstallId() } coAnswers {
+				if (++installIdCalls == 1) logWrite.await()
+				"device-test"
+			}
+			val service = serviceCountingActivity(settings).also { it.initialize() }
+			val scene = service.getSceneItemFromId(3)!!
+			service.loadSceneBuffer(scene)
+			service.onContentChanged(SceneContent(scene, "Content of scene id 3 alpha"), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			service.onContentChanged(SceneContent(scene, "Content of scene id 3 alpha beta gamma"), UpdateSource.Editor)
+			advanceUntilIdle()
+			service.onContentChanged(SceneContent(scene, SYNCED_TEXT), UpdateSource.Sync)
+			advanceUntilIdle()
+			logWrite.complete(Unit)
+			advanceUntilIdle()
+			service.onContentChanged(SceneContent(scene, "$SYNCED_TEXT Two more."), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			assertEquals(5, wordsRecorded())
+		}
+
+	@Test
+	fun `Typing that supersedes a pending sync is credited against the text it was typed into`() =
+		runTest(mainTestDispatcher) {
+			val service = serviceCountingActivity().also { it.initialize() }
+			val scene = service.getSceneItemFromId(3)!!
+			service.loadSceneBuffer(scene)
+
+			service.onContentChanged(SceneContent(scene, SYNCED_TEXT), UpdateSource.Sync)
+			advanceTimeBy(SceneContentRepository.BUFFER_COOL_DOWN / 5)
+			service.onContentChanged(SceneContent(scene, "Content new of more scene extra id words 3"), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			assertEquals(4, wordsRecorded())
+		}
+
+	@Test
+	fun `A draft restored into an open scene is not credited, words typed after it are`() =
+		runTest(mainTestDispatcher) {
+			val service = serviceCountingActivity().also { it.initialize() }
+			val scene = service.getSceneItemFromId(3)!!
+			service.loadSceneBuffer(scene)
+
+			service.onContentChanged(SceneContent(scene, DRAFT_TEXT), UpdateSource.Drafts)
+			advanceUntilIdle()
+			service.onContentChanged(SceneContent(scene, "$DRAFT_TEXT Alone."), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			assertEquals(1, wordsRecorded())
+		}
+
+	@Test
+	fun `Words typed into restored unsaved edits are credited`() = runTest(mainTestDispatcher) {
+		val service = serviceCountingActivity()
+		sceneDatasource.storeTempSceneBuffer(
+			SceneBuffer(SceneContent(sceneItem(3, 0), "Unsaved from last time"), dirty = true, source = UpdateSource.Editor)
+		)
+		service.initialize()
+		val scene = service.getSceneItemFromId(3)!!
+
+		service.loadSceneBuffer(scene)
+		service.onContentChanged(SceneContent(scene, "Unsaved from last time and now more"), UpdateSource.Editor)
+		advanceUntilIdle()
+
+		assertEquals(3, wordsRecorded())
+	}
+
+	@Test
+	fun `Unsaved edits restored after a scene was anchored are not credited again`() = runTest(mainTestDispatcher) {
+		val service = serviceCountingActivity()
+		sceneDatasource.storeTempSceneBuffer(
+			SceneBuffer(SceneContent(sceneItem(3, 0), "Unsaved from last time"), dirty = true, source = UpdateSource.Editor)
+		)
+		service.initialize(restoreUnsavedEdits = false)
+		val scene = service.getSceneItemFromId(3)!!
+		service.loadSceneBuffer(scene)
+
+		service.restoreUnsavedEdits()
+		service.onContentChanged(SceneContent(scene, "Unsaved from last time and now more"), UpdateSource.Editor)
+		advanceUntilIdle()
+
+		assertEquals(3, wordsRecorded())
+	}
 
 	@Test
 	fun `Store-all-buffers flushes every dirty buffer`() = runTest(mainTestDispatcher) {
@@ -700,3 +833,6 @@ class SceneEditorServiceTest : BaseTest() {
 
 	// endregion
 }
+
+private const val SYNCED_TEXT = "Another device wrote this whole passage while we were away."
+private const val DRAFT_TEXT = "She stayed out all night dancing."

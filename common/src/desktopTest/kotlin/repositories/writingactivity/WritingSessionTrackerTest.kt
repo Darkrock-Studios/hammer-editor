@@ -21,7 +21,6 @@ import testProjectId
 import utils.BaseTest
 import utils.TestClock
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
@@ -118,6 +117,127 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `moving a paragraph within a scene credits nothing`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "Alpha beta gamma.\n\nDelta epsilon zeta eta.")
+
+		val credited = tracker.onSceneSaved(1, "Delta epsilon zeta eta.\n\nAlpha beta gamma.", UpdateSource.Editor)
+
+		assertEquals(0, credited)
+	}
+
+	@Test
+	fun `ensureBaseline keeps an existing anchor`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.ensureBaseline(sceneId = 1, content = "I went home and ate dinner")
+
+		assertEquals(3, tracker.onSceneSaved(1, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `ensureBaseline anchors a scene without one`() = runTest {
+		tracker.ensureBaseline(sceneId = 1, content = "I went home")
+
+		assertEquals(2, tracker.onSceneSaved(1, "I went home and ate", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a non-editor save re-anchors the scene`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.onSceneSaved(1, "I went home and ate dinner", UpdateSource.Repository)
+
+		assertEquals(1, tracker.onSceneSaved(1, "I went home and ate dinner late", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a non-editor save leaves an untracked scene untracked`() = runTest {
+		tracker.onSceneSaved(1, "I went home", UpdateSource.Sync)
+
+		assertEquals(0, tracker.onSceneSaved(1, "I went home and ate", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a re-ided scene keeps its anchor`() = runTest {
+		tracker.rememberBaseline(sceneId = 7, content = "I went home")
+		tracker.onSceneSaved(7, "I went home and ate", UpdateSource.Editor)
+
+		tracker.reIdBaseline(oldId = 7, newId = 42)
+
+		assertEquals(1, tracker.onSceneSaved(42, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `words whose save failed reach the log before it is synced`() = runTest {
+		val ownLog = "/projects/Test Project/scenes/.activity/device-test.toml".toPath()
+		fileSystem.createDirectories(ownLog)
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.onSceneSaved(1, "I went home and made dinner", UpdateSource.Editor)
+		fileSystem.delete(ownLog)
+
+		val seenBySync = tracker.updateOwnLog { repository.loadOwnLog().sessions.sumOf { it.wordsWritten } }
+
+		assertEquals(3, seenBySync)
+	}
+
+	@Test
+	fun `words still unwritten after a sync are written by the next save`() = runTest {
+		val ownLog = "/projects/Test Project/scenes/.activity/device-test.toml".toPath()
+		fileSystem.createDirectories(ownLog)
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.onSceneSaved(1, "I went home and made dinner", UpdateSource.Editor)
+		tracker.updateOwnLog { }
+		fileSystem.delete(ownLog)
+
+		tracker.onSceneSaved(1, "I went home and made dinner twice", UpdateSource.Editor)
+
+		assertEquals(4, repository.loadOwnLog().sessions.sumOf { it.wordsWritten })
+	}
+
+	@Test
+	fun `a late save for a deleted scene does not anchor it again`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.forgetBaseline(1)
+		tracker.onSceneSaved(1, "I went home and ate", UpdateSource.Editor)
+
+		assertEquals(0, tracker.onSceneSaved(1, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a late save under a re-ided scene's old id does not anchor it`() = runTest {
+		tracker.rememberBaseline(sceneId = 7, content = "I went home")
+		tracker.reIdBaseline(oldId = 7, newId = 42)
+		tracker.onSceneSaved(7, "I went home and ate", UpdateSource.Editor)
+
+		assertEquals(0, tracker.onSceneSaved(7, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a late save under the old id of a scene re-ided before it was anchored does not anchor it`() = runTest {
+		tracker.reIdBaseline(oldId = 7, newId = 42)
+		tracker.onSceneSaved(7, "I went home and ate", UpdateSource.Editor)
+
+		assertEquals(0, tracker.onSceneSaved(7, "I went home and ate dinner", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `a scene re-ided onto a deleted scene's id is tracked`() = runTest {
+		tracker.rememberBaseline(sceneId = 42, content = "Old scene")
+		tracker.forgetBaseline(42)
+		tracker.reIdBaseline(oldId = 5, newId = 42)
+		tracker.onSceneSaved(42, "I went home", UpdateSource.Editor)
+
+		assertEquals(2, tracker.onSceneSaved(42, "I went home and ate", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `loading a scene again after its deletion anchors it`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.forgetBaseline(1)
+		tracker.rememberBaseline(sceneId = 1, content = "A new scene")
+
+		assertEquals(2, tracker.onSceneSaved(1, "A new scene begins here", UpdateSource.Editor))
+	}
+
+	@Test
 	fun `Drafts and Repository sources also do not credit`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "")
 		tracker.onSceneSaved(1, "draft content here", UpdateSource.Drafts)
@@ -125,30 +245,6 @@ class WritingSessionTrackerTest : BaseTest() {
 
 		val log = repository.loadOwnLog()
 		assertTrue(log.sessions.isEmpty())
-	}
-
-	@Test
-	fun `transformed baseline credits typed words but not the rewrite`() = runTest {
-		tracker.rememberBaseline(sceneId = 1, content = "Bob went home")
-		tracker.transformBaseline(1) { it.replace("Bob", "Robert") }
-
-		val credited = tracker.onSceneSaved(1, "Robert went home and slept", UpdateSource.Editor)
-
-		assertEquals(2, credited)
-	}
-
-	@Test
-	fun `transforming a missing baseline does not create one`() = runTest {
-		assertFalse(tracker.transformBaseline(1) { "made up" })
-
-		assertEquals(0, tracker.onSceneSaved(1, "made up words", UpdateSource.Editor))
-	}
-
-	@Test
-	fun `transforming an existing baseline reports it`() = runTest {
-		tracker.rememberBaseline(sceneId = 1, content = "Bob went home")
-
-		assertTrue(tracker.transformBaseline(1) { it })
 	}
 
 	@Test
@@ -205,26 +301,6 @@ class WritingSessionTrackerTest : BaseTest() {
 		assertEquals(2, log.sessions.size)
 		assertTrue(log.sessions.first().sealed)
 		assertTrue(!log.sessions.last().sealed)
-	}
-
-	@Test
-	fun `transformBaseline keeps a rewrite out of the credited words`() = runTest {
-		tracker.rememberBaseline(sceneId = 1, content = "I went home")
-		tracker.transformBaseline(sceneId = 1) { it.replace("home", "to the shop") }
-		val credited = tracker.onSceneSaved(
-			sceneId = 1,
-			newContent = "I went to the shop and back",
-			source = UpdateSource.Editor,
-		)
-		// "and", "back" are new; "to the shop" came from the rewrite.
-		assertEquals(2, credited)
-	}
-
-	@Test
-	fun `transformBaseline without a baseline leaves none`() = runTest {
-		tracker.transformBaseline(sceneId = 1) { "rewritten" }
-		val credited = tracker.onSceneSaved(1, "some words", UpdateSource.Editor)
-		assertEquals(0, credited)
 	}
 
 	@Test

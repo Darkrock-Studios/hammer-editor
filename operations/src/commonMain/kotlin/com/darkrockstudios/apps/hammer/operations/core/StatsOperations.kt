@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.AttributedSlot
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.activityOwner
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.activityViewerId
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.attributeSlots
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OperationContext
@@ -59,7 +60,7 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<DateRangeInput, Activity>(
 		name = "stats.activity",
-		description = "Words written per day over a date range, plus lifetime words per device.",
+		description = "Words written per day over a date range by every author, plus lifetime words per device.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
@@ -98,11 +99,10 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 private suspend fun OperationContext.loadLogs(input: DateRangeInput): List<AttributedSlot> {
 	if (input.from != null && input.to != null && input.from > input.to) invalidInput("from is after to")
 	return projects.withProject(input.project) { project ->
-		val owner = activityOwner(
-			project.scope.get<ProjectsRepository>().getOwner(project.def),
-			project.scope.get<GlobalSettingsStore>().serverSettings,
-		)
-		attributeSlots(project.scope.get<WritingActivityRepository>().loadAllLogs(), owner)
+		val serverSettings = project.scope.get<GlobalSettingsStore>().serverSettings
+		val owner = activityOwner(project.scope.get<ProjectsRepository>().getOwner(project.def), serverSettings)
+		val activity = project.scope.get<WritingActivityRepository>()
+		attributeSlots(activity.loadAllLogs(), owner, activityViewerId(serverSettings), activity.ownDeviceId())
 	}
 }
 
