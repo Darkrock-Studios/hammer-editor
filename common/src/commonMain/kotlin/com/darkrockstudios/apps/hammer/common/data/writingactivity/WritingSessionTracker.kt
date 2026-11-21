@@ -10,6 +10,7 @@ import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock as withReentrantLock
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentHashSetOf
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.TimeZone
@@ -60,6 +61,9 @@ class WritingSessionTracker(
 	/** Guards the session log and its cache. */
 	private val mutex = Mutex()
 
+	/** Serializes [markSeen], the only writer of [reproduced], while it hashes outside [baselineLock]. */
+	private val seenLock = reentrantLock()
+
 	/** Guards everything below it. Held only for map and field updates, never to tokenize or hash. */
 	private val baselineLock = reentrantLock()
 	private val anchors = mutableMapOf<Int, Anchor>()
@@ -78,6 +82,9 @@ class WritingSessionTracker(
 	// Cached in memory once loaded from disk; kept in sync with every save.
 	private var sessions: List<WritingSession>? = null
 	private var sessionsUnsaved = false
+
+	/** Whether the scene has an anchor, so a caller can skip preparing text it would not use. */
+	fun holdsBaseline(sceneId: Int): Boolean = baselineLock.withReentrantLock { sceneId in anchors }
 
 	/** Anchors a scene to [content] unless it already has an anchor. */
 	fun ensureBaseline(sceneId: Int, content: String) {
@@ -105,7 +112,7 @@ class WritingSessionTracker(
 		}
 	}
 
-	/** Moves a scene's anchor to its new id. */
+	/** Moves a scene's anchor to [newId]; an anchor already there is retired, its credit banked. */
 	fun reIdBaseline(oldId: Int, newId: Int) {
 		baselineLock.withReentrantLock {
 			val moved = anchors.remove(oldId) ?: return@withReentrantLock
@@ -124,10 +131,7 @@ class WritingSessionTracker(
 			block()
 		} finally {
 			// Still unwritten: kept over whatever the block wrote, for the next write to retry.
-			sessions = unsaved?.let {
-				val written = runCatching { repository.loadOwnLog().sessions }.getOrDefault(emptyList())
-				mergeOwnSlotSessions(written, it)
-			}
+			sessions = unsaved?.let { mergeOwnSlotSessions(loadWrittenSessions(), it) }
 		}
 	}
 
@@ -151,6 +155,7 @@ class WritingSessionTracker(
 
 	private fun creditEditorSave(sceneId: Int, content: String, words: ActivityWords): Pair<Int, Instant> {
 		val ticket = baselineLock.withReentrantLock { ++nextTicket }
+		var hadAnchor = false
 		while (true) {
 			markSeen()
 			val snapshot = baselineLock.withReentrantLock {
@@ -159,12 +164,16 @@ class WritingSessionTracker(
 				if (unseen.isEmpty()) EditorSaveSnapshot(now, anchors[sceneId], reproduced) else null
 			} ?: continue
 			val anchor = snapshot.anchor
+			// An anchor dropped while this save was counted belonged to a deleted scene: no new one.
 			if (anchor == null) {
-				baselineLock.withReentrantLock {
-					if (sceneId !in anchors) install(sceneId, content, lazyOf(words))
+				if (!hadAnchor) {
+					baselineLock.withReentrantLock {
+						if (sceneId !in anchors) install(sceneId, content, lazyOf(words))
+					}
 				}
 				return 0 to snapshot.now
 			}
+			hadAnchor = true
 
 			val credit = countOriginalWords(anchor.words.value, words, snapshot.seen)
 
@@ -205,8 +214,8 @@ class WritingSessionTracker(
 
 		for (entry in anchors.entries) {
 			val anchor = entry.value
-			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords))
-			unseen += anchor.lastSeenWords
+			entry.setValue(Anchor(anchor.lastSeen, anchor.lastSeenWords).also { it.ticket = anchor.ticket })
+			if (anchor.lastSeenWords !== anchor.words) unseen += anchor.lastSeenWords
 		}
 		banked = 0
 		highWater = 0
@@ -230,28 +239,19 @@ class WritingSessionTracker(
 
 	/** Under [baselineLock]. */
 	private fun install(sceneId: Int, content: String, words: Lazy<ActivityWords>) {
-		if (epochStart == null) epochStart = clock.now()
 		anchors[sceneId] = Anchor(content, words)
 		unseen += words
 	}
 
 	/** Moves [unseen] texts into [reproduced], tokenizing and hashing outside [baselineLock]. */
-	private fun markSeen() {
+	private fun markSeen() = seenLock.withReentrantLock {
 		val pending = baselineLock.withReentrantLock { unseen.toList() }
-		if (pending.isEmpty()) return
-		val shingles = pending.flatMap { it.value.shingles() }
-		while (true) {
-			val base = baselineLock.withReentrantLock { reproduced }
-			val merged = base.addAll(shingles)
-			val swapped = baselineLock.withReentrantLock {
-				(reproduced === base).also { swapped ->
-					if (swapped) {
-						reproduced = merged
-						unseen.removeAll { added -> pending.any { it === added } }
-					}
-				}
-			}
-			if (swapped) return
+		if (pending.isEmpty()) return@withReentrantLock
+		val merged = reproduced.addAll(pending.flatMap { it.value.shingles() })
+		val added = pending.toSet()
+		baselineLock.withReentrantLock {
+			reproduced = merged
+			unseen.removeAll(added)
 		}
 	}
 
@@ -260,6 +260,17 @@ class WritingSessionTracker(
 		val updated = mergeWriting(current, words, at, TimeZone.currentSystemDefault())
 		sessions = updated
 		persist(updated)
+	}
+
+	/** Under [mutex]. What the own log holds on disk, or nothing when it cannot be read. */
+	@Suppress("TooGenericExceptionCaught") // An unreadable log leaves only the unsaved sessions to keep
+	private suspend fun loadWrittenSessions(): List<WritingSession> = try {
+		repository.loadOwnLog().sessions
+	} catch (e: CancellationException) {
+		throw e
+	} catch (e: Exception) {
+		Napier.w("Could not reload writing activity after sync", e)
+		emptyList()
 	}
 
 	/** Under [mutex]. A failed write keeps the sessions in memory for the next one to retry. */

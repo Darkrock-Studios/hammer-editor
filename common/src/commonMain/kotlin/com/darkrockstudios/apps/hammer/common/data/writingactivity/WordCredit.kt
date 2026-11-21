@@ -146,7 +146,7 @@ private fun insertedRuns(baseline: List<String>, current: List<String>): List<In
 	var zone = mutableListOf<Hunk>()
 	fun closeZone() {
 		val rewrite = zone.sumOf { it.deleted } >= MIN_REWRITE_WORDS &&
-			zone.sumOf { it.inserted.count() } >= MIN_REWRITE_WORDS
+			zone.sumOf { it.inserted.last - it.inserted.first + 1 } >= MIN_REWRITE_WORDS
 		if (rewrite) {
 			runs += zone.first().inserted.first..zone.last().inserted.last
 		} else {

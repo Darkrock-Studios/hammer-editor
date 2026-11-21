@@ -187,11 +187,24 @@ class SceneContentRepository(
 	fun loadUnrestoredEdits(sceneItem: SceneItem): String? =
 		if (hasUnrestoredEdits(sceneItem)) sceneDatasource.loadTempSceneBuffer(sceneItem) else null
 
+	/** The clean loaded buffer an editor update merely repeats, compared outside the buffer lock. */
+	private fun loadedBufferRepeatedBy(update: SceneContentUpdate): SceneBuffer? =
+		if (update.source != UpdateSource.Editor) {
+			null
+		} else {
+			getSceneBuffer(update.content.scene.id)?.takeIf {
+				!it.dirty && it.content.markdown != null && it.content == update.content
+			}
+		}
+
 	/**
 	 * Returns whether the buffer now holds unsaved edits that need a temp file. Held under the lock
 	 * throughout, so a [replaceBuffer] cannot land between the staleness check and the update.
 	 */
-	private fun updateSceneBufferContent(update: SceneContentUpdate): Boolean = sceneBuffersLock.withLock {
+	private fun updateSceneBufferContent(
+		update: SceneContentUpdate,
+		repeated: SceneBuffer? = loadedBufferRepeatedBy(update),
+	): Boolean = sceneBuffersLock.withLock {
 		val (content, source) = update
 		val sceneId = content.scene.id
 		if (pendingUpdates[sceneId]?.let { it.sequence <= update.sequence } == true) pendingUpdates.remove(sceneId)
@@ -200,10 +213,7 @@ class SceneContentRepository(
 		when {
 			source == UpdateSource.Editor -> {
 				// The editor also reports the text it was just loaded with; that is not an edit.
-				val oldBuffer = sceneBuffers[sceneId]
-				val unchangedSinceLoad = oldBuffer != null && !oldBuffer.dirty &&
-					oldBuffer.content.markdown != null && oldBuffer.content == content
-				if (unchangedSinceLoad) {
+				if (repeated != null && sceneBuffers[sceneId] === repeated) {
 					false
 				} else {
 					updateSceneBuffer(SceneBuffer(content, dirty = true, source = source))
