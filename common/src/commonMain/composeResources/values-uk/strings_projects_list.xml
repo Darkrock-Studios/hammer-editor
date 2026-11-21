@@ -11,7 +11,6 @@
 	<string name="projects_list_item_more_button">Більше</string>
 	<string name="projects_list_card_words">%1$s слів</string>
 	<string name="projects_list_card_by_author">автор: %1$s</string>
-	<string name="projects_list_card_created">Створено %1$s</string>
 	<string name="projects_list_card_content_description">Проєкт %1$s</string>
 	<string name="projects_list_search_button">Пошук проєктів</string>
 	<string name="projects_list_search_close">Закрити пошук</string>

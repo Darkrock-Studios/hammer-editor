@@ -11,7 +11,6 @@
 	<string name="projects_list_item_more_button">Mehr</string>
 	<string name="projects_list_card_words">%1$s Wörter</string>
 	<string name="projects_list_card_by_author">von %1$s</string>
-	<string name="projects_list_card_created">Erstellt %1$s</string>
 	<string name="projects_list_card_content_description">Projekt %1$s</string>
 	<string name="projects_list_search_button">Projekte suchen</string>
 	<string name="projects_list_search_close">Suche schließen</string>

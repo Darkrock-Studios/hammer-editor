@@ -306,7 +306,6 @@ fun ProjectListUi(
 						is ProjectListRow.Group -> ProjectGroupRow(row = row, actions = groupActions)
 						is ProjectListRow.Project -> ProjectIndexRow(
 							isWide = isWide,
-							index = row.number - 1,
 							projectData = row.data,
 							onProjectClick = component::selectProject,
 							onProjectAltClick = component::showProjectDelete,

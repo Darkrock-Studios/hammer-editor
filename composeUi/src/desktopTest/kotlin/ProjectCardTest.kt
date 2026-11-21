@@ -45,7 +45,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = data,
 				onProjectClick = {},
 				onProjectAltClick = onProjectAltClick,
@@ -69,7 +68,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = data,
 				onProjectClick = onProjectClick,
 				onProjectAltClick = {},
@@ -88,7 +86,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = data,
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -107,7 +104,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = data,
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -129,7 +125,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = data,
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -155,7 +150,6 @@ class ProjectCardTest {
 						Box(modifier = Modifier.testTag(rowTag(isWide, data.coverImagePath != null))) {
 							ProjectIndexRow(
 								isWide = isWide,
-								index = 0,
 								projectData = data,
 								onProjectClick = {},
 								onProjectAltClick = {},
@@ -184,7 +178,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = current,
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -208,7 +201,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = current,
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -233,7 +225,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = data,
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -256,7 +247,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = data,
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -276,7 +266,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = fakeProjectData().shared(ownerName = "Alice"),
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -299,7 +288,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = parked,
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -319,7 +307,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = fakeProjectData().shared(ownerName = "Alice"),
 				onProjectClick = {},
 				onProjectAltClick = {},
@@ -342,7 +329,6 @@ class ProjectCardTest {
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
-				index = 0,
 				projectData = parked,
 				onProjectClick = {},
 				onProjectAltClick = { deleted += it },
