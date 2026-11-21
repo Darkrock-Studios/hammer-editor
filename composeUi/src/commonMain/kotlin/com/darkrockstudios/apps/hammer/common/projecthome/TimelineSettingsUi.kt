@@ -91,7 +91,6 @@ import com.darkrockstudios.apps.hammer.timeline_settings_mode_label
 import com.darkrockstudios.apps.hammer.timeline_settings_new
 import com.darkrockstudios.apps.hammer.timeline_settings_preset_label
 import com.darkrockstudios.apps.hammer.timeline_settings_rename
-import com.darkrockstudios.apps.hammer.timeline_settings_section_title
 import com.darkrockstudios.apps.hammer.timeline_settings_timeline_meta
 import org.jetbrains.compose.resources.pluralStringResource
 

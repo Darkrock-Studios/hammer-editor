@@ -1,9 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.about
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -51,7 +49,6 @@ import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPage
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMetaStyle
 import com.darkrockstudios.apps.hammer.common.compose.icons.AboutIcons
 import com.darkrockstudios.apps.hammer.common.compose.icons.Discord
@@ -79,79 +76,78 @@ fun AboutAppUi(
 	var showLibraries by remember { mutableStateOf(false) }
 	val state by component.state.subscribeAsState()
 
-	Box(modifier = modifier.background(MaterialTheme.colorScheme.surface)) {
-		HdPage(
-			title = Res.string.project_select_nav_about_app.get(),
-			maxWidth = hdColumnMaxWidth(MaxColumnWidth),
-			folio = listOf(Res.string.project_select_nav_about_app.get(), "§§ $AboutSectionCount"),
-		) {
-			Hero(version = state.currentVersion)
+	HdPage(
+		title = Res.string.project_select_nav_about_app.get(),
+		maxWidth = MaxColumnWidth,
+		modifier = modifier,
+		folio = listOf(Res.string.project_select_nav_about_app.get(), "§§ $AboutSectionCount"),
+	) {
+		Hero(version = state.currentVersion)
 
-			HdSettingGroup(title = Res.string.about_group_credits.get()) {
-				HdSettingRow(
-					title = Res.string.about_attribution_studio_button.get(),
-					description = Res.string.about_community_studio_attribution.get(),
-				) {
-					HdHairlineButton(label = Res.string.about_studio_meet_button.get(), onClick = onShowStudio)
-				}
-				HdSettingRow(
-					title = Res.string.about_libraries_link.get(),
-					description = Res.string.about_libraries_desc.get(),
-				) {
-					HdHairlineButton(label = Res.string.about_libraries_view_button.get(), onClick = { showLibraries = true })
-				}
+		HdSettingGroup(title = Res.string.about_group_credits.get()) {
+			HdSettingRow(
+				title = Res.string.about_attribution_studio_button.get(),
+				description = Res.string.about_community_studio_attribution.get(),
+			) {
+				HdHairlineButton(label = Res.string.about_studio_meet_button.get(), onClick = onShowStudio)
 			}
-
-			HdSettingGroup(title = Res.string.about_community_header.get()) {
-				QuietLinks {
-					HdQuietButton(
-						onClick = component::openDiscord,
-						icon = AboutIcons.Discord,
-						label = Res.string.about_community_discord_link.get(),
-						trailingIcon = Icons.Outlined.ArrowOutward,
-					)
-					HdQuietButton(
-						onClick = component::openReddit,
-						icon = AboutIcons.Reddit,
-						label = Res.string.about_community_reddit_link.get(),
-						trailingIcon = Icons.Outlined.ArrowOutward,
-					)
-					HdQuietButton(
-						onClick = component::openGithub,
-						icon = AboutIcons.Github,
-						label = Res.string.about_community_github_link.get(),
-						trailingIcon = Icons.Outlined.ArrowOutward,
-					)
-				}
+			HdSettingRow(
+				title = Res.string.about_libraries_link.get(),
+				description = Res.string.about_libraries_desc.get(),
+			) {
+				HdHairlineButton(label = Res.string.about_libraries_view_button.get(), onClick = { showLibraries = true })
 			}
-
-			HdSettingGroup(title = Res.string.about_group_updates.get()) {
-				if (state.appUpdate !is AppUpdateState.Unsupported) {
-					AppUpdateStatus(
-						state = state.appUpdate,
-						onCheckForUpdate = component::checkForUpdate,
-						onUpdateApp = component::updateApp,
-					)
-				}
-				ButtonRow {
-					if (supportsInAppChangelog) {
-						HdHairlineButton(
-							label = Res.string.about_version_changes_button.get(),
-							onClick = component::viewChangelog,
-						)
-					}
-					HdHairlineButton(
-						label = Res.string.about_version_github_button.get(),
-						onClick = component::openLatestRelease,
-					)
-				}
-			}
-
-			PlatformAboutSection(component)
 		}
 
-		LibrariesUi(showLibraries) { showLibraries = false }
+		HdSettingGroup(title = Res.string.about_community_header.get()) {
+			QuietLinks {
+				HdQuietButton(
+					onClick = component::openDiscord,
+					icon = AboutIcons.Discord,
+					label = Res.string.about_community_discord_link.get(),
+					trailingIcon = Icons.Outlined.ArrowOutward,
+				)
+				HdQuietButton(
+					onClick = component::openReddit,
+					icon = AboutIcons.Reddit,
+					label = Res.string.about_community_reddit_link.get(),
+					trailingIcon = Icons.Outlined.ArrowOutward,
+				)
+				HdQuietButton(
+					onClick = component::openGithub,
+					icon = AboutIcons.Github,
+					label = Res.string.about_community_github_link.get(),
+					trailingIcon = Icons.Outlined.ArrowOutward,
+				)
+			}
+		}
+
+		HdSettingGroup(title = Res.string.about_group_updates.get()) {
+			if (state.appUpdate !is AppUpdateState.Unsupported) {
+				AppUpdateStatus(
+					state = state.appUpdate,
+					onCheckForUpdate = component::checkForUpdate,
+					onUpdateApp = component::updateApp,
+				)
+			}
+			ButtonRow {
+				if (supportsInAppChangelog) {
+					HdHairlineButton(
+						label = Res.string.about_version_changes_button.get(),
+						onClick = component::viewChangelog,
+					)
+				}
+				HdHairlineButton(
+					label = Res.string.about_version_github_button.get(),
+					onClick = component::openLatestRelease,
+				)
+			}
+		}
+
+		PlatformAboutSection(component)
 	}
+
+	LibrariesUi(showLibraries) { showLibraries = false }
 }
 
 /** The name and version, and the line under it. */

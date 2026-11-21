@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.designsystem
 
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -74,12 +75,7 @@ fun HdSearchableListDialogEmptyPreview() {
 /** The project language picker over a scrim, with English (United States) as the current language. */
 @Composable
 internal fun LanguagePickerScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		HdSearchableListDialogContent(
 			title = "Choose a language",
 			query = "",

@@ -119,7 +119,6 @@ const val TIME_LINE_FRAME_PILL_TAG = "Timeline Frame Pill"
 fun TimeLineOverviewUi(
 	component: TimeLineOverview,
 	scope: CoroutineScope,
-	showCreate: () -> Unit,
 	viewEvent: (eventId: Int) -> Unit,
 	switcher: TimelineSwitcherActions,
 	sharedTransitionScope: SharedTransitionScope,

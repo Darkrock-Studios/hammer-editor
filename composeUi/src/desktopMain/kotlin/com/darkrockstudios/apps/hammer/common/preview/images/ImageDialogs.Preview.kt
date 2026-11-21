@@ -1,9 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.preview.images
 
-import androidx.compose.foundation.background
+import com.darkrockstudios.apps.hammer.common.preview.previewScrim
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,7 +61,7 @@ internal fun DeleteImageScrimPreview() {
 @Composable
 private fun Scrimmed(content: @Composable () -> Unit) {
 	Box(
-		modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		modifier = Modifier.fillMaxSize().previewScrim(),
 		contentAlignment = Alignment.Center,
 	) {
 		content()

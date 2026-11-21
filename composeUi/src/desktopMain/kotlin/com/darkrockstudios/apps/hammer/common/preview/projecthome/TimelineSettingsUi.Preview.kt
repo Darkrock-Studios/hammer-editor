@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.projecthome
 
+import com.darkrockstudios.apps.hammer.common.preview.previewScrim
 import androidx.compose.foundation.background
 import com.darkrockstudios.apps.hammer.common.projecthome.ModeSwitchCard
 import androidx.compose.ui.Alignment
@@ -238,7 +239,7 @@ internal fun TimelineEditorScrimPreview() {
 		lanes = previewLanes,
 	)
 	Box(
-		modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		modifier = Modifier.fillMaxSize().previewScrim(),
 		contentAlignment = Alignment.Center,
 	) {
 		TimelineEditor(component = PreviewTimelineSettings(state), state = state, named = false, onClose = {})
@@ -250,7 +251,7 @@ internal fun TimelineEditorScrimPreview() {
 internal fun TimelineModeSwitchScrimPreview() {
 	val units = entryUnits(storyCalendar)
 	Box(
-		modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		modifier = Modifier.fillMaxSize().previewScrim(),
 		contentAlignment = Alignment.Center,
 	) {
 		ModeSwitchCard(

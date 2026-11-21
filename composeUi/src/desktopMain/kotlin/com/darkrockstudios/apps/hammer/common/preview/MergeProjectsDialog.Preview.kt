@@ -45,12 +45,7 @@ private fun MergeProjectsDialogPreview(mode: MergeMode) {
 /** The merge prompt with [mode] chosen, over a scrim in the surrounding theme. */
 @Composable
 internal fun MergeProjectsScrimPreview(mode: MergeMode) {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		MergeProjectsDialogContent(mode = mode, onModeChange = {}, onCancel = {}, onContinue = {})
 	}
 }
@@ -58,12 +53,7 @@ internal fun MergeProjectsScrimPreview(mode: MergeMode) {
 /** The confirm Replace raises before deleting every local project. */
 @Composable
 internal fun MergeReplaceConfirmScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		MergeReplaceConfirmCard(onConfirm = {}, onCancel = {})
 	}
 }

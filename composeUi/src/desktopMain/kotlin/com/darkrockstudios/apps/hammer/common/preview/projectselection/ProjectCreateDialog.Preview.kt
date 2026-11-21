@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.projectselection
 
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -63,12 +64,7 @@ fun ScreenProjectCreateDialogPreview() {
 @Preview(widthDp = 600, heightDp = 460)
 @Composable
 fun ImportHelpDialogPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		ImportHelpContent(onDismiss = {})
 	}
 }

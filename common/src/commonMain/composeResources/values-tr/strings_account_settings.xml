@@ -1,40 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="account_settings_breadcrumb">ACCOUNT</string>
-	<string name="account_settings_subtitle_local_install">LOCAL INSTALL</string>
 	<string name="account_settings_folio_caption">ACCOUNT SETTINGS</string>
-	<string name="settings_backups_header">Backups</string>
-	<string name="settings_backups_explainations">This backup system is meant to protect against data loss and corruption. It is NOT intended as a way to keep older revisions of your stories. Please use the Drafts system for that.
-	</string>
-	<string name="settings_backups_manage_button">Manage Backups</string>
-	<string name="settings_theme_label">UI Theme</string>
 	<string name="settings_theme_light">LIGHT</string>
 	<string name="settings_theme_dark">DARK</string>
 	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">SYSTEM</string>
-	<string name="settings_initial_screen_label">Initial Project Screen</string>
 	<string name="settings_initial_screen_home">Home</string>
 	<string name="settings_initial_screen_editor">Scene Editor</string>
-	<string name="settings_projects_directory">Projects Directory</string>
-	<string name="settings_projects_directory_description">Set the directory Hammer will use to store project data in.
-	</string>
-	<string name="settings_projects_directory_button">Select Dir</string>
-	<string name="settings_example_project_header">Example Project</string>
-	<string name="settings_example_project_description">Install an example project to see how different features are used.
-	</string>
 	<string name="settings_example_project_button">Reinstall</string>
 	<string name="settings_example_project_success_message">Example project created.</string>
-	<string name="settings_server_status_connected">CONNECTED</string>
-	<string name="settings_server_status_not_connected">NOT CONNECTED</string>
-	<string name="settings_server_url_greeble">URL</string>
-	<string name="settings_server_help_link">HELP ↗</string>
-	<string name="settings_server_description">Configure data syncing</string>
 	<string name="settings_server_setup_button">Set Up</string>
 	<string name="settings_server_auto_sync">Auto-Sync</string>
 	<string name="settings_server_sync_backup">Backup on sync</string>
 	<string name="settings_server_sync_auto_close">Close Sync Dialogs on Success</string>
-	<string name="settings_server_max_backups">Max Backups per Project</string>
-	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
 	<string name="settings_remove_server_dialog_title">Remove Server</string>
 	<string name="settings_remove_server_dialog_message">Are you sure you want to remove the server?</string>
 	<string name="settings_server_setup_title">Set Up Server</string>
@@ -58,7 +36,6 @@
 	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
 	<string name="settings_automatic_update_checks">Check for updates automatically</string>
 	<string name="settings_automatic_update_checks_hint">Looks for a new release on GitHub shortly after launch and every few hours. Nothing is downloaded or installed until you choose to update.</string>
-	<string name="settings_platform_settings_title">Platform Settings</string>
 	<string name="settings_platform_settings_empty">No platform-specific settings.</string>
 	<string name="settings_keep_screen_on">Keep screen on</string>
 	<string name="settings_enable_dnd_focus_mode_title">Enable Do Not Disturb when in Focus Mode</string>
@@ -72,9 +49,6 @@
 	<string name="settings_storage_permission_explanation">Hammer needs file access permission to store projects in public storage.
 	</string>
 	<string name="settings_storage_permission_button">Grant File Access</string>
-	<string name="notice_experimental_label">Experimental</string>
-	<string name="settings_spellcheck_heading">Spell Checking</string>
-	<string name="settings_spellcheck_notice">If it is causing problems just turn it off.</string>
 	<string name="settings_spellcheck_enable">Enable spell checking</string>
 	<string name="settings_spellcheck_in_focus_enable">Enable in focus mode</string>
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
@@ -82,8 +56,6 @@
 	<string name="settings_spellcheck_dictionary">Dictionary</string>
 	<string name="settings_server_enable_sync_backup_desc">Set up a server to sync your projects across devices and create secure backups.
 	</string>
-	<string name="settings_server_sync_backup_preferences">Sync &amp; Backup Preferences</string>
-	<string name="settings_server_danger_zone">Danger Zone</string>
 	<!-- Backup Manager Dialog -->
 	<string name="backup_manager_error_load_backups">Failed to load backups: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Failed to load backups for project: %1$s</string>

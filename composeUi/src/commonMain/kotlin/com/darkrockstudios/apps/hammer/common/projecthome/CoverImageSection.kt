@@ -32,7 +32,6 @@ import com.darkrockstudios.apps.hammer.project_info_cover_caption
 import com.darkrockstudios.apps.hammer.project_info_cover_clear
 import com.darkrockstudios.apps.hammer.project_info_cover_missing
 import com.darkrockstudios.apps.hammer.project_info_cover_none
-import com.darkrockstudios.apps.hammer.project_info_cover_pick
 import com.darkrockstudios.apps.hammer.project_info_cover_section_title
 
 const val PROJECT_SETTINGS_COVER_PICK_TAG = "project-settings-cover-pick"

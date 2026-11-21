@@ -28,7 +28,6 @@ import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialogCon
 import com.darkrockstudios.apps.hammer.common.projecthome.SCENE_SELECTOR_MASTER_TOGGLE_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.exportFormatChoices
 import com.darkrockstudios.apps.hammer.common.projecthome.sceneSelectorSceneTag
-import com.darkrockstudios.apps.hammer.settings_plugins_header
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import okio.BufferedSink

@@ -1,24 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.projectselection.about.LibrariesCard
 import com.mikepenz.aboutlibraries.Libs
 
 /** The open source libraries dialog, over a scrim. */
 @Composable
 internal fun LibrariesScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		LibrariesCard(libs = previewLibs, onClose = {}, initiallyOpen = "com.arkivanov.decompose:decompose")
 	}
 }

@@ -74,9 +74,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.runDesktopComposeUiTest
 import androidx.compose.ui.unit.Density
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdGrouping
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTexture
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdGrouping
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdTexture
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiWritingTabletPreview
@@ -191,7 +189,7 @@ class ScreenGalleryTest {
 		val content: @Composable (FormFactor) -> Unit,
 	)
 
-	private data class StudyStyle(val label: String, val grouping: HdGrouping, val texture: HdTexture = HdTexture.None)
+	private data class StudyStyle(val label: String, val grouping: HdGrouping)
 
 	/** [scrollerHeightPx] is the height of the scroll container holding the most hidden content. */
 	private class Capture(
@@ -471,7 +469,6 @@ class ScreenGalleryTest {
 					LocalDensity provides Density(SCALE.toFloat()),
 					LocalSystemTheme provides if (variant.dark) SystemTheme.Dark else SystemTheme.Light,
 					LocalHdGrouping provides style.grouping,
-					LocalHdTexture provides style.texture,
 				) {
 					screen.content(ff)
 				}
@@ -639,9 +636,6 @@ class ScreenGalleryTest {
 		private val STUDY_STYLES = listOf(
 			StudyStyle("Rules", HdGrouping.Rules),
 			StudyStyle("HangingSpine", HdGrouping.HangingSpine),
-			StudyStyle("Spine + Grain", HdGrouping.HangingSpine, HdTexture.Grain),
-			StudyStyle("Spine + Laid", HdGrouping.HangingSpine, HdTexture.Laid),
-			StudyStyle("Spine + Dots", HdGrouping.HangingSpine, HdTexture.Dots),
 		)
 		private val GROUPING_STUDY: Set<String>? = setOf(
 			"Project settings", "Account settings", "Project stats", "View encyclopedia entry",

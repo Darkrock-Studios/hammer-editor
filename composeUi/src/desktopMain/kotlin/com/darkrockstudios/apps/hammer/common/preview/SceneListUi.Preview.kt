@@ -15,8 +15,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.background
-import androidx.compose.ui.Alignment
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.CreateDialogCard
@@ -298,12 +296,7 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 /** New scene inside a group, over a scrim; the card directly, since the animated dialog can't settle in a preview. */
 @Composable
 fun CreateSceneDialogScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		CreateDialogCard(
 			title = Res.string.scene_list_create_scene_dialog_title.get(),
 			parentName = "Chapter IV",
@@ -320,12 +313,7 @@ fun CreateSceneDialogScrimPreview() {
 /** Renaming a chapter, over a scrim. */
 @Composable
 fun SceneRenameDialogScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		SceneRenameCard(
 			kind = SceneKind.Chapter,
 			name = "Down the Rabbit-Hole",

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.projectselection
 
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,12 +31,7 @@ fun ImportStoryDialogPreview() {
 		items = List(14) { i -> PreviewItem.Scene(name = "Chapter ${i + 1}", markdown = "") },
 	)
 	KoinApplicationPreview {
-		Box(
-			modifier = Modifier
-				.fillMaxSize()
-				.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-			contentAlignment = Alignment.Center,
-		) {
+		PreviewScrim {
 			ImportStoryContent(
 				projectName = "Alice In Wonderland 2",
 				options = ImportOptions(),

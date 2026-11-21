@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -107,11 +108,19 @@ fun ChangelogContent(
 	}
 }
 
+private class NoteLine(val text: AnnotatedString, val isEntry: Boolean)
+
 /** "- " lines are entries; any other line heads the entries under it ("New features"). */
 @Composable
 private fun ReleaseNotes(notes: String?) {
-	val link = SpanStyle(color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline)
-	val lines = notes?.lines()?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+	val linkColor = MaterialTheme.colorScheme.primary
+	val lines = remember(notes, linkColor) {
+		val link = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)
+		notes?.lines()?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty().map { line ->
+			val entry = line.removePrefix("- ").removePrefix("* ").takeIf { it != line }
+			NoteLine(text = linkify(entry ?: line, link), isEntry = entry != null)
+		}
+	}
 	if (lines.isEmpty()) {
 		Text(
 			text = Res.string.update_dialog_release_notes_empty.get(),
@@ -121,8 +130,7 @@ private fun ReleaseNotes(notes: String?) {
 		return
 	}
 	lines.forEachIndexed { index, line ->
-		val entry = line.removePrefix("- ").removePrefix("* ").takeIf { it != line }
-		if (entry != null) {
+		if (line.isEntry) {
 			Row {
 				Text(
 					text = "•",
@@ -131,7 +139,7 @@ private fun ReleaseNotes(notes: String?) {
 					modifier = Modifier.width(18.dp),
 				)
 				Text(
-					text = linkify(entry, link),
+					text = line.text,
 					style = MaterialTheme.typography.bodyMedium,
 					color = MaterialTheme.colorScheme.onSurface,
 					modifier = Modifier.weight(1f),
@@ -140,7 +148,7 @@ private fun ReleaseNotes(notes: String?) {
 		} else {
 			if (index > 0) Spacer(Modifier.height(8.dp))
 			Text(
-				text = linkify(line, link),
+				text = line.text,
 				style = MaterialTheme.typography.titleSmall,
 				color = MaterialTheme.colorScheme.onSurface,
 			)

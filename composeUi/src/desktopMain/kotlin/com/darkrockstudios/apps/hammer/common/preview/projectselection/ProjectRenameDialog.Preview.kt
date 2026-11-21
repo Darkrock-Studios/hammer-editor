@@ -1,12 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview.projectselection
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
@@ -21,12 +16,7 @@ import com.darkrockstudios.apps.hammer.rename_project_title
 @Preview(widthDp = 600, heightDp = 400)
 @Composable
 fun ProjectRenameDialogPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		FormDialogScaffold(
 			title = Res.string.rename_project_title.get(),
 			subject = "Alice in Wonderland",

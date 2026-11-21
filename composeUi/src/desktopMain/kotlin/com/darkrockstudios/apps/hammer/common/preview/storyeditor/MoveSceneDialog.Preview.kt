@@ -1,13 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.preview.storyeditor
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
@@ -23,12 +18,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.MoveSceneDia
 @Composable
 fun ScreenMoveSceneDialogPreview() {
 	KoinApplicationPreview {
-		Box(
-			modifier = Modifier
-				.fillMaxSize()
-				.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-			contentAlignment = Alignment.Center,
-		) {
+		PreviewScrim {
 			val tree = remember { previewTree() }
 			val item = remember(tree) { tree.findBy { it.id == 8 }!!.value }
 			val state = remember(tree, item) { MoveSceneDialogState(item, tree) }

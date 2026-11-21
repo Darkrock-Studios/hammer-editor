@@ -64,8 +64,6 @@ class ProjectListMastheadTest : BaseTest() {
 				KoinApplicationPreview {
 					Box(modifier = Modifier.testTag(PANE_TAG).width(paneWidth)) {
 						Masthead(
-							entryCount = 128,
-							showEntryCount = true,
 							isServerSynced = true,
 							onSync = {},
 							onCreate = {},

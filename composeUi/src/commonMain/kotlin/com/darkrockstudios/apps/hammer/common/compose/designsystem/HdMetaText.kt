@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.runtime.remember
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,8 +13,10 @@ import androidx.compose.ui.unit.sp
 
 /** Mono at regular weight and near-normal tracking: the [HdMetaText] style. */
 @Composable
-fun hdMetaStyle(): TextStyle =
-	MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Normal, letterSpacing = 0.2.sp)
+fun hdMetaStyle(): TextStyle {
+	val labelMedium = MaterialTheme.typography.labelMedium
+	return remember(labelMedium) { labelMedium.copy(fontWeight = FontWeight.Normal, letterSpacing = 0.2.sp) }
+}
 
 /**
  * Scannable metadata: numbers, dates, counts ("Opened 11 Nov 2026", "35,048 words"). Mono so

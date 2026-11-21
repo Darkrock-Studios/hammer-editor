@@ -183,9 +183,8 @@ internal fun <T> HdSearchableListDialogContent(
 					)
 				}
 			} else {
-				val listState = rememberLazyListState(
-					initialFirstVisibleItemIndex = filtered.indexOfFirst(isSelected).coerceAtLeast(0),
-				)
+				val initialIndex = remember { filtered.indexOfFirst(isSelected).coerceAtLeast(0) }
+				val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
 				LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
 					items(filtered, key = itemKey) { item ->
 						PickerRow(

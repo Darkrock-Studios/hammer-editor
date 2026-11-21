@@ -85,7 +85,6 @@ fun TimeLineUi(
 						TimeLineOverviewUi(
 							component = dest.component,
 							scope = scope,
-							showCreate = component::showCreateEvent,
 							viewEvent = component::showViewEvent,
 							switcher = switcher,
 							openEvent = component::showEventDialog,

@@ -333,7 +333,6 @@ private fun ReadingColumn(
 			}
 			itemsIndexed(chapters, key = { idx, _ -> "ch-$idx" }) { index, ch ->
 				ChapterBlock(
-					chapterIndex = index,
 					chapter = ch,
 					showSeparator = index < chapters.size - 1,
 					wide = wide,
@@ -388,7 +387,6 @@ private fun Frontispiece(projectName: String?, chapterCount: Int, sceneCount: In
 
 @Composable
 private fun ChapterBlock(
-	chapterIndex: Int,
 	chapter: OutlineChapter,
 	showSeparator: Boolean,
 	wide: Boolean,

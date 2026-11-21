@@ -2,7 +2,6 @@
 <resources>
 	<string name="about_description">A simple tool for building stories.</string>
 
-	<string name="about_studio_header">Studio</string>
 	<string name="about_community_studio_attribution">Hammer is made by Dark Rock Studios, alongside a family of other privacy-respecting, open source apps.</string>
 
 	<string name="about_community_header">Community</string>
@@ -10,8 +9,6 @@
 	<string name="about_community_reddit_link">Reddit</string>
 	<string name="about_community_github_link">GitHub</string>
 
-	<string name="about_attribution_header">Attribution</string>
-	<string name="about_attribution_libraries_button">Libraries</string>
 	<string name="about_attribution_studio_button">Dark Rock Studios</string>
 	<string name="about_libraries_link">Open source libraries</string>
 	<string name="about_libraries_desc">The open source projects Hammer is built with.</string>
@@ -39,7 +36,6 @@
 	<string name="changelog_dialog_title">What's new</string>
 	<string name="changelog_dialog_title_version">What's new in %1$s</string>
 	<string name="changelog_dialog_close">Close</string>
-	<string name="update_dialog_release_notes_section">Release notes</string>
 	<string name="update_dialog_release_notes_empty">No release notes provided.</string>
 	<string name="update_dialog_open_release_button">Get the update</string>
 
@@ -51,11 +47,7 @@
 	<string name="about_diagnostics_row">Diagnostics</string>
 	<string name="about_diagnostics_row_desc">Copies the startup details and recent log lines, ready to paste into a bug report.</string>
 	<string name="about_diagnostics_copy_button">Copy</string>
-	<string name="about_logs_header">Application Logs</string>
-	<string name="about_logs_directory_label">Log Directory:</string>
-	<string name="about_logs_export_button">Export Logs</string>
 	<string name="about_logs_no_logs">No log files found</string>
-	<string name="about_logs_open_tooltip">Open log directory</string>
 	<string name="about_logs_export_success">Logs exported.</string>
 	<string name="about_logs_export_failed">Could not export the logs. See the log directory.</string>
 	<string name="about_logs_copy_diagnostics_button">Copy Diagnostics</string>

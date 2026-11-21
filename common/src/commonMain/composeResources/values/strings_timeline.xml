@@ -144,7 +144,6 @@
 	<string name="timeline_view_sequence">Sequence</string>
 	<string name="timeline_view_to_scale">To scale</string>
 
-	<string name="timeline_settings_section_title">Timeline</string>
 	<string name="timeline_settings_caption">How the timeline orders its entries. A manual timeline follows the order you drag them into; a dated one orders them by their dates.</string>
 	<string name="timeline_settings_mode_label">Mode</string>
 	<string name="timeline_mode_manual">Manual</string>
@@ -233,7 +232,6 @@
 	<string name="timeline_move_confirm">Move</string>
 	<string name="timeline_move_done">Moved to “%1$s”</string>
 	<string name="timeline_also_on">Also on</string>
-	<string name="timeline_settings_timelines_label">Timelines</string>
 	<string name="timeline_settings_new">+ New timeline</string>
 	<string name="timeline_settings_rename">Rename</string>
 	<string name="timeline_settings_delete">Delete</string>

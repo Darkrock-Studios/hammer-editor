@@ -1,9 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,11 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,18 +32,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
@@ -62,7 +52,6 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooterState
@@ -73,7 +62,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSplitButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSplitButtonItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -82,18 +70,7 @@ import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import com.darkrockstudios.apps.hammer.project_select_project_list_empty
-import com.darkrockstudios.apps.hammer.projects_list_column_last_open
-import com.darkrockstudios.apps.hammer.projects_list_column_title
-import com.darkrockstudios.apps.hammer.projects_list_create_button
-import com.darkrockstudios.apps.hammer.projects_list_create_group_button
 import com.darkrockstudios.apps.hammer.projects_list_empty_index
-import com.darkrockstudios.apps.hammer.projects_list_entry_count_none
-import com.darkrockstudios.apps.hammer.projects_list_entry_count_one
-import com.darkrockstudios.apps.hammer.projects_list_entry_count_other
-import com.darkrockstudios.apps.hammer.projects_list_footer_library
-import com.darkrockstudios.apps.hammer.projects_list_footer_local
-import com.darkrockstudios.apps.hammer.projects_list_footer_sync_on
-import com.darkrockstudios.apps.hammer.projects_list_masthead_title
 import com.darkrockstudios.apps.hammer.projects_list_create_menu
 import com.darkrockstudios.apps.hammer.projects_list_new_group
 import com.darkrockstudios.apps.hammer.projects_list_new_project
@@ -115,7 +92,6 @@ import com.darkrockstudios.apps.hammer.projects_list_sort_newest
 import com.darkrockstudios.apps.hammer.projects_list_sort_oldest
 import com.darkrockstudios.apps.hammer.projects_list_sort_recently_opened
 import com.darkrockstudios.apps.hammer.projects_list_sort_shortest
-import com.darkrockstudios.apps.hammer.projects_list_sync_button
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
@@ -236,8 +212,6 @@ fun ProjectListUi(
 		modifier = Modifier.fillMaxSize(),
 	) {
 		Masthead(
-			entryCount = state.projects.size,
-			showEntryCount = isWide,
 			isServerSynced = state.isServerSynced,
 			onSync = component::showProjectsSync,
 			onCreate = { component.showCreate() },
@@ -358,8 +332,6 @@ fun ProjectListUi(
 
 @Composable
 internal fun Masthead(
-	entryCount: Int,
-	showEntryCount: Boolean,
 	isServerSynced: Boolean,
 	onSync: () -> Unit,
 	onCreate: () -> Unit,
@@ -419,64 +391,6 @@ internal fun Masthead(
 		if (showCreate) {
 			NewProjectButton(onCreate = onCreate, onCreateGroup = onCreateGroup)
 		}
-	}
-}
-
-@Composable
-private fun NewGroupAffordance(onClick: () -> Unit) {
-	HdToolButton(
-		active = false,
-		onClick = onClick,
-		modifier = Modifier.testTag(CreateGroupButtonTestTag),
-	) {
-		Icon(
-			imageVector = Icons.Outlined.Folder,
-			contentDescription = Res.string.projects_list_create_group_button.get(),
-			tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			modifier = Modifier.size(16.dp),
-		)
-	}
-}
-
-@Composable
-private fun RefreshAffordance(onClick: () -> Unit) {
-	Box(
-		modifier = Modifier
-			.size(32.dp)
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				shape = RectangleShape,
-			)
-			.clickable(onClick = onClick),
-		contentAlignment = Alignment.Center,
-	) {
-		Icon(
-			imageVector = Icons.Default.Refresh,
-			contentDescription = Res.string.projects_list_sync_button.get(),
-			tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			modifier = Modifier.size(16.dp),
-		)
-	}
-}
-
-@Composable
-private fun SearchAffordance(active: Boolean, onClick: () -> Unit) {
-	HdToolButton(
-		active = active,
-		onClick = onClick,
-		modifier = Modifier.testTag("projects-list-search-toggle"),
-	) {
-		Icon(
-			imageVector = Icons.Default.Search,
-			contentDescription = Res.string.projects_list_search_button.get(),
-			tint = if (active) {
-				MaterialTheme.colorScheme.onSurface
-			} else {
-				MaterialTheme.colorScheme.onSurfaceVariant
-			},
-			modifier = Modifier.size(16.dp),
-		)
 	}
 }
 
@@ -556,51 +470,6 @@ private fun NoMatchesState(horizontalPadding: Dp) {
 }
 
 @Composable
-private fun ColumnHeader(showLastOpen: Boolean) {
-	Column(modifier = Modifier.fillMaxWidth()) {
-		HorizontalDivider(
-			modifier = Modifier.fillMaxWidth(),
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(
-					start = 4.dp + Ui.Padding.XL,
-					end = Ui.Padding.L + MpScrollBarGutter,
-					top = Ui.Padding.M,
-					bottom = Ui.Padding.M,
-				),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			HdMonoLabel(
-				text = "№",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.width(40.dp),
-			)
-			HdMonoLabel(
-				text = Res.string.projects_list_column_title.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.weight(1f),
-			)
-			if (showLastOpen) {
-				HdMonoLabel(
-					text = Res.string.projects_list_column_last_open.get(),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-			}
-			Spacer(modifier = Modifier.width(48.dp))
-		}
-		HorizontalDivider(
-			modifier = Modifier.fillMaxWidth(),
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-	}
-}
-
-@Composable
 private fun EmptyState(horizontalPadding: Dp) {
 	Column(
 		modifier = Modifier
@@ -618,43 +487,6 @@ private fun EmptyState(horizontalPadding: Dp) {
 			style = MaterialTheme.typography.headlineSmall,
 			fontStyle = FontStyle.Italic,
 			textAlign = TextAlign.Center,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-	}
-}
-
-@Composable
-private fun FooterFolio(
-	horizontalPadding: Dp,
-	isServerSynced: Boolean,
-) {
-	HorizontalDivider(
-		modifier = Modifier.fillMaxWidth(),
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = Res.string.projects_list_footer_library.get(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = if (isServerSynced) {
-				Res.string.projects_list_footer_sync_on.get()
-			} else {
-				Res.string.projects_list_footer_local.get()
-			},
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		HdMonoLabel(
-			text = "v${BuildMetadata.APP_VERSION}",
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
@@ -711,13 +543,6 @@ private fun NewProjectButton(
 		filled = filled,
 		height = height,
 	)
-}
-
-@Composable
-private fun entrySummary(count: Int): String = when (count) {
-	0 -> Res.string.projects_list_entry_count_none.get()
-	1 -> Res.string.projects_list_entry_count_one.get()
-	else -> Res.string.projects_list_entry_count_other.get(count)
 }
 
 @Composable

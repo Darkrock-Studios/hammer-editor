@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdPlaceholderColor
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
@@ -169,26 +168,6 @@ fun FormDialogSubject(text: String, modifier: Modifier = Modifier) {
 		),
 		color = MaterialTheme.colorScheme.onSurface,
 		modifier = modifier,
-	)
-}
-
-/**
- * Stacked masthead rule used after the §-marker row in [FormDialog] (and matches the
- * "section folio" treatment in the rest of the app's design language). 2dp strong rule,
- * 2dp gap, 1dp regular rule.
- */
-@Composable
-fun FolioDivider() {
-	Box(
-		modifier = Modifier
-			.fillMaxWidth()
-			.height(2.dp)
-			.background(MaterialTheme.colorScheme.outline),
-	)
-	Spacer(modifier = Modifier.height(2.dp))
-	HorizontalDivider(
-		color = MaterialTheme.colorScheme.outlineVariant,
-		thickness = 1.dp,
 	)
 }
 

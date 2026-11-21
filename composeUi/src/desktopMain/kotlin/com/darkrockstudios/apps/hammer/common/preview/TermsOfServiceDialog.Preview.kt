@@ -44,12 +44,7 @@ fun TermsOfServiceDialogPreview() {
 /** The terms over a scrim in the surrounding theme. */
 @Composable
 internal fun TermsOfServiceScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		TermsOfServiceDialogContent(
 			text = SAMPLE_TOS,
 			server = "hammer.ink",

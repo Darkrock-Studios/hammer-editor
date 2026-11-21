@@ -17,8 +17,6 @@ import com.darkrockstudios.apps.hammer.project_settings_enter_to_add_tag
 import com.darkrockstudios.apps.hammer.project_settings_goal_per_day
 import com.darkrockstudios.apps.hammer.project_settings_goal_row
 import com.darkrockstudios.apps.hammer.project_settings_goal_words_per
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRegion
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSectionGap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,7 +31,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,7 +41,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
@@ -61,7 +57,6 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSett
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
@@ -73,15 +68,12 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.toArgbHex
 import com.darkrockstudios.apps.hammer.project_info_author_label
 import com.darkrockstudios.apps.hammer.project_info_color_picker_cancel
 import com.darkrockstudios.apps.hammer.project_info_color_picker_confirm
-import com.darkrockstudios.apps.hammer.project_info_color_picker_edit
 import com.darkrockstudios.apps.hammer.project_info_language_dialog_close
 import com.darkrockstudios.apps.hammer.project_info_language_dialog_title
 import com.darkrockstudios.apps.hammer.project_info_language_empty
 import com.darkrockstudios.apps.hammer.project_info_language_label
 import com.darkrockstudios.apps.hammer.project_info_language_search_hint
 import com.darkrockstudios.apps.hammer.project_info_language_unset
-import com.darkrockstudios.apps.hammer.project_info_tags_hint
-import com.darkrockstudios.apps.hammer.project_info_tags_label
 import com.darkrockstudios.apps.hammer.project_info_tags_placeholder
 import com.darkrockstudios.apps.hammer.project_info_tags_section_title
 import com.darkrockstudios.apps.hammer.project_info_theme_enable_label
@@ -89,11 +81,7 @@ import com.darkrockstudios.apps.hammer.project_info_theme_primary_label
 import com.darkrockstudios.apps.hammer.project_info_theme_secondary_label
 import com.darkrockstudios.apps.hammer.project_info_theme_section_title
 import com.darkrockstudios.apps.hammer.project_info_word_goal_cadence_day
-import com.darkrockstudios.apps.hammer.project_info_word_goal_cadence_label
 import com.darkrockstudios.apps.hammer.project_info_word_goal_cadence_week
-import com.darkrockstudios.apps.hammer.project_info_word_goal_count_label
-import com.darkrockstudios.apps.hammer.project_info_word_goal_effective_label
-import com.darkrockstudios.apps.hammer.project_info_word_goal_effective_unit
 import com.darkrockstudios.apps.hammer.project_info_word_goal_enable_label
 import com.darkrockstudios.apps.hammer.project_info_word_goal_section_title
 import com.github.skydoves.colorpicker.compose.BrightnessSlider

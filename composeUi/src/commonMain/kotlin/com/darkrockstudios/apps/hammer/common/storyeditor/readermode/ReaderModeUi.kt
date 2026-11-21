@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -34,7 +33,6 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.base.romanNumeral
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -357,7 +355,6 @@ private fun ReadingColumn(
 				)
 
 				is ReaderRow.SceneHeading -> SceneHeading(
-					chapterIndex = chapterIndex,
 					row = row,
 					wide = wide,
 					onClick = { component.editScene(row.scene) },
@@ -390,7 +387,6 @@ private fun ReadingColumn(
 
 @Composable
 private fun SceneHeading(
-	chapterIndex: Int,
 	row: ReaderRow.SceneHeading,
 	wide: Boolean,
 	onClick: () -> Unit,

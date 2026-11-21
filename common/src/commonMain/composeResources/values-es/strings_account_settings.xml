@@ -1,37 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="account_settings_breadcrumb">CUENTA</string>
-	<string name="account_settings_subtitle_local_install">INSTALACIÓN LOCAL</string>
 	<string name="account_settings_folio_caption">AJUSTES DE LA CUENTA</string>
-	<string name="settings_backups_header">Copias de seguridad</string>
-	<string name="settings_backups_explainations">Este sistema de copias de seguridad está pensado para proteger contra la pérdida y la corrupción de datos. NO está pensado para conservar versiones anteriores de tus historias. Para eso, usa el sistema de borradores.</string>
-	<string name="settings_backups_manage_button">Gestionar copias de seguridad</string>
-	<string name="settings_theme_label">Tema de la interfaz</string>
 	<string name="settings_theme_light">CLARO</string>
 	<string name="settings_theme_dark">OSCURO</string>
 	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">SISTEMA</string>
-	<string name="settings_initial_screen_label">Pantalla inicial del proyecto</string>
 	<string name="settings_initial_screen_home">Inicio</string>
 	<string name="settings_initial_screen_editor">Editor de escenas</string>
-	<string name="settings_projects_directory">Carpeta de proyectos</string>
-	<string name="settings_projects_directory_description">Define la carpeta que Hammer usará para guardar los datos de los proyectos.</string>
-	<string name="settings_projects_directory_button">Elegir carpeta</string>
-	<string name="settings_example_project_header">Proyecto de ejemplo</string>
-	<string name="settings_example_project_description">Instala un proyecto de ejemplo para ver cómo se usan las distintas funciones.</string>
 	<string name="settings_example_project_button">Reinstalar</string>
 	<string name="settings_example_project_success_message">Proyecto de ejemplo creado.</string>
-	<string name="settings_server_status_connected">CONECTADO</string>
-	<string name="settings_server_status_not_connected">NO CONECTADO</string>
-	<string name="settings_server_url_greeble">URL</string>
-	<string name="settings_server_help_link">AYUDA ↗</string>
-	<string name="settings_server_description">Configura la sincronización de datos</string>
 	<string name="settings_server_setup_button">Configurar</string>
 	<string name="settings_server_auto_sync">Sincronización automática</string>
 	<string name="settings_server_sync_backup">Copia de seguridad al sincronizar</string>
 	<string name="settings_server_sync_auto_close">Cerrar los diálogos de sincronización si hay éxito</string>
-	<string name="settings_server_max_backups">Máx. de copias de seguridad por proyecto</string>
-	<string name="settings_server_max_backups_error">Debe estar entre 1 y %1$d</string>
 	<string name="settings_remove_server_dialog_title">Quitar servidor</string>
 	<string name="settings_remove_server_dialog_message">¿Seguro que quieres quitar el servidor?</string>
 	<string name="settings_server_setup_title">Configurar servidor</string>
@@ -55,7 +36,6 @@
 	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
 	<string name="settings_automatic_update_checks">Check for updates automatically</string>
 	<string name="settings_automatic_update_checks_hint">Looks for a new release on GitHub shortly after launch and every few hours. Nothing is downloaded or installed until you choose to update.</string>
-	<string name="settings_platform_settings_title">Ajustes de la plataforma</string>
 	<string name="settings_platform_settings_empty">No hay ajustes específicos de la plataforma.</string>
 	<string name="settings_keep_screen_on">Mantener la pantalla encendida</string>
 	<string name="settings_enable_dnd_focus_mode_title">Activar No molestar en el modo concentración</string>
@@ -66,17 +46,12 @@
 	<string name="settings_storage_location_label">Ubicación de los proyectos</string>
 	<string name="settings_storage_permission_explanation">Hammer necesita permiso de acceso a archivos para guardar los proyectos en el almacenamiento público.</string>
 	<string name="settings_storage_permission_button">Conceder acceso a archivos</string>
-	<string name="notice_experimental_label">Experimental</string>
-	<string name="settings_spellcheck_heading">Corrección ortográfica</string>
-	<string name="settings_spellcheck_notice">Si causa problemas, simplemente desactívala.</string>
 	<string name="settings_spellcheck_enable">Activar la corrección ortográfica</string>
 	<string name="settings_spellcheck_in_focus_enable">Activar en el modo concentración</string>
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
 	<string name="settings_spellcheck_dictionary">Diccionario</string>
 	<string name="settings_server_enable_sync_backup_desc">Configura un servidor para sincronizar tus proyectos entre dispositivos y crear copias de seguridad seguras.</string>
-	<string name="settings_server_sync_backup_preferences">Preferencias de sincronización y copias de seguridad</string>
-	<string name="settings_server_danger_zone">Zona de peligro</string>
 	<!-- Backup Manager Dialog -->
 	<string name="backup_manager_error_load_backups">No se pudieron cargar las copias de seguridad: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">No se pudieron cargar las copias de seguridad del proyecto: %1$s</string>

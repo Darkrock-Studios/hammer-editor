@@ -79,12 +79,7 @@ internal fun ServerSetupDialogScrimPreview(mfa: Boolean = false) {
 		defaultAccountSettingsComponentState
 	}
 	KoinApplicationPreview {
-		Box(
-			modifier = Modifier
-				.fillMaxSize()
-				.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-			contentAlignment = Alignment.Center,
-		) {
+		PreviewScrim {
 			ServerSetupDialogContent(component = accountSettingsComponent(state), scope = scope)
 		}
 	}

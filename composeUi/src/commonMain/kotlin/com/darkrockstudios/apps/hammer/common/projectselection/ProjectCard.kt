@@ -45,7 +45,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
@@ -89,8 +88,6 @@ const val ProjectCardSyncOffTestTag = "project-card-sync-off"
 const val ProjectCardSharedByTestTag = "project-card-shared-by"
 
 private val StripeWidth: Dp = 4.dp
-private val NumberColumnWidth: Dp = 56.dp
-private val CompactNumberColumnWidth: Dp = 44.dp
 private val CoverHeight: Dp = 56.dp
 private val CompactCoverHeight: Dp = 48.dp
 

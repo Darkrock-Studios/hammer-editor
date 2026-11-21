@@ -1,9 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +48,7 @@ internal fun PluginSettingsScrimPreview() {
 @Composable
 private fun Scrimmed(content: @Composable () -> Unit) {
 	Box(
-		modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+		modifier = Modifier.fillMaxSize().previewScrim(),
 		contentAlignment = Alignment.Center,
 	) {
 		content()

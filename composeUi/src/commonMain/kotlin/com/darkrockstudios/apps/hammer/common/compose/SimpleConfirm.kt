@@ -5,8 +5,6 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.confirm_dialog_negative
 import com.darkrockstudios.apps.hammer.confirm_dialog_positive
-import com.darkrockstudios.apps.hammer.confirm_kind_alert
-import com.darkrockstudios.apps.hammer.confirm_kind_confirm
 
 @Composable
 fun SimpleConfirm(
@@ -14,9 +12,8 @@ fun SimpleConfirm(
 	message: String? = null,
 	positiveButton: String? = null,
 	negativeButton: String? = null,
-	implicitCancel: Boolean = true,
 	destructive: Boolean = false,
-	kind: String = if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get(),
+	kind: String = defaultConfirmKind(destructive),
 	onNegative: (() -> Unit)? = null,
 	onDismiss: () -> Unit,
 	onConfirm: () -> Unit,
@@ -30,7 +27,6 @@ fun SimpleConfirm(
 		onConfirm = onConfirm,
 		onDismiss = onDismiss,
 		onCancel = onNegative,
-		implicitDismiss = implicitCancel,
 		destructive = destructive,
 		kind = kind,
 	)

@@ -1,8 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.globalsearch
 
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdSettingRowStacked
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
@@ -237,15 +235,14 @@ private fun FilterPicker(selected: GlobalSearchFilter, onSelect: (GlobalSearchFi
 	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
 		val fits = maxWidth >= FILTERS_FILL_WIDTH
 		Box(modifier = if (fits) Modifier.fillMaxWidth() else Modifier.horizontalScroll(rememberScrollState())) {
-			CompositionLocalProvider(LocalHdSettingRowStacked provides fits) {
-				HdHairlineSegmentedPicker(
-					options = GlobalSearchFilter.entries.toList(),
-					selected = selected,
-					onSelect = onSelect,
-					label = { filterLabel(it).get() },
-					compact = true,
-				)
-			}
+			HdHairlineSegmentedPicker(
+				options = GlobalSearchFilter.entries,
+				selected = selected,
+				onSelect = onSelect,
+				label = { filterLabel(it).get() },
+				compact = true,
+				fill = fits,
+			)
 		}
 	}
 }

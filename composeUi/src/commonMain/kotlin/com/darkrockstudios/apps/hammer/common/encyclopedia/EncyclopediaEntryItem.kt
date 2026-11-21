@@ -44,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -397,21 +396,5 @@ internal fun EncyclopediaEntryItem(
 			}
 		}
 	}
-}
-
-@Composable
-fun GradientDivider(modifier: Modifier = Modifier) {
-	Box(
-		modifier = modifier
-			.fillMaxWidth()
-			.background(
-				brush = Brush.verticalGradient(
-					colors = listOf(
-						Color.Transparent,
-						Color(0xFF222222),
-					),
-				),
-			),
-	)
 }
 

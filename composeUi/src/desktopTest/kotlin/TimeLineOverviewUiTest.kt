@@ -227,7 +227,6 @@ class TimeLineOverviewUiTest : BaseTest() {
 							TimeLineOverviewUi(
 								component = component,
 								scope = uiScope,
-								showCreate = {},
 								viewEvent = viewEvent,
 								switcher = switcher,
 								sharedTransitionScope = this@SharedTransitionLayout,
@@ -1132,7 +1131,6 @@ class TimeLineOverviewUiTest : BaseTest() {
 								TimeLineOverviewUi(
 									component = overview,
 									scope = scope,
-									showCreate = {},
 									viewEvent = {},
 									switcher = TimelineSwitcherActions.None,
 									sharedTransitionScope = this@SharedTransitionLayout,

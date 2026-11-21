@@ -1,37 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="account_settings_breadcrumb">ОБЛІКОВИЙ ЗАПИС</string>
-	<string name="account_settings_subtitle_local_install">ЛОКАЛЬНЕ ВСТАНОВЛЕННЯ</string>
 	<string name="account_settings_folio_caption">НАЛАШТУВАННЯ ОБЛІКОВОГО ЗАПИСУ</string>
-	<string name="settings_backups_header">Резервні копії</string>
-	<string name="settings_backups_explainations">Ця система резервного копіювання призначена для захисту від втрати та пошкодження даних. Вона НЕ призначена для зберігання старіших версій ваших історій. Для цього використовуйте систему чернеток.</string>
-	<string name="settings_backups_manage_button">Керувати резервними копіями</string>
-	<string name="settings_theme_label">Тема інтерфейсу</string>
 	<string name="settings_theme_light">СВІТЛА</string>
 	<string name="settings_theme_dark">ТЕМНА</string>
 	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">СИСТЕМНА</string>
-	<string name="settings_initial_screen_label">Початковий екран проєкту</string>
 	<string name="settings_initial_screen_home">Головна</string>
 	<string name="settings_initial_screen_editor">Редактор сцен</string>
-	<string name="settings_projects_directory">Тека проєктів</string>
-	<string name="settings_projects_directory_description">Укажіть теку, яку Hammer використовуватиме для зберігання даних проєктів.</string>
-	<string name="settings_projects_directory_button">Вибрати теку</string>
-	<string name="settings_example_project_header">Приклад проєкту</string>
-	<string name="settings_example_project_description">Установіть приклад проєкту, щоб побачити, як використовуються різні функції.</string>
 	<string name="settings_example_project_button">Перевстановити</string>
 	<string name="settings_example_project_success_message">Приклад проєкту створено.</string>
-	<string name="settings_server_status_connected">ПІД'ЄДНАНО</string>
-	<string name="settings_server_status_not_connected">НЕ ПІД'ЄДНАНО</string>
-	<string name="settings_server_url_greeble">URL</string>
-	<string name="settings_server_help_link">ДОВІДКА ↗</string>
-	<string name="settings_server_description">Налаштуйте синхронізацію даних</string>
 	<string name="settings_server_setup_button">Налаштувати</string>
 	<string name="settings_server_auto_sync">Автосинхронізація</string>
 	<string name="settings_server_sync_backup">Резервна копія під час синхронізації</string>
 	<string name="settings_server_sync_auto_close">Закривати діалоги синхронізації в разі успіху</string>
-	<string name="settings_server_max_backups">Макс. резервних копій на проєкт</string>
-	<string name="settings_server_max_backups_error">Має бути від 1 до %1$d</string>
 	<string name="settings_remove_server_dialog_title">Вилучити сервер</string>
 	<string name="settings_remove_server_dialog_message">Ви впевнені, що хочете вилучити сервер?</string>
 	<string name="settings_server_setup_title">Налаштувати сервер</string>
@@ -55,7 +36,6 @@
 	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
 	<string name="settings_automatic_update_checks">Check for updates automatically</string>
 	<string name="settings_automatic_update_checks_hint">Looks for a new release on GitHub shortly after launch and every few hours. Nothing is downloaded or installed until you choose to update.</string>
-	<string name="settings_platform_settings_title">Налаштування платформи</string>
 	<string name="settings_platform_settings_empty">Немає налаштувань, специфічних для платформи.</string>
 	<string name="settings_keep_screen_on">Не вимикати екран</string>
 	<string name="settings_enable_dnd_focus_mode_title">Вмикати «Не турбувати» в режимі зосередження</string>
@@ -66,17 +46,12 @@
 	<string name="settings_storage_location_label">Розташування проєктів</string>
 	<string name="settings_storage_permission_explanation">Hammer потрібен дозвіл на доступ до файлів, щоб зберігати проєкти в загальнодоступному сховищі.</string>
 	<string name="settings_storage_permission_button">Надати доступ до файлів</string>
-	<string name="notice_experimental_label">Експериментальне</string>
-	<string name="settings_spellcheck_heading">Перевірка правопису</string>
-	<string name="settings_spellcheck_notice">Якщо це спричиняє проблеми, просто вимкніть її.</string>
 	<string name="settings_spellcheck_enable">Увімкнути перевірку правопису</string>
 	<string name="settings_spellcheck_in_focus_enable">Увімкнути в режимі зосередження</string>
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
 	<string name="settings_spellcheck_dictionary">Словник</string>
 	<string name="settings_server_enable_sync_backup_desc">Налаштуйте сервер, щоб синхронізувати проєкти між пристроями та створювати безпечні резервні копії.</string>
-	<string name="settings_server_sync_backup_preferences">Параметри синхронізації та резервного копіювання</string>
-	<string name="settings_server_danger_zone">Небезпечна зона</string>
 	<!-- Backup Manager Dialog -->
 	<string name="backup_manager_error_load_backups">Не вдалося завантажити резервні копії: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Не вдалося завантажити резервні копії проєкту: %1$s</string>

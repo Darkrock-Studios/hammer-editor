@@ -1,12 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview.notes
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
 import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
@@ -24,12 +19,7 @@ import com.darkrockstudios.apps.hammer.notes_discard_dialog_title
 
 @Composable
 private fun Scrim(content: @Composable () -> Unit) {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		content()
 	}
 }

@@ -9,9 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 
@@ -26,7 +24,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  * [HdHairlineDropdown] does.
  *
  * [compact] is the settings-row form: cells as wide as the widest label instead of the full
- * row, labels in sentence case body type. Stacked under an [HdSettingRow]'s title it spans the width.
+ * row, labels in sentence case body type. [fill] spans the width anyway; it defaults to true when
+ * stacked under an [HdSettingRow]'s title.
  */
 @Composable
 fun <T> HdHairlineSegmentedPicker(
@@ -38,6 +37,7 @@ fun <T> HdHairlineSegmentedPicker(
 	title: String? = null,
 	enabled: Boolean = true,
 	compact: Boolean = false,
+	fill: Boolean = !compact || LocalHdSettingRowStacked.current,
 ) {
 	Column(
 		modifier = modifier.alpha(if (enabled) 1f else 0.45f),
@@ -46,8 +46,7 @@ fun <T> HdHairlineSegmentedPicker(
 		if (title != null) {
 			HdMonoLabel(text = title)
 		}
-		val hugContent = compact && !LocalHdSettingRowStacked.current
-		Row(modifier = if (hugContent) Modifier.width(IntrinsicSize.Max) else Modifier.fillMaxWidth()) {
+		Row(modifier = if (fill) Modifier.fillMaxWidth() else Modifier.width(IntrinsicSize.Max)) {
 			options.forEachIndexed { index, option ->
 				HdSegmentedCell(
 					label = label(option),

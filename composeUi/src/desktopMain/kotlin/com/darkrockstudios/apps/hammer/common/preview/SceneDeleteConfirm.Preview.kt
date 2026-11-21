@@ -1,12 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
 import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
@@ -34,12 +28,7 @@ import com.darkrockstudios.apps.hammer.discard_buffer_dialog_title
 /** Deleting a scene from the scene list, over a scrim. */
 @Composable
 internal fun SceneDeleteConfirmScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		IndexStripCard(
 			title = Res.string.scene_delete_dialog_title.get("Bottom of Chimney"),
 			message = Res.string.scene_delete_dialog_message.get("Bottom of Chimney"),
@@ -60,12 +49,7 @@ internal fun SceneDeleteConfirmScrimPreview() {
 /** Trying to delete a chapter that still has scenes, over a scrim. */
 @Composable
 internal fun ChapterCannotDeleteScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		IndexStripCard(
 			title = Res.string.chapter_cannot_delete_dialog_title.get("Chapter IV"),
 			message = Res.string.chapter_cannot_delete_dialog_message.get("Chapter IV"),
@@ -85,12 +69,7 @@ internal fun ChapterCannotDeleteScrimPreview() {
 /** Archiving a scene, over a scrim. */
 @Composable
 internal fun SceneArchiveConfirmScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		IndexStripCard(
 			title = Res.string.scene_archive_dialog_title.get("Bottom of Chimney"),
 			message = Res.string.scene_archive_dialog_message.get("Bottom of Chimney"),
@@ -110,12 +89,7 @@ internal fun SceneArchiveConfirmScrimPreview() {
 /** Discarding unsaved edits from the scene editor, over a scrim. */
 @Composable
 internal fun DiscardChangesScrimPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		IndexStripCard(
 			title = Res.string.discard_buffer_dialog_title.get("The Lamp Room"),
 			message = Res.string.discard_buffer_dialog_message.get("The Lamp Room"),

@@ -43,7 +43,6 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
-import com.darkrockstudios.apps.hammer.common.preview.fakeProjectMetadata
 import com.darkrockstudios.apps.hammer.common.projectselection.AppUpdateBanner
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectListUi
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState

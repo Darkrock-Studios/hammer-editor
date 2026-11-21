@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.plugin
 
+import com.darkrockstudios.apps.hammer.common.preview.previewScrim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +34,7 @@ internal fun PluginActionDialogsScrimPreview() {
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+			.previewScrim(),
 		verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
 		horizontalAlignment = Alignment.CenterHorizontally,
 	) {

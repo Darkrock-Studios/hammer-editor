@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.timeline
 
-import androidx.compose.foundation.background
+import com.darkrockstudios.apps.hammer.common.preview.previewScrim
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
@@ -133,7 +133,7 @@ internal fun TimelineSwitcherDialogsScrimPreview() {
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+			.previewScrim(),
 		verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
 		horizontalAlignment = Alignment.CenterHorizontally,
 	) {
@@ -160,7 +160,7 @@ internal fun DeleteOrphansScrimPreview() {
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+			.previewScrim(),
 		verticalArrangement = Arrangement.Center,
 		horizontalAlignment = Alignment.CenterHorizontally,
 	) {

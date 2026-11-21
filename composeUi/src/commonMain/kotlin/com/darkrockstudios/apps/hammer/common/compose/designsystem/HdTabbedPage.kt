@@ -1,5 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.RectangleShape
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.project_settings_autosaved
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,17 +66,26 @@ fun <T> HdTabbedPage(
 	maxWidth: Dp,
 	modifier: Modifier = Modifier,
 	back: (@Composable () -> Unit)? = null,
-	trailing: (@Composable () -> Unit)? = null,
+	/** Shows the "Autosaved" mark in the masthead, for pages whose every change saves at once. */
+	autosaved: Boolean = false,
 	/** Greebles for the [HdFolioFooter] pinned under the content. */
 	folio: List<String>? = null,
-	content: @Composable ColumnScope.(T) -> Unit,
+	content: @Composable ColumnScope.() -> Unit,
 ) {
 	val compact = LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact
-	val horizontal = if (compact) Ui.Padding.XL else 56.dp
+	val horizontal = if (compact) Ui.Padding.XL else PageGutter
 	val side = !compact
+	val columnWidth = hdColumnMaxWidth(maxWidth)
 
-	Column(modifier = modifier.fillMaxSize()) {
-		PageMasthead(title, maxWidth, horizontal, sideColumn = side, back = back, trailing = trailing)
+	Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+		PageMasthead(
+			title,
+			columnWidth,
+			horizontal,
+			sideColumn = side,
+			back = back,
+			trailing = if (autosaved) ({ AutosaveBadge() }) else null,
+		)
 
 		if (side) {
 			HdFolioDivider()
@@ -83,12 +99,12 @@ fun <T> HdTabbedPage(
 					}
 				}
 				Spacer(Modifier.width(SideNavGap))
-				TabBody(selected, maxWidth, endPadding = horizontal, top = 32.dp, content = content)
+				TabBody(selected, columnWidth, endPadding = horizontal, top = 32.dp, content = content)
 			}
 		} else {
 			TopTabs(tabs, selected, label, onSelect, horizontal)
 			Box(Modifier.weight(1f).fillMaxWidth().padding(start = horizontal)) {
-				TabBody(selected, maxWidth, endPadding = horizontal, top = Ui.Padding.XL, content = content)
+				TabBody(selected, columnWidth, endPadding = horizontal, top = Ui.Padding.XL, content = content)
 			}
 		}
 		folio?.let { HdFolioFooter(it, horizontalPadding = horizontal) }
@@ -104,18 +120,17 @@ fun HdPage(
 	title: String,
 	maxWidth: Dp,
 	modifier: Modifier = Modifier,
-	back: (@Composable () -> Unit)? = null,
-	trailing: (@Composable () -> Unit)? = null,
 	folio: List<String>? = null,
 	content: @Composable ColumnScope.() -> Unit,
 ) {
 	val compact = LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact
-	val horizontal = if (compact) Ui.Padding.XL else 56.dp
-	Column(modifier = modifier.fillMaxSize()) {
-		PageMasthead(title, maxWidth, horizontal, sideColumn = false, back = back, trailing = trailing, centered = !compact)
+	val horizontal = if (compact) Ui.Padding.XL else PageGutter
+	val columnWidth = hdColumnMaxWidth(maxWidth)
+	Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+		PageMasthead(title, columnWidth, horizontal, sideColumn = false, back = null, trailing = null, centered = !compact)
 		HdFolioDivider()
 		Box(Modifier.weight(1f).fillMaxWidth().padding(start = horizontal)) {
-			TabBody(Unit, maxWidth, endPadding = horizontal, top = if (compact) Ui.Padding.XL else 32.dp, centered = !compact) { content() }
+			TabBody(Unit, columnWidth, endPadding = horizontal, top = if (compact) Ui.Padding.XL else 32.dp, centered = !compact, content = content)
 		}
 		folio?.let { HdFolioFooter(it, horizontalPadding = horizontal) }
 	}
@@ -170,7 +185,7 @@ private fun <T> TabBody(
 	endPadding: Dp,
 	top: Dp,
 	centered: Boolean = false,
-	content: @Composable ColumnScope.(T) -> Unit,
+	content: @Composable ColumnScope.() -> Unit,
 ) {
 	// A fresh scroll position per tab, so switching tabs always starts at the top.
 	key(selected) {
@@ -186,7 +201,7 @@ private fun <T> TabBody(
 					.fillMaxWidth(),
 				verticalArrangement = Arrangement.spacedBy(56.dp),
 			) {
-				content(selected)
+				content()
 			}
 			MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
 		}
@@ -257,5 +272,16 @@ private fun SideTab(label: String, active: Boolean, onClick: () -> Unit) {
 	}
 }
 
+/** A settled-state mark: everything on this page saves as it changes. */
+@Composable
+private fun AutosaveBadge() {
+	val success = LocalHammerColors.current.success
+	Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+		Box(modifier = Modifier.size(6.dp).background(success, RectangleShape))
+		HdMetaText(text = Res.string.project_settings_autosaved.get())
+	}
+}
+
+private val PageGutter = 56.dp
 private val SideNavWidth = 180.dp
 private val SideNavGap = 48.dp

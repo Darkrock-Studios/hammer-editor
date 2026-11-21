@@ -71,11 +71,6 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
  * @param destructive paints the gutter rule and the confirm button in the error color.
  * @param kind short mono caption shown vertically in the gutter, from a `confirm_kind_*` string;
  *   uppercased there.
- * @param index folio-style label in the gutter top (e.g. "07.A"). When null (the default),
- *   a stable code is derived from [title] — same dialog always renders the same code, mimicking
- *   the design's manuscript-folio look. Pass an empty string to suppress the label entirely.
- * @param keyboardHint optional small mono cue rendered at the left of the action bar
- *   (e.g. "ESC"). Pass null to omit.
  */
 @Composable
 fun ConfirmationDialog(
@@ -89,9 +84,7 @@ fun ConfirmationDialog(
 	onCancel: (() -> Unit)? = null,
 	modifier: Modifier = Modifier,
 	destructive: Boolean = false,
-	kind: String = if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get(),
-	index: String? = null,
-	keyboardHint: String? = null,
+	kind: String = defaultConfirmKind(destructive),
 	implicitDismiss: Boolean = true,
 	onDismissed: () -> Unit = {},
 ) {
@@ -103,8 +96,6 @@ fun ConfirmationDialog(
 		modifier = modifier,
 		destructive = destructive,
 		kind = kind,
-		index = index,
-		keyboardHint = keyboardHint,
 		implicitDismiss = implicitDismiss,
 		onDismissed = onDismissed,
 	) {
@@ -168,9 +159,7 @@ fun IndexStripDialog(
 	onDismiss: () -> Unit,
 	modifier: Modifier = Modifier,
 	destructive: Boolean = false,
-	kind: String = if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get(),
-	index: String? = null,
-	keyboardHint: String? = null,
+	kind: String = defaultConfirmKind(destructive),
 	implicitDismiss: Boolean = true,
 	onDismissed: () -> Unit = {},
 	actions: @Composable RowScope.() -> Unit,
@@ -188,8 +177,6 @@ fun IndexStripDialog(
 			modifier = modifier,
 			destructive = destructive,
 			kind = kind,
-			index = index,
-			keyboardHint = keyboardHint,
 			actions = actions,
 		)
 	}
@@ -203,13 +190,11 @@ internal fun IndexStripCard(
 	message: String,
 	modifier: Modifier = Modifier,
 	destructive: Boolean = false,
-	kind: String = if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get(),
-	index: String? = null,
-	keyboardHint: String? = null,
+	kind: String = defaultConfirmKind(destructive),
 	actions: @Composable RowScope.() -> Unit,
 ) {
 	val accent = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-	val resolvedIndex = index ?: folioCodeFor(title)
+	val resolvedIndex = folioCodeFor(title)
 	Surface(
 		shape = RectangleShape,
 		color = MaterialTheme.colorScheme.surface,
@@ -277,15 +262,6 @@ internal fun IndexStripCard(
 						verticalAlignment = Alignment.CenterVertically,
 						horizontalArrangement = Arrangement.spacedBy(10.dp),
 					) {
-						if (keyboardHint != null) {
-							Text(
-								text = keyboardHint,
-								fontFamily = hammerMonoFontFamily(),
-								fontSize = 10.sp,
-								letterSpacing = 0.4.sp,
-								color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-							)
-						}
 						FlowRow(
 							modifier = Modifier.weight(1f),
 							horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
@@ -304,7 +280,7 @@ internal fun IndexStripCard(
 private val GutterWidth = 88.dp
 
 @Composable
-private fun IndexGutter(index: String?, kind: String, accent: Color, width: Dp = GutterWidth) {
+private fun IndexGutter(index: String, kind: String, accent: Color, width: Dp = GutterWidth) {
 	val horizontalPadding = if (width < GutterWidth) 10.dp else 12.dp
 	Column(
 		modifier = Modifier
@@ -320,15 +296,13 @@ private fun IndexGutter(index: String?, kind: String, accent: Color, width: Dp =
 				.size(width = 18.dp, height = 2.dp)
 				.background(accent),
 		)
-		if (!index.isNullOrEmpty()) {
-			Text(
-				text = index,
-				fontFamily = hammerMonoFontFamily(),
-				fontSize = 10.sp,
-				letterSpacing = 0.4.sp,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
+		Text(
+			text = index,
+			fontFamily = hammerMonoFontFamily(),
+			fontSize = 10.sp,
+			letterSpacing = 0.4.sp,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
 		Spacer(modifier = Modifier.weight(1f))
 		VerticalCaption(text = kind, color = accent)
 	}
@@ -380,3 +354,7 @@ private fun folioCodeFor(title: String): String {
 	val letter = 'A' + (h / 100) % 5
 	return "$number.$letter"
 }
+
+@Composable
+internal fun defaultConfirmKind(destructive: Boolean): String =
+	if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get()

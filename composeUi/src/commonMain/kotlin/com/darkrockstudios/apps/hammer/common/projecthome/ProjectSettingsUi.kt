@@ -8,7 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEmptyState
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import androidx.compose.material.icons.outlined.Extension
 import com.darkrockstudios.apps.hammer.project_settings_plugins_empty_body
 import com.darkrockstudios.apps.hammer.project_settings_plugins_empty_body_here
@@ -25,21 +24,15 @@ import com.darkrockstudios.apps.hammer.project_settings_tab_plugins
 import com.darkrockstudios.apps.hammer.project_settings_tab_project
 import com.darkrockstudios.apps.hammer.project_settings_tab_timelines
 import com.darkrockstudios.apps.hammer.project_settings_tab_writing
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -50,7 +43,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTog
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineWordListField
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.ManagePluginsButton
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsContent
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
@@ -58,7 +50,6 @@ import com.darkrockstudios.apps.hammer.common.spellcheck.isSpellCheckAllowedForP
 import com.darkrockstudios.apps.hammer.common.spellcheck.normalizeDictionaryWord
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
-import com.darkrockstudios.apps.hammer.project_settings_autosaved
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_home
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_root
 import com.darkrockstudios.apps.hammer.project_settings_dictionary_placeholder
@@ -109,15 +100,15 @@ fun ProjectSettingsUi(
 		selected = tab,
 		label = { tabLabel(it) },
 		onSelect = { tab = it },
-		maxWidth = hdColumnMaxWidth(MaxColumnWidth),
-		modifier = modifier.background(MaterialTheme.colorScheme.surface),
+		maxWidth = MaxColumnWidth,
+		modifier = modifier,
 		back = { HomeButton(onClose) },
-		trailing = { AutosaveBadge() },
+		autosaved = true,
 		folio = listOf(
 			Res.string.project_settings_folio_caption.get(component.projectName),
 			Res.string.project_settings_folio_section_count.get(tabs.size),
 		),
-	) { _ ->
+	) {
 		if (state.isLoaded) {
 			when (tab) {
 				ProjectSettingsTab.Project -> {
@@ -342,11 +333,3 @@ private fun HomeButton(onClose: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 /** Says there is no Save button: every change applies as it's made. */
-@Composable
-private fun AutosaveBadge() {
-	val success = LocalHammerColors.current.success
-	Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-		Box(modifier = Modifier.size(6.dp).background(success, RectangleShape))
-		HdMetaText(text = Res.string.project_settings_autosaved.get())
-	}
-}

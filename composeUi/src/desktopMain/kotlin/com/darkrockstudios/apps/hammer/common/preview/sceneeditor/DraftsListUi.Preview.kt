@@ -23,37 +23,7 @@ import kotlin.time.Instant
 @Preview
 @Composable
 fun ScreenDraftsListUiPreview() {
-	val component = object : DraftsList {
-		override val state = MutableValue(
-			DraftsList.State(
-				sceneItem = fakeSceneItem(),
-				drafts = listOf(
-					DraftDef(
-						id = 3,
-						sceneId = 0,
-						draftTimestamp = Instant.parse("2026-11-02T09:14:00Z"),
-						draftName = "Test Draft"
-					),
-					DraftDef(
-						id = 4,
-						sceneId = 1,
-						draftTimestamp = Instant.parse("2026-11-09T21:40:00Z"),
-						draftName = "Test Draft 2"
-					),
-					DraftDef(
-						id = 5,
-						sceneId = 2,
-						draftTimestamp = Instant.parse("2026-11-16T07:05:00Z"),
-						draftName = "Another Test Draft"
-					),
-				)
-			)
-		)
-
-		override fun loadDrafts() {}
-		override fun selectDraft(draftDef: DraftDef) {}
-		override fun cancel() {}
-	}
+	val component = previewDraftsList()
 
 	KoinApplicationPreview {
 		Column {
@@ -71,41 +41,43 @@ fun ScreenDraftsListUiPreview() {
 @Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
 @Composable
 fun ScreenDraftsListUiTabletPreview() {
-	val component = object : DraftsList {
-		override val state = MutableValue(
-			DraftsList.State(
-				sceneItem = fakeSceneItem(),
-				drafts = listOf(
-					DraftDef(
-						id = 3,
-						sceneId = 0,
-						draftTimestamp = Instant.parse("2026-11-02T09:14:00Z"),
-						draftName = "Test Draft"
-					),
-					DraftDef(
-						id = 4,
-						sceneId = 1,
-						draftTimestamp = Instant.parse("2026-11-09T21:40:00Z"),
-						draftName = "Test Draft 2"
-					),
-					DraftDef(
-						id = 5,
-						sceneId = 2,
-						draftTimestamp = Instant.parse("2026-11-16T07:05:00Z"),
-						draftName = "Another Test Draft"
-					),
-				)
-			)
-		)
-
-		override fun loadDrafts() {}
-		override fun selectDraft(draftDef: DraftDef) {}
-		override fun cancel() {}
-	}
+	val component = previewDraftsList()
 
 	KoinApplicationPreview {
 		TabletPreviewSurface {
 			DraftsListUi(component)
 		}
 	}
+}
+
+private fun previewDraftsList(): DraftsList = object : DraftsList {
+	override val state = MutableValue(
+		DraftsList.State(
+			sceneItem = fakeSceneItem(),
+			drafts = listOf(
+				DraftDef(
+					id = 3,
+					sceneId = 0,
+					draftTimestamp = Instant.parse("2026-11-02T09:14:00Z"),
+					draftName = "Test Draft"
+				),
+				DraftDef(
+					id = 4,
+					sceneId = 1,
+					draftTimestamp = Instant.parse("2026-11-09T21:40:00Z"),
+					draftName = "Test Draft 2"
+				),
+				DraftDef(
+					id = 5,
+					sceneId = 2,
+					draftTimestamp = Instant.parse("2026-11-16T07:05:00Z"),
+					draftName = "Another Test Draft"
+				),
+			)
+		)
+	)
+
+	override fun loadDrafts() {}
+	override fun selectDraft(draftDef: DraftDef) {}
+	override fun cancel() {}
 }

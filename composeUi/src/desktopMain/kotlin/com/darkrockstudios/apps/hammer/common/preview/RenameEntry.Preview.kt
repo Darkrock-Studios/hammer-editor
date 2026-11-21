@@ -1,12 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.AnnotatedSnippet
@@ -94,12 +88,7 @@ private fun summaryState(): RenameEntry.State {
 
 @Composable
 private fun RenameScrim(state: RenameEntry.State) {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		RenameEntryCard(
 			state = state,
 			component = PreviewRenameEntry(state),

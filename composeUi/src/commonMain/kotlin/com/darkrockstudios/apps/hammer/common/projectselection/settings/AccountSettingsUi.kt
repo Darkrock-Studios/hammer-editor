@@ -1,23 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
 import com.darkrockstudios.apps.hammer.account_settings_folio_caption
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -26,21 +20,17 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabbedPage
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.compose.theme.oledBlackThemeAvailable
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.backups.BackupsSettingsUi
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.project_select_nav_account_settings
-import com.darkrockstudios.apps.hammer.project_settings_autosaved
 import com.darkrockstudios.apps.hammer.settings_example_project_button
 import com.darkrockstudios.apps.hammer.settings_example_project_success_message
 import com.darkrockstudios.apps.hammer.settings_group_appearance
@@ -93,11 +83,11 @@ internal fun AccountSettingsUi(
 		selected = tab,
 		label = { tabLabel(it) },
 		onSelect = { tab = it },
-		maxWidth = hdColumnMaxWidth(MaxColumnWidth),
-		modifier = modifier.background(MaterialTheme.colorScheme.surface),
-		trailing = { AutosaveBadge() },
+		maxWidth = MaxColumnWidth,
+		modifier = modifier,
+		autosaved = true,
 		folio = listOf(Res.string.account_settings_folio_caption.get(), "§§ ${tabs.size}"),
-	) { _ ->
+	) {
 		when (tab) {
 			SettingsTab.General -> GeneralTab(component, rootSnackbar)
 			SettingsTab.Writing -> WritingTab(component)
@@ -113,14 +103,6 @@ internal fun AccountSettingsUi(
 }
 
 /** Says there is no Save button: every change applies as it's made. */
-@Composable
-private fun AutosaveBadge() {
-	val success = LocalHammerColors.current.success
-	Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-		Box(modifier = Modifier.size(6.dp).background(success, RectangleShape))
-		HdMetaText(text = Res.string.project_settings_autosaved.get())
-	}
-}
 
 @Composable
 private fun ColumnScope.GeneralTab(component: AccountSettings, rootSnackbar: RootSnackbarHostState) {

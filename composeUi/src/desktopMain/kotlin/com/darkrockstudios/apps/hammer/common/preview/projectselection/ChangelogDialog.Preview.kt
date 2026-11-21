@@ -1,12 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.preview.projectselection
 
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.projectselection.ChangelogContent
 
@@ -27,12 +23,7 @@ Improvements
 /** The What's New dialog over a scrim, as it shows over the project list. */
 @Composable
 fun ChangelogDialogPreview() {
-	Box(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-		contentAlignment = Alignment.Center,
-	) {
+	PreviewScrim {
 		ChangelogContent(
 			state = ProjectSelection.ChangelogState(
 				visible = true,

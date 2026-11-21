@@ -36,8 +36,6 @@ fun ProjectListMastheadCompactPreview() {
 					.background(MaterialTheme.colorScheme.background),
 			) {
 				Masthead(
-					entryCount = 6,
-					showEntryCount = false,
 					isServerSynced = true,
 					onSync = {},
 					onCreate = {},
@@ -82,8 +80,6 @@ fun ProjectListMastheadExpandedPreview() {
 					.background(MaterialTheme.colorScheme.background),
 			) {
 				Masthead(
-					entryCount = 6,
-					showEntryCount = true,
 					isServerSynced = true,
 					onSync = {},
 					onCreate = {},

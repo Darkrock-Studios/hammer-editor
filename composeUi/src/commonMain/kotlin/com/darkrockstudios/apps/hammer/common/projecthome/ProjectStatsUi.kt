@@ -84,7 +84,6 @@ fun ProjectStatsUi(
 			DashboardHeader(
 				state = state,
 				component = component,
-				scope = scope,
 			)
 
 			if (state.isLoadingStats) {
@@ -151,7 +150,6 @@ fun ProjectStatsUi(
 private fun DashboardHeader(
 	state: ProjectHome.State,
 	component: ProjectHome,
-	scope: CoroutineScope,
 ) {
 	var viewingCover by remember { mutableStateOf(false) }
 	val cover = state.coverImage

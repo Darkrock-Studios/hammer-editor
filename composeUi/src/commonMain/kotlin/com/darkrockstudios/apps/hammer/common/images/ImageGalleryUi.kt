@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.images
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineCheckbox
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background

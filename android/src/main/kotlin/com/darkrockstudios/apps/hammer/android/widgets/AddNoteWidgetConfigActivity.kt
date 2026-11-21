@@ -108,7 +108,6 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 				getOverrideColorScheme = ::getDynamicColorScheme
 			) {
 				ConfigUi(
-					widgetId = appWidgetId,
 					projects = projects,
 					onSave = { proj ->
 						lifecycleScope.launch {
@@ -146,7 +145,6 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 
 @Composable
 private fun ConfigUi(
-	widgetId: Int,
 	projects: List<ProjectDef>,
 	onSave: (projectDef: ProjectDef?) -> Unit,
 	onCancel: () -> Unit,

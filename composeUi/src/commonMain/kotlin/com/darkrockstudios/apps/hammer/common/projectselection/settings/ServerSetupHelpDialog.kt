@@ -3,14 +3,11 @@ package com.darkrockstudios.apps.hammer.common.projectselection.settings
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
@@ -79,7 +76,7 @@ internal fun ServerSetupHelpContent(onClose: () -> Unit, modifier: Modifier = Mo
 				BodyText(Res.string.server_setup_help_registration_body.get())
 			}
 
-			HdCatalogueCard(topStart = Res.string.server_setup_help_note_caption.get()) {
+			HdCatalogueCard(caption = Res.string.server_setup_help_note_caption.get()) {
 				Text(
 					text = Res.string.server_setup_help_note_header.get(),
 					style = MaterialTheme.typography.titleSmall,
