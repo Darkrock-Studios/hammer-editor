@@ -370,6 +370,10 @@ fun CreateTimeLineEventUi(
 		SimpleConfirm(
 			title = Res.string.timeline_view_discard_title.get(),
 			message = Res.string.timeline_view_discard_message.get(),
+			positiveButton = Res.string.timeline_view_discard_confirm.get(),
+			negativeButton = Res.string.timeline_view_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { component.cancelDiscard() },
 		) {
 			component.discardAndClose()

@@ -33,14 +33,18 @@
 	<string name="timeline_create_date_hint">optional</string>
 	<string name="timeline_create_date_placeholder">e.g. Spring of Y3</string>
 
-	<string name="timeline_view_discard_title">Discard Changes?</string>
-	<string name="timeline_view_discard_message">You will lose any changes you have made.</string>
+	<string name="timeline_view_discard_title">Discard your changes?</string>
+	<string name="timeline_view_discard_message">Your edits to this event will be lost.</string>
 
 	<string name="timeline_view_menu_group">Event</string>
 	<string name="timeline_view_menu_delete">Delete</string>
 
-	<string name="timeline_view_confirm_delete_title">Delete Timeline Event?</string>
-	<string name="timeline_view_confirm_delete_message">This cannot be undone!</string>
+	<string name="timeline_view_discard_confirm">Discard</string>
+	<string name="timeline_view_discard_keep">Keep editing</string>
+	<string name="timeline_view_confirm_delete_button">Delete</string>
+	<string name="timeline_view_confirm_cancel">Cancel</string>
+	<string name="timeline_view_confirm_delete_title">Delete this event?</string>
+	<string name="timeline_view_confirm_delete_message">It can't be recovered.</string>
 
 	<string name="timeline_header">Timeline</string>
 	<string name="timeline_search_button">Search timeline</string>

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.timeline.TimelineEventConfirmsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.DeleteOrphansScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.TimelineSwitcherDialogsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.DiscardNewEntryScrimPreview
@@ -301,6 +302,7 @@ class ScreenGalleryTest {
 		surfaced("Timeline new, rename, delete") { TimelineSwitcherDialogsScrimPreview() },
 		surfaced("Delete events of a deleted timeline") { DeleteOrphansScrimPreview() },
 		screen("View timeline event") { ScreenViewTimeLineEventUiTabletPreview() },
+		surfaced("Timeline event confirms") { TimelineEventConfirmsScrimPreview() },
 		surfaced("Move to timeline dialog") { MoveToTimelineDialogPreview() },
 		surfaced("Create timeline event") { ScreenCreateTimeLineEventUiPreview() },
 		screen("Story ideas") { ScreenStoryIdeasUiTabletPreview() },

@@ -283,6 +283,10 @@ fun ViewTimeLineEventUi(
 		SimpleConfirm(
 			title = Res.string.timeline_view_discard_title.get(),
 			message = Res.string.timeline_view_discard_message.get(),
+			positiveButton = Res.string.timeline_view_discard_confirm.get(),
+			negativeButton = Res.string.timeline_view_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { component.cancelClose() }
 		) {
 			component.closeEvent()
@@ -293,6 +297,10 @@ fun ViewTimeLineEventUi(
 		SimpleConfirm(
 			title = Res.string.timeline_view_discard_title.get(),
 			message = Res.string.timeline_view_discard_message.get(),
+			positiveButton = Res.string.timeline_view_discard_confirm.get(),
+			negativeButton = Res.string.timeline_view_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { component.cancelDiscard() }
 		) {
 			component.discardEdit()
@@ -303,6 +311,10 @@ fun ViewTimeLineEventUi(
 		SimpleConfirm(
 			title = Res.string.timeline_view_confirm_delete_title.get(),
 			message = Res.string.timeline_view_confirm_delete_message.get(),
+			positiveButton = Res.string.timeline_view_confirm_delete_button.get(),
+			negativeButton = Res.string.timeline_view_confirm_cancel.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_delete.get(),
 			onDismiss = { component.endDeleteEvent() }
 		) {
 			scope.launch {
