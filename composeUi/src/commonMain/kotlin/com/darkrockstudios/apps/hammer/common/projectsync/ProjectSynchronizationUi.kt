@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
@@ -134,18 +135,12 @@ internal fun ProjectSynchronizationContent(
 		),
 	) {
 		Column {
-			Masthead(
-				inLogView = state.showLog,
-				state = state,
-				onClose = onClose,
-			)
-			HdFolioDivider()
-
 			TitleAndToolbar(
 				inLogView = state.showLog,
 				isSyncing = state.isSyncing,
 				onStop = { component.cancelSync() },
 				onToggleLog = { component.showLog(!state.showLog) },
+				onClose = onClose,
 			)
 
 			if (!state.showLog) {
@@ -208,29 +203,8 @@ internal fun ProjectSynchronizationContent(
 				)
 			}
 
-			FooterBar(inLogView = state.showLog)
 		}
 	}
-}
-
-@Composable
-private fun Masthead(
-	inLogView: Boolean,
-	state: ProjectSynchronization.State,
-	onClose: () -> Unit,
-) {
-	val meta = when {
-		inLogView -> "${state.syncLog.size} ENTRIES"
-		state.failed -> "FAILED"
-		state.isSyncing -> "${(state.syncProgress * 100).toInt()}% · IN PROGRESS"
-		else -> "DONE"
-	}
-
-	HdMasthead(
-		section = "PROJECT",
-		leadingMeta = listOf(meta),
-		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
-	)
 }
 
 @Composable
@@ -239,13 +213,14 @@ private fun TitleAndToolbar(
 	isSyncing: Boolean,
 	onStop: () -> Unit,
 	onToggleLog: () -> Unit,
+	onClose: () -> Unit,
 ) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
 			.padding(
 				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
+				end = Ui.Padding.M,
 				top = Ui.Padding.L,
 				bottom = Ui.Padding.M,
 			),
@@ -258,7 +233,7 @@ private fun TitleAndToolbar(
 			} else {
 				Res.string.sync_project_dialog_title.get()
 			},
-			style = MaterialTheme.typography.headlineSmall,
+			style = MaterialTheme.typography.titleLarge,
 			color = MaterialTheme.colorScheme.onSurface,
 		)
 		Spacer(modifier = Modifier.weight(1f))
@@ -276,17 +251,23 @@ private fun TitleAndToolbar(
 		HdToolButton(active = inLogView, onClick = onToggleLog) {
 			HdLogGlyph()
 		}
+		IconButton(onClick = onClose) {
+			Icon(
+				imageVector = Icons.Default.Close,
+				contentDescription = Res.string.sync_project_dialog_close.get(),
+				tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
 	}
 }
 
 @Composable
 private fun OverallProgressStrip(state: ProjectSynchronization.State) {
-	val (status, statusWord) = when {
-		state.failed -> HdStatus.Failed to "FAILED"
-		state.isSyncing -> HdStatus.Syncing to "SYNCING"
-		else -> HdStatus.Complete to "DONE"
+	val status = when {
+		state.failed -> HdStatus.Failed
+		state.isSyncing -> HdStatus.Syncing
+		else -> HdStatus.Complete
 	}
-	val pct = (state.syncProgress * 100).toInt()
 
 	Row(
 		modifier = Modifier
@@ -295,17 +276,13 @@ private fun OverallProgressStrip(state: ProjectSynchronization.State) {
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		HdMonoLabel(
-			text = statusWord,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 		HdHairlineProgressBar(
 			progress = state.syncProgress,
 			color = status.accentColor(),
 			modifier = Modifier.weight(1f),
 		)
 		HdMonoLabel(
-			text = "$pct%",
+			text = Res.string.sync_project_dialog_percent.get((state.syncProgress * 100).toInt()),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
@@ -357,31 +334,6 @@ private fun LogList(log: List<SyncLogMessage>) {
 		if (log.isNotEmpty() && pinnedToTail) {
 			listState.scrollToItem(log.size - 1)
 		}
-	}
-}
-
-@Composable
-private fun FooterBar(inLogView: Boolean) {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
-		HdMonoLabel(
-			text = if (inLogView) "LIVE · TAIL" else "PROJECT · SYNC",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "ESC CLOSE",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 	}
 }
 

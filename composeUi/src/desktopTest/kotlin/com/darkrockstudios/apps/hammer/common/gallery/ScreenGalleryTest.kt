@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
+import com.darkrockstudios.apps.hammer.common.preview.ProjectSyncInProgressPreview
+import com.darkrockstudios.apps.hammer.common.preview.ProjectSyncLogPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.TimelineEventConfirmsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.DeleteOrphansScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.TimelineSwitcherDialogsScrimPreview
@@ -325,6 +327,12 @@ class ScreenGalleryTest {
 		surfaced("Color picker") { ColorPickerScrimPreview() },
 		screen("Duplicate IDs dialog") {
 			if (isSystemInDarkTheme()) DuplicateIdsDialogDarkPreview() else DuplicateIdsDialogPreview()
+		},
+		Screen("Project sync, in progress") { formFactor ->
+			TabletPreviewSurface { ProjectSyncInProgressPreview(compact = formFactor == FormFactor.Phone) }
+		},
+		Screen("Project sync, log") { formFactor ->
+			TabletPreviewSurface { ProjectSyncLogPreview(compact = formFactor == FormFactor.Phone) }
 		},
 		Screen("Sync conflict", note = "Preview hardcodes a white backdrop and its own size class.") { formFactor ->
 			TabletPreviewSurface {

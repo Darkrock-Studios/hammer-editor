@@ -127,7 +127,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 
 ## 8. Sync and auth
 
-- [ ] Project Synchronization, log and cancel (`ProjectSynchronizationUi`) **no gallery** for the log view
+- [x] Project Synchronization, log and cancel (`ProjectSynchronizationUi`) g: Project sync, in progress, Project sync, log
   - [ ] Cancel Sync? (`SimpleConfirm`) **no gallery**
 - [ ] Conflicts, shared layout (`ConflictSplit`)
   - [ ] Scene conflict (`SceneConflict`) g: Sync conflict

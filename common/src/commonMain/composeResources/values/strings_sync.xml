@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
-	<string name="sync_project_dialog_title">Project Synchronization</string>
+	<string name="sync_project_dialog_title">Project sync</string>
+	<string name="sync_project_dialog_close">Close</string>
+	<string name="sync_project_dialog_percent">%1$d%</string>
 
 	<string name="sync_conflict_scene_title">Scene Conflict</string>
 	<string name="sync_conflict_scene_draft_title">Scene Draft Conflict</string>
@@ -194,7 +196,7 @@
 	<string name="sync_menu_group">Sync</string>
 	<string name="sync_menu_item">Start Sync</string>
 
-	<string name="sync_status_in_progress">Synchronizing...</string>
+	<string name="sync_status_in_progress">Syncing…</string>
 	<string name="sync_status_failed">Sync Failed</string>
 	<string name="sync_status_success">Sync Complete</string>
 
