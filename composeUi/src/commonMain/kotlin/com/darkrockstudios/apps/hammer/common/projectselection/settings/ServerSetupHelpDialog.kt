@@ -9,11 +9,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.HAMMER_INK_URL
 import com.darkrockstudios.apps.hammer.base.PATREON_URL
-import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
+import com.darkrockstudios.apps.hammer.common.compose.SelfOwnedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -24,18 +23,7 @@ private val DialogMaxHeight = 760.dp
 
 @Composable
 internal fun ServerSetupHelpDialog(onDismiss: () -> Unit) {
-	var isOpen by remember { mutableStateOf(true) }
-
-	AnimatedDialogContainer(
-		isOpen = isOpen,
-		onDismissRequest = { isOpen = false },
-		onClosed = onDismiss,
-		properties = DialogProperties(
-			dismissOnBackPress = true,
-			dismissOnClickOutside = true,
-			usePlatformDefaultWidth = false,
-		),
-	) {
+	SelfOwnedDialog(onClosed = onDismiss) {
 		ServerSetupHelpContent(onClose = ::requestDismiss, modifier = Modifier.predictiveBackTransform())
 	}
 }

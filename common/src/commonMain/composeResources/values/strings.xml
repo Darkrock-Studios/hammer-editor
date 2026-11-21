@@ -77,5 +77,6 @@
 	<string name="confirm_kind_promote">Promote</string>
 	<string name="confirm_kind_blocked">Blocked</string>
 	<string name="confirm_kind_unsaved">Unsaved</string>
+	<string name="hd_dialog_close">Close</string>
 	<string name="hd_sort_menu_description_format">%1$s: %2$s</string>
 </resources>

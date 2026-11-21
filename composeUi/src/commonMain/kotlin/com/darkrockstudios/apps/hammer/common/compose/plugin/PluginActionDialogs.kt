@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogTitleRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,14 +12,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,10 +46,6 @@ import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
@@ -239,46 +234,14 @@ private fun showsProgress(working: ActionRunState.Working?): Boolean {
 
 @Composable
 internal fun PluginDialogSurface(title: String, onClose: (() -> Unit)?, content: @Composable () -> Unit) {
-	Surface(
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		shadowElevation = Ui.Elevation.LARGE,
-		modifier = Modifier
-			.padding(Ui.Padding.XL)
-			.widthIn(max = 640.dp)
-			.fillMaxWidth(),
-	) {
-		Column {
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(
-						start = Ui.Padding.XL,
-						end = if (onClose != null) Ui.Padding.M else Ui.Padding.XL,
-						top = Ui.Padding.L,
-						bottom = if (onClose != null) Ui.Padding.S else Ui.Padding.L,
-					),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				Text(
-					text = title,
-					style = MaterialTheme.typography.titleLarge,
-					modifier = Modifier.weight(1f),
-				)
-				if (onClose != null) {
-					IconButton(onClick = onClose) {
-						Icon(
-							imageVector = Icons.Default.Close,
-							contentDescription = Res.string.plugin_document_close.get(),
-							tint = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					}
-				}
-			}
-			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
-			content()
-		}
+	HdDialogFrame(maxWidth = Ui.MaxWidth.Modal) {
+		HdDialogTitleRow(
+			title = title,
+			onClose = onClose,
+			closeContentDescription = Res.string.plugin_document_close.get(),
+		)
+		HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+		content()
 	}
 }
 

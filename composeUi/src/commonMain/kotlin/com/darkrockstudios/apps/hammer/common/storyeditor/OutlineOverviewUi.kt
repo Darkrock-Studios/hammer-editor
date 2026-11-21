@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCloseButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,8 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -248,13 +247,7 @@ private fun Masthead(
 			color = MaterialTheme.colorScheme.onSurface,
 			modifier = Modifier.weight(1f),
 		)
-		IconButton(onClick = onClose) {
-			Icon(
-				imageVector = Icons.Default.Close,
-				contentDescription = Res.string.scene_list_outline_dismiss.get(),
-				tint = MaterialTheme.colorScheme.onSurface,
-			)
-		}
+		HdCloseButton(onClick = onClose, contentDescription = Res.string.scene_list_outline_dismiss.get())
 	}
 }
 

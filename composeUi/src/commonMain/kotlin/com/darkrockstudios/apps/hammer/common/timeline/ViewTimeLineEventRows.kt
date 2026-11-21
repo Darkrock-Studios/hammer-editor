@@ -11,8 +11,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -20,6 +18,8 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPulsingDot
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -77,7 +77,7 @@ internal fun StampRow(
 					text = "§ IV · ${Res.string.timeline_view_label_editing.get()}",
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
-				PulsingDot()
+				HdPulsingDot()
 			} else {
 				HdMonoLabel(
 					text = state.kind.label(),
@@ -151,26 +151,6 @@ private fun MetaRule() {
 }
 
 @Composable
-private fun PulsingDot() {
-	val transition = rememberInfiniteTransition(label = "timelineEditingPulse")
-	val alpha by transition.animateFloat(
-		initialValue = 1f,
-		targetValue = 0.35f,
-		animationSpec = infiniteRepeatable(
-			animation = tween(durationMillis = 800),
-			repeatMode = RepeatMode.Reverse,
-		),
-		label = "timelineEditingPulseAlpha",
-	)
-	Box(
-		modifier = Modifier
-			.size(7.dp)
-			.alpha(alpha)
-			.background(MaterialTheme.colorScheme.primary, RectangleShape),
-	)
-}
-
-@Composable
 internal fun ViewFolioFooter(event: TimeLineEvent?, eventText: String?) {
 	HorizontalDivider(
 		thickness = Dp.Hairline,
@@ -197,22 +177,9 @@ internal fun ViewFolioFooter(event: TimeLineEvent?, eventText: String?) {
 
 @Composable
 internal fun EditStatusFooter(text: String) {
-	val words = countWords(text)
-	val chars = text.length
-
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(text = Res.string.timeline_view_status_word_char.get(words, chars))
+	val words = remember(text) { countWords(text) }
+	HdStatusFooter {
+		HdMonoLabel(text = Res.string.timeline_view_status_word_char.get(words, text.length))
 		Spacer(modifier = Modifier.weight(1f))
 		HdMonoLabel(text = Res.string.timeline_view_status_hint.get())
 	}

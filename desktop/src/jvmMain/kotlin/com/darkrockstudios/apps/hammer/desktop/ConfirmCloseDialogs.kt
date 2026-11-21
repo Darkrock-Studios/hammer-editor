@@ -4,21 +4,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.UnsavedScenesConfirmDialog
+import com.darkrockstudios.apps.hammer.common.projectroot.UnsavedEntityDiscardConfirm
+import com.darkrockstudios.apps.hammer.common.projectroot.UnsavedScenesConfirm
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.unsaved_dialog_positive_button
 import com.darkrockstudios.apps.hammer.unsaved_encyclopedia_dialog_message
 import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_negative_button
-import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_neutral_button
-import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_positive_button
-import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_keep
-import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_title
-import com.darkrockstudios.apps.hammer.confirm_kind_discard
 import org.jetbrains.compose.resources.StringResource
 import com.darkrockstudios.apps.hammer.unsaved_notes_dialog_message
-import com.darkrockstudios.apps.hammer.unsaved_scenes_dialog_message
-import com.darkrockstudios.apps.hammer.unsaved_scenes_dialog_title
 import com.darkrockstudios.apps.hammer.unsaved_timeline_dialog_message
 
 @ExperimentalComposeApi
@@ -27,12 +20,7 @@ internal fun confirmCloseUnsavedScenesDialog(
 	closeType: ApplicationState.CloseType,
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
-	UnsavedScenesConfirmDialog(
-		title = Res.string.unsaved_scenes_dialog_title.get(),
-		message = Res.string.unsaved_scenes_dialog_message.get(),
-		saveButtonText = Res.string.unsaved_entity_dialog_positive_button.get(),
-		discardButtonText = Res.string.unsaved_entity_dialog_negative_button.get(),
-		cancelButtonText = Res.string.unsaved_entity_dialog_neutral_button.get(),
+	UnsavedScenesConfirm(
 		onSave = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) },
 		onDiscard = { dismissDialog(ConfirmCloseResult.Discard, closeType) },
 		onCancel = { dismissDialog(ConfirmCloseResult.Cancel, ApplicationState.CloseType.None) }
@@ -74,16 +62,12 @@ private fun UnsavedEntityConfirm(
 	message: StringResource,
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit,
 ) {
-	SimpleConfirm(
-		title = Res.string.unsaved_entity_dialog_title.get(),
-		message = message.get(),
-		positiveButton = discardButtonText(closeType),
-		negativeButton = Res.string.unsaved_entity_dialog_keep.get(),
-		destructive = true,
-		kind = Res.string.confirm_kind_discard.get(),
-		onDismiss = { /* Noop */ },
-		onNegative = { dismissDialog(ConfirmCloseResult.Cancel, closeType) },
-		onConfirm = { dismissDialog(ConfirmCloseResult.Discard, closeType) },
+	UnsavedEntityDiscardConfirm(
+		message = message,
+		discardLabel = discardButtonText(closeType),
+		onDiscard = { dismissDialog(ConfirmCloseResult.Discard, closeType) },
+		onKeep = { dismissDialog(ConfirmCloseResult.Cancel, closeType) },
+		onDismiss = {},
 	)
 }
 

@@ -1,15 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogTitleRow
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
@@ -18,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -28,9 +24,8 @@ import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toCompactText
-import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
+import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -122,19 +117,7 @@ internal fun ProjectSynchronizationContent(
 		}
 	}
 
-	Surface(
-		modifier = modifier
-			.padding(Ui.Padding.M)
-			.widthIn(max = maxWidth)
-			.fillMaxWidth(),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
-	) {
+	HdDialogFrame(modifier = modifier, maxWidth = maxWidth) {
 		Column {
 			TitleAndToolbar(
 				inLogView = state.showLog,
@@ -193,7 +176,7 @@ internal fun ProjectSynchronizationContent(
 						}
 					}
 
-					state.showLog -> LogList(state.syncLog)
+					state.showLog -> SyncLogList(state.syncLog, showProjectName = false, horizontalPadding = Ui.Padding.XL)
 
 					else -> StatusBody(state)
 				}
@@ -216,48 +199,21 @@ private fun TitleAndToolbar(
 	onToggleLog: () -> Unit,
 	onClose: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.M,
-				top = Ui.Padding.L,
-				bottom = Ui.Padding.M,
-			),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	HdDialogTitleRow(
+		title = if (inLogView) {
+			Res.string.account_sync_log_title.get()
+		} else {
+			Res.string.sync_project_dialog_title.get()
+		},
+		onClose = onClose,
 	) {
-		Text(
-			text = if (inLogView) {
-				Res.string.account_sync_log_title.get()
-			} else {
-				Res.string.sync_project_dialog_title.get()
-			},
-			style = MaterialTheme.typography.titleLarge,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-
 		if (isSyncing) {
 			HdToolButton(active = false, onClick = onStop) {
-				Box(
-					modifier = Modifier
-						.size(9.dp)
-						.background(MaterialTheme.colorScheme.onSurfaceVariant),
-				)
+				HdStopGlyph()
 			}
 		}
-
 		HdToolButton(active = inLogView, onClick = onToggleLog) {
 			HdLogGlyph()
-		}
-		IconButton(onClick = onClose) {
-			Icon(
-				imageVector = Icons.Default.Close,
-				contentDescription = Res.string.sync_project_dialog_close.get(),
-				tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
 		}
 	}
 }
@@ -305,36 +261,6 @@ private fun BoxScope.StatusBody(state: ProjectSynchronization.State) {
 	) {
 		HdStatusGlyph(status, size = 28.dp)
 		HdMonoLabel(text = label)
-	}
-}
-
-@Composable
-private fun LogList(log: List<SyncLogMessage>) {
-	val listState: LazyListState = rememberLazyListState()
-
-	LazyColumn(
-		state = listState,
-		modifier = Modifier.fillMaxWidth(),
-		contentPadding = PaddingValues(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-	) {
-		items(
-			count = log.size,
-			key = { log[it].timestamp.toEpochMilliseconds() to it },
-		) { index ->
-			SyncLogMessageUi(log[index], showProjectName = false)
-		}
-	}
-
-	val pinnedToTail by remember {
-		derivedStateOf {
-			val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-			last < 0 || last >= log.size - 2
-		}
-	}
-	LaunchedEffect(log.size) {
-		if (log.isNotEmpty() && pinnedToTail) {
-			listState.scrollToItem(log.size - 1)
-		}
 	}
 }
 

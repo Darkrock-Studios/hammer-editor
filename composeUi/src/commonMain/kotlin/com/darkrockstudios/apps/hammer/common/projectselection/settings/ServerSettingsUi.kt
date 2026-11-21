@@ -173,7 +173,7 @@ internal fun RemoveServerRow(component: AccountSettings, scope: CoroutineScope) 
 		HdSettingRow(
 			title = Res.string.settings_row_remove_server.get(),
 			description = Res.string.settings_row_remove_server_desc.get(),
-			titleColor = MaterialTheme.colorScheme.error,
+			destructive = true,
 		) {
 			HdHairlineButton(
 				label = Res.string.settings_row_remove_server_button.get(),

@@ -4,6 +4,8 @@ import com.darkrockstudios.apps.hammer.ideas_discard_dialog_confirm
 import com.darkrockstudios.apps.hammer.ideas_discard_dialog_keep
 import com.darkrockstudios.apps.hammer.ideas_delete_dialog_confirm
 import com.darkrockstudios.apps.hammer.ideas_dialog_cancel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPulsingDot
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioFooter
 import androidx.compose.animation.AnimatedContent
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
@@ -20,11 +22,6 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -74,7 +71,6 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -1058,7 +1054,7 @@ private fun StampRow(
 			)
 
 			if (isEditing) {
-				PulsingDot()
+				HdPulsingDot()
 			}
 		},
 		meta = {
@@ -1116,26 +1112,6 @@ private fun StampRow(
 				)
 			}
 		},
-	)
-}
-
-@Composable
-private fun PulsingDot() {
-	val transition = rememberInfiniteTransition(label = "ideaEditingPulse")
-	val alpha by transition.animateFloat(
-		initialValue = 1f,
-		targetValue = 0.35f,
-		animationSpec = infiniteRepeatable(
-			animation = tween(durationMillis = 800),
-			repeatMode = RepeatMode.Reverse,
-		),
-		label = "ideaEditingPulseAlpha",
-	)
-	Box(
-		modifier = Modifier
-			.size(7.dp)
-			.alpha(alpha)
-			.background(MaterialTheme.colorScheme.primary, RectangleShape),
 	)
 }
 
@@ -1312,27 +1288,10 @@ private fun ViewFolioFooter(markdown: String, tagCount: Int) {
 
 @Composable
 private fun EditStatusFooter(charCount: Int, overLimit: Boolean) {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
+	HdStatusFooter {
 		HdMonoLabel(
-			text = Res.string.ideas_editor_counter.get(
-				charCount,
-				StoryIdea.MAX_CONTENT_LENGTH,
-			),
-			color = if (overLimit) {
-				MaterialTheme.colorScheme.error
-			} else {
-				MaterialTheme.colorScheme.onSurfaceVariant
-			},
+			text = Res.string.ideas_editor_counter.get(charCount, StoryIdea.MAX_CONTENT_LENGTH),
+			color = if (overLimit) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
 }

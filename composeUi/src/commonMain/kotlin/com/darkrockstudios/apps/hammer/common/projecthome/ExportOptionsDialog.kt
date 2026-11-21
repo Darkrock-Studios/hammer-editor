@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,12 +7,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,14 +19,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdButtonBar
@@ -68,7 +64,6 @@ import com.darkrockstudios.apps.hammer.project_home_export_manuscript_short_stor
 import com.darkrockstudios.apps.hammer.project_home_export_manuscript_short_story_label
 import com.darkrockstudios.apps.hammer.project_home_export_number_chapters_label
 
-private val DialogMaxWidth = 520.dp
 
 internal const val EXPORT_CONTACT_LEGAL_NAME_TAG = "export-contact-legal-name"
 internal const val EXPORT_CONTACT_ADDRESS_TAG = "export-contact-address"
@@ -141,19 +136,7 @@ internal fun ExportOptionsDialogContent(
 	// The export runs with the options and contact as confirmed, so edits while working would never apply.
 	val editable = !working
 
-	Surface(
-		modifier = Modifier
-			.padding(Ui.Padding.M)
-			.widthIn(max = DialogMaxWidth)
-			.fillMaxWidth(),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
-	) {
+	HdDialogFrame {
 		Column {
 			Row(
 				modifier = Modifier

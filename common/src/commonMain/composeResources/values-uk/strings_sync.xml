@@ -154,8 +154,8 @@
 	<string name="protocol_mismatch_title_server">Сервер синхронізації застарів</string>
 	<string name="protocol_mismatch_body_client">Ця версія Hammer більше не може синхронізуватися із сервером. Оновіть до останньої версії, щоб продовжити синхронізувати свою роботу.</string>
 	<string name="protocol_mismatch_body_server">Сервер синхронізації використовує старіший протокол, ніж цей застосунок. Сервер потрібно оновити, перш ніж синхронізація знову запрацює.</string>
-	<string name="protocol_mismatch_latest_version">Остання версія: %s</string>
-	<string name="protocol_mismatch_current_version">У вас: %s</string>
+	<string name="protocol_mismatch_latest_version">Остання версія: %1$s</string>
+	<string name="protocol_mismatch_current_version">У вас: %1$s</string>
 	<string name="protocol_mismatch_open_release_button">Отримати оновлення</string>
 	<string name="protocol_mismatch_dismiss_button">Закрити</string>
 	<string name="reauth_title">Повторна авторизація</string>

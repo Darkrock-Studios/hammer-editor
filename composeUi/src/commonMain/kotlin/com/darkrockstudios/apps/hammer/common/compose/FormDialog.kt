@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdPlaceholderColor
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -14,23 +13,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 
 /**
  * A form in a dialog: a square hairline frame with the title, the fields, and Cancel / confirm
- * at the bottom right. Same frame as [com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell];
- * Cancel stands in for its close button.
+ * at the bottom right, on an [HdDialogFrame]. Cancel stands in for a close button.
  *
  * ```
  *   Rename project
@@ -111,16 +108,7 @@ fun FormDialogScaffold(
 	confirmEnabled: Boolean = true,
 	body: @Composable ColumnScope.() -> Unit,
 ) {
-	Surface(
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		modifier = modifier
-			.padding(horizontal = Ui.Padding.XL)
-			.widthIn(max = 540.dp)
-			.fillMaxWidth()
-			.border(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant, RectangleShape),
-	) {
+	HdDialogFrame(modifier = modifier) {
 		Column(modifier = Modifier.padding(24.dp)) {
 			Text(
 				text = title,
@@ -140,19 +128,14 @@ fun FormDialogScaffold(
 				body()
 			}
 			Spacer(Modifier.height(28.dp))
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
-			) {
-				HdHairlineButton(label = cancelLabel, onClick = onCancel)
-				HdHairlineButton(
-					label = confirmLabel,
-					onClick = onConfirm,
-					enabled = confirmEnabled,
-					emphasised = !destructive,
-					danger = destructive,
-				)
-			}
+			HdDialogActions(
+				cancelLabel = cancelLabel,
+				onCancel = onCancel,
+				confirmLabel = confirmLabel,
+				onConfirm = onConfirm,
+				confirmEnabled = confirmEnabled,
+				destructive = destructive,
+			)
 		}
 	}
 }

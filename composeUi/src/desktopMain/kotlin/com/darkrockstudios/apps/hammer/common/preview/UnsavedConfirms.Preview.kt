@@ -8,7 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationCard
 import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
 import com.darkrockstudios.apps.hammer.common.compose.UnsavedScenesActions
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -72,18 +72,14 @@ internal fun UnsavedEntityConfirmsScrimPreview() {
 
 @Composable
 private fun UnsavedEntityCard(message: StringResource) {
-	IndexStripCard(
+	ConfirmationCard(
 		title = Res.string.unsaved_entity_dialog_title.get(),
 		message = message.get(),
 		destructive = true,
 		kind = Res.string.confirm_kind_discard.get(),
-	) {
-		ConfirmationActions(
-			confirmLabel = Res.string.unsaved_entity_dialog_negative_button.get(),
-			onConfirm = {},
-			cancelLabel = Res.string.unsaved_entity_dialog_keep.get(),
-			onCancel = {},
-			destructive = true,
-		)
-	}
+		confirmLabel = Res.string.unsaved_entity_dialog_negative_button.get(),
+		onConfirm = {},
+		cancelLabel = Res.string.unsaved_entity_dialog_keep.get(),
+		onCancel = {},
+	)
 }

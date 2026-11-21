@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
+import com.darkrockstudios.apps.hammer.common.compose.stampDate
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -17,7 +18,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -27,16 +27,15 @@ import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPulsingDot
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 internal val NoteModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 internal val NoteModalMaxHeight = 760.dp
@@ -223,9 +222,7 @@ private fun StampRow(
 	onCancel: () -> Unit,
 ) {
 	val date = remember(note?.created) {
-		note?.created?.toLocalDateTime(TimeZone.currentSystemDefault())
-			?.format("dd MMM yyyy")
-			.orEmpty()
+		note?.created?.stampDate().orEmpty()
 	}
 
 	HdDetailStampRow(
@@ -236,7 +233,7 @@ private fun StampRow(
 					text = "§ III · ${Res.string.notes_view_label_editing.get()}",
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
-				PulsingDot()
+				HdPulsingDot()
 			} else {
 				with(sharedTransitionScope) {
 					HdMonoLabel(
@@ -282,26 +279,6 @@ private fun StampRow(
 				)
 			}
 		},
-	)
-}
-
-@Composable
-private fun PulsingDot() {
-	val transition = rememberInfiniteTransition(label = "noteEditingPulse")
-	val alpha by transition.animateFloat(
-		initialValue = 1f,
-		targetValue = 0.35f,
-		animationSpec = infiniteRepeatable(
-			animation = tween(durationMillis = 800),
-			repeatMode = RepeatMode.Reverse,
-		),
-		label = "noteEditingPulseAlpha",
-	)
-	Box(
-		modifier = Modifier
-			.size(7.dp)
-			.alpha(alpha)
-			.background(MaterialTheme.colorScheme.primary, RectangleShape),
 	)
 }
 
@@ -446,28 +423,10 @@ private fun ViewFolioFooter(note: NoteContent?, noteText: String) {
 }
 
 @Composable
-internal fun NoteEditStatusFooter(text: String, metaTestTag: String? = null) {
-	val words = remember(text) {
-		countWords(text)
-	}
-	val chars = text.length
-
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = Res.string.notes_view_status_word_char.get(words, chars),
-			modifier = if (metaTestTag != null) Modifier.testTag(metaTestTag) else Modifier,
-		)
+internal fun NoteEditStatusFooter(text: String) {
+	val words = remember(text) { countWords(text) }
+	HdStatusFooter {
+		HdMonoLabel(text = Res.string.notes_view_status_word_char.get(words, text.length))
 		Spacer(modifier = Modifier.weight(1f))
 		HdMonoLabel(text = Res.string.notes_view_status_hint.get())
 	}

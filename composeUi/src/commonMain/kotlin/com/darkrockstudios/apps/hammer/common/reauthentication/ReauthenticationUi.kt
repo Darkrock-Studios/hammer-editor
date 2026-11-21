@@ -1,15 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.reauthentication
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -17,12 +14,13 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.account.MfaCodeStep
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
-private val DialogMaxWidth = 480.dp
 
 @Composable
 fun ReauthenticationUi(
@@ -79,19 +77,7 @@ internal fun ReauthenticationContent(
 	var mfaCode by rememberSaveable(challenge) { mutableStateOf("") }
 	var useRecoveryCode by rememberSaveable(challenge) { mutableStateOf(false) }
 
-	Surface(
-		modifier = modifier
-			.padding(Ui.Padding.M)
-			.widthIn(max = DialogMaxWidth)
-			.fillMaxWidth(),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
-	) {
+	HdDialogFrame(modifier = modifier, maxWidth = Ui.MaxWidth.DialogNarrow) {
 		Column {
 			Header()
 
@@ -218,26 +204,13 @@ private fun ActionRow(
 	onCancel: () -> Unit,
 	onConfirm: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-	) {
-		HdHairlineButton(
-			label = cancelLabel,
-			onClick = onCancel,
-			enabled = !working,
-		)
-
-		Spacer(modifier = Modifier.weight(1f))
-
-		HdHairlineButton(
-			label = confirmLabel,
-			onClick = onConfirm,
-			enabled = !working && canConfirm,
-			emphasised = true,
-		)
-	}
+	HdDialogActions(
+		cancelLabel = cancelLabel,
+		onCancel = onCancel,
+		confirmLabel = confirmLabel,
+		onConfirm = onConfirm,
+		modifier = Modifier.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		confirmEnabled = !working && canConfirm,
+		cancelEnabled = !working,
+	)
 }

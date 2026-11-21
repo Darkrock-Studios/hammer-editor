@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,7 +38,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelect
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
@@ -519,18 +518,15 @@ private fun DialogButtons(
 	confirmEnabled: Boolean = true,
 	danger: Boolean = false,
 ) {
-	Row(horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-		Spacer(modifier = Modifier.weight(1f))
-		HdHairlineButton(label = Res.string.timeline_switcher_cancel.get(), onClick = onCancel)
-		HdHairlineButton(
-			label = confirmLabel,
-			onClick = onConfirm,
-			emphasised = !danger,
-			danger = danger,
-			enabled = confirmEnabled,
-			modifier = Modifier.testTag(confirmTag),
-		)
-	}
+	HdDialogActions(
+		cancelLabel = Res.string.timeline_switcher_cancel.get(),
+		onCancel = onCancel,
+		confirmLabel = confirmLabel,
+		onConfirm = onConfirm,
+		confirmEnabled = confirmEnabled,
+		destructive = danger,
+		confirmModifier = Modifier.testTag(confirmTag),
+	)
 }
 
 /** [error] as the toast would say it; null while there is none, or until it is read. */

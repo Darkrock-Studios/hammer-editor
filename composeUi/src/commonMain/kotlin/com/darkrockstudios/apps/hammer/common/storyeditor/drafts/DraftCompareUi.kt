@@ -1,12 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.drafts
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCloseButton
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -99,13 +96,7 @@ fun DraftCompareUi(component: DraftCompare) {
 				onClick = { component.setShowDiff(!state.showDiff) },
 			)
 			if (screen.needsExplicitClose) {
-				IconButton(onClick = component::cancel) {
-					Icon(
-						imageVector = Icons.Filled.Close,
-						contentDescription = Res.string.draft_compare_close.get(),
-						tint = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-				}
+				HdCloseButton(onClick = component::cancel, contentDescription = Res.string.draft_compare_close.get())
 			}
 		}
 		HorizontalDivider(

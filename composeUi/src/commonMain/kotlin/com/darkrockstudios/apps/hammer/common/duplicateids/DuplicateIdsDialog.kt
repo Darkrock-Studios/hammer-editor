@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.duplicateids
 
+import com.darkrockstudios.apps.hammer.common.compose.stampDateTime
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,12 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -37,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.duplicateids.DuplicateIds
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
@@ -56,7 +55,6 @@ import com.darkrockstudios.apps.hammer.common.projectsync.diffHighlightedString
 import com.darkrockstudios.apps.hammer.common.projectsync.diffInsertedStyle
 import com.darkrockstudios.apps.hammer.common.projectsync.diffMovedStyle
 import com.darkrockstudios.apps.hammer.common.projectsync.rememberContentDiff
-import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.duplicate_ids_archived
 import com.darkrockstudios.apps.hammer.duplicate_ids_body_groups
 import com.darkrockstudios.apps.hammer.duplicate_ids_body_several
@@ -81,8 +79,6 @@ import com.darkrockstudios.apps.hammer.duplicate_ids_title_image
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_note
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_scene
 import com.darkrockstudios.apps.hammer.duplicate_ids_working
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
 @Composable
@@ -128,16 +124,7 @@ private fun DuplicateIdsSurface(
 	onKeep: () -> Unit,
 	onDecideLater: () -> Unit,
 ) {
-	Surface(
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		shadowElevation = Ui.Elevation.LARGE,
-		modifier = Modifier
-			.padding(Ui.Padding.XL)
-			.widthIn(max = 640.dp)
-			.fillMaxWidth(),
-	) {
+	HdDialogFrame(maxWidth = Ui.MaxWidth.Modal) {
 		Column {
 			Column(
 				modifier = Modifier
@@ -375,6 +362,4 @@ private fun copyMeta(copy: DuplicateCopy): String = listOfNotNull(
 ).joinToString(" · ")
 
 private fun formatModified(millis: Long): String =
-	Instant.fromEpochMilliseconds(millis)
-		.toLocalDateTime(TimeZone.currentSystemDefault())
-		.format("d MMM yyyy HH:mm")
+	Instant.fromEpochMilliseconds(millis).stampDateTime()

@@ -27,12 +27,7 @@ fun ConfirmUnsavedScenesDialog(
 	component: ProjectRoot,
 	scope: CoroutineScope,
 ) {
-	UnsavedScenesConfirmDialog(
-		title = Res.string.unsaved_scenes_dialog_title.get(),
-		message = Res.string.unsaved_scenes_dialog_message.get(),
-		saveButtonText = Res.string.unsaved_entity_dialog_positive_button.get(),
-		discardButtonText = Res.string.unsaved_entity_dialog_negative_button.get(),
-		cancelButtonText = Res.string.unsaved_entity_dialog_neutral_button.get(),
+	UnsavedScenesConfirm(
 		onSave = {
 			scope.launch {
 				component.storeDirtyBuffers()
@@ -73,18 +68,55 @@ private fun UnsavedEntityConfirm(
 	confirm: CloseConfirm,
 	message: StringResource,
 ) {
+	UnsavedEntityDiscardConfirm(
+		message = message,
+		onKeep = { component.cancelCloseRequest() },
+		onDiscard = {
+			scope.launch {
+				component.discardUnsaved(confirm)
+				component.closeRequestDealtWith(confirm)
+			}
+		},
+	)
+}
+
+/** Save, discard or cancel for unsaved scene buffers. */
+@Composable
+fun UnsavedScenesConfirm(
+	onSave: () -> Unit,
+	onDiscard: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	UnsavedScenesConfirmDialog(
+		title = Res.string.unsaved_scenes_dialog_title.get(),
+		message = Res.string.unsaved_scenes_dialog_message.get(),
+		saveButtonText = Res.string.unsaved_entity_dialog_positive_button.get(),
+		discardButtonText = Res.string.unsaved_entity_dialog_negative_button.get(),
+		cancelButtonText = Res.string.unsaved_entity_dialog_neutral_button.get(),
+		onSave = onSave,
+		onDiscard = onDiscard,
+		onCancel = onCancel,
+	)
+}
+
+/** Discard or keep editing for unsaved notes, entries or timeline events; [message] names which. */
+@Composable
+fun UnsavedEntityDiscardConfirm(
+	message: StringResource,
+	onDiscard: () -> Unit,
+	onKeep: () -> Unit,
+	discardLabel: String = Res.string.unsaved_entity_dialog_negative_button.get(),
+	onDismiss: () -> Unit = onKeep,
+) {
 	SimpleConfirm(
 		title = Res.string.unsaved_entity_dialog_title.get(),
 		message = message.get(),
-		positiveButton = Res.string.unsaved_entity_dialog_negative_button.get(),
+		positiveButton = discardLabel,
 		negativeButton = Res.string.unsaved_entity_dialog_keep.get(),
 		destructive = true,
 		kind = Res.string.confirm_kind_discard.get(),
-		onDismiss = { component.cancelCloseRequest() },
-	) {
-		scope.launch {
-			component.discardUnsaved(confirm)
-			component.closeRequestDealtWith(confirm)
-		}
-	}
+		onDismiss = onDismiss,
+		onNegative = onKeep,
+		onConfirm = onDiscard,
+	)
 }

@@ -234,3 +234,21 @@ fun AnimatedFullScreenDialog(
 		}
 	}
 }
+
+/**
+ * A dialog that is open for as long as it is composed and owns that state: back, an outside
+ * tap or [AnimatedDialogScope.requestDismiss] plays the exit, then [onClosed] runs.
+ */
+@Composable
+internal fun SelfOwnedDialog(
+	onClosed: () -> Unit,
+	content: @Composable AnimatedDialogScope.() -> Unit,
+) {
+	var isOpen by remember { mutableStateOf(true) }
+	AnimatedDialogContainer(
+		isOpen = isOpen,
+		onDismissRequest = { isOpen = false },
+		onClosed = onClosed,
+		content = content,
+	)
+}

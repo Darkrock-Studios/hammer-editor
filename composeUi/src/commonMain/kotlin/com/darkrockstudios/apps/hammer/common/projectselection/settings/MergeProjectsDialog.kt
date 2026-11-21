@@ -1,19 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
 import androidx.compose.ui.Alignment
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
-import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationCard
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,9 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
@@ -33,11 +28,9 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import androidx.compose.foundation.layout.fillMaxSize
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
-private val DialogMaxWidth = 480.dp
 
 enum class MergeMode {
 	Merge,
@@ -102,20 +95,16 @@ fun MergeProjectsDialog(component: AccountSettings) {
 /** The last check before Replace deletes every local project, without its dialog window. */
 @Composable
 internal fun MergeReplaceConfirmCard(onConfirm: () -> Unit, onCancel: () -> Unit) {
-	IndexStripCard(
+	ConfirmationCard(
 		title = Res.string.merge_projects_replace_confirm_title.get(),
 		message = Res.string.merge_projects_replace_confirm_message.get(),
 		destructive = true,
 		kind = Res.string.confirm_kind_delete.get(),
-	) {
-		ConfirmationActions(
-			confirmLabel = Res.string.merge_projects_replace_confirm_button.get(),
-			onConfirm = onConfirm,
-			cancelLabel = Res.string.merge_projects_cancel_button.get(),
-			onCancel = onCancel,
-			destructive = true,
-		)
-	}
+		confirmLabel = Res.string.merge_projects_replace_confirm_button.get(),
+		onConfirm = onConfirm,
+		cancelLabel = Res.string.merge_projects_cancel_button.get(),
+		onCancel = onCancel,
+	)
 }
 
 /**
@@ -131,19 +120,7 @@ fun MergeProjectsDialogContent(
 	onContinue: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
-	Surface(
-		modifier = modifier
-			.padding(Ui.Padding.M)
-			.widthIn(max = DialogMaxWidth)
-			.fillMaxWidth(),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
-	) {
+	HdDialogFrame(modifier = modifier, maxWidth = Ui.MaxWidth.DialogNarrow) {
 		Column {
 			Text(
 				text = Res.string.merge_projects_dialog_title.get(),
@@ -173,23 +150,17 @@ fun MergeProjectsDialogContent(
 			}
 
 			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
-			) {
-				HdHairlineButton(label = Res.string.merge_projects_cancel_button.get(), onClick = onCancel)
-				HdHairlineButton(
-					label = when (mode) {
-						MergeMode.Merge -> Res.string.merge_projects_merge_button.get()
-						MergeMode.Replace -> Res.string.merge_projects_replace_button.get()
-					},
-					onClick = onContinue,
-					emphasised = mode == MergeMode.Merge,
-					danger = mode == MergeMode.Replace,
-				)
-			}
+			HdDialogActions(
+				cancelLabel = Res.string.merge_projects_cancel_button.get(),
+				onCancel = onCancel,
+				confirmLabel = when (mode) {
+					MergeMode.Merge -> Res.string.merge_projects_merge_button.get()
+					MergeMode.Replace -> Res.string.merge_projects_replace_button.get()
+				},
+				onConfirm = onContinue,
+				modifier = Modifier.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+				destructive = mode == MergeMode.Replace,
+			)
 		}
 	}
 }

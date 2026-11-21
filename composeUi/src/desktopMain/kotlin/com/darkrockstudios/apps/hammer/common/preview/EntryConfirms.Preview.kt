@@ -8,8 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
-import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationCard
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_confirm
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_keep
@@ -39,20 +38,16 @@ private fun EntryConfirm(
 	kind: String,
 	destructive: Boolean,
 ) {
-	IndexStripCard(
+	ConfirmationCard(
 		title = title,
 		message = message,
 		destructive = destructive,
 		kind = kind,
-	) {
-		ConfirmationActions(
-			confirmLabel = confirmLabel,
-			onConfirm = {},
-			cancelLabel = cancelLabel,
-			onCancel = {},
-			destructive = destructive,
-		)
-	}
+		confirmLabel = confirmLabel,
+		onConfirm = {},
+		cancelLabel = cancelLabel,
+		onCancel = {},
+	)
 }
 
 /** The encyclopedia entry's discard, delete and remove-image confirms, stacked over a scrim. */

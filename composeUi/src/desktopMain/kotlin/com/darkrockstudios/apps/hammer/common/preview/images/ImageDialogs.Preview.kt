@@ -7,8 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
-import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationCard
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsage
@@ -41,20 +40,16 @@ internal fun DeleteImageScrimPreview() {
 		)
 	)
 	Scrimmed {
-		IndexStripCard(
+		ConfirmationCard(
 			title = Res.string.images_gallery_delete_title.get("Harbour at dusk"),
 			message = usageMessage(usages),
 			destructive = true,
 			kind = Res.string.confirm_kind_delete.get(),
-		) {
-			ConfirmationActions(
-				confirmLabel = Res.string.images_gallery_delete.get(),
-				onConfirm = {},
-				cancelLabel = Res.string.images_gallery_cancel.get(),
-				onCancel = {},
-				destructive = true,
-			)
-		}
+			confirmLabel = Res.string.images_gallery_delete.get(),
+			onConfirm = {},
+			cancelLabel = Res.string.images_gallery_cancel.get(),
+			onCancel = {},
+		)
 	}
 }
 

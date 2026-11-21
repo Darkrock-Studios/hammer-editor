@@ -1,13 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings.backups
 
-import androidx.compose.foundation.BorderStroke
+import com.darkrockstudios.apps.hammer.common.compose.stampDateTime
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogTitleRow
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,17 +24,14 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.BackupManager
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
-import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationCard
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.lastOf
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
-import com.darkrockstudios.apps.hammer.common.util.formatLocal
 
-private val DialogMaxWidth = 540.dp
 private val DialogMaxHeight = 720.dp
 
 @Composable
@@ -108,43 +106,35 @@ fun BackupManagerDialog(
 
 @Composable
 internal fun BackupRestoreConfirmCard(backup: ProjectBackupDef, onConfirm: () -> Unit, onCancel: () -> Unit) {
-	IndexStripCard(
+	ConfirmationCard(
 		title = Res.string.backup_restore_dialog_title.get(),
 		message = Res.string.backup_restore_dialog_message.get(backup.projectName, backupDateLabel(backup)),
 		destructive = true,
 		kind = Res.string.confirm_kind_restore.get(),
-	) {
-		ConfirmationActions(
-			confirmLabel = Res.string.backup_restore_dialog_confirm.get(),
-			onConfirm = onConfirm,
-			cancelLabel = Res.string.backup_restore_dialog_cancel.get(),
-			onCancel = onCancel,
-			destructive = true,
-		)
-	}
+		confirmLabel = Res.string.backup_restore_dialog_confirm.get(),
+		onConfirm = onConfirm,
+		cancelLabel = Res.string.backup_restore_dialog_cancel.get(),
+		onCancel = onCancel,
+	)
 }
 
 @Composable
 internal fun BackupDeleteConfirmCard(backup: ProjectBackupDef, onConfirm: () -> Unit, onCancel: () -> Unit) {
-	IndexStripCard(
+	ConfirmationCard(
 		title = Res.string.backup_delete_dialog_title.get(),
 		message = Res.string.backup_delete_dialog_message.get(backupDateLabel(backup)),
 		destructive = true,
 		kind = Res.string.confirm_kind_delete.get(),
-	) {
-		ConfirmationActions(
-			confirmLabel = Res.string.backup_manager_delete_button.get(),
-			onConfirm = onConfirm,
-			cancelLabel = Res.string.backup_delete_dialog_cancel.get(),
-			onCancel = onCancel,
-			destructive = true,
-		)
-	}
+		confirmLabel = Res.string.backup_manager_delete_button.get(),
+		onConfirm = onConfirm,
+		cancelLabel = Res.string.backup_delete_dialog_cancel.get(),
+		onCancel = onCancel,
+	)
 }
 
 @Composable
 private fun backupDateLabel(backup: ProjectBackupDef): String =
-	remember(backup.date) { backup.date.formatLocal("d MMM yyyy, HH:mm") }
+	remember(backup.date) { backup.date.stampDateTime() }
 
 @Composable
 internal fun BackupManagerContent(
@@ -156,41 +146,14 @@ internal fun BackupManagerContent(
 	onClose: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
-	Surface(
+	HdDialogFrame(
 		modifier = Modifier
-			.padding(Ui.Padding.XL)
-			.widthIn(max = DialogMaxWidth)
 			.heightIn(max = DialogMaxHeight)
-			.fillMaxWidth()
 			.fillMaxHeight(0.9f)
 			.then(modifier),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
 	) {
 		Column(modifier = Modifier.fillMaxSize()) {
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.L),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				Text(
-					text = Res.string.backup_manager_title.get(),
-					style = MaterialTheme.typography.titleLarge,
-					modifier = Modifier.weight(1f),
-				)
-				IconButton(onClick = onClose) {
-					Icon(
-						imageVector = Icons.Filled.Close,
-						contentDescription = Res.string.backup_manager_close.get(),
-					)
-				}
-			}
+			HdDialogTitleRow(title = Res.string.backup_manager_title.get(), onClose = onClose)
 
 			if (state.availableProjects.isNotEmpty()) {
 				ProjectPicker(

@@ -75,11 +75,11 @@ fun ProtocolMismatchContent(
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-			HdMetaText(text = Res.string.protocol_mismatch_current_version.get().format(state.currentVersion))
+			HdMetaText(text = Res.string.protocol_mismatch_current_version.get(state.currentVersion))
 			val latest = state.latestVersionTag
 			if (state.isNewVersionAvailable && latest != null) {
 				HdMetaText(
-					text = Res.string.protocol_mismatch_latest_version.get().format(latest),
+					text = Res.string.protocol_mismatch_latest_version.get(latest),
 					color = MaterialTheme.colorScheme.primary,
 				)
 			}

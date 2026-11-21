@@ -10,5 +10,4 @@
 	<string name="project_libraries_count">%1$s open source libraries</string>
 	<string name="project_libraries_website">Website</string>
 	<string name="project_libraries_license">License</string>
-	<string name="project_libraries_close">Close</string>
 </resources>

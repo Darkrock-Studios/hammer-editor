@@ -14,7 +14,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -36,13 +35,18 @@ fun HdSettingRow(
 	description: String? = null,
 	/** A current value shown as [HdMetaText] under the title, such as a folder path. */
 	meta: String? = null,
-	titleColor: Color = MaterialTheme.colorScheme.onSurface,
+	/** Titles the row in the error colour, for an action that can't be undone. */
+	destructive: Boolean = false,
 	control: @Composable () -> Unit,
 ) {
 	BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
 		val text: @Composable () -> Unit = {
 			Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-				Text(text = title, style = MaterialTheme.typography.bodyLarge, color = titleColor)
+				Text(
+					text = title,
+					style = MaterialTheme.typography.bodyLarge,
+					color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+				)
 				if (meta != null) HdMetaText(text = meta)
 				if (description != null) {
 					Text(

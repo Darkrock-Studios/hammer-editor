@@ -10,8 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
-import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationCard
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.ideas_delete_dialog_confirm
 import com.darkrockstudios.apps.hammer.ideas_delete_dialog_message
@@ -39,46 +38,34 @@ fun StoryIdeaConfirmsPreview() {
 		verticalArrangement = Arrangement.spacedBy(32.dp, Alignment.CenterVertically),
 		horizontalAlignment = Alignment.CenterHorizontally,
 	) {
-		IndexStripCard(
+		ConfirmationCard(
 			title = Res.string.ideas_discard_dialog_title.get(),
 			message = Res.string.ideas_discard_dialog_message.get(),
 			destructive = true,
 			kind = Res.string.confirm_kind_discard.get(),
-		) {
-			ConfirmationActions(
-				confirmLabel = Res.string.ideas_discard_dialog_confirm.get(),
-				onConfirm = {},
-				cancelLabel = Res.string.ideas_discard_dialog_keep.get(),
-				onCancel = {},
-				destructive = true,
-			)
-		}
-		IndexStripCard(
+			confirmLabel = Res.string.ideas_discard_dialog_confirm.get(),
+			onConfirm = {},
+			cancelLabel = Res.string.ideas_discard_dialog_keep.get(),
+			onCancel = {},
+		)
+		ConfirmationCard(
 			title = Res.string.ideas_delete_dialog_title.get(),
 			message = Res.string.ideas_delete_dialog_message.get(),
 			destructive = true,
 			kind = Res.string.confirm_kind_delete.get(),
-		) {
-			ConfirmationActions(
-				confirmLabel = Res.string.ideas_delete_dialog_confirm.get(),
-				onConfirm = {},
-				cancelLabel = Res.string.ideas_dialog_cancel.get(),
-				onCancel = {},
-				destructive = true,
-			)
-		}
-		IndexStripCard(
+			confirmLabel = Res.string.ideas_delete_dialog_confirm.get(),
+			onConfirm = {},
+			cancelLabel = Res.string.ideas_dialog_cancel.get(),
+			onCancel = {},
+		)
+		ConfirmationCard(
 			title = Res.string.ideas_promote_dialog_title.get(),
 			message = Res.string.ideas_promote_dialog_message.get(),
 			kind = Res.string.confirm_kind_promote.get(),
-		) {
-			ConfirmationActions(
-				confirmLabel = Res.string.ideas_promote_button.get(),
-				onConfirm = {},
-				cancelLabel = Res.string.ideas_dialog_cancel.get(),
-				onCancel = {},
-				destructive = false,
-			)
-		}
+			confirmLabel = Res.string.ideas_promote_button.get(),
+			onConfirm = {},
+			cancelLabel = Res.string.ideas_dialog_cancel.get(),
+			onCancel = {},
+		)
 	}
 }

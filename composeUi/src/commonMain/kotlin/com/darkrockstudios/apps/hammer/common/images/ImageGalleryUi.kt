@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.images
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCloseButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineCheckbox
@@ -31,11 +33,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -392,13 +390,7 @@ private fun GalleryTitleRow(title: String, count: Int, onAdd: () -> Unit, onClos
 			onClick = onAdd,
 			modifier = Modifier.testTag(IMAGE_GALLERY_ADD_TAG),
 		)
-		IconButton(onClick = onClose, modifier = Modifier.testTag(IMAGE_GALLERY_CLOSE_TAG)) {
-			Icon(
-				imageVector = Icons.Default.Close,
-				contentDescription = Res.string.images_gallery_close.get(),
-				tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
+		HdCloseButton(onClick = onClose, modifier = Modifier.testTag(IMAGE_GALLERY_CLOSE_TAG), contentDescription = Res.string.images_gallery_close.get())
 	}
 }
 
@@ -686,16 +678,11 @@ private fun ImageDetail(
 					color = MaterialTheme.colorScheme.onSurface,
 					modifier = Modifier.weight(1f),
 				)
-				IconButton(
+				HdCloseButton(
 					onClick = onClose,
 					modifier = Modifier.testTag(IMAGE_GALLERY_DETAIL_CLOSE_TAG),
-				) {
-					Icon(
-						imageVector = Icons.Default.Close,
-						contentDescription = Res.string.images_gallery_detail_close.get(),
-						tint = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-				}
+					contentDescription = Res.string.images_gallery_detail_close.get(),
+				)
 			}
 			Row(
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
@@ -794,18 +781,13 @@ internal fun RenameImageCard(
 					null
 				},
 			)
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
-			) {
-				HdHairlineButton(label = Res.string.images_gallery_cancel.get(), onClick = onCancel)
-				HdHairlineButton(
-					label = Res.string.images_gallery_rename_button.get(),
-					emphasised = true,
-					enabled = !busy && ImageFormat.isValidName(name.trim()),
-					onClick = onRename,
-				)
-			}
+			HdDialogActions(
+				cancelLabel = Res.string.images_gallery_cancel.get(),
+				onCancel = onCancel,
+				confirmLabel = Res.string.images_gallery_rename_button.get(),
+				onConfirm = onRename,
+				confirmEnabled = !busy && ImageFormat.isValidName(name.trim()),
+			)
 		}
 	}
 }

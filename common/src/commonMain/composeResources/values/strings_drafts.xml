@@ -15,7 +15,6 @@
 
 	<string name="draft_list_header">Drafts of “%1$s”</string>
 	<string name="draft_list_open">Open</string>
-	<string name="draft_list_close">Close</string>
 	<string name="draft_list_empty">No drafts yet</string>
 
 	<string name="scene_draft_invalid_name">Invalid name</string>

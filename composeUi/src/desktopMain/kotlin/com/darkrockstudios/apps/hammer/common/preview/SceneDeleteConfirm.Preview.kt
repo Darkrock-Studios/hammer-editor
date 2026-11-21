@@ -2,8 +2,7 @@ package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.runtime.Composable
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
-import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationCard
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_delete_button
 import com.darkrockstudios.apps.hammer.create_sceneitem_dialog_dismiss_button
@@ -29,20 +28,16 @@ import com.darkrockstudios.apps.hammer.discard_buffer_dialog_title
 @Composable
 internal fun SceneDeleteConfirmScrimPreview() {
 	PreviewScrim {
-		IndexStripCard(
+		ConfirmationCard(
 			title = Res.string.scene_delete_dialog_title.get("Bottom of Chimney"),
 			message = Res.string.scene_delete_dialog_message.get("Bottom of Chimney"),
 			destructive = true,
 			kind = Res.string.confirm_kind_delete.get(),
-		) {
-			ConfirmationActions(
-				confirmLabel = Res.string.scene_delete_dialog_delete_button.get(),
-				onConfirm = {},
-				cancelLabel = Res.string.create_sceneitem_dialog_dismiss_button.get(),
-				onCancel = {},
-				destructive = true,
-			)
-		}
+			confirmLabel = Res.string.scene_delete_dialog_delete_button.get(),
+			onConfirm = {},
+			cancelLabel = Res.string.create_sceneitem_dialog_dismiss_button.get(),
+			onCancel = {},
+		)
 	}
 }
 
@@ -50,19 +45,15 @@ internal fun SceneDeleteConfirmScrimPreview() {
 @Composable
 internal fun ChapterCannotDeleteScrimPreview() {
 	PreviewScrim {
-		IndexStripCard(
+		ConfirmationCard(
 			title = Res.string.chapter_cannot_delete_dialog_title.get("Chapter IV"),
 			message = Res.string.chapter_cannot_delete_dialog_message.get("Chapter IV"),
 			kind = Res.string.confirm_kind_blocked.get(),
-		) {
-			ConfirmationActions(
-				confirmLabel = Res.string.cannot_delete_dialog_ok.get(),
-				onConfirm = {},
-				cancelLabel = null,
-				onCancel = {},
-				destructive = false,
-			)
-		}
+			confirmLabel = Res.string.cannot_delete_dialog_ok.get(),
+			onConfirm = {},
+			cancelLabel = null,
+			onCancel = {},
+		)
 	}
 }
 
@@ -70,19 +61,15 @@ internal fun ChapterCannotDeleteScrimPreview() {
 @Composable
 internal fun SceneArchiveConfirmScrimPreview() {
 	PreviewScrim {
-		IndexStripCard(
+		ConfirmationCard(
 			title = Res.string.scene_archive_dialog_title.get("Bottom of Chimney"),
 			message = Res.string.scene_archive_dialog_message.get("Bottom of Chimney"),
 			kind = Res.string.confirm_kind_archive.get(),
-		) {
-			ConfirmationActions(
-				confirmLabel = Res.string.scene_archive_dialog_archive_button.get(),
-				onConfirm = {},
-				cancelLabel = Res.string.scene_archive_dialog_dismiss_button.get(),
-				onCancel = {},
-				destructive = false,
-			)
-		}
+			confirmLabel = Res.string.scene_archive_dialog_archive_button.get(),
+			onConfirm = {},
+			cancelLabel = Res.string.scene_archive_dialog_dismiss_button.get(),
+			onCancel = {},
+		)
 	}
 }
 
@@ -90,19 +77,15 @@ internal fun SceneArchiveConfirmScrimPreview() {
 @Composable
 internal fun DiscardChangesScrimPreview() {
 	PreviewScrim {
-		IndexStripCard(
+		ConfirmationCard(
 			title = Res.string.discard_buffer_dialog_title.get("The Lamp Room"),
 			message = Res.string.discard_buffer_dialog_message.get("The Lamp Room"),
 			destructive = true,
 			kind = Res.string.confirm_kind_discard.get(),
-		) {
-			ConfirmationActions(
-				confirmLabel = Res.string.discard_buffer_dialog_confirm.get(),
-				onConfirm = {},
-				cancelLabel = Res.string.discard_buffer_dialog_cancel.get(),
-				onCancel = {},
-				destructive = true,
-			)
-		}
+			confirmLabel = Res.string.discard_buffer_dialog_confirm.get(),
+			onConfirm = {},
+			cancelLabel = Res.string.discard_buffer_dialog_cancel.get(),
+			onCancel = {},
+		)
 	}
 }

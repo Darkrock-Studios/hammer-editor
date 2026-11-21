@@ -583,8 +583,11 @@ screen that surfaces them.
 - **[`HdClearGlyph`](HdClearGlyph.kt)** — the small `×` clear/remove
   affordance, drawn as two strokes so it stays geometrically centered
   (a font-rendered `×` sits low in a small box). Use this instead of
-  `Text("×")` anywhere a chip, field, or panel needs a dismiss glyph;
-  pass `onClick = null` when a parent handles the click.
+  `Text("×")` anywhere a chip or attachment needs a remove glyph;
+  pass `onClick = null` when a parent handles the click. A text field's
+  clear is the circled mark built into `HdSearchField`, so it never reads
+  as the close of the dialog around it; dialog and panel closes are
+  `HdCloseButton`.
 - **[`HdCollapseGlyph`](HdCollapseGlyph.kt)** — dock-to-top arrow
   (`⤒`) for dismissing a strip that tucks back up into the chrome,
   e.g. a revealed search bar. Not an `×`: clear empties a value,
@@ -751,57 +754,36 @@ Cancel is the way out.
 - **Renames** show the current name as the subject and the field
   labelled "New name" below it.
 
-### Dialog masthead
+### Dialog frame
 
-The masthead for the remaining modal dialogs:
-[`ConfirmationDialog` / `IndexStripDialog`](../ConfirmationDialog.kt)
-and [`GlobalSearchUi`](../../globalsearch/GlobalSearchUi.kt) use this
-shape:
+Every dialog that isn't a confirm sits on the same pieces:
 
 ```
-  § MARKER ──────────────── META  ×
-  ════════════════════════════════
-  ────────────────────────────────
-  <body content>
+  Title                          [trailing]  ×
+  meta (optional)
+  ────────────────────────────────────────────  (list dialogs)
+  <body>
+                              [Cancel] [Confirm]
 ```
 
-- **§-marker row.** A small-caps mono caption on the left, optional
-  matching mono meta caption on the right (`PROJECT`, `12 RESULTS`,
-  `LAST EDIT 14:32` — must obey the [greeble rule](#greebles): real
-  values, not fabricated). On desktop add a trailing `×` close glyph
-  after the meta, since the dialog has no system back gesture.
-- **[`HdFolioDivider`](HdFolioDivider.kt) underneath.** The 2dp +
-  hairline rule stack is what gives the dialog its "title bar"
-  weight without a shadow.
-- **Body.** Padded `start = 26.dp, end = 26.dp, top = 22.dp, bottom = 22–26.dp`
-  (the wider gutter sets dialogs apart from scrolling screens, which
-  use `Padding.XL = 16.dp`).
+- **[`HdDialogFrame`](HdDialogFrame.kt)**: the square surface with one
+  `outlineVariant` hairline and no elevation. Width comes from the
+  `Ui.MaxWidth` tokens: `DialogNarrow` (480) for short forms, `Dialog`
+  (560, the default) for most, `DialogWide` (720) for wide content.
+- **`HdDialogTitleRow`**: titleLarge title, optional meta line, a
+  `trailing` slot for tool buttons, then the close. A null `onClose`
+  drops the close for dialogs whose Cancel or Done is the way out.
+- **`HdCloseButton`**: the one close ×, always `onSurfaceVariant`.
+  Panel and screen headers use it too.
+- **`HdDialogActions`**: `[Cancel] [Confirm]` at the bottom right;
+  `destructive` makes the confirm a danger button.
+- **[`HdHairlineDialogShell`](HdHairlineDialogShell.kt)**: frame, title
+  row and a padded body in one, for simple dialogs.
+- **`HdEmptyNote`**: the quiet centred line where a dialog's list would be.
 
-The marker row is **not** an `HdSectionHeader` — that primitive is
-reserved for in-screen sections and renders a roman-numeral marker
-(`§ I`). Dialogs use a single short keyword (`§ RENAME`, `§ DELETE`,
-`§ SEARCH PROJECT`) which doubles as the dialog's accessible title.
-Pass the `§` as a literal character in the marker string.
-
-Exact mono styling, copied so far in each call site:
-
-```kotlin
-fontFamily = FontFamily.Monospace,
-fontSize = 10.sp,
-fontWeight = FontWeight.Medium,
-letterSpacing = 1.8.sp,
-color = MaterialTheme.colorScheme.onSurfaceVariant,
-```
-
-(Destructive variants — `IndexStripDialog(destructive = true)` —
-swap the marker color to `error`.)
-
-Three occurrences now share this shape, so per the
-[Adding to the system](#adding-to-the-system) rules this is the next
-candidate to lift into a real `Hd*` primitive (working name:
-`HdDialogMasthead`). Until that lands, copy the exact styling above
-rather than improvising — the cohesion comes from the consistent
-metrics, not just the layout.
+Confirms keep their own index-strip card
+([`ConfirmationDialog`](../ConfirmationDialog.kt)); forms use
+[`FormDialogScaffold`](#form-dialogs), which sits on `HdDialogFrame`.
 
 ### Screen masthead
 
@@ -857,10 +839,9 @@ something found nowhere else on the screen.
 `HorizontalDivider(thickness = Dp.Hairline)` (for in-card mastheads). The divider, not extra padding, separates the
 masthead from the body.
 
-**Contrast with [Dialog masthead](#dialog-masthead).** Dialogs are floating overlays on a scrim — no `statusBarsPadding`
-above them, smaller surface — and use the documented `26.dp` horizontal / `22.dp` top body padding. That's a different
-context with a different rule. Screen masthead = any title row that sits at the top of a screen-sized surface. Dialog
-masthead = the §-marker row inside an overlay dialog.
+**Contrast with [Dialog frame](#dialog-frame).** Dialogs are floating overlays on a scrim, with no `statusBarsPadding`
+above them and a smaller surface; their title row is `HdDialogTitleRow`. Screen masthead = any title row that sits at
+the top of a screen-sized surface.
 
 **Exceptions.**
 

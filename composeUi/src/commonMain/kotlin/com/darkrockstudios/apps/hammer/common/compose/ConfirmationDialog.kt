@@ -109,6 +109,30 @@ fun ConfirmationDialog(
 	}
 }
 
+/** The card [ConfirmationDialog] shows, without the dialog window. */
+@Composable
+internal fun ConfirmationCard(
+	title: String,
+	message: String,
+	confirmLabel: String,
+	onConfirm: () -> Unit,
+	cancelLabel: String?,
+	onCancel: () -> Unit,
+	modifier: Modifier = Modifier,
+	destructive: Boolean = false,
+	kind: String = defaultConfirmKind(destructive),
+) {
+	IndexStripCard(title = title, message = message, modifier = modifier, destructive = destructive, kind = kind) {
+		ConfirmationActions(
+			confirmLabel = confirmLabel,
+			onConfirm = onConfirm,
+			cancelLabel = cancelLabel,
+			onCancel = onCancel,
+			destructive = destructive,
+		)
+	}
+}
+
 @Composable
 internal fun RowScope.ConfirmationActions(
 	confirmLabel: String,

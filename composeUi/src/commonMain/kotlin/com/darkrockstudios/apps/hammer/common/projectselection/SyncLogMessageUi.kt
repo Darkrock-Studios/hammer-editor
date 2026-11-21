@@ -1,5 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -99,5 +107,41 @@ fun SyncLogLevel.accentColor(): Color {
 		SyncLogLevel.DEBUG, SyncLogLevel.INFO -> MaterialTheme.colorScheme.onSurfaceVariant
 		SyncLogLevel.WARN -> hammer.warning
 		SyncLogLevel.ERROR -> hammer.danger
+	}
+}
+
+/** A sync log that stays pinned to its newest message while the user is at the tail. */
+@Composable
+fun SyncLogList(
+	log: List<SyncLogMessage>,
+	showProjectName: Boolean,
+	horizontalPadding: Dp,
+	modifier: Modifier = Modifier,
+) {
+	val listState: LazyListState = rememberLazyListState()
+
+	LazyColumn(
+		state = listState,
+		modifier = modifier.fillMaxWidth(),
+		contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = Ui.Padding.M),
+	) {
+		items(
+			count = log.size,
+			key = { log[it].timestamp.toEpochMilliseconds() to it },
+		) { index ->
+			SyncLogMessageUi(log[index], showProjectName = showProjectName)
+		}
+	}
+
+	val pinnedToTail by remember {
+		derivedStateOf {
+			val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+			last < 0 || last >= log.size - 2
+		}
+	}
+	LaunchedEffect(log.size) {
+		if (log.isNotEmpty() && pinnedToTail) {
+			listState.scrollToItem(log.size - 1)
+		}
 	}
 }

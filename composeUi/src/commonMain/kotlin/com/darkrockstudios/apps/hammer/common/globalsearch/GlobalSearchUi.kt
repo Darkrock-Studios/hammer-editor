@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.globalsearch
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCloseButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
@@ -8,9 +10,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.BorderStroke
 import com.darkrockstudios.apps.hammer.global_search_close
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
-import androidx.compose.material3.IconButton
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -86,7 +84,6 @@ import com.darkrockstudios.apps.hammer.ic_timeline
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.vectorResource
 
-private val DialogMaxWidth = 720.dp
 
 const val GLOBAL_SEARCH_INPUT_TAG = "global-search-input"
 
@@ -126,16 +123,7 @@ internal fun GlobalSearchCard(
 	onClose: () -> Unit,
 	focusRequester: FocusRequester = remember { FocusRequester() },
 ) {
-	Surface(
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		shadowElevation = Ui.Elevation.LARGE,
-		modifier = Modifier
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XXL)
-			.widthIn(max = DialogMaxWidth)
-			.fillMaxWidth(),
-	) {
+	HdDialogFrame(modifier = Modifier.padding(vertical = Ui.Padding.XL), maxWidth = Ui.MaxWidth.DialogWide) {
 		Column(
 			modifier = Modifier.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.L, bottom = Ui.Padding.L),
 			verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
@@ -151,9 +139,7 @@ internal fun GlobalSearchCard(
 					testTag = GLOBAL_SEARCH_INPUT_TAG,
 					modifier = Modifier.weight(1f),
 				)
-				IconButton(onClick = onClose) {
-					Icon(Icons.Filled.Close, contentDescription = Res.string.global_search_close.get())
-				}
+				HdCloseButton(onClick = onClose, contentDescription = Res.string.global_search_close.get())
 			}
 
 			Column(

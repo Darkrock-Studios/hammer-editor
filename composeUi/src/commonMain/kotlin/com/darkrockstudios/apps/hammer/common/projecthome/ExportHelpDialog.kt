@@ -1,31 +1,23 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
+import com.darkrockstudios.apps.hammer.common.compose.SelfOwnedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import org.jetbrains.compose.resources.StringResource
 
-private val DialogMaxWidth = 480.dp
 
 private class ExportFormatHelp(val label: StringResource, val description: StringResource)
 
@@ -55,31 +47,19 @@ private val ExportFormatHelpRows = listOf(
 /** Animated wrapper around [ExportHelpContent]. Preview [ExportHelpContent] directly for a static frame. */
 @Composable
 internal fun ExportHelpDialog(onDismiss: () -> Unit) {
-	var isOpen by remember { mutableStateOf(true) }
-
-	AnimatedDialogContainer(
-		isOpen = isOpen,
-		onDismissRequest = { isOpen = false },
-		onClosed = onDismiss,
-		properties = DialogProperties(
-			dismissOnBackPress = true,
-			dismissOnClickOutside = true,
-			usePlatformDefaultWidth = false,
-		),
-	) {
-		Box(modifier = Modifier.predictiveBackTransform()) {
-			ExportHelpContent(onDismiss = { isOpen = false })
-		}
+	SelfOwnedDialog(onClosed = onDismiss) {
+		ExportHelpContent(onDismiss = ::requestDismiss, modifier = Modifier.predictiveBackTransform())
 	}
 }
 
 @Composable
-internal fun ExportHelpContent(onDismiss: () -> Unit) {
+internal fun ExportHelpContent(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
 	HdHairlineDialogShell(
 		title = Res.string.project_home_export_help_title.get(),
 		onClose = onDismiss,
 		closeContentDescription = Res.string.project_home_export_help_close.get(),
-		modifier = Modifier.widthIn(max = DialogMaxWidth),
+		modifier = modifier,
+		maxWidth = Ui.MaxWidth.DialogNarrow,
 	) {
 		Column(
 			modifier = Modifier

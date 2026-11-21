@@ -103,3 +103,13 @@ fun HdLogGlyph(modifier: Modifier = Modifier) {
 		}
 	}
 }
+
+/** A small filled square: the stop mark for an [HdToolButton] that halts a running sync. */
+@Composable
+fun HdStopGlyph(modifier: Modifier = Modifier) {
+	Box(
+		modifier = modifier
+			.size(9.dp)
+			.background(MaterialTheme.colorScheme.onSurfaceVariant),
+	)
+}

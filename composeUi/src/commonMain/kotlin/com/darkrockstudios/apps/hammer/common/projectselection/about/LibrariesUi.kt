@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.about
 
-import androidx.compose.foundation.BorderStroke
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogTitleRow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,16 +10,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
@@ -40,7 +34,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.util.LibraryInfoProvider
-import com.darkrockstudios.apps.hammer.project_libraries_close
 import com.darkrockstudios.apps.hammer.project_libraries_count
 import com.darkrockstudios.apps.hammer.project_libraries_dialog_title
 import com.darkrockstudios.apps.hammer.project_libraries_license
@@ -70,34 +63,18 @@ internal fun LibrariesCard(
 ) {
 	val libraries = remember(libs) { libs.libraries.sortedBy { it.name.lowercase() } }
 	var open by remember { mutableStateOf(initiallyOpen) }
-	Surface(
+	HdDialogFrame(
 		modifier = modifier
-			.padding(Ui.Padding.XL)
-			.widthIn(max = 560.dp)
 			.heightIn(max = 720.dp)
-			.fillMaxWidth()
 			.fillMaxHeight(0.9f),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
 	) {
 		Column {
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.L),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				Column(modifier = Modifier.weight(1f)) {
-					Text(Res.string.project_libraries_dialog_title.get(), style = MaterialTheme.typography.titleLarge)
-					HdMetaText(Res.string.project_libraries_count.get(libraries.size.toString()))
-				}
-				IconButton(onClick = onClose) {
-					Icon(Icons.Filled.Close, contentDescription = Res.string.project_libraries_close.get())
-				}
-			}
+			HdDialogTitleRow(
+				title = Res.string.project_libraries_dialog_title.get(),
+				meta = Res.string.project_libraries_count.get(libraries.size.toString()),
+				onClose = onClose,
+			)
 			HorizontalDivider(
-				modifier = Modifier.padding(top = Ui.Padding.M),
 				thickness = Dp.Hairline,
 				color = MaterialTheme.colorScheme.outlineVariant,
 			)

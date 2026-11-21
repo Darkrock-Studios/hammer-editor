@@ -9,8 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmationActions
-import com.darkrockstudios.apps.hammer.common.compose.IndexStripCard
+import com.darkrockstudios.apps.hammer.common.compose.ConfirmationCard
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.confirm_kind_delete
 import com.darkrockstudios.apps.hammer.confirm_kind_discard
@@ -32,15 +31,16 @@ private fun EventConfirm(
 	kind: String,
 	destructive: Boolean,
 ) {
-	IndexStripCard(title = title, message = message, destructive = destructive, kind = kind) {
-		ConfirmationActions(
-			confirmLabel = confirmLabel,
-			onConfirm = {},
-			cancelLabel = cancelLabel,
-			onCancel = {},
-			destructive = destructive,
-		)
-	}
+	ConfirmationCard(
+		title = title,
+		message = message,
+		confirmLabel = confirmLabel,
+		onConfirm = {},
+		cancelLabel = cancelLabel,
+		onCancel = {},
+		destructive = destructive,
+		kind = kind,
+	)
 }
 
 /** The timeline event's discard and delete confirms, stacked over a scrim. */

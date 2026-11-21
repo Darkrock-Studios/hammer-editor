@@ -154,8 +154,8 @@
 	<string name="protocol_mismatch_title_server">Le serveur de synchronisation n'est pas à jour</string>
 	<string name="protocol_mismatch_body_client">Cette version de Hammer ne peut plus se synchroniser avec le serveur. Mettez à jour vers la dernière version pour continuer à synchroniser votre travail.</string>
 	<string name="protocol_mismatch_body_server">Le serveur de synchronisation utilise un protocole plus ancien que cette application. Le serveur doit être mis à jour pour que la synchronisation fonctionne à nouveau.</string>
-	<string name="protocol_mismatch_latest_version">Dernière version : %s</string>
-	<string name="protocol_mismatch_current_version">Vous avez : %s</string>
+	<string name="protocol_mismatch_latest_version">Dernière version : %1$s</string>
+	<string name="protocol_mismatch_current_version">Vous avez : %1$s</string>
 	<string name="protocol_mismatch_open_release_button">Obtenir la mise à jour</string>
 	<string name="protocol_mismatch_dismiss_button">Ignorer</string>
 	<string name="reauth_title">Réautoriser</string>

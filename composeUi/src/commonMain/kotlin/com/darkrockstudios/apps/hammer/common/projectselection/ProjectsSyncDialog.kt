@@ -1,11 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,17 +10,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,7 +25,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -53,19 +45,20 @@ import com.darkrockstudios.apps.hammer.account_sync_log_title
 import com.darkrockstudios.apps.hammer.account_sync_toast_canceled
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.hasActiveSync
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFilterMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdLogGlyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStopGlyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatus
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusGlyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.accentColor
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.projectsync.IdeaConflictUi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.semantics.contentDescription
@@ -80,7 +73,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.ideas_conflict_title
 import kotlinx.coroutines.launch
 
-private val DialogMaxWidth = 580.dp
 private val DialogBodyMinHeight = 280.dp
 private val DialogBodyMaxHeight = 560.dp
 
@@ -153,19 +145,7 @@ fun ProjectsSyncContent(
 	val allProjectsLabel = Res.string.account_sync_log_filter_all.get()
 	val ideaConflict = syncState.ideaConflict
 
-	Surface(
-		modifier = Modifier
-			.padding(horizontal = Ui.Padding.XL)
-			.widthIn(max = DialogMaxWidth)
-			.fillMaxWidth(),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
-	) {
+	HdDialogFrame {
 		Column {
 			TitleAndToolbar(
 				inLogView = showLog,
@@ -222,7 +202,7 @@ fun ProjectsSyncContent(
 							syncState.syncLog.filter { it.projectName == logProjectFilter }
 						}
 					}
-					LogList(log = filteredLog, showProjectName = logProjectFilter == null)
+					SyncLogList(log = filteredLog, showProjectName = logProjectFilter == null, horizontalPadding = Gutter)
 				} else {
 					val projects = remember(syncState.projectsStatus) {
 						syncState.projectsStatus.values.toList()
@@ -284,11 +264,7 @@ private fun TitleAndToolbar(
 				onClick = onStop,
 				modifier = Modifier.semantics { contentDescription = stopDescription },
 			) {
-				Box(
-					modifier = Modifier
-						.size(9.dp)
-						.background(MaterialTheme.colorScheme.onSurfaceVariant),
-				)
+				HdStopGlyph()
 			}
 		}
 
@@ -440,32 +416,3 @@ internal fun SyncStatusRow(
 	}
 }
 
-@Composable
-private fun LogList(log: List<SyncLogMessage>, showProjectName: Boolean) {
-	val listState: LazyListState = rememberLazyListState()
-
-	LazyColumn(
-		state = listState,
-		modifier = Modifier.fillMaxWidth(),
-		contentPadding = PaddingValues(horizontal = Gutter, vertical = Ui.Padding.M),
-	) {
-		items(
-			count = log.size,
-			key = { log[it].timestamp.toEpochMilliseconds() to it },
-		) { index ->
-			SyncLogMessageUi(log[index], showProjectName = showProjectName)
-		}
-	}
-
-	val pinnedToTail by remember {
-		derivedStateOf {
-			val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-			last < 0 || last >= log.size - 2
-		}
-	}
-	LaunchedEffect(log.size) {
-		if (log.isNotEmpty() && pinnedToTail) {
-			listState.scrollToItem(log.size - 1)
-		}
-	}
-}

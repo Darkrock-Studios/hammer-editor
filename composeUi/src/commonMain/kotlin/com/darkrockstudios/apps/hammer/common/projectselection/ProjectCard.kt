@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import com.darkrockstudios.apps.hammer.common.compose.stampDate
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -61,7 +62,6 @@ import com.darkrockstudios.apps.hammer.common.compose.images.coverSize
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.apps.hammer.project_select_card_delete_button
 import com.darkrockstudios.apps.hammer.project_select_card_leave_button
@@ -75,10 +75,7 @@ import com.darkrockstudios.apps.hammer.projects_list_card_shared_by
 import com.darkrockstudios.apps.hammer.projects_list_card_sync_off
 import com.darkrockstudios.apps.hammer.projects_list_card_words
 import com.darkrockstudios.apps.hammer.projects_list_item_more_button
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
-import kotlin.time.Instant
 import com.darkrockstudios.apps.hammer.projects_list_opened_format
 import com.darkrockstudios.apps.hammer.projects_list_opened_inline_format
 
@@ -124,7 +121,7 @@ fun ProjectIndexRow(
 	val unsetStripeColor = MaterialTheme.colorScheme.outlineVariant
 
 	val lastAccessedDate = remember(projectData.metadata.info) {
-		projectData.metadata.info.lastAccessed?.let { formatStamp(it) }
+		projectData.metadata.info.lastAccessed?.stampDate()
 	}
 	val wordsLabel = projectData.totalWords?.let {
 		Res.string.projects_list_card_words.get(it.formatDecimalSeparator())
@@ -341,10 +338,6 @@ private fun ProjectStripe(themePrimary: Color?, unsetColor: Color?) {
 			},
 	)
 }
-
-private fun formatStamp(instant: Instant): String =
-	instant.toLocalDateTime(TimeZone.currentSystemDefault())
-		.format("d MMM yyyy")
 
 /** An item in [toggles] is a switch, checked when its value is true. */
 @Composable
