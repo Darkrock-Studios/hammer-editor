@@ -1,0 +1,8 @@
+- Writing stats no longer count mid-word autosaves, fixed typos, undone deletions, moved text or synced text as new words. "This week" is now "Last 7 days"
+- Sync no longer leaves synced scenes as unsaved edits, or overwrites a scene that has them
+- Sync no longer causes conflicts on scenes another device only opened
+- Fix a crash when an encyclopedia entry can't be read
+- Updated translations
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.12.2
