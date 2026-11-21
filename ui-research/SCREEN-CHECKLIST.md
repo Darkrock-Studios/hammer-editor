@@ -122,7 +122,7 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 - [x] Event view and edit (`ViewTimeLineEventUi`) g: View timeline event
   - [x] Discard Changes? / Delete Timeline Event? (`SimpleConfirm`) g: Timeline event confirms
   - [x] Move to another timeline (`MoveToTimelineDialog`) g: Move to timeline dialog
-- [ ] Create Event (`CreateTimeLineEventUi`) g: Create timeline event **needs a larger redesign, not a polish pass**
+- [x] Create Event (`CreateTimeLineEventUi`) g: Create timeline event: redesigned on the Create entry pattern (titled frame, labelled description editor, word-count footer)
   - [x] Discard Changes? (`SimpleConfirm`) g: Timeline event confirms
 
 ## 8. Sync and auth
