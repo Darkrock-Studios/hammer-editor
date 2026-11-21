@@ -150,9 +150,9 @@ Shared building blocks are listed once at the end; fixing one fixes every dialog
 ## 10. Platform-only
 
 Desktop:
-- [ ] Splash (`SplashScreen`) **no gallery**
+- [x] Splash (`SplashScreen`) reviewed by code, brand screen left as is
 - [ ] Editor window menu bar (`ProjectEditorWindow`) **no gallery**
-- [ ] Close-window unsaved confirms (`desktop/.../ConfirmCloseDialogs.kt`; copies of the project-root confirms) **no gallery**
+- [x] Close-window unsaved confirms (`desktop/.../ConfirmCloseDialogs.kt`; copies of the project-root confirms) reviewed by code, matched to the project-root confirms
 - [ ] macOS sandbox: Welcome to Hammer, retry, choose a projects folder (`SandboxStartup`, native alerts)
 
 Android:

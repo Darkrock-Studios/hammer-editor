@@ -7,19 +7,19 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.UnsavedScenesConfirmDialog
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.unsaved_dialog_negative_button
 import com.darkrockstudios.apps.hammer.unsaved_dialog_positive_button
 import com.darkrockstudios.apps.hammer.unsaved_encyclopedia_dialog_message
-import com.darkrockstudios.apps.hammer.unsaved_encyclopedia_dialog_title
 import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_negative_button
 import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_neutral_button
 import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_positive_button
+import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_keep
+import com.darkrockstudios.apps.hammer.unsaved_entity_dialog_title
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import org.jetbrains.compose.resources.StringResource
 import com.darkrockstudios.apps.hammer.unsaved_notes_dialog_message
-import com.darkrockstudios.apps.hammer.unsaved_notes_dialog_title
 import com.darkrockstudios.apps.hammer.unsaved_scenes_dialog_message
 import com.darkrockstudios.apps.hammer.unsaved_scenes_dialog_title
 import com.darkrockstudios.apps.hammer.unsaved_timeline_dialog_message
-import com.darkrockstudios.apps.hammer.unsaved_timeline_dialog_title
 
 @ExperimentalComposeApi
 @Composable
@@ -45,19 +45,7 @@ internal fun confirmCloseUnsavedEncyclopediaDialog(
 	closeType: ApplicationState.CloseType,
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
-	SimpleConfirm(
-		title = Res.string.unsaved_encyclopedia_dialog_title.get(),
-		message = Res.string.unsaved_encyclopedia_dialog_message.get(),
-		positiveButton = discardButtonText(closeType),
-		negativeButton = Res.string.unsaved_dialog_negative_button.get(),
-		onDismiss = { /* Noop */ },
-		onNegative = {
-			dismissDialog(ConfirmCloseResult.Cancel, closeType)
-		},
-		onConfirm = {
-			dismissDialog(ConfirmCloseResult.Discard, closeType)
-		}
-	)
+	UnsavedEntityConfirm(closeType, Res.string.unsaved_encyclopedia_dialog_message, dismissDialog)
 }
 
 @ExperimentalMaterial3Api
@@ -67,19 +55,7 @@ internal fun confirmCloseUnsavedTimelineDialog(
 	closeType: ApplicationState.CloseType,
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
-	SimpleConfirm(
-		title = Res.string.unsaved_timeline_dialog_title.get(),
-		message = Res.string.unsaved_timeline_dialog_message.get(),
-		positiveButton = discardButtonText(closeType),
-		negativeButton = Res.string.unsaved_dialog_negative_button.get(),
-		onDismiss = { /* Noop */ },
-		onNegative = {
-			dismissDialog(ConfirmCloseResult.Cancel, closeType)
-		},
-		onConfirm = {
-			dismissDialog(ConfirmCloseResult.Discard, closeType)
-		}
-	)
+	UnsavedEntityConfirm(closeType, Res.string.unsaved_timeline_dialog_message, dismissDialog)
 }
 
 @ExperimentalMaterial3Api
@@ -89,18 +65,25 @@ internal fun confirmCloseUnsavedNotesDialog(
 	closeType: ApplicationState.CloseType,
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
+	UnsavedEntityConfirm(closeType, Res.string.unsaved_notes_dialog_message, dismissDialog)
+}
+
+@Composable
+private fun UnsavedEntityConfirm(
+	closeType: ApplicationState.CloseType,
+	message: StringResource,
+	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit,
+) {
 	SimpleConfirm(
-		title = Res.string.unsaved_notes_dialog_title.get(),
-		message = Res.string.unsaved_notes_dialog_message.get(),
+		title = Res.string.unsaved_entity_dialog_title.get(),
+		message = message.get(),
 		positiveButton = discardButtonText(closeType),
-		negativeButton = Res.string.unsaved_dialog_negative_button.get(),
+		negativeButton = Res.string.unsaved_entity_dialog_keep.get(),
+		destructive = true,
+		kind = Res.string.confirm_kind_discard.get(),
 		onDismiss = { /* Noop */ },
-		onNegative = {
-			dismissDialog(ConfirmCloseResult.Cancel, closeType)
-		},
-		onConfirm = {
-			dismissDialog(ConfirmCloseResult.Discard, closeType)
-		}
+		onNegative = { dismissDialog(ConfirmCloseResult.Cancel, closeType) },
+		onConfirm = { dismissDialog(ConfirmCloseResult.Discard, closeType) },
 	)
 }
 

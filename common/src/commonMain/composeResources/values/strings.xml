@@ -13,7 +13,6 @@
 
 	<string name="unsaved_timeline_dialog_message">Your edits to this event haven't been saved.</string>
 
-	<string name="unsaved_dialog_negative_button">Cancel</string>
 	<string name="unsaved_dialog_positive_button">Discard and close</string>
 
 	<string name="unsaved_entity_dialog_negative_button">Discard</string>

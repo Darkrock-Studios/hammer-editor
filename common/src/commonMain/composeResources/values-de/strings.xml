@@ -7,7 +7,6 @@
 	<string name="unsaved_encyclopedia_dialog_message">Eintrag verwerfen?</string>
 	<string name="unsaved_notes_dialog_message">Notiz verwerfen?</string>
 	<string name="unsaved_timeline_dialog_message">Ereignis verwerfen?</string>
-	<string name="unsaved_dialog_negative_button">Abbrechen</string>
 	<string name="unsaved_dialog_positive_button">Verwerfen und schließen</string>
 	<string name="unsaved_entity_dialog_negative_button">Verwerfen</string>
 	<string name="unsaved_entity_dialog_neutral_button">Abbrechen</string>

@@ -7,7 +7,6 @@
 	<string name="unsaved_encyclopedia_dialog_message">Descartar verbete?</string>
 	<string name="unsaved_notes_dialog_message">Descartar anotação?</string>
 	<string name="unsaved_timeline_dialog_message">Descartar evento?</string>
-	<string name="unsaved_dialog_negative_button">Cancelar</string>
 	<string name="unsaved_dialog_positive_button">Descartar e fechar</string>
 	<string name="unsaved_entity_dialog_negative_button">Descartar</string>
 	<string name="unsaved_entity_dialog_neutral_button">Cancelar</string>
