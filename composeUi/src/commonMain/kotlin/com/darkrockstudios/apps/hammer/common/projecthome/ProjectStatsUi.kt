@@ -359,7 +359,7 @@ private fun ThisWeekBlock(activity: WritingActivityDerived, modifier: Modifier =
 				text = Res.string.project_home_stat_week_change_flat.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
-			else -> HdDeltaBadge(percent = pct.toFloat(), suffix = "vs last week")
+			else -> HdDeltaBadge(percent = pct.toFloat(), suffix = Res.string.project_home_stat_week_change_suffix.get())
 		}
 		Spacer(Modifier.height(4.dp))
 		HdInlineStat(

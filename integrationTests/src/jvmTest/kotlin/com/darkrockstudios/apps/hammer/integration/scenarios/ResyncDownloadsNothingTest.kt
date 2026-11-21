@@ -7,7 +7,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -57,7 +56,7 @@ class ResyncDownloadsNothingTest : RoundTripTestBase() {
 		seeded.forEach { seedServerEntity(pid, it) }
 		database().execute("UPDATE project SET last_id = 5 WHERE id = $pid;")
 
-		// The scene was seeded with null timestamps; remember its hash so we can prove the heal.
+		// The scene was seeded with null timestamps; the client must store it as it is.
 		val seededSceneHash = (seeded.first() as ApiProjectEntity.SceneEntity).hash()
 
 		val wire = tapWire()
@@ -70,13 +69,15 @@ class ResyncDownloadsNothingTest : RoundTripTestBase() {
 			"first sync should have downloaded every server entity",
 		)
 
-		// The client backfilled the scene's null timestamps, so it should have healed the server's
-		// copy in the same sync rather than just adopting the impoverished version.
-		assertNotEquals(
+		// Null timestamps are kept null locally, so the download hashes as the server's copy and
+		// nothing is pushed back: a backfill from this device's own project date would not match
+		// another device's and the heal upload would seed a conflict there.
+		assertEquals(
 			seededSceneHash,
 			serverEntityHash(project, 1),
-			"server's scene should have been healed with the backfilled timestamps",
+			"server's null-timestamp scene should be left as it is",
 		)
+		assertEquals(emptyList(), wire.entitiesUploaded(), "download sync pushed an entity back")
 
 		wire.reset()
 

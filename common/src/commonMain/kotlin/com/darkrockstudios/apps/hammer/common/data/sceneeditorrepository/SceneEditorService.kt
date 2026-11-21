@@ -56,23 +56,30 @@ class SceneEditorService(
 
 	init {
 		projectScope.scope.registerCallback(this)
+		// Re-anchored as the buffer is replaced, so an editor save is never diffed against the
+		// wrong text on either side of the replacement.
+		sceneContentRepository.onExternalContentApplied = { content, revision ->
+			writingSessionTracker.replaceBaseline(content.scene.id, revision) { content.coerceMarkdown() }
+		}
 		// Autosave persists from the content repo's debounce engine fire here; run the
 		// save side-effects (writing-activity, timestamp, stats) the content repo
-		// deliberately doesn't. Crediting writing activity here — not only on full
-		// saves — means active typing counts as it happens, instead of waiting for the
+		// deliberately doesn't. Crediting writing activity here, not only on full
+		// saves, means active typing counts as it happens, instead of waiting for the
 		// next sync, scene switch, or app close to flush the buffer.
 		serviceScope.launch {
 			sceneContentRepository.bufferPersistedFlow.collect { event ->
 				if (event.source == UpdateSource.Editor) {
-					sceneContentRepository.getSceneBuffer(event.sceneId)?.let { buffer ->
-						writingSessionTracker.onSceneSaved(
-							sceneId = event.sceneId,
-							newContent = buffer.content.coerceMarkdown(),
-							source = event.source,
-						)
-					}
-					sceneMetadataRepository.recordSceneActivity(event.sceneId)
-					statisticsRepository.markDirty()
+					val recorded = writingSessionTracker.onSceneSaved(
+						sceneId = event.sceneId,
+						newContent = event.content.coerceMarkdown(),
+						source = event.source,
+						revision = event.revision,
+					)
+					// Stamped only while the buffer still holds this save: a later save stamps for itself, and
+					// a scene deleted or re-ided since, or replaced under this id, has nothing to stamp.
+					val current = sceneContentRepository.snapshotBuffer(event.sceneId)?.revision == event.revision
+					if (current) sceneMetadataRepository.recordSceneActivity(event.sceneId)
+					if (current || recorded > 0) statisticsRepository.markDirty()
 				}
 			}
 		}
@@ -84,6 +91,11 @@ class SceneEditorService(
 	fun reIdScene(oldId: Int, newId: Int) {
 		sceneEditorRepository.reIdScene(oldId, newId)
 		sceneContentRepository.reIdBuffer(oldId, newId)
+		writingSessionTracker.reIdBaseline(oldId, newId)
+		// Outside text that reached the moved buffer before its anchor moved.
+		sceneContentRepository.snapshotBuffer(newId)?.takeIf { it.buffer.source != UpdateSource.Editor }?.let {
+			writingSessionTracker.replaceBaseline(newId, it.revision) { it.buffer.content.coerceMarkdown() }
+		}
 	}
 
 	/**
@@ -190,8 +202,8 @@ class SceneEditorService(
 	 * [SceneContentRepository], then apply save side-effects (stats, writing-activity, timestamp).
 	 */
 	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
-		val buffer = sceneContentRepository.getSceneBuffer(sceneItem)
-		if (buffer == null) {
+		val snapshot = sceneContentRepository.snapshotBuffer(sceneItem.id)
+		if (snapshot == null) {
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
@@ -211,16 +223,18 @@ class SceneEditorService(
 
 		sceneEditorRepository.markSceneForSynchronization(sceneItem)
 
-		val success = sceneContentRepository.persistBuffer(buffer, scenePath)
+		val success = sceneContentRepository.persistBuffer(snapshot, scenePath)
 
+		val buffer = snapshot.buffer
 		if (success) {
 			statisticsRepository.markDirty()
 			writingSessionTracker.onSceneSaved(
 				sceneId = sceneItem.id,
 				newContent = buffer.content.coerceMarkdown(),
 				source = buffer.source,
+				revision = snapshot.revision,
 			)
-			if (buffer.source == UpdateSource.Editor) {
+			if (buffer.source == UpdateSource.Editor && sceneContentRepository.getSceneBuffer(sceneItem.id) != null) {
 				sceneMetadataRepository.recordSceneActivity(sceneItem.id)
 			}
 		}
@@ -240,10 +254,8 @@ class SceneEditorService(
 			return
 		}
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneDef)
-		val reloaded = sceneContentRepository.discardBuffer(sceneDef, scenePath)
-		if (reloaded != null) {
-			writingSessionTracker.rememberBaseline(sceneDef.id, reloaded.content.coerceMarkdown())
-		}
+		val reloaded = sceneContentRepository.discardBuffer(sceneDef, scenePath) ?: return
+		writingSessionTracker.rememberBaseline(sceneDef.id, reloaded.buffer.content.coerceMarkdown(), reloaded.revision)
 	}
 
 	/** Reverts every dirty buffer to its on-disk content. */
@@ -321,17 +333,40 @@ class SceneEditorService(
 		sceneContentRepository.getSceneBuffer(sceneDef)
 
 	/**
-	 * Returns the cached buffer, or loads it from disk and remembers a writing-session baseline
-	 * for the freshly-loaded content.
+	 * Returns the cached buffer, or loads it from disk, and anchors the scene's writing activity at
+	 * that text: a cached buffer only when the scene has no anchor yet, a load from disk always.
 	 */
 	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
-		val cached = sceneContentRepository.getSceneBuffer(sceneItem)
-		if (cached != null) return cached
+		anchorBuffer(sceneItem.id, reanchor = false)?.let { return it }
 
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
-		val buffer = sceneContentRepository.loadBuffer(sceneItem, scenePath)
-		writingSessionTracker.rememberBaseline(sceneItem.id, buffer.content.coerceMarkdown())
-		return buffer
+		val loaded = sceneContentRepository.loadBuffer(sceneItem, scenePath)
+		return anchorBuffer(sceneItem.id, reanchor = true) ?: loaded.buffer
+	}
+
+	/**
+	 * Anchors the scene's writing activity at its buffer, or re-anchors it with [reanchor], and returns
+	 * the buffer; null without one. The text is converted outside the buffer lock and anchored under it
+	 * if the buffer has not changed meanwhile; after [ANCHOR_ATTEMPTS] changes it is converted under it.
+	 */
+	private fun anchorBuffer(sceneId: Int, reanchor: Boolean): SceneBuffer? {
+		fun anchor(snapshot: BufferSnapshot, text: String) = if (reanchor) {
+			writingSessionTracker.rememberBaseline(sceneId, text, snapshot.revision)
+		} else {
+			writingSessionTracker.ensureBaseline(sceneId, text, snapshot.revision)
+		}
+		repeat(ANCHOR_ATTEMPTS) {
+			val snapshot = sceneContentRepository.snapshotBuffer(sceneId) ?: return null
+			if (!reanchor && writingSessionTracker.holdsBaseline(sceneId)) return snapshot.buffer
+			val text = snapshot.buffer.content.coerceMarkdown()
+			val anchored = sceneContentRepository.withBufferSnapshot(sceneId) { current ->
+				(current?.revision == snapshot.revision).also { same -> if (same) anchor(snapshot, text) }
+			}
+			if (anchored) return snapshot.buffer
+		}
+		return sceneContentRepository.withBufferSnapshot(sceneId) { current ->
+			current?.also { anchor(it, it.buffer.content.coerceMarkdown()) }?.buffer
+		}
 	}
 
 	suspend fun loadSceneBufferAsync(sceneItem: SceneItem): SceneBuffer = withContext(dispatcherIo) {
@@ -339,6 +374,8 @@ class SceneEditorService(
 	}
 
 	fun hasDirtyBuffers(): Boolean = sceneContentRepository.hasDirtyBuffers()
+
+	fun hasDirtyBuffer(sceneId: Int): Boolean = sceneContentRepository.hasDirtyBuffer(sceneId)
 
 	suspend fun getMetadata(): ProjectMetadata = sceneMetadataRepository.getMetadata()
 
@@ -382,5 +419,9 @@ class SceneEditorService(
 
 	override fun onScopeClose(scope: Scope) {
 		serviceScope.cancel("Editor Closed")
+	}
+
+	private companion object {
+		const val ANCHOR_ATTEMPTS = 3
 	}
 }
