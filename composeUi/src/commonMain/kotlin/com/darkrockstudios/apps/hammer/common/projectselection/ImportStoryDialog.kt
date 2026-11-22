@@ -19,7 +19,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
@@ -36,6 +35,8 @@ import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 private val DialogMaxHeight = 720.dp
 
@@ -100,12 +101,14 @@ internal fun ImportStoryContent(
 			.heightIn(max = DialogMaxHeight)
 			.fillMaxHeight(0.9f),
 	) {
-		FormField(
+		HdHairlineField(
 			value = projectName,
 			onValueChange = onProjectNameChange,
 			label = Res.string.create_project_heading.get(),
 			autoFocus = true,
 			error = nameValidation.fieldError(projectName),
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
 
 		when (options.format) {
@@ -154,10 +157,12 @@ internal fun ImportStoryContent(
 
 @Composable
 private fun ChapterPatternField(pattern: String, onPatternChange: (String) -> Unit) {
-	FormField(
+	HdHairlineField(
 		value = pattern,
 		onValueChange = onPatternChange,
 		label = Res.string.project_home_import_pattern_label.get(),
+		imeAction = ImeAction.Done,
+		capitalization = KeyboardCapitalization.None,
 	)
 }
 

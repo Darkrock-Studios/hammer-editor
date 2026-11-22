@@ -127,7 +127,7 @@ fun HdRungDateField(
 
 	val words = rememberStoryDateWords()
 	Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-		HdMonoLabel(text = label)
+		HdFieldLabel(text = label)
 		FlowRow(
 			horizontalArrangement = Arrangement.spacedBy(12.dp),
 			verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -170,13 +170,21 @@ fun HdRungDateField(
 		val problem = parsed.problem
 		val date = parsed.date
 		when {
-			problem != null -> HdMonoLabel(text = problem.message(), color = MaterialTheme.colorScheme.error)
-			error != null -> HdMonoLabel(text = error, color = MaterialTheme.colorScheme.error)
+			problem != null -> Text(
+				text = problem.message(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.error,
+			)
+			error != null -> Text(
+				text = error,
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.error,
+			)
 			date != null -> Row(
 				verticalAlignment = Alignment.CenterVertically,
 				horizontalArrangement = Arrangement.spacedBy(10.dp),
 			) {
-				HdMonoLabel(text = Res.string.timeline_date_shows_as.get())
+				HdFieldLabel(text = Res.string.timeline_date_shows_as.get())
 				Text(
 					text = formatStoryDate(calendar, date, words),
 					style = MaterialTheme.typography.bodyMedium,

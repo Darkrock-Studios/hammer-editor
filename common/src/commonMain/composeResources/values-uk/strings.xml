@@ -34,4 +34,5 @@
 	<string name="markdown_preview_image">Зображення</string>
 	<string name="markdown_format_bar_undo">Скасувати</string>
 	<string name="markdown_format_bar_redo">Повторити</string>
+	<string name="hd_field_optional">необов'язково</string>
 </resources>

@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_DESCRIPTION_LENGTH
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -40,6 +39,8 @@ import com.darkrockstudios.apps.hammer.rename_group_button
 import com.darkrockstudios.apps.hammer.rename_group_cancel_button
 import com.darkrockstudios.apps.hammer.rename_group_heading
 import com.darkrockstudios.apps.hammer.rename_group_title
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 const val CreateGroupNameFieldTestTag = "create-group-name"
 
@@ -114,7 +115,7 @@ fun GroupCreateContent(
 		onCancel = onCancel,
 		confirmEnabled = canCreate,
 	) {
-		FormField(
+		HdHairlineField(
 			value = name,
 			onValueChange = onNameChange,
 			label = Res.string.create_group_name_heading.get(),
@@ -122,14 +123,17 @@ fun GroupCreateContent(
 			error = nameError,
 			onImeAction = ::submit,
 			testTag = CreateGroupNameFieldTestTag,
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
-		FormField(
+		HdHairlineField(
 			value = description,
 			onValueChange = onDescriptionChange,
 			label = Res.string.create_group_description_heading.get(),
 			singleLine = false,
 			imeAction = ImeAction.Default,
 			error = descriptionError,
+			capitalization = KeyboardCapitalization.None,
 		)
 	}
 }
@@ -179,13 +183,15 @@ fun GroupRenameContent(
 		onCancel = onCancel,
 		confirmEnabled = nameValid,
 	) {
-		FormField(
+		HdHairlineField(
 			value = name,
 			onValueChange = onNameChange,
 			label = Res.string.rename_group_heading.get(),
 			autoFocus = true,
 			error = nameError,
 			onImeAction = ::submit,
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
 	}
 }
@@ -232,15 +238,16 @@ fun GroupDescriptionContent(
 		onCancel = onCancel,
 		confirmEnabled = error == null,
 	) {
-		FormField(
+		HdHairlineField(
 			value = description,
 			onValueChange = onDescriptionChange,
 			label = Res.string.group_description_heading.get(),
 			autoFocus = true,
 			singleLine = false,
 			imeAction = ImeAction.Default,
-			helper = Res.string.group_description_helper.get(),
+			hint = Res.string.group_description_helper.get(),
 			error = error,
+			capitalization = KeyboardCapitalization.None,
 		)
 	}
 }

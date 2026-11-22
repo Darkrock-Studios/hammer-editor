@@ -13,7 +13,6 @@
 	<string name="timeline_view_cancel_button">Annuler</string>
 	<string name="timeline_view_edit_button">Modifier</string>
 	<string name="timeline_view_close_button">Fermer l'entrée</string>
-	<string name="timeline_view_date_hint">facultatif</string>
 	<string name="timeline_view_date_placeholder">p. ex. Printemps de l'an 3</string>
 	<string name="timeline_view_undated">SANS DATE</string>
 	<string name="timeline_view_status_unsaved">NON ENREGISTRÉ</string>
@@ -26,7 +25,6 @@
 	<string name="timeline_create_word_count">%1$d M · %2$d C</string>
 	<string name="timeline_create_cancel_button">Annuler</string>
 	<string name="timeline_create_create_button">Créer</string>
-	<string name="timeline_create_date_hint">facultatif</string>
 	<string name="timeline_create_date_placeholder">p. ex. Printemps de l'an 3</string>
 	<string name="timeline_view_discard_title">Abandonner les modifications ?</string>
 	<string name="timeline_view_discard_message">Vous perdrez toutes les modifications effectuées.</string>

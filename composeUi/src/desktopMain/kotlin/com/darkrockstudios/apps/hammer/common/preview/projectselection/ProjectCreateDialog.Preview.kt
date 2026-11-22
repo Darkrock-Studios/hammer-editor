@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -22,6 +21,9 @@ import com.darkrockstudios.apps.hammer.create_project_button
 import com.darkrockstudios.apps.hammer.create_project_cancel_button
 import com.darkrockstudios.apps.hammer.create_project_heading
 import com.darkrockstudios.apps.hammer.create_project_title
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 /**
  * The create-project dialog renders inside an animated [androidx.compose.ui.window.Dialog], which
@@ -47,10 +49,12 @@ fun ScreenProjectCreateDialogPreview() {
 					onCancel = {},
 					confirmEnabled = true,
 					body = {
-						FormField(
+						HdHairlineField(
 							value = "Alice in Wonderland",
 							onValueChange = {},
 							label = Res.string.create_project_heading.get(),
+							imeAction = ImeAction.Done,
+							capitalization = KeyboardCapitalization.None,
 						)
 						ProjectCreateImportLine(onHelp = {}, onImport = {})
 					},

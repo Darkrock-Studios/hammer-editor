@@ -15,7 +15,6 @@
 	<string name="timeline_view_cancel_button">Cancel</string>
 	<string name="timeline_view_edit_button">Edit</string>
 	<string name="timeline_view_close_button">Close Entry</string>
-	<string name="timeline_view_date_hint">optional</string>
 	<string name="timeline_view_date_placeholder">e.g. Spring of Y3</string>
 	<string name="timeline_view_undated">UNDATED</string>
 	<string name="timeline_view_status_unsaved">UNSAVED</string>
@@ -29,7 +28,6 @@
 	<string name="timeline_create_word_count">%1$d W · %2$d CH</string>
 	<string name="timeline_create_cancel_button">Cancel</string>
 	<string name="timeline_create_create_button">Create</string>
-	<string name="timeline_create_date_hint">optional</string>
 	<string name="timeline_create_date_placeholder">e.g. Spring of Y3</string>
 
 	<string name="timeline_view_discard_title">Discard your changes?</string>
@@ -60,10 +58,8 @@
 	<string name="timeline_kind_entry">Encyclopedia event</string>
 	<string name="timeline_when_label">When</string>
 	<string name="timeline_title_label">Title</string>
-	<string name="timeline_title_hint">optional</string>
 	<string name="timeline_title_placeholder">e.g. The ship runs aground</string>
 	<string name="timeline_lane_label">Lane</string>
-	<string name="timeline_lane_hint">optional</string>
 	<string name="timeline_lane_placeholder">e.g. Alice</string>
 	<string name="timeline_milestone_label">Milestone</string>
 	<string name="timeline_milestone_hint">A turning point of the story, marked with a diamond</string>
@@ -152,7 +148,6 @@
 	<string name="timeline_preset_story">Story</string>
 	<string name="timeline_preset_gregorian">Gregorian</string>
 	<string name="timeline_settings_epoch_label">Epoch</string>
-	<string name="timeline_settings_epoch_hint">optional</string>
 	<string name="timeline_settings_epoch_placeholder">e.g. The Landing</string>
 	<string name="timeline_settings_coarsest_label">Told in</string>
 	<string name="timeline_settings_lanes_label">Lane order</string>

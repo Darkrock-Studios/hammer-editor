@@ -13,7 +13,6 @@
 	<string name="timeline_view_cancel_button">Скасувати</string>
 	<string name="timeline_view_edit_button">Редагувати</string>
 	<string name="timeline_view_close_button">Закрити запис</string>
-	<string name="timeline_view_date_hint">необов'язково</string>
 	<string name="timeline_view_date_placeholder">напр. Весна 3-го року</string>
 	<string name="timeline_view_undated">БЕЗ ДАТИ</string>
 	<string name="timeline_view_status_unsaved">НЕ ЗБЕРЕЖЕНО</string>
@@ -26,7 +25,6 @@
 	<string name="timeline_create_word_count">%1$d СЛ · %2$d СИМ</string>
 	<string name="timeline_create_cancel_button">Скасувати</string>
 	<string name="timeline_create_create_button">Створити</string>
-	<string name="timeline_create_date_hint">необов'язково</string>
 	<string name="timeline_create_date_placeholder">напр. Весна 3-го року</string>
 	<string name="timeline_view_discard_title">Відхилити зміни?</string>
 	<string name="timeline_view_discard_message">Ви втратите всі внесені зміни.</string>

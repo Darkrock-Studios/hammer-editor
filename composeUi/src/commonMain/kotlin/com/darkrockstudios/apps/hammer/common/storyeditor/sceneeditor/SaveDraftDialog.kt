@@ -17,13 +17,15 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 @Composable
 internal fun SaveDraftDialog(
@@ -124,7 +126,7 @@ internal fun SaveDraftCard(
 			}
 		}
 
-		FormField(
+		HdHairlineField(
 			value = draftName,
 			onValueChange = onDraftNameChange,
 			label = Res.string.save_draft_dialog_name_label.get(),
@@ -133,6 +135,8 @@ internal fun SaveDraftCard(
 				Res.string.save_draft_dialog_name_error.get()
 			} else null,
 			onImeAction = onConfirm,
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
 	}
 }

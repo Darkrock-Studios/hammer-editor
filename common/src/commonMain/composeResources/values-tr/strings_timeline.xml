@@ -13,7 +13,6 @@
 	<string name="timeline_view_cancel_button">Cancel</string>
 	<string name="timeline_view_edit_button">Edit</string>
 	<string name="timeline_view_close_button">Close Entry</string>
-	<string name="timeline_view_date_hint">optional</string>
 	<string name="timeline_view_date_placeholder">e.g. Spring of Y3</string>
 	<string name="timeline_view_undated">UNDATED</string>
 	<string name="timeline_view_status_unsaved">UNSAVED</string>
@@ -26,7 +25,6 @@
 	<string name="timeline_create_word_count">%1$d W · %2$d CH</string>
 	<string name="timeline_create_cancel_button">Cancel</string>
 	<string name="timeline_create_create_button">Create</string>
-	<string name="timeline_create_date_hint">optional</string>
 	<string name="timeline_create_date_placeholder">e.g. Spring of Y3</string>
 	<string name="timeline_view_discard_title">Discard Changes?</string>
 	<string name="timeline_view_discard_message">You will lose any changes you have made.</string>

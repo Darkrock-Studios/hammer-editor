@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerList
@@ -53,6 +52,9 @@ import com.darkrockstudios.apps.hammer.scene_move_dialog_chapters
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
 import androidx.compose.foundation.layout.fillMaxSize
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 private fun moveDestinationTag(id: Int) = "move-dialog-destination-$id"
 
@@ -210,7 +212,7 @@ internal fun ColumnScope.MoveSceneDialogBody(
 		)
 	}
 
-	FormField(
+	HdHairlineField(
 		value = state.positionText,
 		onValueChange = { text -> state.positionText = text.filter { it.isDigit() } },
 		label = Res.string.scene_move_dialog_position_label.get(state.maxPosition),
@@ -219,6 +221,8 @@ internal fun ColumnScope.MoveSceneDialogBody(
 		),
 		onImeAction = onSubmit,
 		testTag = MOVE_DIALOG_POSITION_FIELD_TAG,
+		imeAction = ImeAction.Done,
+		capitalization = KeyboardCapitalization.None,
 	)
 }
 

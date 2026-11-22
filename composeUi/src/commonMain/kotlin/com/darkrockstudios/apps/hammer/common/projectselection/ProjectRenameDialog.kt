@@ -5,11 +5,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.FormDialog
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 @Composable
 fun ProjectRenameDialog(
@@ -39,13 +41,15 @@ fun ProjectRenameDialog(
 		onDismiss = close,
 		confirmEnabled = validation.isValid,
 	) {
-		FormField(
+		HdHairlineField(
 			value = projectName,
 			onValueChange = { projectName = it },
 			label = Res.string.rename_project_heading.get(),
 			autoFocus = true,
 			error = validation.fieldError(projectName),
 			onImeAction = ::submit,
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
 	}
 }

@@ -30,7 +30,6 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModal
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModalDefaults
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineImageDrop
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
@@ -79,6 +78,7 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_too_long
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFieldLabel
 
 const val ENCYCLOPEDIA_CREATE_NAME_TAG = "encyclopedia-create-name"
 const val ENCYCLOPEDIA_CREATE_TAGS_TAG = "encyclopedia-create-tags"
@@ -216,7 +216,7 @@ internal fun CreateEntryUi(
 			)
 
 			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-				HdMonoLabel(text = Res.string.encyclopedia_create_entry_description_label.get())
+				HdFieldLabel(text = Res.string.encyclopedia_create_entry_description_label.get())
 				MarkdownEditField(
 					initialMarkdown = remember { description },
 					onMarkdownChanged = { description = it },

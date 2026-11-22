@@ -46,7 +46,7 @@ internal fun PlacementFields(
 				label = Res.string.timeline_when_label.get(),
 				value = dateText,
 				onValueChange = component::onDateTextChanged,
-				hint = Res.string.timeline_view_date_hint.get(),
+				optional = true,
 				placeholder = Res.string.timeline_view_date_placeholder.get(),
 				onFocusChanged = {
 					dateFocused = it
@@ -100,7 +100,7 @@ internal fun EditBody(
 						label = Res.string.timeline_title_label.get(),
 						value = state.title,
 						onValueChange = component::onTitleChanged,
-						hint = Res.string.timeline_title_hint.get(),
+						optional = true,
 						placeholder = Res.string.timeline_title_placeholder.get(),
 						onFocusChanged = { titleFocused = it },
 						modifier = fieldPadding,

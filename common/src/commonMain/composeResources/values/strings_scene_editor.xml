@@ -58,7 +58,7 @@
 
 	<string name="scene_editor_metadata_notes_label">Notes</string>
 	<string name="scene_editor_metadata_notes_placeholder">Notes to yourself.</string>
-	<string name="scene_editor_metadata_draft_name_label">Draft Name</string>
+	<string name="scene_editor_metadata_draft_name_label">Draft name</string>
 
 	<string name="scene_editor_metadata_references_header">References</string>
 	<string name="scene_editor_metadata_references_dismissed_label">Dismissed</string>

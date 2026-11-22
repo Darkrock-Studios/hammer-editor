@@ -17,10 +17,12 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogSubject
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 const val DeleteOnServerToggleTestTag = "delete-project-on-server"
 const val DeleteCoauthorsNoteTestTag = "delete-project-coauthors"
@@ -112,7 +114,7 @@ fun ProjectDeleteContent(
 			}
 		}
 
-		FormField(
+		HdHairlineField(
 			value = confirmationText,
 			onValueChange = onConfirmationTextChange,
 			label = Res.string.delete_project_confirm_label.get(),
@@ -120,6 +122,8 @@ fun ProjectDeleteContent(
 			autoFocus = true,
 			autoCorrectEnabled = false,
 			onImeAction = { if (isConfirmed) onConfirm() },
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
 
 		if (offerServerDelete) {

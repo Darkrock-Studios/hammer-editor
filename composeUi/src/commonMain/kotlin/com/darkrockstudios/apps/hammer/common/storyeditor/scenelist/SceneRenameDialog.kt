@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -23,6 +22,9 @@ import com.darkrockstudios.apps.hammer.chapter_rename_dialog_title
 import com.darkrockstudios.apps.hammer.group_rename_dialog_title
 import com.darkrockstudios.apps.hammer.scene_rename_dialog_rename_button
 import com.darkrockstudios.apps.hammer.scene_rename_dialog_title
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 @Composable
 internal fun SceneRenameDialog(
@@ -83,7 +85,7 @@ internal fun SceneRenameCard(
 		onCancel = onCancel,
 		confirmEnabled = confirmEnabled,
 	) {
-		FormField(
+		HdHairlineField(
 			value = name,
 			onValueChange = onNameChange,
 			label = Res.string.create_sceneitem_dialog_name_label.get(),
@@ -91,6 +93,8 @@ internal fun SceneRenameCard(
 			error = error,
 			onImeAction = onConfirm,
 			testTag = fieldTestTag,
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
 	}
 }

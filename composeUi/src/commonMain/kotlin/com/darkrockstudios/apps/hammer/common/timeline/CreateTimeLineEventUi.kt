@@ -159,7 +159,7 @@ fun CreateTimeLineEventUi(
 							label = Res.string.timeline_title_label.get(),
 							value = state.title,
 							onValueChange = component::setTitle,
-							hint = Res.string.timeline_title_hint.get(),
+							optional = true,
 							placeholder = Res.string.timeline_title_placeholder.get(),
 							onFocusChanged = { titleFocused = it },
 							testTag = TIME_LINE_CREATE_TITLE_TAG,
@@ -194,7 +194,7 @@ fun CreateTimeLineEventUi(
 							label = Res.string.timeline_when_label.get(),
 							value = dateText,
 							onValueChange = { dateText = it },
-							hint = Res.string.timeline_create_date_hint.get(),
+							optional = true,
 							placeholder = Res.string.timeline_create_date_placeholder.get(),
 							onFocusChanged = { dateFocused = it },
 							testTag = TIME_LINE_CREATE_DATE_TAG,
@@ -262,7 +262,7 @@ fun CreateTimeLineEventUi(
 							.testTag(TIME_LINE_CREATE_BODY_TAG),
 						verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 					) {
-						HdMonoLabel(text = Res.string.timeline_create_body_label.get())
+						HdFieldLabel(text = Res.string.timeline_create_body_label.get())
 						key(resetVersion) {
 							MarkdownEditField(
 								initialMarkdown = remember { contentText.value },
@@ -336,7 +336,7 @@ private fun SubjectRow(
 	onClear: () -> Unit,
 ) {
 	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-		HdMonoLabel(text = Res.string.timeline_subject_label.get())
+		HdFieldLabel(text = Res.string.timeline_subject_label.get())
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			verticalAlignment = Alignment.CenterVertically,
@@ -382,7 +382,7 @@ internal fun ReferencesSection(
 			modifier = Modifier.fillMaxWidth(),
 			verticalAlignment = Alignment.CenterVertically,
 		) {
-			HdMonoLabel(text = Res.string.timeline_references_header.get())
+			HdFieldLabel(text = Res.string.timeline_references_header.get())
 			Spacer(modifier = Modifier.weight(1f))
 			if (onRemove != null) {
 				HdHairlineButton(label = Res.string.timeline_references_add.get(), onClick = onAdd)

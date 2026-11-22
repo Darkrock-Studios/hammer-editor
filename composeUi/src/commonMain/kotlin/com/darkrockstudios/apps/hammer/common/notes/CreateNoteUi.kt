@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFieldLabel
 
 const val NOTES_CREATE_BODY_TAG = "notes-create-body"
 const val NOTES_CREATE_CONFIRM_TAG = "notes-create-confirm"
@@ -121,7 +122,7 @@ fun CreateNoteUi(
 				modifier = Modifier.weight(1f, fill = false),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 			) {
-				HdMonoLabel(text = Res.string.notes_create_body_label.get())
+				HdFieldLabel(text = Res.string.notes_create_body_label.get())
 				key(resetVersion) {
 					MarkdownEditField(
 						initialMarkdown = remember { noteText.value },

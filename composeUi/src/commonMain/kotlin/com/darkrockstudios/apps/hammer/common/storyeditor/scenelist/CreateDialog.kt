@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -16,6 +15,9 @@ import com.darkrockstudios.apps.hammer.create_sceneitem_dialog_create_button
 import com.darkrockstudios.apps.hammer.create_sceneitem_dialog_dismiss_button
 import com.darkrockstudios.apps.hammer.create_sceneitem_dialog_name_label
 import com.darkrockstudios.apps.hammer.create_sceneitem_dialog_parent
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 @Composable
 internal fun CreateDialog(
@@ -79,7 +81,7 @@ internal fun CreateDialogCard(
 		meta = parentName?.let { Res.string.create_sceneitem_dialog_parent.get(it) },
 		confirmEnabled = confirmEnabled,
 	) {
-		FormField(
+		HdHairlineField(
 			value = name,
 			onValueChange = onNameChange,
 			label = Res.string.create_sceneitem_dialog_name_label.get(),
@@ -87,6 +89,8 @@ internal fun CreateDialogCard(
 			error = error,
 			onImeAction = onConfirm,
 			testTag = CREATE_ITEM_NAME_FIELD_TAG,
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
 	}
 }

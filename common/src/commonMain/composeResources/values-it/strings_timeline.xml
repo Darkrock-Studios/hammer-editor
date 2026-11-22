@@ -13,7 +13,6 @@
 	<string name="timeline_view_cancel_button">Annulla</string>
 	<string name="timeline_view_edit_button">Modifica</string>
 	<string name="timeline_view_close_button">Chiudi la voce</string>
-	<string name="timeline_view_date_hint">facoltativa</string>
 	<string name="timeline_view_date_placeholder">es. Primavera dell’anno 3</string>
 	<string name="timeline_view_undated">SENZA DATA</string>
 	<string name="timeline_view_status_unsaved">NON SALVATO</string>
@@ -26,7 +25,6 @@
 	<string name="timeline_create_word_count">%1$d PAR · %2$d CAR</string>
 	<string name="timeline_create_cancel_button">Annulla</string>
 	<string name="timeline_create_create_button">Crea</string>
-	<string name="timeline_create_date_hint">facoltativa</string>
 	<string name="timeline_create_date_placeholder">es. Primavera dell’anno 3</string>
 	<string name="timeline_view_discard_title">Scartare le modifiche?</string>
 	<string name="timeline_view_discard_message">Perderai tutte le modifiche apportate.</string>

@@ -13,7 +13,6 @@
 	<string name="timeline_view_cancel_button">Abbruch</string>
 	<string name="timeline_view_edit_button">Bearbeiten</string>
 	<string name="timeline_view_close_button">Eintrag schließen</string>
-	<string name="timeline_view_date_hint">optional</string>
 	<string name="timeline_view_date_placeholder">z. B. Frühling von J3</string>
 	<string name="timeline_view_undated">UNDATIERT</string>
 	<string name="timeline_view_status_unsaved">UNGESPEICHERT</string>
@@ -26,7 +25,6 @@
 	<string name="timeline_create_word_count">%1$d W · %2$d Z</string>
 	<string name="timeline_create_cancel_button">Abbrechen</string>
 	<string name="timeline_create_create_button">Erstellen</string>
-	<string name="timeline_create_date_hint">optional</string>
 	<string name="timeline_create_date_placeholder">z. B. Frühling von J3</string>
 	<string name="timeline_view_discard_title">Änderungen verwerfen?</string>
 	<string name="timeline_view_discard_message">Alle vorgenommenen Änderungen gehen verloren.</string>

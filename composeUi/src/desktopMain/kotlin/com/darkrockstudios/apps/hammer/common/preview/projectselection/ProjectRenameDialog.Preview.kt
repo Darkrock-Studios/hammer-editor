@@ -5,12 +5,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.rename_project_button
 import com.darkrockstudios.apps.hammer.rename_project_cancel_button
 import com.darkrockstudios.apps.hammer.rename_project_heading
 import com.darkrockstudios.apps.hammer.rename_project_title
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 /** The rename-project form over a scrim; [FormDialogScaffold] directly, since the animated dialog can't settle in a preview. */
 @Preview(widthDp = 600, heightDp = 400)
@@ -25,10 +27,12 @@ fun ProjectRenameDialogPreview() {
 			onConfirm = {},
 			onCancel = {},
 			body = {
-				FormField(
+				HdHairlineField(
 					value = "Alice in Wonderland",
 					onValueChange = {},
 					label = Res.string.rename_project_heading.get(),
+					imeAction = ImeAction.Done,
+					capitalization = KeyboardCapitalization.None,
 				)
 			},
 		)

@@ -75,10 +75,7 @@ internal fun HdHairlineChipInput(
 			verticalAlignment = Alignment.Bottom,
 			horizontalArrangement = Arrangement.spacedBy(10.dp),
 		) {
-			HdMonoLabel(text = label)
-			if (hint != null) {
-				HdMonoLabel(text = hint, color = muted)
-			}
+			HdFieldLabel(text = label)
 		}
 
 		val content: @Composable () -> Unit = {
@@ -167,6 +164,14 @@ internal fun HdHairlineChipInput(
 			thickness = Dp.Hairline,
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
+		if (hint != null) {
+			Text(
+				text = hint,
+				style = MaterialTheme.typography.bodySmall,
+				color = muted,
+				modifier = Modifier.padding(top = 4.dp),
+			)
+		}
 
 		footer()
 	}

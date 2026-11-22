@@ -19,7 +19,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  * overlapping by 1dp. The selected cell takes the `onSurface` border
  * and label color, the rest stay muted.
  *
- * The optional [title] renders as an [HdMonoLabel] above the row, with
+ * The optional [title] renders as an [HdFieldLabel] above the row, with
  * 8dp spacing. A disabled picker dims and ignores clicks, as
  * [HdHairlineDropdown] does.
  *
@@ -44,7 +44,7 @@ fun <T> HdHairlineSegmentedPicker(
 		verticalArrangement = Arrangement.spacedBy(8.dp),
 	) {
 		if (title != null) {
-			HdMonoLabel(text = title)
+			HdFieldLabel(text = title)
 		}
 		Row(modifier = if (fill) Modifier.fillMaxWidth() else Modifier.width(IntrinsicSize.Max)) {
 			options.forEachIndexed { index, option ->

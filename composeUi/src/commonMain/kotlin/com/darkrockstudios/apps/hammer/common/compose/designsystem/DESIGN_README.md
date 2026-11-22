@@ -425,12 +425,18 @@ a sort icon). Control labels are sentence case in the body face.
   label, too chrome-light for an M3 `IconButton`. Pair with
   [`HdLogGlyph`](HdToolButton.kt) — three stacked hairlines — for
   the log/list toggle glyph.
-- **[`HdHairlineField`](HdHairlineField.kt)** — labeled
-  hairline-underline text field. Mono label + optional hint and
-  counter, chrome-less `BasicTextField`, hairline rule below. The
-  default text input. Every field draws its placeholder in
-  `hdPlaceholderColor`, quieter than labels and values, and the
-  placeholder is an example value (`hammer.ink`), never the label again.
+- **[`HdHairlineField`](HdHairlineField.kt)** — the one text field,
+  in dialogs and on screens alike: chrome-less `BasicTextField` on a
+  hairline rule. The label is sentence-case mono (`HdFieldLabel`, the
+  label style for every input, pickers and tag fields included).
+  - With a `placeholder` (an example value, `hammer.ink`), the label
+    stays above and the example is the hint, in `hdPlaceholderColor`.
+  - Without one, the label sits in the empty field as the hint and
+    floats up once there is text.
+  - `optional` adds "· optional" to the label. `counter` sits at the end
+    of the label row.
+  - `hint` is help text below the rule, in sans; `error` replaces it in
+    red and turns the rule red.
 - **[`HdHairlineTagField`](HdHairlineTagField.kt)** — same vocabulary
   but the value is a `List<String>` of `HdTagChip`s; Enter / comma
   adds a tag, Backspace on empty removes the last.

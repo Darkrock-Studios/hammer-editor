@@ -81,7 +81,6 @@ import com.darkrockstudios.apps.hammer.timeline_settings_delete
 import com.darkrockstudios.apps.hammer.timeline_settings_edit
 import com.darkrockstudios.apps.hammer.timeline_settings_editor_close
 import com.darkrockstudios.apps.hammer.timeline_settings_editor_title
-import com.darkrockstudios.apps.hammer.timeline_settings_epoch_hint
 import com.darkrockstudios.apps.hammer.timeline_settings_epoch_label
 import com.darkrockstudios.apps.hammer.timeline_settings_epoch_placeholder
 import com.darkrockstudios.apps.hammer.timeline_settings_lanes_caption
@@ -372,7 +371,7 @@ private fun EpochField(initial: String, onChange: (String) -> Unit) {
 			onChange(it)
 		},
 		onFocusChanged = { focused = it },
-		hint = Res.string.timeline_settings_epoch_hint.get(),
+		optional = true,
 		placeholder = Res.string.timeline_settings_epoch_placeholder.get(),
 		testTag = TIMELINE_SETTINGS_EPOCH_TAG,
 	)
