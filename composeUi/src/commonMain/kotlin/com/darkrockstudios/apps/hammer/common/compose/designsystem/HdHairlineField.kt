@@ -90,6 +90,7 @@ fun HdHairlineField(
 	val colors = MaterialTheme.colorScheme
 	val isError = !error.isNullOrEmpty()
 	val hasLabel = label.isNotBlank()
+	val labelText = if (optional) "$label · ${Res.string.hd_field_optional.get()}" else label
 	val labelFloated = !hasLabel || value.isNotEmpty() || !placeholder.isNullOrEmpty()
 	val labelShown by animateFloatAsState(if (labelFloated) 1f else 0f, label = "hdFieldLabel")
 	val focusRequester = remember { FocusRequester() }
@@ -104,7 +105,7 @@ fun HdHairlineField(
 			horizontalArrangement = Arrangement.spacedBy(10.dp),
 		) {
 			HdFieldLabel(
-				text = if (optional) "$label · ${Res.string.hd_field_optional.get()}" else label,
+				text = labelText,
 				color = if (isError) colors.error else colors.onSurfaceVariant,
 				modifier = Modifier
 					.weight(1f)
@@ -122,7 +123,7 @@ fun HdHairlineField(
 		val textStyle = (textStyle ?: if (singleLine) MaterialTheme.typography.bodyLarge
 		else MaterialTheme.typography.bodyMedium)
 			.copy(color = textColor)
-		val emptyHint = placeholder?.takeIf { it.isNotEmpty() } ?: label.takeIf { hasLabel }
+		val emptyHint = placeholder?.takeIf { it.isNotEmpty() } ?: labelText.takeIf { hasLabel }
 
 		// In a tonal region the input is a well, which replaces the underline.
 		val inRegion = LocalHdInRegion.current

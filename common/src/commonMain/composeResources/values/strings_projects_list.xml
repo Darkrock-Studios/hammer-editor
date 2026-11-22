@@ -121,7 +121,6 @@
 	<string name="create_project_meta_in_group">In %1$s</string>
 	<string name="create_group_title">New group</string>
 	<string name="create_group_name_heading">Name</string>
-	<string name="create_group_description_heading">Description (optional)</string>
 	<string name="create_group_button">Create</string>
 	<string name="create_group_cancel_button">Cancel</string>
 	<string name="rename_group_title">Rename group</string>

@@ -21,7 +21,6 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.create_group_button
 import com.darkrockstudios.apps.hammer.create_group_cancel_button
-import com.darkrockstudios.apps.hammer.create_group_description_heading
 import com.darkrockstudios.apps.hammer.create_group_name_heading
 import com.darkrockstudios.apps.hammer.create_group_title
 import com.darkrockstudios.apps.hammer.create_project_meta_in_group
@@ -129,7 +128,8 @@ fun GroupCreateContent(
 		HdHairlineField(
 			value = description,
 			onValueChange = onDescriptionChange,
-			label = Res.string.create_group_description_heading.get(),
+			label = Res.string.group_description_heading.get(),
+			optional = true,
 			singleLine = false,
 			imeAction = ImeAction.Default,
 			textStyle = MaterialTheme.typography.bodyLarge,
