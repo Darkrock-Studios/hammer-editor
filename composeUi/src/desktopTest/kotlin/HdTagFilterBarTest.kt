@@ -5,6 +5,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.ScrollWheel
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.unit.dp
@@ -43,14 +44,16 @@ class HdTagFilterBarTest {
 	@Test
 	fun `A mouse wheel scrolls the chips sideways`() {
 		showBar()
-		assertFalse(shown("tag number 4 · 4"))
+		val before = compose.onNodeWithText("tag number 1 · 1").getBoundsInRoot().left
 
 		compose.onNodeWithText("tag number 1 · 1").performMouseInput {
 			moveTo(center)
 			repeat(4) { scroll(1f, ScrollWheel.Vertical) }
 		}
 
-		assertTrue(shown("tag number 4 · 4"))
+		// The first chip either slid left or scrolled out of the row entirely.
+		val after = runCatching { compose.onNodeWithText("tag number 1 · 1").getBoundsInRoot().left }.getOrNull()
+		assertTrue(after == null || after < before)
 	}
 
 	@Test

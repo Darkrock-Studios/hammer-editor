@@ -98,10 +98,11 @@ private val NarrowContentPadding: Dp = Ui.Padding.XL
 
 /**
  * The narrowest pane that holds the wide masthead's controls. German, the longest shipped locale,
- * needs 537dp with the sync button showing; the rest is margin for font metrics. Guarded by
- * ProjectListMastheadTest, which measures every locale.
+ * needs about 567dp with the sync button showing when the system sans is DejaVu (wider than
+ * Noto); the rest is margin for font metrics. Guarded by ProjectListMastheadTest, which measures
+ * every locale.
  */
-internal val ProjectListWideMinWidth: Dp = 560.dp
+internal val ProjectListWideMinWidth: Dp = 600.dp
 
 /** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
 const val CreateProjectButtonTestTag = "create-project-button"
