@@ -53,9 +53,9 @@ fun HdSplitButton(
 	height: Dp = 32.dp,
 ) {
 	var expanded by remember { mutableStateOf(false) }
-	val border = MaterialTheme.colorScheme.outline
-	val content = MaterialTheme.colorScheme.onPrimary
 	val fill = MaterialTheme.colorScheme.primary
+	val border = fill
+	val content = MaterialTheme.colorScheme.onPrimary
 	Row(
 		modifier = modifier
 			.height(height)
@@ -83,7 +83,7 @@ fun HdSplitButton(
 			)
 		}
 		// A hairline would vanish on the fill; the seam has to read as a second button.
-		Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(border))
+		Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(content.copy(alpha = 0.4f)))
 		Box {
 			Box(
 				modifier = Modifier

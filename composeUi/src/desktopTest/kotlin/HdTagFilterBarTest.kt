@@ -41,9 +41,12 @@ class HdTagFilterBarTest {
 	private fun shown(text: String): Boolean =
 		runCatching { compose.onNodeWithText(text).assertIsDisplayed() }.isSuccess
 
+	private fun firstShownTag(): Int = tags.indices.map { it + 1 }.first { shown("tag number $it · $it") }
+
 	@Test
 	fun `A mouse wheel scrolls the chips sideways`() {
 		showBar()
+		assertEquals(1, firstShownTag())
 		val before = compose.onNodeWithText("tag number 1 · 1").getBoundsInRoot().left
 
 		compose.onNodeWithText("tag number 1 · 1").performMouseInput {
@@ -51,9 +54,9 @@ class HdTagFilterBarTest {
 			repeat(4) { scroll(1f, ScrollWheel.Vertical) }
 		}
 
-		// The first chip either slid left or scrolled out of the row entirely.
-		val after = runCatching { compose.onNodeWithText("tag number 1 · 1").getBoundsInRoot().left }.getOrNull()
-		assertTrue(after == null || after < before)
+		// Font widths decide how far four ticks go, so check only that the row moved left.
+		val first = firstShownTag()
+		assertTrue(first > 1 || compose.onNodeWithText("tag number 1 · 1").getBoundsInRoot().left < before)
 	}
 
 	@Test

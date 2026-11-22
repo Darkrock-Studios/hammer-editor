@@ -190,6 +190,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import com.darkrockstudios.apps.hammer.confirm_kind_delete
 import com.darkrockstudios.apps.hammer.confirm_kind_discard
 import com.darkrockstudios.apps.hammer.confirm_kind_promote
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEmptyNote
 
 const val IDEAS_CREATE_BUTTON_TAG = "ideas-create-button"
 const val IDEAS_EDITOR_TITLE_TAG = "ideas-editor-title"
@@ -436,6 +437,10 @@ private fun IdeasBrowse(
 			val gridState = rememberLazyStaggeredGridState()
 			val createBarState = rememberHdScrollAwayFooterState()
 			// Always reachable when the grid can't scroll down to it.
+			// With nothing loaded, the notice stands in for the empty text.
+			val showEmpty = visibleIdeas.isEmpty() && !(loadFailed && ideas.isEmpty())
+			val emptyText = (if (showArchived) Res.string.ideas_list_empty_archived
+				else Res.string.ideas_list_empty).get()
 			val createBarVisible =
 				!isWide && (!gridState.canScrollForward || !createBarState.isHiddenByScroll)
 			Box(modifier = Modifier.weight(1f).clipToBounds()) {
@@ -463,6 +468,12 @@ private fun IdeasBrowse(
 						}
 					}
 
+					if (showEmpty && loadFailed) {
+						item(span = StaggeredGridItemSpan.FullLine) {
+							HdEmptyNote(text = emptyText)
+						}
+					}
+
 					staggeredItems(
 						items = visibleIdeas,
 						key = { idea -> idea.id.id },
@@ -479,12 +490,9 @@ private fun IdeasBrowse(
 					}
 				}
 
-				// With nothing loaded, the notice stands in for the empty text
-				if (visibleIdeas.isEmpty() && !(loadFailed && ideas.isEmpty())) {
-					HdPageEmpty(
-						text = (if (showArchived) Res.string.ideas_list_empty_archived
-							else Res.string.ideas_list_empty).get(),
-					)
+				// Centred on the page, unless the load-failed notice sits at the top of the grid.
+				if (showEmpty && !loadFailed) {
+					HdPageEmpty(text = emptyText)
 				}
 
 				MpScrollBarStaggeredGrid(

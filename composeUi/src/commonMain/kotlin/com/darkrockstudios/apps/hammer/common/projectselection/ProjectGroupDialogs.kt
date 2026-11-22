@@ -132,6 +132,7 @@ fun GroupCreateContent(
 			label = Res.string.create_group_description_heading.get(),
 			singleLine = false,
 			imeAction = ImeAction.Default,
+			textStyle = MaterialTheme.typography.bodyLarge,
 			error = descriptionError,
 			capitalization = KeyboardCapitalization.None,
 		)
@@ -245,6 +246,7 @@ fun GroupDescriptionContent(
 			autoFocus = true,
 			singleLine = false,
 			imeAction = ImeAction.Default,
+			textStyle = MaterialTheme.typography.bodyLarge,
 			hint = Res.string.group_description_helper.get(),
 			error = error,
 			capitalization = KeyboardCapitalization.None,

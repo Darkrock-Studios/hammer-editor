@@ -45,6 +45,7 @@ import com.darkrockstudios.apps.hammer.confirm_kind_confirm
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import androidx.compose.foundation.BorderStroke
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActionButtons
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 
 /**
@@ -139,14 +140,12 @@ internal fun RowScope.ConfirmationActions(
 	onCancel: () -> Unit,
 	destructive: Boolean,
 ) {
-	if (cancelLabel != null) {
-		HdHairlineButton(label = cancelLabel, onClick = onCancel)
-	}
-	HdHairlineButton(
-		label = confirmLabel,
-		onClick = onConfirm,
-		emphasised = !destructive,
-		danger = destructive,
+	HdDialogActionButtons(
+		cancelLabel = cancelLabel,
+		onCancel = onCancel,
+		confirmLabel = confirmLabel,
+		onConfirm = onConfirm,
+		destructive = destructive,
 	)
 }
 

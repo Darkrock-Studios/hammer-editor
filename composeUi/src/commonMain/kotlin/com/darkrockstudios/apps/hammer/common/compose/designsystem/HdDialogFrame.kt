@@ -129,14 +129,43 @@ fun HdDialogActions(
 		modifier = modifier.fillMaxWidth(),
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
 	) {
-		HdHairlineButton(label = cancelLabel, onClick = onCancel, enabled = cancelEnabled)
-		HdHairlineButton(
-			label = confirmLabel,
-			onClick = onConfirm,
-			enabled = confirmEnabled,
-			emphasised = !destructive,
-			danger = destructive,
-			modifier = confirmModifier,
+		HdDialogActionButtons(
+			cancelLabel = cancelLabel,
+			onCancel = onCancel,
+			confirmLabel = confirmLabel,
+			onConfirm = onConfirm,
+			confirmEnabled = confirmEnabled,
+			cancelEnabled = cancelEnabled,
+			destructive = destructive,
+			confirmModifier = confirmModifier,
 		)
 	}
+}
+
+/**
+ * The buttons of [HdDialogActions] without their row, for a caller that lays the action row out
+ * itself (the confirm card). A null [cancelLabel] leaves Cancel out.
+ */
+@Composable
+fun HdDialogActionButtons(
+	cancelLabel: String?,
+	onCancel: () -> Unit,
+	confirmLabel: String,
+	onConfirm: () -> Unit,
+	confirmEnabled: Boolean = true,
+	cancelEnabled: Boolean = true,
+	destructive: Boolean = false,
+	confirmModifier: Modifier = Modifier,
+) {
+	if (cancelLabel != null) {
+		HdHairlineButton(label = cancelLabel, onClick = onCancel, enabled = cancelEnabled)
+	}
+	HdHairlineButton(
+		label = confirmLabel,
+		onClick = onConfirm,
+		enabled = confirmEnabled,
+		emphasised = !destructive,
+		danger = destructive,
+		modifier = confirmModifier,
+	)
 }

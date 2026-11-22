@@ -269,16 +269,6 @@ fun ProjectListUi(
 					bottom = if (isWide) 0.dp else createBarState.height,
 				),
 			) {
-				if (rows.isEmpty()) {
-					item(key = "empty") {
-						HdPageEmpty(
-							text = (if (libraryEmpty) Res.string.project_select_project_list_empty
-								else Res.string.projects_list_no_matches).get(),
-							modifier = Modifier.fillParentMaxSize(),
-						)
-					}
-				}
-
 				items(count = rows.size, key = { index -> rows[index].key }) { index ->
 					when (val row = rows[index]) {
 						is ProjectListRow.Group -> ProjectGroupRow(row = row, actions = groupActions)
@@ -297,6 +287,14 @@ fun ProjectListUi(
 						)
 					}
 				}
+			}
+			if (rows.isEmpty()) {
+				// Centred in the space above the bottom create bar, not behind it.
+				HdPageEmpty(
+					text = (if (libraryEmpty) Res.string.project_select_project_list_empty
+						else Res.string.projects_list_no_matches).get(),
+					modifier = Modifier.padding(bottom = if (isWide) 0.dp else createBarState.height),
+				)
 			}
 			MpScrollBarList(
 				modifier = scrollBarOverlay(),

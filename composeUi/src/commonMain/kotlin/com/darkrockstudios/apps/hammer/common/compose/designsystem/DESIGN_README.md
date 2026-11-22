@@ -425,7 +425,7 @@ a sort icon). Control labels are sentence case in the body face.
   label, too chrome-light for an M3 `IconButton`. Pair with
   [`HdLogGlyph`](HdToolButton.kt) — three stacked hairlines — for
   the log/list toggle glyph.
-- **[`HdHairlineField`](HdHairlineField.kt)** — the one text field,
+- **[`HdHairlineField`](HdHairlineField.kt)**: the one text field,
   in dialogs and on screens alike: chrome-less `BasicTextField` on a
   hairline rule. The label is sentence-case mono (`HdFieldLabel`, the
   label style for every input, pickers and tag fields included).
