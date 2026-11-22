@@ -20,14 +20,10 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -48,6 +44,8 @@ import com.darkrockstudios.apps.hammer.confirm_kind_alert
 import com.darkrockstudios.apps.hammer.confirm_kind_confirm
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import androidx.compose.foundation.BorderStroke
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 
 /**
  * Card-style confirmation dialog with a left-side index gutter and a vertical mono caption
@@ -142,28 +140,14 @@ internal fun RowScope.ConfirmationActions(
 	destructive: Boolean,
 ) {
 	if (cancelLabel != null) {
-		TextButton(
-			onClick = onCancel,
-			shape = RoundedCornerShape(4.dp),
-		) {
-			Text(cancelLabel)
-		}
+		HdHairlineButton(label = cancelLabel, onClick = onCancel)
 	}
-	val confirmColors = if (destructive) {
-		ButtonDefaults.buttonColors(
-			containerColor = MaterialTheme.colorScheme.error,
-			contentColor = MaterialTheme.colorScheme.onError,
-		)
-	} else {
-		ButtonDefaults.buttonColors()
-	}
-	Button(
+	HdHairlineButton(
+		label = confirmLabel,
 		onClick = onConfirm,
-		shape = RoundedCornerShape(4.dp),
-		colors = confirmColors,
-	) {
-		Text(confirmLabel)
-	}
+		emphasised = !destructive,
+		danger = destructive,
+	)
 }
 
 /**
@@ -171,9 +155,8 @@ internal fun RowScope.ConfirmationActions(
  * row (e.g. the 3-button save/discard/cancel pattern). For the standard 2-button confirm
  * shape, prefer [ConfirmationDialog].
  *
- * The [actions] slot is a [Row] with [Arrangement.spacedBy] applied — drop in plain
- * [androidx.compose.material3.Button] / [androidx.compose.material3.TextButton] children
- * and they line up against the right edge.
+ * The [actions] slot is a [Row] with [Arrangement.spacedBy] applied; drop in [HdHairlineButton]
+ * children and they line up against the right edge.
  */
 @Composable
 fun IndexStripDialog(
@@ -223,7 +206,7 @@ internal fun IndexStripCard(
 		shape = RectangleShape,
 		color = MaterialTheme.colorScheme.surface,
 		contentColor = MaterialTheme.colorScheme.onSurface,
-		shadowElevation = Ui.Elevation.LARGE,
+		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
 		modifier = modifier
 			.padding(horizontal = Ui.Padding.XL)
 			.widthIn(max = 560.dp)

@@ -790,7 +790,8 @@ Every dialog that isn't a confirm sits on the same pieces:
 - **`HdEmptyNote`**: the quiet centred line where a dialog's list would be.
 
 Confirms keep their own index-strip card
-([`ConfirmationDialog`](../ConfirmationDialog.kt)); forms use
+([`ConfirmationDialog`](../ConfirmationDialog.kt)), on the same hairline
+and with the same `HdHairlineButton` actions as every other dialog; forms use
 [`FormDialogScaffold`](#form-dialogs), which sits on `HdDialogFrame`.
 
 ### Screen masthead
