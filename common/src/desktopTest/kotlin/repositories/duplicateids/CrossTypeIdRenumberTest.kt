@@ -115,7 +115,7 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 				scoped { TimeLineDatasource(ffs, toml) }
 				scoped { TimeLineRepository(projectDef, get(), get()) }
 				scoped { TimelineReferenceRemapper(get()) }
-				scoped { ClientSceneSynchronizer(projectDef, get(), get(), get(), get(), get(), get(), TestStrRes()) }
+				scoped { ClientSceneSynchronizer(projectDef, get(), get(), get(), get(), get(), TestStrRes()) }
 				scoped { ClientEncyclopediaSynchronizer(projectDef, get(), TestStrRes()) }
 				scoped<ClientNoteSynchronizer> { mockk(relaxed = true) }
 				scoped<ClientTimelineSynchronizer> { mockk(relaxed = true) }

@@ -34,6 +34,7 @@ import okio.ForwardingFileSystem
 import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
+import okio.Source
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -213,6 +214,20 @@ class ActionSessionStoreTest {
 		val failure = assertFailsWith<UnreadableSessionException> { ActionSessionStore(failing, pluginsDir).load(key) }
 		assertNull(failure.setAside)
 		assertEquals("not json", fileSystem.read(file) { readUtf8() })
+	}
+
+	@Test
+	fun `a session removed while it is being loaded is none, not unreadable`() {
+		store.save(key, session())
+		val removing = object : ForwardingFileSystem(fileSystem) {
+			override fun source(file: Path): Source {
+				fileSystem.delete(file)
+				return super.source(file)
+			}
+		}
+
+		assertNull(ActionSessionStore(removing, pluginsDir).load(key))
+		assertEquals(emptyList(), fileSystem.list(sessionDir))
 	}
 
 	@Test

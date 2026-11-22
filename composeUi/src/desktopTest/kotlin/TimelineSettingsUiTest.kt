@@ -44,10 +44,10 @@ import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_MODE_DIALOG_U
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_EPOCH_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_PRESET_WARNING_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.TimelineSettingsUi
+import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.StrResImpl
 import org.junit.Rule
-import org.koin.compose.KoinApplication
 import org.koin.dsl.module
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -196,7 +196,7 @@ class TimelineSettingsUiTest : BaseTest() {
 	private fun show(component: TimelineSettings, width: Dp = 720.dp) {
 		compose.setContent {
 			// The real strings, so a refusal's reason can be read.
-			KoinApplication(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
+			KoinApplicationPreview(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
 				Box(modifier = Modifier.width(width)) {
 					TimelineSettingsUi(component = component)
 				}

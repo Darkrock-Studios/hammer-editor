@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatistics
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
@@ -87,6 +89,7 @@ class StatisticsServiceTest : BaseTest() {
 		every { notesRepository.notesListFlow } returns MutableStateFlow(emptyList())
 		coEvery { timeLineRepository.loadTimeline() } returns TimeLineContainer(emptyList())
 		coEvery { writingActivityRepository.loadAllLogs() } returns emptyList()
+		coEvery { writingActivityRepository.ownDeviceId() } returns "device-self"
 		coEvery { referenceIndexService.loadIndex() } returns ReferenceIndex()
 		coEvery { projectDataRepository.load() } returns StoredProjectData()
 		coEvery { sceneMetadataDatasource.loadMetadata(any()) } returns null
@@ -94,7 +97,10 @@ class StatisticsServiceTest : BaseTest() {
 
 	private suspend fun loadIndex(): ReferenceIndex = referenceIndexService.loadIndex()
 
-	private fun makeService() = StatisticsService(
+	private fun makeService(
+		signedInAs: Long? = null,
+		sharedBy: ProjectOwner? = null,
+	) = StatisticsService(
 		projectDef = projectDef,
 		statisticsRepository = statisticsRepository,
 		sceneEditorRepository = sceneEditorRepository,
@@ -104,8 +110,12 @@ class StatisticsServiceTest : BaseTest() {
 		timeLineRepository = timeLineRepository,
 		writingActivityRepository = writingActivityRepository,
 		projectDataRepository = projectDataRepository,
-		projectsRepository = mockk { every { getOwner(any()) } returns null },
-		globalSettingsStore = mockk { every { serverSettings } returns null },
+		projectsRepository = mockk { every { getOwner(any()) } returns sharedBy },
+		globalSettingsStore = mockk {
+			every { serverSettings } returns signedInAs?.let {
+				ServerSettings(url = "example.com", email = "a@example.com", userId = it, bearerToken = "token", refreshToken = null)
+			}
+		},
 		clock = Clock.System,
 	)
 
@@ -300,5 +310,82 @@ class StatisticsServiceTest : BaseTest() {
 				stats.wordsPerAuthor,
 			)
 			assertEquals(500, stats.wordsPerDevice["Laptop"])
+		}
+
+	@Test
+	fun `on a shared project daily totals hold the viewer's words and the author breakdown everyone's`() =
+		runTest(mainTestDispatcher) {
+			val day = Instant.parse("2026-04-27T09:00:00Z")
+			fun slot(device: String, label: String, author: Long, name: String, words: Int) = WritingActivitySlot(
+				device,
+				DeviceLog(label, listOf(WritingSession(day, day, words, sealed = true)), author, name),
+			)
+			coEvery { writingActivityRepository.loadAllLogs() } returns listOf(
+				slot("device-1", "Laptop", 1, "Ada", 100),
+				slot("device-2", "Phone", 1, "Ada", 50),
+				slot("device-1", "Laptop", 2, "Bo", 400),
+			)
+			coEvery { statisticsRepository.loadStatistics() } returns null
+
+			val stats = makeService(signedInAs = 1, sharedBy = ProjectOwner(2, "Bo")).recalculateStatistics(::loadIndex)
+
+			assertEquals(150, stats.dailyWordTotals.values.sum())
+			assertEquals(mapOf("Laptop" to 100, "Phone" to 50), stats.wordsPerDevice)
+			assertEquals(listOf(400, 150), stats.wordsPerAuthor.map { it.words })
+		}
+
+	@Test
+	fun `this device's slot counts for the viewer before the server stamps its author`() =
+		runTest(mainTestDispatcher) {
+			val day = Instant.parse("2026-04-27T09:00:00Z")
+			coEvery { writingActivityRepository.loadAllLogs() } returns listOf(
+				WritingActivitySlot("device-self", DeviceLog("Desktop", listOf(WritingSession(day, day, 30, sealed = false)))),
+				WritingActivitySlot("device-1", DeviceLog("Laptop", listOf(WritingSession(day, day, 400, sealed = true)))),
+			)
+			coEvery { statisticsRepository.loadStatistics() } returns null
+
+			val stats = makeService(signedInAs = 1, sharedBy = ProjectOwner(2, "Bo")).recalculateStatistics(::loadIndex)
+
+			assertEquals(30, stats.dailyWordTotals.values.sum())
+		}
+
+	@Test
+	fun `with no account signed in every slot counts`() = runTest(mainTestDispatcher) {
+		val day = Instant.parse("2026-04-27T09:00:00Z")
+		coEvery { writingActivityRepository.loadAllLogs() } returns listOf(
+			WritingActivitySlot("device-1", DeviceLog("Laptop", listOf(WritingSession(day, day, 100, sealed = true)), 1, "Ada")),
+			WritingActivitySlot("device-2", DeviceLog("Phone", listOf(WritingSession(day, day, 40, sealed = true)), 2, "Bo")),
+		)
+		coEvery { statisticsRepository.loadStatistics() } returns null
+
+		val stats = makeService().recalculateStatistics(::loadIndex)
+
+		assertEquals(140, stats.dailyWordTotals.values.sum())
+	}
+
+	@Test
+	fun `loadStatistics recalculates a cache computed for another account`() = runTest(mainTestDispatcher) {
+		coEvery { statisticsRepository.loadStatistics() } returns
+			cachedStats(schema = ProjectStatistics.CURRENT_SCHEMA_VERSION, dirty = false).copy(viewerId = 2)
+
+		val result = makeService(signedInAs = 1).loadStatistics(::loadIndex)
+
+		assertEquals(1L, result.viewerId)
+		coVerify { statisticsRepository.saveStatistics(result) }
+	}
+
+	@Test
+	fun `this device's unstamped slot is the viewer's in the author breakdown too`() =
+		runTest(mainTestDispatcher) {
+			val day = Instant.parse("2026-04-27T09:00:00Z")
+			coEvery { writingActivityRepository.loadAllLogs() } returns listOf(
+				WritingActivitySlot("device-self", DeviceLog("Desktop", listOf(WritingSession(day, day, 30, sealed = false)))),
+				WritingActivitySlot("device-1", DeviceLog("Laptop", listOf(WritingSession(day, day, 400, sealed = true)), 2, "Bo")),
+			)
+			coEvery { statisticsRepository.loadStatistics() } returns null
+
+			val stats = makeService(signedInAs = 1, sharedBy = ProjectOwner(2, "Bo")).recalculateStatistics(::loadIndex)
+
+			assertEquals(listOf(2L to 400, 1L to 30), stats.wordsPerAuthor.map { it.authorId to it.words })
 		}
 }

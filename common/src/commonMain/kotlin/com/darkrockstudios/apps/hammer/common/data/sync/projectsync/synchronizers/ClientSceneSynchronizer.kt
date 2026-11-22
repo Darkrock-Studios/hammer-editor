@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -29,7 +28,6 @@ class ClientSceneSynchronizer(
 	private val sceneEditorService: SceneEditorService,
 	private val draftRepository: SceneDraftRepository,
 	serverProjectApi: ServerProjectApi,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val timelineReferenceRemapper: TimelineReferenceRemapper,
 	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.SceneEntity>(
@@ -329,13 +327,10 @@ class ClientSceneSynchronizer(
 		return true
 	}
 
-	// A scene uploaded before scenes tracked timestamps arrives with null `created`/`lastEdited`.
-	// Those fields are hashed, so backfill them with the project's creation time: the resulting
-	// hash divergence from the server drives the heal upload in [EntityTransferOperation] that
-	// enriches the server's copy, converging both sides on a non-null value.
+	// A null `created`/`lastEdited` (uploaded before scenes tracked them) stays null: both are hashed,
+	// and a backfill from this device's own project date would differ per device and seed conflicts.
 	// The draft name is never synced, so the local one is carried over.
 	private suspend fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
-		val projectCreated = projectMetadataDatasource.loadMetadata(projectDef).info.created
 		val local = sceneEditorService.loadSceneMetadata(serverEntity.id)
 		return SceneMetadata(
 			currentDraftName = local.currentDraftName,
@@ -344,8 +339,8 @@ class ClientSceneSynchronizer(
 			confirmedReferences = serverEntity.confirmedReferences,
 			dismissedReferences = serverEntity.dismissedReferences,
 			tags = serverEntity.tags,
-			created = serverEntity.created ?: projectCreated,
-			lastEdited = serverEntity.lastEdited ?: projectCreated,
+			created = serverEntity.created,
+			lastEdited = serverEntity.lastEdited,
 		)
 	}
 

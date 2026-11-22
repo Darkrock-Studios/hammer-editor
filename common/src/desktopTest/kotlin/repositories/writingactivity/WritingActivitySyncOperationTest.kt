@@ -31,15 +31,13 @@ import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 class WritingActivitySyncOperationTest : BaseTest() {
 
 	@MockK(relaxed = true)
 	private lateinit var repository: WritingActivityRepository
-
-	@MockK(relaxed = true)
-	private lateinit var tracker: WritingSessionTracker
 
 	@MockK(relaxed = true)
 	private lateinit var api: WritingActivityApi
@@ -83,7 +81,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 	private fun createOperation(): WritingActivitySyncOperation = WritingActivitySyncOperation(
 		projectDef = projectDef,
 		repository = repository,
-		tracker = tracker,
+		tracker = WritingSessionTracker(repository, Clock.System, projectDef),
 		api = api,
 		globalSettingsStore = globalSettingsStore,
 		statisticsRepository = statisticsRepository,
@@ -131,7 +129,6 @@ class WritingActivitySyncOperationTest : BaseTest() {
 				log = DeviceLog(deviceLabel = deviceLabel, sessions = listOf(localOnlySession())),
 			)
 		}
-		coVerify { tracker.invalidateSessionCache() }
 	}
 
 	@Test
@@ -195,7 +192,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 
 		assertTrue(isSuccess(result), "GET failure must not fail the surrounding sync")
 		coVerify(exactly = 0) { api.uploadDeviceLog(any(), any(), any(), any()) }
-		coVerify(exactly = 0) { tracker.invalidateSessionCache() }
+		coVerify(exactly = 0) { repository.saveOwnLog(any(), any()) }
 	}
 
 	@Test
@@ -211,6 +208,5 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		// Local merge still happened — sealed sessions never shrink even if upload fails.
 		coVerify { repository.saveOwnLog(any()) }
-		coVerify { tracker.invalidateSessionCache() }
 	}
 }

@@ -376,7 +376,7 @@ private fun ThisWeekBlock(activity: WritingActivityDerived, modifier: Modifier =
 		when {
 			pct == null -> HdMetaText(text = Res.string.project_home_stat_week_change_new.get())
 			pct == 0 -> HdMetaText(text = Res.string.project_home_stat_week_change_flat.get())
-			else -> HdDeltaBadge(percent = pct.toFloat(), suffix = "vs last week")
+			else -> HdDeltaBadge(percent = pct.toFloat(), suffix = Res.string.project_home_stat_week_change_suffix.get())
 		}
 		Spacer(Modifier.height(4.dp))
 		HdInlineStat(

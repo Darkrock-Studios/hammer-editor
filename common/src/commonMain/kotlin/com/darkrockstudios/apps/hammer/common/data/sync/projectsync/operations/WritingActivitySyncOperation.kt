@@ -27,12 +27,12 @@ import io.github.aakira.napier.Napier
  *  3. Merge the local copy of our own slot with the server's copy
  *     (deterministic union by `startedAt`), save the merged result both
  *     locally, with the author the server stamped, and back to the server.
- *  4. Invalidate the tracker's session cache so subsequent saves see the
- *     merged state instead of continuing from a possibly stale snapshot.
+ *     The local claim, load, merge and save run inside
+ *     [WritingSessionTracker.updateOwnLog], so no write is lost in between.
  *
  * Failure mode: if any step fails (server doesn't implement the endpoint,
  * network blip, etc.) we log a warning and pass through with the original
- * state. Writing activity is auxiliary — losing one sync of it shouldn't
+ * state. Writing activity is auxiliary: losing one sync of it shouldn't
  * fail the whole project sync.
  */
 class WritingActivitySyncOperation(
@@ -67,26 +67,28 @@ class WritingActivitySyncOperation(
 				return CResult.success(state)
 			}
 
-			var changed = repository.claimOwnSlot(userId)
-			val localOwnLog = repository.loadOwnLog()
-
 			val isOwnSlot = { slot: WritingActivitySlot ->
 				slot.deviceId == ownDeviceId && (slot.log.authorId == null || slot.log.authorId == userId)
 			}
 			val ownSlot = response.slots.firstOrNull(isOwnSlot)
+			val remoteOwnSessions = ownSlot?.log?.sessions ?: emptyList()
+			val ownAuthor = ownSlot?.log?.authorId?.let { SlotAuthor(it, ownSlot.log.authorName) }
+
+			var changed = false
+			val mergedSessions = tracker.updateOwnLog {
+				changed = repository.claimOwnSlot(userId)
+				val localOwnLog = repository.loadOwnLog()
+				val merged = mergeOwnSlotSessions(localOwnLog.sessions, remoteOwnSessions)
+				repository.saveOwnLog(merged, ownAuthor)
+				val authorChanged = ownAuthor != null &&
+					(ownAuthor.id != localOwnLog.authorId || ownAuthor.name != localOwnLog.authorName)
+				if (authorChanged || merged != localOwnLog.sessions) changed = true
+				merged
+			}
 			for (slot in response.slots) {
 				if (!isOwnSlot(slot) && repository.replaceRemoteSlot(slot)) changed = true
 			}
-
-			val remoteOwnSessions = ownSlot?.log?.sessions ?: emptyList()
-			val mergedSessions = mergeOwnSlotSessions(localOwnLog.sessions, remoteOwnSessions)
-			val ownAuthor = ownSlot?.log?.authorId?.let { SlotAuthor(it, ownSlot.log.authorName) }
-			repository.saveOwnLog(mergedSessions, ownAuthor)
-			val authorChanged = ownAuthor != null &&
-				(ownAuthor.id != localOwnLog.authorId || ownAuthor.name != localOwnLog.authorName)
-			if (changed || authorChanged || mergedSessions != localOwnLog.sessions) {
-				statisticsRepository.markDirty()
-			}
+			if (changed) statisticsRepository.markDirty()
 
 			val payload = DeviceLog(
 				deviceLabel = globalSettingsStore.deviceLabelOrDefault(),
@@ -103,7 +105,6 @@ class WritingActivitySyncOperation(
 				onLog(syncLogW("Writing activity upload failed: ${error.message}", projectDef))
 			}
 
-			tracker.invalidateSessionCache()
 			val slotCount = response.slots.count { !isOwnSlot(it) } + 1
 			onLog(syncLogI("Writing activity synced ($slotCount slots)", projectDef))
 		} catch (e: Exception) {
