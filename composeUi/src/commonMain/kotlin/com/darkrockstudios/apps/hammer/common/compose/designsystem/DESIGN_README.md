@@ -513,6 +513,9 @@ a sort icon). Control labels are sentence case in the body face.
   title and content share the next edge. Phones put an even row of tabs
   under the masthead, seated on its folio rule. Nothing is centered
   against a left-pinned masthead.
+  The side column is only as wide as its widest label (120 to 200dp),
+  with a 32dp gutter before it and a 32dp gap after it. Extra window
+  width goes after the content column, never between tabs and content.
 - **`HdPage`** (in [`HdTabbedPage.kt`](HdTabbedPage.kt)): the same
   masthead without tabs (About). On wide screens the title and the
   content column are centered together, so they still share one edge.

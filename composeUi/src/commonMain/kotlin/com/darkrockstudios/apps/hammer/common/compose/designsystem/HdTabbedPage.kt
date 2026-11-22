@@ -28,6 +28,9 @@ import androidx.compose.material3.Text
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -76,13 +79,15 @@ fun <T> HdTabbedPage(
 	val horizontal = if (compact) Ui.Padding.XL else PageGutter
 	val side = !compact
 	val columnWidth = hdColumnMaxWidth(maxWidth)
+	val labels = tabs.map { label(it) }
+	val navWidth = sideNavWidth(labels)
 
 	Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
 		PageMasthead(
 			title,
 			columnWidth,
 			horizontal,
-			sideColumn = side,
+			sideColumn = if (side) navWidth else null,
 			back = back,
 			trailing = if (autosaved) ({ AutosaveBadge() }) else null,
 		)
@@ -91,18 +96,18 @@ fun <T> HdTabbedPage(
 			HdFolioDivider()
 			Row(modifier = Modifier.weight(1f).fillMaxWidth().padding(start = horizontal)) {
 				Column(
-					modifier = Modifier.width(SideNavWidth).padding(top = 28.dp),
+					modifier = Modifier.width(navWidth).padding(top = 28.dp),
 					verticalArrangement = Arrangement.spacedBy(2.dp),
 				) {
-					tabs.forEach { option ->
-						SideTab(label(option), option == selected) { onSelect(option) }
+					tabs.forEachIndexed { i, option ->
+						SideTab(labels[i], option == selected) { onSelect(option) }
 					}
 				}
 				Spacer(Modifier.width(SideNavGap))
 				TabBody(selected, columnWidth, endPadding = horizontal, top = 32.dp, content = content)
 			}
 		} else {
-			TopTabs(tabs, selected, label, onSelect, horizontal)
+			TopTabs(tabs, selected, labels, onSelect, horizontal)
 			Box(Modifier.weight(1f).fillMaxWidth().padding(start = horizontal)) {
 				TabBody(selected, columnWidth, endPadding = horizontal, top = Ui.Padding.XL, content = content)
 			}
@@ -127,7 +132,7 @@ fun HdPage(
 	val horizontal = if (compact) Ui.Padding.XL else PageGutter
 	val columnWidth = hdColumnMaxWidth(maxWidth)
 	Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-		PageMasthead(title, columnWidth, horizontal, sideColumn = false, back = null, trailing = null, centered = !compact)
+		PageMasthead(title, columnWidth, horizontal, sideColumn = null, back = null, trailing = null, centered = !compact)
 		HdFolioDivider()
 		Box(Modifier.weight(1f).fillMaxWidth().padding(start = horizontal)) {
 			TabBody(Unit, columnWidth, endPadding = horizontal, top = if (compact) Ui.Padding.XL else 32.dp, centered = !compact, content = content)
@@ -141,7 +146,8 @@ private fun PageMasthead(
 	title: String,
 	maxWidth: Dp,
 	horizontal: Dp,
-	sideColumn: Boolean,
+	/** Width of the side tab column to line the title up past, or null without one. */
+	sideColumn: Dp?,
 	back: (@Composable () -> Unit)?,
 	trailing: (@Composable () -> Unit)?,
 	centered: Boolean = false,
@@ -154,8 +160,8 @@ private fun PageMasthead(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = if (centered) Arrangement.Center else Arrangement.Start,
 	) {
-		if (sideColumn) {
-			Box(Modifier.width(SideNavWidth)) { back?.invoke() }
+		if (sideColumn != null) {
+			Box(Modifier.width(sideColumn)) { back?.invoke() }
 			Spacer(Modifier.width(SideNavGap))
 		} else if (back != null) {
 			back()
@@ -213,7 +219,7 @@ private fun <T> TabBody(
 private fun <T> TopTabs(
 	tabs: List<T>,
 	selected: T,
-	label: @Composable (T) -> String,
+	labels: List<String>,
 	onSelect: (T) -> Unit,
 	horizontal: Dp,
 ) {
@@ -221,7 +227,7 @@ private fun <T> TopTabs(
 	Column(modifier = Modifier.fillMaxWidth()) {
 		// Above the rule so the active bar can paint over it.
 		Row(modifier = Modifier.fillMaxWidth().padding(horizontal = horizontal).zIndex(1f)) {
-			tabs.forEach { option ->
+			tabs.forEachIndexed { i, option ->
 				val active = option == selected
 				Box(
 					modifier = Modifier
@@ -238,7 +244,7 @@ private fun <T> TopTabs(
 					contentAlignment = Alignment.Center,
 				) {
 					Text(
-						text = label(option),
+						text = labels[i],
 						style = MaterialTheme.typography.labelLarge,
 						color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
 					)
@@ -262,7 +268,7 @@ private fun SideTab(label: String, active: Boolean, onClick: () -> Unit) {
 			}
 			.clickable(role = Role.Tab, onClick = onClick)
 			.semantics { selected = active }
-			.padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 8.dp),
+			.padding(start = SideTabStart, top = 10.dp, bottom = 10.dp, end = SideTabEnd),
 	) {
 		Text(
 			text = label,
@@ -282,6 +288,21 @@ private fun AutosaveBadge() {
 	}
 }
 
-private val PageGutter = 56.dp
-private val SideNavWidth = 180.dp
-private val SideNavGap = 48.dp
+/** The side tab column hugs its widest label, within [SideNavMin]..[SideNavMax]. */
+@Composable
+private fun sideNavWidth(labels: List<String>): Dp {
+	val measurer = rememberTextMeasurer()
+	val style = MaterialTheme.typography.bodyLarge
+	val density = LocalDensity.current
+	return remember(labels, style, density) {
+		val widest = labels.maxOfOrNull { measurer.measure(it, style).size.width } ?: 0
+		(with(density) { widest.toDp() } + SideTabStart + SideTabEnd).coerceIn(SideNavMin, SideNavMax)
+	}
+}
+
+private val PageGutter = Ui.Padding.XXL
+private val SideNavGap = Ui.Padding.XXL
+private val SideNavMin = 120.dp
+private val SideNavMax = 200.dp
+private val SideTabStart = 14.dp
+private val SideTabEnd = 8.dp
