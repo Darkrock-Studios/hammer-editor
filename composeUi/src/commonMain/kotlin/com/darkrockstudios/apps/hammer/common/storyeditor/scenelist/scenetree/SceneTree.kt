@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.scene_list_empty
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 /**
  * The root composable take takes a scene tree and handles rendering, reorder, collapsing
@@ -51,7 +54,7 @@ fun SceneTree(
 		Row {
 			if (state.summary.sceneTree.totalNodes <= 1) {
 				Text(
-					text = "No Scenes",
+					text = Res.string.scene_list_empty.get(),
 					modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL),
 					textAlign = TextAlign.Center,
 					style = MaterialTheme.typography.headlineSmall,

@@ -364,4 +364,5 @@
 	<string name="project_settings_plugins_empty_title">No plugins installed</string>
 	<string name="project_settings_plugins_empty_body">Plugins add actions, spelling and grammar checks, and export formats. Install them in Settings, on the Plugins tab, from the project list. Then you can turn each one on or off for this project here.</string>
 	<string name="project_settings_plugins_empty_body_here">Plugins add actions, spelling and grammar checks, and export formats. Install them here or in Settings, on the Plugins tab. Then you can turn each one on or off for this project.</string>
+	<string name="sync_conflict_field_changed">CHANGED</string>
 </resources>

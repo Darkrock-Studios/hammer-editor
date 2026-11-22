@@ -57,6 +57,7 @@ import kotlinx.datetime.todayIn
 import kotlin.random.Random
 import kotlin.time.Clock
 import com.darkrockstudios.apps.hammer.project_home_stat_scene_median_format
+import org.jetbrains.compose.resources.pluralStringResource
 
 const val PROJECT_STATS_TAG = "project-stats"
 const val PROJECT_HOME_IMAGES_TAG = "project-home-images"
@@ -432,13 +433,13 @@ private fun StructureSection(
 	val chapterCount = state.wordsByChapter.size
 	HdHairlineSection(
 		section = 1,
-		title = "Structure",
+		title = Res.string.project_home_stat_structure_title.get(),
 	) {
 		val scenes: @Composable () -> Unit = {
 			HdStatBlock(
 				label = Res.string.project_home_stat_num_scenes.get(),
 				value = state.numberOfScenes.formatDecimalSeparator(),
-				subtitle = "across $chapterCount chapters",
+				subtitle = pluralStringResource(Res.plurals.project_home_stat_scenes_across_chapters, chapterCount, chapterCount),
 			)
 		}
 		val avgPerScene: @Composable () -> Unit = {
@@ -595,7 +596,7 @@ private fun InhabitantsSection(
 
 	HdHairlineSection(
 		section = 2,
-		title = "Inhabitants",
+		title = Res.string.project_home_stat_inhabitants_title.get(),
 	) {
 		HdResponsiveStrip(isWide = isWide) {
 			Column(modifier = Modifier.cell(), verticalArrangement = Arrangement.spacedBy(8.dp)) {

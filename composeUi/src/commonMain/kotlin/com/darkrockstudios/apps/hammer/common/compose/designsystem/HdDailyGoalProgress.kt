@@ -13,6 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.project_home_stat_daily_goal
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 /** "Daily goal  847 / 1,000" + thin progress bar. Progress clamped to [0,1]. */
 @Composable
@@ -20,7 +23,7 @@ fun HdDailyGoalProgress(
 	current: Int,
 	goal: Int,
 	modifier: Modifier = Modifier,
-	label: String = "Daily goal",
+	label: String = Res.string.project_home_stat_daily_goal.get(),
 ) {
 	val fraction = if (goal <= 0) 0f else (current.toFloat() / goal).coerceIn(0f, 1f)
 

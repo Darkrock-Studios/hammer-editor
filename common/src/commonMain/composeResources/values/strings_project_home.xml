@@ -172,4 +172,10 @@
 
 	<string name="project_home_menu_button">Project menu</string>
 	<string name="project_home_menu_images">Images</string>
+	<string name="project_home_stat_structure_title">Structure</string>
+	<string name="project_home_stat_inhabitants_title">Inhabitants</string>
+	<plurals name="project_home_stat_scenes_across_chapters">
+		<item quantity="one">across %1$d chapter</item>
+		<item quantity="other">across %1$d chapters</item>
+	</plurals>
 </resources>

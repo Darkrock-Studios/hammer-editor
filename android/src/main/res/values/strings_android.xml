@@ -46,4 +46,13 @@
     <string name="story_info_widget_strip_folio">§ %1$s</string>
     <string name="story_info_widget_strip_words_unit">W</string>
 	<string name="story_info_widget_continue_label">CONTINUE ·</string>
+    <string name="stories_list_widget_header">HAMMER · LIBRARY</string>
+    <plurals name="stories_list_widget_count">
+        <item quantity="one">%1$d STORY</item>
+        <item quantity="other">%1$d STORIES</item>
+    </plurals>
+    <string name="stories_list_widget_empty">No projects yet. Tap to open.</string>
+    <string name="stories_list_widget_tap_to_open">TAP TO OPEN</string>
+    <string name="stories_list_widget_row_words">%1$s w</string>
+    <string name="add_note_widget_label">NOTE</string>
 </resources>

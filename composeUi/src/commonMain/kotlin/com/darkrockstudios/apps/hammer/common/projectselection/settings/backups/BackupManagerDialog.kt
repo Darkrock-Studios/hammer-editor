@@ -296,7 +296,7 @@ private fun ErrorBlock(message: String) {
 		verticalArrangement = Arrangement.spacedBy(8.dp),
 	) {
 		HdMonoLabel(
-			text = "ERROR",
+			text = Res.string.backup_manager_error_label.get(),
 			color = MaterialTheme.colorScheme.error,
 		)
 		Text(

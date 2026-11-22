@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalContext
 import androidx.glance.action.Action
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
@@ -51,6 +52,7 @@ import kotlin.time.Instant
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import org.koin.java.KoinJavaComponent.getKoin
+import com.darkrockstudios.apps.hammer.android.R
 
 class StoriesListWidget : GlanceAppWidget() {
 
@@ -106,6 +108,7 @@ private suspend fun loadRows(): List<StoryRow> {
 
 @Composable
 private fun StoriesListWidgetContent(rows: List<StoryRow>) {
+	val ctx = LocalContext.current
 	Box(
 		modifier = GlanceModifier
 			.fillMaxSize()
@@ -125,12 +128,12 @@ private fun StoriesListWidgetContent(rows: List<StoryRow>) {
 				verticalAlignment = Alignment.Vertical.Bottom,
 			) {
 				Text(
-					text = "HAMMER · LIBRARY",
+					text = ctx.getString(R.string.stories_list_widget_header),
 					style = monoMicroStyle(widgetColor { it.onSurfaceVariant }),
 				)
 				Spacer(modifier = GlanceModifier.defaultWeight())
 				Text(
-					text = if (rows.isEmpty()) "—" else "${rows.size} STORIES",
+					text = if (rows.isEmpty()) "—" else ctx.resources.getQuantityString(R.plurals.stories_list_widget_count, rows.size, rows.size),
 					style = monoMicroStyle(widgetColor { it.onSurface }),
 				)
 			}
@@ -152,7 +155,7 @@ private fun StoriesListWidgetContent(rows: List<StoryRow>) {
 						contentAlignment = Alignment.Center,
 					) {
 						Text(
-							text = "No projects yet — tap to open",
+							text = ctx.getString(R.string.stories_list_widget_empty),
 							style = monoMicroStyle(widgetColor { it.onSurfaceMuted }),
 						)
 					}
@@ -175,7 +178,7 @@ private fun StoriesListWidgetContent(rows: List<StoryRow>) {
 				)
 				Spacer(modifier = GlanceModifier.defaultWeight())
 				Text(
-					text = "TAP TO OPEN",
+					text = ctx.getString(R.string.stories_list_widget_tap_to_open),
 					style = monoMicroStyle(widgetColor { it.onSurfaceDim }),
 				)
 			}
@@ -185,6 +188,7 @@ private fun StoriesListWidgetContent(rows: List<StoryRow>) {
 
 @Composable
 private fun StoryRowUi(row: StoryRow) {
+	val ctx = LocalContext.current
 	val accent = parseAccent(row.accentHex)
 	Column(
 		modifier = GlanceModifier
@@ -218,7 +222,7 @@ private fun StoryRowUi(row: StoryRow) {
 			}
 			Spacer(modifier = GlanceModifier.width(8.dp))
 			Text(
-				text = "${formatWidgetWords(row.words)} w",
+				text = ctx.getString(R.string.stories_list_widget_row_words, formatWidgetWords(row.words)),
 				style = monoMicroStyle(widgetColor { it.onSurfaceMuted }, size = 10.sp),
 			)
 			Spacer(modifier = GlanceModifier.width(6.dp))

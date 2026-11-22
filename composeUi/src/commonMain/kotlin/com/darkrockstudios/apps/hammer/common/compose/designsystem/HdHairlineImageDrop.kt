@@ -35,6 +35,10 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.fileDropTarget
 import io.github.vinceglb.filekit.PlatformFile
 import kotlin.math.ceil
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_drop_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_browse_button
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 /**
  * Image drop / preview affordance for the create-entry vocabulary.
@@ -56,8 +60,8 @@ fun HdHairlineImageDrop(
 	label: String,
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
-	dropHint: String = "Drop image · or",
-	browseLabel: String = "Browse files",
+	dropHint: String = Res.string.encyclopedia_create_entry_image_drop_hint.get(),
+	browseLabel: String = Res.string.encyclopedia_create_entry_image_browse_button.get(),
 	height: Dp = 160.dp,
 	image: (@Composable BoxScope.() -> Unit)? = null,
 	onRemove: (() -> Unit)? = null,
