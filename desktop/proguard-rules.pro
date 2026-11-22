@@ -1,12 +1,19 @@
 ################################################################################
-# GLOBAL SETTINGS (Minification Only - Stable for 2025)
+# GLOBAL SETTINGS
 ################################################################################
--dontobfuscate
--dontoptimize
 -ignorewarnings
 
+# The obfuscation pass is what strips attributes outside -keepattributes, and the
+# optimizer leaves LocalVariableTables it cannot load. Nothing is renamed.
+-keepnames class ** { *; }
+-keeppackagenames **
+
+# -ignorewarnings leaves unresolved references, so type narrowing is unsound
+# (okio's buffer() fails verification) and merged classes break reflection.
+-optimizations !method/specialization/**,!field/specialization/type,!class/merging/**
+
 # Essential for stack traces, reflection, and DI (Koin/Serialization)
--keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,Exceptions,*Annotation*
+-keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,Exceptions,*Annotation*,NestHost,NestMembers,PermittedSubclasses,Record,MethodParameters
 
 # Preserve the ServiceLoader directory (Essential for Ktor and Coil)
 -keepdirectories META-INF/services
@@ -98,6 +105,12 @@
 ################################################################################
 -keep class org.apache.commons.logging.** { *; }
 -dontwarn org.apache.commons.logging.**
+
+################################################################################
+# NAPIER (DebugAntilog finds the caller tag at a fixed stack depth, so inlining
+# inside Napier leaves the index past the end of the trace)
+################################################################################
+-keep,includecode class io.github.aakira.napier.** { *; }
 
 ################################################################################
 # CLEANUP & WARNING SUPPRESSION

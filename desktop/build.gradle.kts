@@ -182,10 +182,10 @@ compose.desktop {
 		}
 
 		buildTypes.release.proguard {
-			version.set("7.6.0")
+			version.set("7.10.0")
 			isEnabled.set(true)
-			obfuscate.set(false)
-			optimize.set(false)
+			obfuscate.set(true)
+			optimize.set(true)
 			//joinOutputJars.set(true)
 			configurationFiles.from("proguard-rules.pro")
 		}
