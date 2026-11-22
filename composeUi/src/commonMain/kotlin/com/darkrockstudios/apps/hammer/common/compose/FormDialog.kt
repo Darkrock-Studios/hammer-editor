@@ -6,7 +6,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -14,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -35,8 +39,8 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
  *
  *   Trilogy                             (subject, optional)
  *
- *   NAME
- *   <field>____________________________
+ *   Name                                (hint until text is entered, then floats up)
+ *   ___________________________________
  *
  *                       [Cancel] [Rename]
  * ```
@@ -155,10 +159,11 @@ fun FormDialogSubject(text: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * Underline form field with mono-caps label, body-sized text input, and helper/error text.
+ * Underline form field with a floating label, body-sized text input, and helper/error text.
  *
- * Mirrors the design's `FormField` atom: column with 6dp internal gap, 1dp ruleStrong
- * underline (or error color when [error] is non-null), optional helper text below.
+ * [label] sits in the empty field as hint text and floats up as a small mono label once
+ * there is text. With a [placeholder], the label stays up and the placeholder is the hint.
+ * 1dp underline (error color when [error] is non-null), optional helper text below.
  *
  * Pass [autoFocus] = true on the first field of a dialog so it grabs focus on open.
  *
@@ -188,6 +193,8 @@ fun FormField(
 	val underlineColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
 	val labelColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
 	val focusRequester = remember { FocusRequester() }
+	val labelFloated = value.isNotEmpty() || !placeholder.isNullOrEmpty()
+	val labelShown by animateFloatAsState(if (labelFloated) 1f else 0f, label = "formFieldLabel")
 	if (autoFocus) {
 		LaunchedEffect(Unit) { focusRequester.requestFocus() }
 	}
@@ -202,6 +209,12 @@ fun FormField(
 			fontSize = 10.sp,
 			letterSpacing = 1.8.sp,
 			color = labelColor,
+			modifier = Modifier
+				.graphicsLayer {
+					alpha = labelShown
+					translationY = (1f - labelShown) * 6.dp.toPx()
+				}
+				.then(if (labelFloated) Modifier else Modifier.clearAndSetSemantics {}),
 		)
 		Box(
 			modifier = Modifier
@@ -232,9 +245,9 @@ fun FormField(
 					.focusRequester(focusRequester)
 					.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
 				decorationBox = { inner ->
-					if (value.isEmpty() && !placeholder.isNullOrEmpty()) {
+					if (value.isEmpty()) {
 						Text(
-							text = placeholder,
+							text = placeholder?.takeIf { it.isNotEmpty() } ?: label,
 							style = textStyle.copy(color = hdPlaceholderColor),
 						)
 					}
