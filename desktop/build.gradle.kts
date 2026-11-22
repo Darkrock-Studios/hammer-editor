@@ -402,18 +402,37 @@ tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDi
 	}
 }
 
-// The cache is validated against each jar's mtime, which only the AppImage and tarball keep: jpackage's
-// installers copy the image and restamp every file. So it trains by default on Linux only; -Paot=true or
-// -Paot=false overrides. It trains for this machine's OS and arch, and needs a display. App Store builds
-// are signed and sandboxed before this runs, so training them is not supported yet.
+// Every package is built from this app image, so they all ship the cache. It trains for this machine's
+// OS and arch, and needs a display. On by default on Linux and Windows, whose installers restore the jar
+// mtimes the cache checks (desktop/packaging); macOS's do not yet. -Paot=true or -Paot=false overrides.
+// App Store builds are signed and sandboxed before this runs, so training them is not supported yet.
 val trainAot = (providers.gradleProperty("aot").orNull?.toBoolean()
-	?: org.gradle.internal.os.OperatingSystem.current().isLinux) && !isAppStoreRelease
+	?: !org.gradle.internal.os.OperatingSystem.current().isMacOsX) && !isAppStoreRelease
 tasks.matching { it.name == "createReleaseDistributable" }.configureEach {
 	doLast {
 		if (!trainAot) return@doLast
 		val appImage = project.layout.buildDirectory.dir("installers/main-release/app").get().asFile
 			.listFiles { f -> f.isDirectory }!!.single()
 		trainAotCache(appImage, logger)
+	}
+}
+
+// Compose packages from the app image only on macOS; elsewhere jpackage rebuilds it from the jars,
+// without the cache or the Windows console launcher. The second resource dir wins over Compose's,
+// which it leaves empty on these OSes.
+if (!org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+	val packagingResources = project.file(
+		if (org.gradle.internal.os.OperatingSystem.current().isWindows) "packaging/windows" else "packaging/linux"
+	)
+	afterEvaluate {
+		tasks.withType<org.jetbrains.compose.desktop.application.tasks.AbstractJPackageTask>()
+			.matching { it.name.startsWith("packageRelease") && it.targetFormat != TargetFormat.AppImage }
+			.configureEach {
+				dependsOn("createReleaseDistributable")
+				appImage.set(layout.buildDirectory.dir("installers/main-release/app/hammer"))
+				inputs.dir(packagingResources)
+				freeArgs.addAll("--resource-dir", packagingResources.absolutePath)
+			}
 	}
 }
 

@@ -8,6 +8,10 @@ import java.util.concurrent.TimeUnit
 
 private const val AOT_CACHE_FILE = "hammer.aot"
 
+// The cache is rejected unless each jar's mtime matches training, and jpackage's installers restamp
+// every file. Jars are stamped with this before training, and desktop/packaging restores it on install.
+private const val AOT_JAR_MTIME_MILLIS = 946_684_800_000L // 2000-01-01T00:00:00Z
+
 // The adapter region holds machine code for the training CPU, and JDK 25 does not check CPU
 // features before running it: a cache trained on a wide CPU dies with SIGILL on a narrower one.
 private val AOT_PORTABILITY_ARGS = listOf("-XX:+UnlockDiagnosticVMOptions", "-XX:-AOTAdapterCaching")
@@ -32,6 +36,8 @@ fun trainAotCache(appImage: File, logger: Logger, timeoutSeconds: Long = 180) {
 		logger.warn("[aot] Skipped: the bundled runtime is JDK $runtimeVersion; an AOT cache needs 25+")
 		return
 	}
+
+	appDir.listFiles { f -> f.extension == "jar" }.orEmpty().forEach { it.setLastModified(AOT_JAR_MTIME_MILLIS) }
 
 	val cache = appDir.resolve(AOT_CACHE_FILE)
 	val work = Files.createTempDirectory("hammer-aot").toFile()
