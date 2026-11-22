@@ -580,7 +580,7 @@ class ScreenGalleryTest {
 			""".trimIndent()
 		)
 		appendLine("</style></head><body><h1>Grouping study</h1>")
-		appendLine("<p>Study styles: <b>Rules</b> (current); <b>HangingSpine</b> (cool-tinted regions with an ink spine, titles hung on wide screens, controls as wells); and HangingSpine with a faint texture on regions and cards: <b>Grain</b> (paper noise), <b>Laid</b> (laid and chain lines), <b>Dots</b> (fine halftone). Wells stay plain. Earlier rounds are in ui-research/gallery-history. <a href=\"index.html\">All screens</a></p>")
+		appendLine("<p>Study styles: <b>Rules</b> (current); <b>HangingSpine</b> (cool-tinted regions with an ink spine, titles hung on wide screens, controls as wells). <a href=\"index.html\">All screens</a></p>")
 		val names = screens.map { it.name }.filter { GROUPING_STUDY?.contains(it) ?: true }
 		appendLine("<nav>")
 		names.forEach { appendLine("<a href=\"#${slug(it)}\">${esc(it)}</a>") }
