@@ -15,8 +15,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietSortMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietButton
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -503,7 +501,6 @@ private fun IdeasBrowse(
 				) {
 					NewIdeaButton(
 						onClick = { component.showCreate() },
-						filled = true,
 						modifier = Modifier.weight(1f).height(44.dp),
 					)
 				}
@@ -559,31 +556,13 @@ private fun IdeasMasthead(
 private fun NewIdeaButton(
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
-	filled: Boolean = false,
 ) {
-	val content = if (filled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
-	Box(
-		modifier = modifier
-			.background(if (filled) MaterialTheme.colorScheme.primary else Color.Transparent)
-			.border(
-				Dp.Hairline,
-				if (filled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary,
-				RectangleShape,
-			)
-			.clickable(role = Role.Button, onClick = onClick)
-			.padding(horizontal = Ui.Padding.L)
-			.testTag(IDEAS_CREATE_BUTTON_TAG),
-		contentAlignment = Alignment.Center,
-	) {
-		Text(
-			text = "＋  ${Res.string.ideas_create_marker.get()}",
-			style = MaterialTheme.typography.labelLarge,
-			fontWeight = if (filled) FontWeight.Medium else null,
-			color = content,
-			maxLines = 1,
-			softWrap = false,
-		)
-	}
+	HdHairlineButton(
+		label = "＋  ${Res.string.ideas_create_marker.get()}",
+		onClick = onClick,
+		emphasised = true,
+		modifier = modifier.testTag(IDEAS_CREATE_BUTTON_TAG),
+	)
 }
 
 /** Archived ideas are hidden from the default view, so a nonzero count is worth showing. */

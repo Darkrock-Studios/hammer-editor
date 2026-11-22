@@ -428,7 +428,8 @@ private fun PageFooter(
 			HdHairlineButton(
 				label = Res.string.plugin_document_save.get(),
 				onClick = runner::saveAsNote,
-				emphasised = !current.first,
+				// A plugin's own primary buttons outrank saving the result.
+				emphasised = !current.first && primary.isEmpty(),
 				enabled = enabled && !current.saving,
 			)
 		}

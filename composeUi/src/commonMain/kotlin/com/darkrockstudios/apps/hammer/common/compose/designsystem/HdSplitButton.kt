@@ -24,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -38,8 +37,8 @@ class HdSplitButtonItem(val label: String, val onClick: () -> Unit)
 /**
  * The primary action with an attached ▾ for related, rarer ones ("New project ▾" → New
  * group). Replaces a primary button plus separate icon buttons for sibling actions.
- * [filled] is the bottom-bar form; the default is the masthead's framed `primary` outline.
- * A [filled] button takes its width from [modifier] (e.g. `weight(1f)`); otherwise it wraps.
+ * Filled in `primary`, like every colored button. A [stretch] button takes its width from
+ * [modifier] (e.g. `weight(1f)` in a bottom bar); otherwise it wraps.
  */
 @Composable
 fun HdSplitButton(
@@ -50,17 +49,17 @@ fun HdSplitButton(
 	modifier: Modifier = Modifier,
 	mainModifier: Modifier = Modifier,
 	menuModifier: Modifier = Modifier,
-	filled: Boolean = false,
+	stretch: Boolean = false,
 	height: Dp = 32.dp,
 ) {
 	var expanded by remember { mutableStateOf(false) }
-	val border = if (filled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
-	val content = if (filled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
-	val fill = if (filled) MaterialTheme.colorScheme.primary else Color.Transparent
+	val border = MaterialTheme.colorScheme.outline
+	val content = MaterialTheme.colorScheme.onPrimary
+	val fill = MaterialTheme.colorScheme.primary
 	Row(
 		modifier = modifier
 			.height(height)
-			.then(if (filled) Modifier else Modifier.width(IntrinsicSize.Max))
+			.then(if (stretch) Modifier else Modifier.width(IntrinsicSize.Max))
 			.background(fill)
 			.border(Dp.Hairline, border, RectangleShape),
 		verticalAlignment = Alignment.CenterVertically,
@@ -77,7 +76,7 @@ fun HdSplitButton(
 			Text(
 				text = label,
 				style = MaterialTheme.typography.labelLarge,
-				fontWeight = if (filled) FontWeight.Medium else null,
+				fontWeight = FontWeight.Medium,
 				color = content,
 				maxLines = 1,
 				softWrap = false,

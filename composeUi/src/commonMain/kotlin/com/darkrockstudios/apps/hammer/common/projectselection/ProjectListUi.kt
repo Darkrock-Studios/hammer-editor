@@ -475,7 +475,7 @@ private fun BoxScope.BottomCreateBar(
 		NewProjectButton(
 			onCreate = onCreate,
 			onCreateGroup = onCreateGroup,
-			filled = true,
+			stretch = true,
 			height = 44.dp,
 			modifier = Modifier.weight(1f),
 		)
@@ -488,7 +488,7 @@ private fun NewProjectButton(
 	onCreate: () -> Unit,
 	onCreateGroup: () -> Unit,
 	modifier: Modifier = Modifier,
-	filled: Boolean = false,
+	stretch: Boolean = false,
 	height: Dp = 32.dp,
 ) {
 	HdSplitButton(
@@ -502,7 +502,7 @@ private fun NewProjectButton(
 		modifier = modifier,
 		mainModifier = Modifier.testTag(CreateProjectButtonTestTag),
 		menuModifier = Modifier.testTag(CreateGroupButtonTestTag),
-		filled = filled,
+		stretch = stretch,
 		height = height,
 	)
 }

@@ -728,7 +728,6 @@ private fun ImageDetail(
 			HdHairlineButton(
 				label = Res.string.images_gallery_delete.get(),
 				onClick = onDelete,
-				danger = true,
 				modifier = Modifier.testTag(IMAGE_GALLERY_DELETE_TAG),
 			)
 		}

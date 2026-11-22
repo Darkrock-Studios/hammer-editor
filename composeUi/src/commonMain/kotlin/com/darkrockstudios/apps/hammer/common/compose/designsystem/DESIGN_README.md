@@ -369,9 +369,16 @@ action plus tools.
 
 | Tier    | Components                                                  | Use                                                         |
 |---------|-------------------------------------------------------------|-------------------------------------------------------------|
-| Primary | `HdHairlineButton(emphasised = true)`, `HdSplitButton`, `HdFab` | The one main action. At most one per masthead.              |
+| Primary | `HdHairlineButton(emphasised = true)`, `HdSplitButton`, `HdFab` | The one main action. At most one per surface.               |
 | Tool    | `HdToolButton`                                              | Icon actions beside other framed things (a field, a strip). |
 | Quiet   | `HdQuietButton`, `HdQuietSortMenu`                          | Masthead tools: search, sort, sync.                         |
+
+**Colored means filled.** A primary button is filled in `primary`, or
+in `error` when the action destroys something, so it stands apart by
+more than hue. Each surface (a dialog, a masthead, a settings tab, a
+pane) gets at most one, for the action it exists for; everything else
+is a plain hairline. A choice between equals (the two sides of a sync
+conflict) has no primary.
 
 A tool sitting next to a framed element is framed too; match the
 neighbour. With an icon and a label, the icon names the kind of
@@ -386,7 +393,8 @@ a sort icon). Control labels are sentence case in the body face.
   "this opens something". An identifier that isn't clickable gets mono,
   not link styling.
 - **Destructive actions go last and alone**: error-coloured title, a
-  one-line consequence, and a "…" button that asks to confirm.
+  one-line consequence, and a plain "…" button that asks to confirm.
+  The confirm's button is the red one.
 - **Bounded numbers use a stepper** (− n +) clamped to the range, not a
   text field that needs validation.
 
@@ -395,16 +403,17 @@ a sort icon). Control labels are sentence case in the body face.
 - **[`HdSplitButton`](HdSplitButton.kt)**: the primary action with an
   attached ▾ menu for related, rarer actions ("New project ▾" → New
   group). Use it instead of a primary button plus sibling icon
-  buttons. `filled` is the bottom-bar form.
+  buttons. `stretch` lets a bottom bar size it.
 - **[`HdQuietSortMenu`](HdSortMenu.kt)**: sort icon plus the selected
   option's label; `iconOnly` gives an `HdToolButton` square for a row
   beside a search field. Option labels show as written, so keep them
   sentence case in the strings. The framed `HdSortMenu` pill is the
   older form.
 - **[`HdHairlineButton`](HdHairlineButton.kt)** — square-cornered
-  hairline-bordered text button. Replaces `OutlinedButton` /
-  `TextButton`. `emphasised = true` flips the border and label to
-  `primary` for the "Save" half of a Save / Cancel pair.
+  text button. Replaces `OutlinedButton` / `TextButton` / `Button`.
+  Plain, a hairline frame; `emphasised = true` fills it with `primary`
+  for the "Save" half of a Save / Cancel pair, and `danger = true`
+  fills it with `error` for a destructive confirm.
 - **[`HdFab`](HdFab.kt)** — square FAB, primary fill, hairline
   outline, no elevation. Replaces M3 `FloatingActionButton`.
 - **[`HdToolButton`](HdToolButton.kt)** — 30dp square hairline

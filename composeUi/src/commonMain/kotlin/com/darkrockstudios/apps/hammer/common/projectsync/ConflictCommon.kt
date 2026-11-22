@@ -226,7 +226,6 @@ private fun PaneMast(sideLabel: String?, onUse: () -> Unit) {
 		HdHairlineButton(
 			label = Res.string.sync_conflict_use_version.get(),
 			onClick = onUse,
-			emphasised = true,
 		)
 	}
 }
