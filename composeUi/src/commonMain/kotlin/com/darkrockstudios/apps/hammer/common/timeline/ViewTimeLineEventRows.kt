@@ -181,6 +181,9 @@ internal fun EditStatusFooter(text: String) {
 	HdStatusFooter {
 		HdMonoLabel(text = Res.string.timeline_view_status_word_char.get(words, text.length))
 		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(text = Res.string.timeline_view_status_hint.get())
+		// Esc is the desktop back key; touch platforms have no Esc to mention.
+		if (LocalScreenCharacteristic.current.needsExplicitClose) {
+			HdMonoLabel(text = Res.string.timeline_view_status_hint.get())
+		}
 	}
 }
