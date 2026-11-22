@@ -121,7 +121,8 @@ fun Project.registerBuildDistAppImageTask() {
 
 			// Copy the application
 			providers.exec {
-				commandLine("cp", "-r", "${appSourceDir.absolutePath}/.", usrDir.absolutePath)
+				// -a keeps the jar mtimes the AOT cache is validated against.
+				commandLine("cp", "-a", "${appSourceDir.absolutePath}/.", usrDir.absolutePath)
 			}.result.get()
 
 			// Create desktop file

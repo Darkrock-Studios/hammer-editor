@@ -1,6 +1,7 @@
 import com.darkrockstudios.build.DistributionChannel
 import com.darkrockstudios.build.distributionChannel
 import com.darkrockstudios.build.addWindowsConsoleLauncher
+import com.darkrockstudios.build.trainAotCache
 import com.darkrockstudios.build.registerLinuxDistributionTasks
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.zip.ZipFile
@@ -306,11 +307,13 @@ tasks.matching { it.name == "checkRuntime" || it.name == "createRuntimeImage" }.
 // ProGuard reads JDK classes from jmods, which Temurin 25 lacks; the code targets the toolchain's API anyway.
 // Set late because Compose sets javaHome in its own afterEvaluate.
 afterEvaluate {
+	val jvm = JavaLanguageVersion.of(libs.versions.jvm.get().toInt())
+	val proguardJavaHome = runCatching {
+		javaToolchains.launcherFor { languageVersion.set(jvm); vendor.set(JvmVendorSpec.ADOPTIUM) }.get()
+	}.getOrElse { javaToolchains.launcherFor { languageVersion.set(jvm) }.get() }
+		.metadata.installationPath.asFile.absolutePath
 	tasks.withType<org.jetbrains.compose.desktop.application.tasks.AbstractProguardTask>().configureEach {
-		javaHome.set(javaToolchains.launcherFor {
-			languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
-			vendor.set(JvmVendorSpec.ADOPTIUM)
-		}.map { it.metadata.installationPath.asFile.absolutePath })
+		javaHome.set(proguardJavaHome)
 	}
 }
 tasks.matching { it.name == "prepareAppResources" }.configureEach {
@@ -396,6 +399,21 @@ tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDi
 			val appImage = project.layout.buildDirectory.dir("installers/$variant/app/hammer").get().asFile
 			addWindowsConsoleLauncher(appImage, launcher = "hammer", name = "hammer-cli")
 		}
+	}
+}
+
+// The cache is validated against each jar's mtime, which only the AppImage and tarball keep: jpackage's
+// installers copy the image and restamp every file. So it trains by default on Linux only; -Paot=true or
+// -Paot=false overrides. It trains for this machine's OS and arch, and needs a display. App Store builds
+// are signed and sandboxed before this runs, so training them is not supported yet.
+val trainAot = (providers.gradleProperty("aot").orNull?.toBoolean()
+	?: org.gradle.internal.os.OperatingSystem.current().isLinux) && !isAppStoreRelease
+tasks.matching { it.name == "createReleaseDistributable" }.configureEach {
+	doLast {
+		if (!trainAot) return@doLast
+		val appImage = project.layout.buildDirectory.dir("installers/main-release/app").get().asFile
+			.listFiles { f -> f.isDirectory }!!.single()
+		trainAotCache(appImage, logger)
 	}
 }
 

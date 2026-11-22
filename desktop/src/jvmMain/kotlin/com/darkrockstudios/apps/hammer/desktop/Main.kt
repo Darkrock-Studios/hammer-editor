@@ -21,6 +21,8 @@ import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.plugin.cliLauncher
 import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
+import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
@@ -49,6 +51,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.application.NucleusBackend
+import dev.nucleusframework.application.aotTraining
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
 import dev.nucleusframework.window.NucleusDecoratedWindowTheme
@@ -268,6 +271,7 @@ fun main(args: Array<String>) {
 		backend = NucleusBackend.Tao,
 		enableSingleInstance = false,
 	) {
+		aotTraining(duration = AOT_TRAINING_DURATION)
 		LaunchedEffect(Unit) {
 			Napier.i("Startup: first composition")
 			// Refreshed from inside composition, never from a coroutine racing
@@ -288,6 +292,10 @@ fun main(args: Array<String>) {
 		val imageLoader: ImageLoader = getKoin().get()
 
 		setSingletonImageLoaderFactory { imageLoader }
+
+		if (isAotTraining) {
+			LaunchedEffect(Unit) { exerciseForAotTraining(applicationState) }
+		}
 
 		LaunchedEffect(quickShortcuts) {
 			quickShortcuts.projectClicks.collect { def -> applicationState.requestOpen(def) }
@@ -356,6 +364,29 @@ fun main(args: Array<String>) {
 	scope.cancel("Program ending")
 	quickShortcuts.dispose()
 	appScope.cancel("Program ending")
+}
+
+/** How long a packaging-time AOT training run (`-Dnucleus.aot.mode=training`) stays up before exiting. */
+private val AOT_TRAINING_DURATION = 25.seconds
+
+/** "The Riverbank", the example project's first scene. */
+private const val AOT_TRAINING_SCENE_ID = 3
+
+/**
+ * Walks an AOT training run through the project list, opening a project, and the scene list, so the
+ * cache covers those first transitions as well as startup. Training runs in an empty home, where the
+ * project list installs the example project.
+ */
+private suspend fun exerciseForAotTraining(app: ApplicationState) {
+	withContext(Dispatchers.Default) { delay(5.seconds) }
+	val project = getKoin().get<ProjectsRepository>().findProject(ExampleProjectRepository.PROJECT_NAME)
+	if (project == null) {
+		Napier.w("AOT training: no example project to open")
+		return
+	}
+	app.requestOpen(project)
+	withContext(Dispatchers.Default) { delay(5.seconds) }
+	app.requestOpen(project, ProjectDeepLink.Scene(AOT_TRAINING_SCENE_ID))
 }
 
 /** Launches handed over faster than the window takes them are dropped past this many. */
