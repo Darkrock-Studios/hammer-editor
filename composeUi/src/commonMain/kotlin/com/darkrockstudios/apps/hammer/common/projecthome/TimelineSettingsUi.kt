@@ -323,6 +323,7 @@ private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: 
 			HdHairlineButton(
 				label = Res.string.timeline_settings_delete.get(),
 				onClick = onDelete,
+				danger = true,
 				modifier = Modifier.testTag(timelineSettingsDeleteTag(def.id)),
 			)
 		}

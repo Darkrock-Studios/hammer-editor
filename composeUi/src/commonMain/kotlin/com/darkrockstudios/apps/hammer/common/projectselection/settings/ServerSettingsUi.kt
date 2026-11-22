@@ -178,6 +178,7 @@ internal fun RemoveServerRow(component: AccountSettings, scope: CoroutineScope) 
 			HdHairlineButton(
 				label = Res.string.settings_row_remove_server_button.get(),
 				onClick = { confirm = true },
+				danger = true,
 			)
 		}
 	}

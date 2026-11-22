@@ -20,9 +20,9 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  *
  * A colored button is filled, so the action stands apart by more than hue. [emphasised] fills
  * with the theme's primary color for the action a surface exists for (Save, Create); [danger]
- * fills with the error color when that action destroys something, and takes precedence. One
- * colored button per surface; every other action stays plain. Disabled, it falls back to the
- * plain hairline.
+ * fills with the error color for any action that destroys something, and takes precedence.
+ * One [emphasised] button per surface; destructive buttons are always [danger], even beside
+ * it. Every other action stays plain. Disabled, it falls back to the plain hairline.
  */
 @Composable
 fun HdHairlineButton(

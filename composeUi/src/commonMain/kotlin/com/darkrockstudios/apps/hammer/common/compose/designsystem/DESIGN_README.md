@@ -373,12 +373,13 @@ action plus tools.
 | Tool    | `HdToolButton`                                              | Icon actions beside other framed things (a field, a strip). |
 | Quiet   | `HdQuietButton`, `HdQuietSortMenu`                          | Masthead tools: search, sort, sync.                         |
 
-**Colored means filled.** A primary button is filled in `primary`, or
-in `error` when the action destroys something, so it stands apart by
-more than hue. Each surface (a dialog, a masthead, a settings tab, a
-pane) gets at most one, for the action it exists for; everything else
-is a plain hairline. A choice between equals (the two sides of a sync
-conflict) has no primary.
+**Colored means filled.** A colored button is filled, so it stands
+apart by more than hue. Each surface (a dialog, a masthead, a settings
+tab, a pane) gets at most one `primary` button, for the action it
+exists for. Any action that destroys something is filled in `error`,
+wherever it sits, even beside the primary. Everything else is a plain
+hairline. A choice between equals (the two sides of a sync conflict)
+has no primary.
 
 A tool sitting next to a framed element is framed too; match the
 neighbour. With an icon and a label, the icon names the kind of
@@ -393,8 +394,7 @@ a sort icon). Control labels are sentence case in the body face.
   "this opens something". An identifier that isn't clickable gets mono,
   not link styling.
 - **Destructive actions go last and alone**: error-coloured title, a
-  one-line consequence, and a plain "…" button that asks to confirm.
-  The confirm's button is the red one.
+  one-line consequence, and a red "…" button that asks to confirm.
 - **Bounded numbers use a stepper** (− n +) clamped to the range, not a
   text field that needs validation.
 

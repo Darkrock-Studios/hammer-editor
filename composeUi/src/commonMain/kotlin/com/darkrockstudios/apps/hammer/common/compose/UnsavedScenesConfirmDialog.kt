@@ -48,6 +48,6 @@ internal fun RowScope.UnsavedScenesActions(
 	onCancel: () -> Unit,
 ) {
 	HdHairlineButton(label = cancelButtonText, onClick = onCancel)
-	HdHairlineButton(label = discardButtonText, onClick = onDiscard)
+	HdHairlineButton(label = discardButtonText, onClick = onDiscard, danger = true)
 	HdHairlineButton(label = saveButtonText, onClick = onSave, emphasised = true)
 }
