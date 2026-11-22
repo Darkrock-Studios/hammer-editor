@@ -15,7 +15,6 @@
 	<string name="projects_list_search_placeholder">nach Name oder #Tag filtern</string>
 	<string name="projects_list_search_clear">Filter löschen</string>
 	<string name="projects_list_no_matches">Keine Projekte entsprechen dem Filter</string>
-	<string name="projects_list_empty_index">— Leerer Index —</string>
 	<string name="projects_list_sort_label">SORTIEREN</string>
 	<string name="projects_list_sort_recently_opened">Zuletzt geöffnet</string>
 	<string name="projects_list_sort_least_recent">Länger nicht geöffnet</string>

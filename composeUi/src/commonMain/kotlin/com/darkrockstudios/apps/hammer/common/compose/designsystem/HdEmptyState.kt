@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.fillMaxSize
 
 /**
  * "Nothing here yet", said kindly: a dashed hairline frame (the same dashed rule as an empty
@@ -87,6 +88,30 @@ fun HdEmptyState(
 			modifier = Modifier.widthIn(max = 420.dp),
 		)
 		if (action != null) action()
+	}
+}
+
+/**
+ * The empty state of a whole page or pane (a list screen with nothing in it, an editor with
+ * nothing open): one quiet meta line, centred both ways in the space the content would fill.
+ */
+@Composable
+fun HdPageEmpty(
+	text: String,
+	modifier: Modifier = Modifier,
+) {
+	Box(
+		modifier = modifier
+			.fillMaxSize()
+			.padding(Ui.Padding.XL),
+		contentAlignment = Alignment.Center,
+	) {
+		Text(
+			text = text,
+			style = hdMetaStyle(),
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			textAlign = TextAlign.Center,
+		)
 	}
 }
 

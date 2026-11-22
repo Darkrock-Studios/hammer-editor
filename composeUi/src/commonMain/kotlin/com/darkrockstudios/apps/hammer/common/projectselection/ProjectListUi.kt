@@ -35,8 +35,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -51,8 +49,8 @@ import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
@@ -70,7 +68,6 @@ import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import com.darkrockstudios.apps.hammer.project_select_project_list_empty
-import com.darkrockstudios.apps.hammer.projects_list_empty_index
 import com.darkrockstudios.apps.hammer.projects_list_create_menu
 import com.darkrockstudios.apps.hammer.projects_list_new_group
 import com.darkrockstudios.apps.hammer.projects_list_new_project
@@ -273,11 +270,11 @@ fun ProjectListUi(
 			) {
 				if (rows.isEmpty()) {
 					item(key = "empty") {
-						if (libraryEmpty) {
-							EmptyState(horizontalPadding = horizontalPadding)
-						} else {
-							NoMatchesState(horizontalPadding = horizontalPadding)
-						}
+						HdPageEmpty(
+							text = (if (libraryEmpty) Res.string.project_select_project_list_empty
+								else Res.string.projects_list_no_matches).get(),
+							modifier = Modifier.fillParentMaxSize(),
+						)
 					}
 				}
 
@@ -453,48 +450,6 @@ internal fun SearchStrip(
 				}
 			}
 		}
-	}
-}
-
-@Composable
-private fun NoMatchesState(horizontalPadding: Dp) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.XXL),
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		Text(
-			text = Res.string.projects_list_no_matches.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			fontStyle = FontStyle.Italic,
-			textAlign = TextAlign.Center,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-	}
-}
-
-@Composable
-private fun EmptyState(horizontalPadding: Dp) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.XXL),
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = Res.string.projects_list_empty_index.get(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Text(
-			text = Res.string.project_select_project_list_empty.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			fontStyle = FontStyle.Italic,
-			textAlign = TextAlign.Center,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 	}
 }
 

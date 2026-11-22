@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
@@ -31,7 +30,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
@@ -97,6 +95,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 
 const val NOTES_CREATE_FAB_TAG = "notes-create-fab"
 fun noteCardTag(id: Int) = "note-card-$id"
@@ -330,23 +329,6 @@ fun BrowseNotesUi(
 				),
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
-				if (visibleNotes.isEmpty()) {
-					item(span = StaggeredGridItemSpan.FullLine) {
-						Box(
-							modifier = Modifier
-								.fillMaxWidth()
-								.padding(vertical = Ui.Padding.XXL),
-							contentAlignment = Alignment.Center,
-						) {
-							Text(
-								text = Res.string.notes_list_empty.get(),
-								style = MaterialTheme.typography.headlineSmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-							)
-						}
-					}
-				}
-
 				staggeredItems(
 					items = visibleNotes,
 					key = { note -> note.id },
@@ -361,6 +343,10 @@ fun BrowseNotesUi(
 						onClick = { component.viewNote(note.id) },
 					)
 				}
+			}
+
+			if (visibleNotes.isEmpty()) {
+				HdPageEmpty(text = Res.string.notes_list_empty.get())
 			}
 
 			MpScrollBarStaggeredGrid(

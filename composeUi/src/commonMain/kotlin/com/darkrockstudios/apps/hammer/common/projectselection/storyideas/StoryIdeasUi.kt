@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.ideas_discard_dialog_confirm
 import com.darkrockstudios.apps.hammer.ideas_discard_dialog_keep
 import com.darkrockstudios.apps.hammer.ideas_delete_dialog_confirm
 import com.darkrockstudios.apps.hammer.ideas_dialog_cancel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPulsingDot
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioFooter
@@ -464,25 +465,6 @@ private fun IdeasBrowse(
 						}
 					}
 
-					// With nothing loaded, the notice stands in for the empty text
-					if (visibleIdeas.isEmpty() && !(loadFailed && ideas.isEmpty())) {
-						item(span = StaggeredGridItemSpan.FullLine) {
-							Box(
-								modifier = Modifier
-									.fillMaxWidth()
-									.padding(vertical = Ui.Padding.XXL),
-								contentAlignment = Alignment.Center,
-							) {
-								Text(
-									text = (if (showArchived) Res.string.ideas_list_empty_archived
-										else Res.string.ideas_list_empty).get(),
-									style = MaterialTheme.typography.headlineSmall,
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							}
-						}
-					}
-
 					staggeredItems(
 						items = visibleIdeas,
 						key = { idea -> idea.id.id },
@@ -497,6 +479,14 @@ private fun IdeasBrowse(
 							onClick = { component.editIdea(idea.id) },
 						)
 					}
+				}
+
+				// With nothing loaded, the notice stands in for the empty text
+				if (visibleIdeas.isEmpty() && !(loadFailed && ideas.isEmpty())) {
+					HdPageEmpty(
+						text = (if (showArchived) Res.string.ideas_list_empty_archived
+							else Res.string.ideas_list_empty).get(),
+					)
 				}
 
 				MpScrollBarStaggeredGrid(

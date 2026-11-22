@@ -15,7 +15,6 @@
 	<string name="projects_list_search_placeholder">фільтр за назвою або #тегом</string>
 	<string name="projects_list_search_clear">Очистити фільтр</string>
 	<string name="projects_list_no_matches">Немає проєктів, що відповідають фільтру</string>
-	<string name="projects_list_empty_index">— Порожній покажчик —</string>
 	<string name="projects_list_sort_label">СОРТ</string>
 	<string name="projects_list_sort_recently_opened">Нещодавно відкриті</string>
 	<string name="projects_list_sort_least_recent">Найдавніші</string>

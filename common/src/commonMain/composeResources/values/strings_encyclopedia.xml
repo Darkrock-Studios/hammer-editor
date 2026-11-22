@@ -11,7 +11,7 @@
 	<string name="encyclopedia_category_event">Event</string>
 	<string name="encyclopedia_category_idea">Idea</string>
 
-	<string name="encyclopedia_browse_list_empty">No Entries Found</string>
+	<string name="encyclopedia_browse_list_empty">No entries found</string>
 	<string name="encyclopedia_create_button">Create Entry</string>
 	<string name="encyclopedia_create_entry_header">Create entry</string>
 	<string name="encyclopedia_create_entry_name_label">Name</string>

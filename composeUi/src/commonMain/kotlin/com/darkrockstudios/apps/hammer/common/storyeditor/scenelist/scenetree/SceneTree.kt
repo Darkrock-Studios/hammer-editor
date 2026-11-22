@@ -10,13 +10,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
@@ -29,14 +26,13 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
-import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.scene_list_empty
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 
 /**
  * The root composable take takes a scene tree and handles rendering, reorder, collapsing
@@ -53,13 +49,7 @@ fun SceneTree(
 	Box {
 		Row {
 			if (state.summary.sceneTree.totalNodes <= 1) {
-				Text(
-					text = Res.string.scene_list_empty.get(),
-					modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL),
-					textAlign = TextAlign.Center,
-					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onBackground
-				)
+				HdPageEmpty(text = Res.string.scene_list_empty.get(), modifier = Modifier.weight(1f))
 			} else {
 				LazyColumn(
 					state = state.listState,

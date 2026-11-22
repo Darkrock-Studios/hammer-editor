@@ -34,7 +34,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -78,6 +77,7 @@ import com.darkrockstudios.apps.hammer.encyclopedia_search_hint
 import com.darkrockstudios.apps.hammer.notes_search_button
 import com.darkrockstudios.apps.hammer.notes_search_close
 import kotlinx.coroutines.CoroutineScope
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 
 const val ENCYCLOPEDIA_CREATE_FAB_TAG = "encyclopedia-create-fab"
 
@@ -228,30 +228,23 @@ fun BrowseEntriesUi(
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 			) {
-				if (filteredEntries.isEmpty()) {
-					item {
-						Text(
-							text = Res.string.encyclopedia_browse_list_empty.get(),
-							style = MaterialTheme.typography.headlineSmall,
-							color = MaterialTheme.colorScheme.onBackground,
-							modifier = Modifier.padding(Ui.Padding.XL),
-						)
-					}
-				} else {
-					items(filteredEntries, key = { it.id }) { entryDef ->
-						EncyclopediaEntryItem(
-							entryDef = entryDef,
-							component = component,
-							viewEntry = viewEntry,
-							scope = scope,
-							sharedTransitionScope = sharedTransitionScope,
-							animatedVisibilityScope = animatedVisibilityScope,
-							activeTags = activeTagSet,
-							tagsScrollHorizontally = !isWide,
-							filterByType = onSelectType,
-						)
-					}
+				items(filteredEntries, key = { it.id }) { entryDef ->
+					EncyclopediaEntryItem(
+						entryDef = entryDef,
+						component = component,
+						viewEntry = viewEntry,
+						scope = scope,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
+						activeTags = activeTagSet,
+						tagsScrollHorizontally = !isWide,
+						filterByType = onSelectType,
+					)
 				}
+			}
+
+			if (filteredEntries.isEmpty()) {
+				HdPageEmpty(text = Res.string.encyclopedia_browse_list_empty.get())
 			}
 
 			MpScrollBarGrid(

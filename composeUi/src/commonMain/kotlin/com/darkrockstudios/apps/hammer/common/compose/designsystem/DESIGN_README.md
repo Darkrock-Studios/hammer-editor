@@ -606,6 +606,11 @@ screen that surfaces them.
   one or two sentences on what it's for and where to get some. Name
   the place in the app's own words ("Settings, on the Plugins tab").
   Optional `action` for when the fix is right here.
+- **`HdPageEmpty`** (in [`HdEmptyState.kt`](HdEmptyState.kt)): the
+  empty state of a whole page or pane (a list screen with nothing in
+  it, an editor with nothing open). One quiet meta line, centred both
+  ways in the space the content would fill. Overlay it on the list
+  rather than putting it in a list item, so it centres vertically.
 - **[`HdEngravingPlaceholder`](HdEngravingPlaceholder.kt)** — 45°
   hatched stripes + `[ENGRAVING · NAME]`. The "no image" placeholder
   inside detail layouts. `compact = true` shows a centred `[NAME]` for

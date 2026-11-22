@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_select_project_list_empty">No Projects Found</string>
+	<string name="project_select_project_list_empty">No projects yet</string>
 	<string name="project_select_card_delete_button">Delete</string>
 	<string name="project_select_card_rename_button">Rename</string>
 	<string name="projects_list_toast_sync_complete">Projects synced</string>
@@ -24,7 +24,6 @@
 	<string name="projects_list_create_menu">More ways to create</string>
 	<string name="projects_list_sync_status_idle">Sync</string>
 	<string name="projects_list_sync_status_syncing">Syncing…</string>
-	<string name="projects_list_empty_index">— Empty Index —</string>
 	<string name="projects_list_sort_label">Sort</string>
 	<string name="projects_list_sort_recently_opened">Recently opened</string>
 	<string name="projects_list_opened_format">Opened %1$s</string>
