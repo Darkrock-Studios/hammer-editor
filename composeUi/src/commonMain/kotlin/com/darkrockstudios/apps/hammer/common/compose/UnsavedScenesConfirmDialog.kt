@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.confirm_kind_unsaved
 import com.darkrockstudios.apps.hammer.Res
@@ -47,7 +49,9 @@ internal fun RowScope.UnsavedScenesActions(
 	onDiscard: () -> Unit,
 	onCancel: () -> Unit,
 ) {
-	HdHairlineButton(label = cancelButtonText, onClick = onCancel)
+	// Discard stands apart on the left, away from the default action.
 	HdHairlineButton(label = discardButtonText, onClick = onDiscard, danger = true)
+	Spacer(modifier = Modifier.weight(1f))
+	HdHairlineButton(label = cancelButtonText, onClick = onCancel)
 	HdHairlineButton(label = saveButtonText, onClick = onSave, emphasised = true)
 }
