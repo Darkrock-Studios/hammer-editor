@@ -55,14 +55,13 @@ class SceneListTipsTest : BaseTest() {
 
 	private var paneHeight by mutableStateOf(600.dp)
 
-	private fun showSceneList(component: TipsFakeSceneList, swipeOpensMenu: Boolean = false) {
+	private fun showSceneList(component: TipsFakeSceneList) {
 		compose.setContent {
 			KoinApplicationPreview {
 				Box(modifier = Modifier.testTag(PANE_TAG).size(400.dp, paneHeight)) {
 					SceneListUi(
 						component = component,
 						snackbarHostState = rememberRootSnackbarHostState(),
-						swipeOpensMenu = swipeOpensMenu,
 					)
 				}
 			}
@@ -91,7 +90,7 @@ class SceneListTipsTest : BaseTest() {
 
 	@Test
 	fun `the swipe tip points at a scene, not a chapter group`() {
-		showSceneList(TipsFakeSceneList(offered = bothTips), swipeOpensMenu = true)
+		showSceneList(TipsFakeSceneList(offered = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListReorder)))
 
 		val scene = compose.onNodeWithTag(sceneItemTag(SCENE_ID)).getBoundsInRoot()
 		val callout = compose.onNodeWithTag(HD_COACH_MARK_TAG).assertIsDisplayed().getBoundsInRoot()
@@ -101,20 +100,28 @@ class SceneListTipsTest : BaseTest() {
 	}
 
 	@Test
-	fun `without the swipe gesture the swipe tip is passed over and never dismissed`() {
-		val component = TipsFakeSceneList(offered = bothTips)
-		showSceneList(component, swipeOpensMenu = false)
+	fun `the right-click tip points at a scene, not a chapter group`() {
+		showSceneList(TipsFakeSceneList(offered = listOf(NuxHint.SceneListContextMenu, NuxHint.SceneListReorder)))
 
-		compose.onNodeWithText("Drag to reorder").assertIsDisplayed()
-		compose.onNodeWithText("Got it").performClick()
+		val scene = compose.onNodeWithTag(sceneItemTag(SCENE_ID)).getBoundsInRoot()
+		val callout = compose.onNodeWithTag(HD_COACH_MARK_TAG).assertIsDisplayed().getBoundsInRoot()
 
-		assertEquals(listOf(NuxHint.SceneListReorder), component.dismissed)
+		compose.onNodeWithText("Right-click for options").assertIsDisplayed()
+		assertTrue(callout.top >= scene.bottom)
+	}
+
+	@Test
+	fun `the callout has no tip label`() {
+		showSceneList(TipsFakeSceneList(offered = androidTips))
+
+		compose.onNodeWithTag(HD_COACH_MARK_TAG).assertIsDisplayed()
+		compose.onNodeWithText("Tip", ignoreCase = true).assertDoesNotExist()
 	}
 
 	@Test
 	fun `a swipe tip with no scene in view gives way to the reorder tip`() {
-		val component = TipsFakeSceneList(offered = bothTips, summary = sceneFarBelowSummary())
-		showSceneList(component, swipeOpensMenu = true)
+		val component = TipsFakeSceneList(offered = androidTips, summary = sceneFarBelowSummary())
+		showSceneList(component)
 
 		compose.onNodeWithText("Drag to reorder").assertIsDisplayed()
 		compose.onNodeWithText("Got it").performClick()
@@ -124,8 +131,8 @@ class SceneListTipsTest : BaseTest() {
 
 	@Test
 	fun `got it dismisses the tip that was shown`() {
-		val component = TipsFakeSceneList(offered = bothTips)
-		showSceneList(component, swipeOpensMenu = true)
+		val component = TipsFakeSceneList(offered = androidTips)
+		showSceneList(component)
 
 		compose.onNodeWithText("Got it").performClick()
 
@@ -135,8 +142,8 @@ class SceneListTipsTest : BaseTest() {
 
 	@Test
 	fun `turn off tips closes the tip without dismissing it`() {
-		val component = TipsFakeSceneList(offered = bothTips)
-		showSceneList(component, swipeOpensMenu = true)
+		val component = TipsFakeSceneList(offered = androidTips)
+		showSceneList(component)
 
 		compose.onNodeWithText("Turn off tips").performClick()
 
@@ -172,7 +179,7 @@ class SceneListTipsTest : BaseTest() {
 	@Test
 	fun `a row near the bottom is pointed at once the footer has scrolled away`() {
 		val component = TipsFakeSceneList(offered = emptyList(), summary = chaptersAfterSceneSummary())
-		showSceneList(component, swipeOpensMenu = true)
+		showSceneList(component)
 		val pane = compose.onNodeWithTag(PANE_TAG).getBoundsInRoot()
 		val scene = compose.onNodeWithTag(sceneItemTag(SCENE_ID)).getBoundsInRoot()
 		paneHeight = scene.bottom - pane.top + 2.dp
@@ -192,7 +199,8 @@ class SceneListTipsTest : BaseTest() {
 		compose.onNodeWithTag(HD_COACH_MARK_TAG).assertExists()
 	}
 
-	private val bothTips = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListReorder)
+	/** The tips an Android list offers. */
+	private val androidTips = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListReorder)
 
 	/** Resizes the pane to [height], given the list's top and the first row, both relative to the pane. */
 	private fun shrinkPane(height: (listTop: Dp, firstRow: DpRect) -> Dp) {

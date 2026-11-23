@@ -52,11 +52,13 @@ import com.darkrockstudios.apps.hammer.settings_theme_dark
 import com.darkrockstudios.apps.hammer.settings_theme_followsystem
 import com.darkrockstudios.apps.hammer.settings_theme_light
 import com.darkrockstudios.apps.hammer.settings_theme_oled_black
+import com.darkrockstudios.apps.hammer.settings_tips_progress
 import com.darkrockstudios.apps.hammer.settings_tips_reset_button
 import com.darkrockstudios.apps.hammer.settings_tips_reset_description
 import com.darkrockstudios.apps.hammer.settings_tips_reset_title
 import com.darkrockstudios.apps.hammer.settings_tips_show
 import com.darkrockstudios.apps.hammer.settings_tips_show_hint
+import org.jetbrains.compose.resources.pluralStringResource
 import org.koin.compose.koinInject
 
 private val MaxColumnWidth = 720.dp
@@ -157,6 +159,7 @@ private fun ColumnScope.GeneralTab(component: AccountSettings, rootSnackbar: Roo
 		HdSettingRow(
 			title = Res.string.settings_tips_reset_title.get(),
 			description = Res.string.settings_tips_reset_description.get(),
+			meta = state.tipsProgress?.let { pluralStringResource(Res.plurals.settings_tips_progress, it.total, it.seen, it.total) },
 		) {
 			HdHairlineButton(
 				label = Res.string.settings_tips_reset_button.get(),

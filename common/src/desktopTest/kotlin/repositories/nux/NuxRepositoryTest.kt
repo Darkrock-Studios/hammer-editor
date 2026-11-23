@@ -4,9 +4,13 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxProgress
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxState
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxPlatform
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.FileSystem
@@ -19,10 +23,12 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
+import utils.FixedRandom
 import utils.inMemoryGlobalSettingsStore
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.random.Random
 
 class NuxRepositoryTest : BaseTest() {
 
@@ -39,10 +45,19 @@ class NuxRepositoryTest : BaseTest() {
 		globalSettingsStore = inMemoryGlobalSettingsStore()
 	}
 
-	private fun createRepository(fs: FileSystem = fileSystem) = NuxRepository(
+	private fun createRepository(
+		fs: FileSystem = fileSystem,
+		random: Random = FixedRandom.losing(),
+		platform: NuxPlatform = NuxPlatform.Desktop,
+	) = NuxRepository(
 		NuxFilesystemDatasource(fs, createTomlSerializer()),
 		globalSettingsStore,
+		platform = platform,
+		random = random,
 	)
+
+	/** A screen's hints as the scene list asks for them: both menu tips, then reorder. */
+	private val screenHints = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListContextMenu, NuxHint.SceneListReorder)
 
 	private suspend fun NuxRepository.unseenNow() = unseen(allHints).first()
 
@@ -63,7 +78,7 @@ class NuxRepositoryTest : BaseTest() {
 
 		val restarted = createRepository()
 
-		assertEquals(listOf(NuxHint.SceneListReorder), restarted.unseenNow())
+		assertEquals(allHints - NuxHint.SceneListSwipeMenu, restarted.unseenNow())
 	}
 
 	@Test
@@ -74,7 +89,7 @@ class NuxRepositoryTest : BaseTest() {
 		repository.markSeen(NuxHint.SceneListSwipeMenu)
 		val unseen = repository.unseen(allHints).first()
 
-		assertEquals(listOf(NuxHint.SceneListReorder), unseen)
+		assertEquals(allHints - NuxHint.SceneListSwipeMenu, unseen)
 	}
 
 	@Test
@@ -84,7 +99,7 @@ class NuxRepositoryTest : BaseTest() {
 		repository.markSeen(NuxHint.SceneListReorder)
 		advanceUntilIdle()
 
-		assertEquals(listOf(NuxHint.SceneListSwipeMenu), repository.unseenNow())
+		assertEquals(allHints - NuxHint.SceneListReorder, repository.unseenNow())
 		assertEquals(setOf(NuxHint.SceneListReorder.id), storedState().seenHints)
 	}
 
@@ -176,8 +191,136 @@ class NuxRepositoryTest : BaseTest() {
 		repository.markSeen(NuxHint.SceneListReorder)
 		advanceUntilIdle()
 
-		assertEquals(listOf(NuxHint.SceneListSwipeMenu), repository.unseenNow())
+		assertEquals(allHints - NuxHint.SceneListReorder, repository.unseenNow())
 		assertFalse(fileSystem.exists(NuxFilesystemDatasource.STATE_PATH))
+	}
+
+	@Test
+	fun `A first visit offers every hint that applies here, whatever the roll`() = runTest(mainTestDispatcher) {
+		val repository = createRepository(random = FixedRandom.losing(), platform = NuxPlatform.Desktop)
+
+		val offered = repository.visitHints(screenHints, repository.startVisit()).first()
+
+		assertEquals(listOf(NuxHint.SceneListContextMenu, NuxHint.SceneListReorder), offered)
+	}
+
+	@Test
+	fun `A first visit on Android offers the swipe tip instead`() = runTest(mainTestDispatcher) {
+		val repository = createRepository(platform = NuxPlatform.Android)
+
+		val offered = repository.visitHints(screenHints, repository.startVisit()).first()
+
+		assertEquals(listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListReorder), offered)
+	}
+
+	@Test
+	fun `A later visit offers the remaining hints on a winning roll`() = runTest(mainTestDispatcher) {
+		val repository = createRepository(random = FixedRandom.winning())
+		repository.markSeen(NuxHint.SceneListContextMenu)
+
+		val offered = repository.visitHints(screenHints, repository.startVisit()).first()
+
+		assertEquals(listOf(NuxHint.SceneListReorder), offered)
+	}
+
+	@Test
+	fun `A later visit offers nothing on a losing roll`() = runTest(mainTestDispatcher) {
+		val repository = createRepository(random = FixedRandom.losing())
+		repository.markSeen(NuxHint.SceneListContextMenu)
+
+		val offered = repository.visitHints(screenHints, repository.startVisit()).first()
+
+		assertTrue(offered.isEmpty())
+	}
+
+	@Test
+	fun `A visit never offers a hint for another platform`() = runTest(mainTestDispatcher) {
+		val repository = createRepository(random = FixedRandom.winning(), platform = NuxPlatform.Desktop)
+		repository.markSeen(NuxHint.SceneListContextMenu)
+		repository.markSeen(NuxHint.SceneListReorder)
+
+		val offered = repository.visitHints(screenHints, repository.startVisit()).first()
+
+		assertTrue(offered.isEmpty())
+	}
+
+	@Test
+	fun `After a reset a visit offers again as a first visit does`() = runTest(mainTestDispatcher) {
+		val repository = createRepository(random = FixedRandom.losing())
+		repository.markSeen(NuxHint.SceneListContextMenu)
+		advanceUntilIdle()
+
+		repository.resetHints()
+		advanceUntilIdle()
+		val offered = repository.visitHints(screenHints, repository.startVisit()).first()
+
+		assertEquals(listOf(NuxHint.SceneListContextMenu, NuxHint.SceneListReorder), offered)
+	}
+
+	@Test
+	fun `Turning tips off and on within a visit does not roll again`() = runTest(mainTestDispatcher) {
+		val random = FixedRandom(FixedRandom.LOSE, FixedRandom.WIN)
+		val repository = createRepository(random = random)
+		repository.markSeen(NuxHint.SceneListContextMenu)
+		val offers = mutableListOf<List<NuxHint>>()
+		val visit = repository.visitHints(screenHints, repository.startVisit())
+		val collecting = launch { visit.toList(offers) }
+		advanceUntilIdle()
+
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = false) }
+		advanceUntilIdle()
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = true) }
+		advanceUntilIdle()
+		collecting.cancel()
+
+		assertEquals(listOf(emptyList<NuxHint>()), offers)
+		assertEquals(1, random.rolls)
+	}
+
+	@Test
+	fun `Progress counts only the hints that can show here`() = runTest(mainTestDispatcher) {
+		val desktop = createRepository(platform = NuxPlatform.Desktop)
+		desktop.markSeen(NuxHint.SceneListSwipeMenu)
+		desktop.markSeen(NuxHint.SceneListContextMenu)
+
+		assertEquals(NuxProgress(seen = 1, total = 2), desktop.progress().first())
+		assertEquals(NuxProgress(seen = 0, total = 1), createRepository(platform = NuxPlatform.Ios).progress().first())
+	}
+
+	@Test
+	fun `Progress ignores hint ids this build does not know`() = runTest(mainTestDispatcher) {
+		NuxFilesystemDatasource(fileSystem, createTomlSerializer())
+			.store(NuxState(seenHints = setOf("from.a.newer.build", NuxHint.SceneListReorder.id)))
+
+		val progress = createRepository(platform = NuxPlatform.Android).progress().first()
+
+		assertEquals(NuxProgress(seen = 1, total = 2), progress)
+	}
+
+	@Test
+	fun `Progress follows dismissals and resets`() = runTest(mainTestDispatcher) {
+		val repository = createRepository(platform = NuxPlatform.Desktop)
+		val updates = mutableListOf<NuxProgress>()
+		val collecting = launch { repository.progress().toList(updates) }
+		advanceUntilIdle()
+
+		repository.markSeen(NuxHint.SceneListReorder)
+		advanceUntilIdle()
+		repository.resetHints()
+		advanceUntilIdle()
+		collecting.cancel()
+
+		assertEquals(listOf(NuxProgress(0, 2), NuxProgress(1, 2), NuxProgress(0, 2)), updates)
+	}
+
+	@Test
+	fun `Progress counts tips seen while tips are off`() = runTest(mainTestDispatcher) {
+		val repository = createRepository(platform = NuxPlatform.Desktop)
+		repository.markSeen(NuxHint.SceneListReorder)
+
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = false) }
+
+		assertEquals(NuxProgress(seen = 1, total = 2), repository.progress().first())
 	}
 
 	@Test

@@ -23,7 +23,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSe
 import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxProgress
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxPlatform
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
@@ -123,7 +125,11 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		accountUseCase = mockk(relaxed = true)
 		accountSynchronizer = mockk(relaxed = true)
-		nuxRepository = NuxRepository(NuxFilesystemDatasource(ffs, toml), globalSettingsStore)
+		nuxRepository = NuxRepository(
+			NuxFilesystemDatasource(ffs, toml),
+			globalSettingsStore,
+			platform = NuxPlatform.Desktop,
+		)
 
 		val testModule = module {
 			single<FileSystem> { hookedFs }
@@ -309,6 +315,34 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		assertTrue(component.state.value.tipsEnabled)
 		assertEquals(NuxHint.entries, nuxRepository.unseen(NuxHint.entries).first())
+	}
+
+	@Test
+	fun `Tips progress counts only the tips this platform can show`() = runTest {
+		globalSettingsUpdates.emit(globalSettings)
+		nuxRepository.markSeen(NuxHint.SceneListSwipeMenu)
+		nuxRepository.markSeen(NuxHint.SceneListReorder)
+
+		val component = newComponent()
+		advanceUntilIdle()
+
+		assertEquals(NuxProgress(seen = 1, total = 2), component.state.value.tipsProgress)
+	}
+
+	@Test
+	fun `Tips progress follows a tip dismissed elsewhere and a reset`() = runTest {
+		globalSettingsUpdates.emit(globalSettings)
+		val component = newComponent()
+		advanceUntilIdle()
+
+		nuxRepository.markSeen(NuxHint.SceneListContextMenu)
+		advanceUntilIdle()
+		val afterDismissal = component.state.value.tipsProgress
+		component.resetTips()
+		advanceUntilIdle()
+
+		assertEquals(NuxProgress(seen = 1, total = 2), afterDismissal)
+		assertEquals(NuxProgress(seen = 0, total = 2), component.state.value.tipsProgress)
 	}
 
 	private val syncedAt = Instant.fromEpochSeconds(1_000_000)

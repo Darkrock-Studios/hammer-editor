@@ -4,10 +4,13 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.essenty.instancekeeper.InstanceKeeper
+import com.arkivanov.essenty.instancekeeper.retainedInstance
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxVisit
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import io.github.aakira.napier.Napier
 import kotlinx.collections.immutable.persistentListOf
@@ -38,8 +41,8 @@ class SceneListComponent(
 
 	private val hasRows = MutableStateFlow(false)
 
-	/** The hint dismissed on this visit; while set no other is offered, so each list shows at most one. Main thread only. */
-	private var dismissedHint: NuxHint? = null
+	/** Retained so a configuration change neither rolls again nor forgets a dismissal. */
+	private val visit = retainedInstance(key = TIPS_VISIT_KEY) { TipsVisit(nuxRepository.startVisit()) }
 
 	init {
 		Napier.d { "Project editor: " + projectEditor.projectDef.name }
@@ -85,7 +88,7 @@ class SceneListComponent(
 	}
 
 	private fun watchHints() {
-		val offer = combine(nuxRepository.unseen(LIST_HINTS), hasRows) { unseen, rows ->
+		val offer = combine(nuxRepository.visitHints(LIST_HINTS, visit.nuxVisit), hasRows) { unseen, rows ->
 			if (rows) unseen else emptyList()
 		}
 
@@ -93,9 +96,9 @@ class SceneListComponent(
 			offer.distinctUntilChanged().collect { hints ->
 				withContext(dispatcherMain) {
 					// Only a reset makes a dismissed hint unseen again; an update worked out before the dismissal does not.
-					val dismissed = dismissedHint
-					if (dismissed != null && dismissed in hints && nuxRepository.isUnseen(dismissed)) dismissedHint = null
-					val offered = if (dismissedHint == null) hints.toImmutableList() else persistentListOf()
+					val dismissed = visit.dismissedHint
+					if (dismissed != null && dismissed in hints && nuxRepository.isUnseen(dismissed)) visit.dismissedHint = null
+					val offered = if (visit.dismissedHint == null) hints.toImmutableList() else persistentListOf()
 					_state.getAndUpdate { it.copy(offeredHints = offered) }
 				}
 			}
@@ -103,8 +106,8 @@ class SceneListComponent(
 	}
 
 	override fun dismissHint(hint: NuxHint) {
-		if (dismissedHint != null || hint !in _state.value.offeredHints) return
-		dismissedHint = hint
+		if (visit.dismissedHint != null || hint !in _state.value.offeredHints) return
+		visit.dismissedHint = hint
 		_state.getAndUpdate { it.copy(offeredHints = persistentListOf()) }
 		nuxRepository.markSeen(hint)
 	}
@@ -237,5 +240,12 @@ class SceneListComponent(
 	}
 }
 
-/** The scene list's tips, most wanted first. */
-private val LIST_HINTS = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListReorder)
+/** The scene list's tips, most wanted first; only the menu tip for this platform is offered. */
+private val LIST_HINTS = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListContextMenu, NuxHint.SceneListReorder)
+
+private const val TIPS_VISIT_KEY = "SceneListComponent.tipsVisit"
+
+/** One visit's tips state. [dismissedHint] blocks any other tip until a reset, so a visit shows at most one. Main thread only. */
+private class TipsVisit(val nuxVisit: NuxVisit) : InstanceKeeper.Instance {
+	var dismissedHint: NuxHint? = null
+}

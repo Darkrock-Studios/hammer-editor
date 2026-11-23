@@ -94,8 +94,9 @@ import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_header
 import com.darkrockstudios.apps.hammer.scene_list_outline_button
 import com.darkrockstudios.apps.hammer.scene_list_reader_button
+import com.darkrockstudios.apps.hammer.scene_list_tip_context_menu_body
+import com.darkrockstudios.apps.hammer.scene_list_tip_context_menu_title
 import com.darkrockstudios.apps.hammer.scene_list_tip_dismiss
-import com.darkrockstudios.apps.hammer.scene_list_tip_label
 import com.darkrockstudios.apps.hammer.scene_list_tip_reorder_body
 import com.darkrockstudios.apps.hammer.scene_list_tip_reorder_title
 import com.darkrockstudios.apps.hammer.scene_list_tip_swipe_body
@@ -116,17 +117,6 @@ const val CREATE_ITEM_NAME_FIELD_TAG = "create-item-name-field"
 const val SCENE_LIST_TREE_TAG = "scene-list-tree"
 const val SCENE_LIST_READER_BUTTON_TAG = "scene-list-reader"
 
-@Composable
-fun SceneListUi(
-	component: SceneList,
-	snackbarHostState: RootSnackbarHostState,
-	modifier: Modifier = Modifier,
-	inSplitPane: Boolean = false,
-) {
-	SceneListUi(component, snackbarHostState, modifier, inSplitPane, swipeOpensMenu = sceneRowSwipeOpensMenu)
-}
-
-/** [swipeOpensMenu] is [sceneRowSwipeOpensMenu], open here so tests can stand in for either platform. */
 @OptIn(
 	ExperimentalMaterialApi::class,
 	ExperimentalComposeApi::class,
@@ -134,12 +124,11 @@ fun SceneListUi(
 	ExperimentalFoundationApi::class
 )
 @Composable
-internal fun SceneListUi(
+fun SceneListUi(
 	component: SceneList,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 	inSplitPane: Boolean = false,
-	swipeOpensMenu: Boolean,
 ) {
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
@@ -180,8 +169,8 @@ internal fun SceneListUi(
 	val coachMarkAnchors = rememberHdCoachMarkAnchors()
 	val tipsTurnedOffMessage = Res.string.scene_list_tip_turned_off.get()
 	val offeredHints = state.offeredHints
-	val shownTip by remember(treeState, offeredHints, swipeOpensMenu, footerVisible) {
-		derivedStateOf { anchorableTip(treeState, offeredHints, swipeOpensMenu, footerVisible) }
+	val shownTip by remember(treeState, offeredHints, footerVisible) {
+		derivedStateOf { anchorableTip(treeState, offeredHints, footerVisible) }
 	}
 	val shownHint = shownTip?.hint
 	val hintRowId = shownTip?.rowId
@@ -199,13 +188,14 @@ internal fun SceneListUi(
 		HdCoachMarkHost(
 			anchors = coachMarkAnchors,
 			activeKey = hintRowId,
-			label = Res.string.scene_list_tip_label.get(),
 			title = when (shownHint) {
 				NuxHint.SceneListReorder -> Res.string.scene_list_tip_reorder_title.get()
+				NuxHint.SceneListContextMenu -> Res.string.scene_list_tip_context_menu_title.get()
 				else -> Res.string.scene_list_tip_swipe_title.get()
 			},
 			body = when (shownHint) {
 				NuxHint.SceneListReorder -> Res.string.scene_list_tip_reorder_body.get()
+				NuxHint.SceneListContextMenu -> Res.string.scene_list_tip_context_menu_body.get()
 				else -> Res.string.scene_list_tip_swipe_body.get()
 			},
 			dismissLabel = Res.string.scene_list_tip_dismiss.get(),
@@ -648,12 +638,11 @@ private data class ShownTip(val hint: NuxHint, val rowId: Int)
 
 /**
  * The first of [offered] that has a row to point at right now, and that row. A tip points at the
- * first row wholly in view, and the swipe tip at the first such scene, whose menu it describes.
+ * first row wholly in view, and a menu tip at the first such scene, whose menu it describes.
  */
 private fun anchorableTip(
 	treeState: SceneTreeState,
 	offered: List<NuxHint>,
-	swipeOpensMenu: Boolean,
 	footerVisible: Boolean,
 ): ShownTip? {
 	val layout = treeState.listState.layoutInfo
@@ -662,8 +651,8 @@ private fun anchorableTip(
 	val inView = layout.visibleItemsInfo.filter { it.offset >= 0 && it.offset + it.size <= visibleEnd }
 	return offered.firstNotNullOfOrNull { hint ->
 		val row = when (hint) {
-			NuxHint.SceneListSwipeMenu ->
-				if (swipeOpensMenu) inView.firstOrNull { it.contentType == SceneItem.Type.Scene } else null
+			NuxHint.SceneListSwipeMenu, NuxHint.SceneListContextMenu ->
+				inView.firstOrNull { it.contentType == SceneItem.Type.Scene }
 
 			NuxHint.SceneListReorder -> inView.firstOrNull()
 		}

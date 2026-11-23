@@ -106,6 +106,17 @@ class AccountSettingsComponent(
 
 	init {
 		watchSettingsUpdates()
+		watchTipsProgress()
+	}
+
+	private fun watchTipsProgress() {
+		scope.launch {
+			nuxRepository.progress().collect { progress ->
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(tipsProgress = progress) }
+				}
+			}
+		}
 	}
 
 	private fun cancelSetupJob() {

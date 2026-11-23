@@ -41,8 +41,6 @@ import com.darkrockstudios.apps.hammer.scene_list_item_action_move
 import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 import kotlin.math.roundToInt
 
-actual val sceneRowSwipeOpensMenu: Boolean = true
-
 @Composable
 actual fun SceneItemActionContainer(
 	scene: SceneItem,

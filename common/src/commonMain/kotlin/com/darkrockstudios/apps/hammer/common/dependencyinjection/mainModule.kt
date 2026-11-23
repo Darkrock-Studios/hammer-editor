@@ -250,7 +250,7 @@ val mainModule = module {
 	single<GlobalSettingsFilesystemDatasource>()
 	single<GlobalSettingsStore>()
 	single<NuxFilesystemDatasource>() bind NuxDatasource::class
-	single<NuxRepository>()
+	single { NuxRepository(get(), get()) }
 	single<ProjectPluginsDatasource>()
 	single<ProjectPluginsRepository>()
 

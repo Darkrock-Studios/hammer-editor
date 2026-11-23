@@ -40,7 +40,7 @@ interface SceneList {
 		val sceneSummary: SceneSummary? = null,
 		val showArchivedDialog: Boolean = false,
 		val archivedScenes: ImmutableList<SceneItem> = persistentListOf(),
-		/** Coach marks the list may show, most wanted first; the UI shows the first it can point at. */
+		/** Coach marks the list may show on this visit, most wanted first; the UI shows the first it can point at. */
 		val offeredHints: ImmutableList<NuxHint> = persistentListOf(),
 	)
 }

@@ -113,7 +113,6 @@ private class CoachMarkAnchorNode(
  *   ░│ the anchored element    │░
  *   ░└─────────────────────────┘░
  *   ░ ┌───────────────────────┐ ░
- *   ░ │ TIP                   │ ░
  *   ░ │ Title                 │ ░
  *   ░ │ Body.                 │ ░
  *   ░ │    [Turn off] [Got it]│ ░
@@ -129,7 +128,6 @@ private class CoachMarkAnchorNode(
 fun HdCoachMarkHost(
 	anchors: HdCoachMarkAnchors,
 	activeKey: Any?,
-	label: String,
 	title: String,
 	body: String,
 	dismissLabel: String,
@@ -165,7 +163,6 @@ fun HdCoachMarkHost(
 
 			CalloutPlacement(target = target) {
 				Callout(
-					label = label,
 					title = title,
 					body = body,
 					dismissLabel = dismissLabel,
@@ -236,7 +233,6 @@ private fun CalloutPlacement(target: Rect, callout: @Composable () -> Unit) {
 
 @Composable
 private fun Callout(
-	label: String,
 	title: String,
 	body: String,
 	dismissLabel: String,
@@ -255,7 +251,6 @@ private fun Callout(
 			.padding(horizontal = 14.dp, vertical = 12.dp),
 		verticalArrangement = Arrangement.spacedBy(6.dp),
 	) {
-		HdMonoLabel(text = label, color = MaterialTheme.colorScheme.primary)
 		Text(
 			text = title,
 			style = MaterialTheme.typography.titleSmall,

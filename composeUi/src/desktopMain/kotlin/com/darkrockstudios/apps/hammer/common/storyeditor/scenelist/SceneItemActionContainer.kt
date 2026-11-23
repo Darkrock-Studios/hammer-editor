@@ -19,8 +19,6 @@ import com.darkrockstudios.apps.hammer.scene_list_item_action_delete
 import com.darkrockstudios.apps.hammer.scene_list_item_action_move
 import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 
-actual val sceneRowSwipeOpensMenu: Boolean = false
-
 @Composable
 actual fun SceneItemActionContainer(
 	scene: SceneItem,

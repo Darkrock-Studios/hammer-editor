@@ -14,20 +14,25 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okio.IOException
 import org.koin.core.component.KoinComponent
+import kotlin.random.Random
 
 /**
- * Which hints the user has seen. Tips must never break the app: an unreadable file reads as a
- * fresh install, and a failed save is logged while the change still holds for this session.
+ * Which hints the user has seen, and how often a screen offers the rest. Tips must never break the
+ * app: an unreadable file reads as a fresh install, and a failed save is logged while the change
+ * still holds for this session. Hints for a platform other than [platform] never show here.
  */
 class NuxRepository(
 	private val datasource: NuxDatasource,
 	private val globalSettingsStore: GlobalSettingsStore,
+	private val platform: NuxPlatform = currentNuxPlatform,
+	private val random: Random = Random.Default,
 ) : KoinComponent {
 	private val dispatcherIo by injectIoDispatcher()
 
@@ -48,6 +53,29 @@ class NuxRepository(
 		combine(loadedState(), globalSettingsStore.globalSettingsUpdates) { state, settings ->
 			if (settings.tipsEnabled) hints.filter { it.id !in state.seenHints } else emptyList()
 		}.distinctUntilChanged()
+
+	/** Starts a visit to a screen, rolling its one chance at offering tips after the first visit. */
+	fun startVisit(): NuxVisit = NuxVisit(laterVisitOffers = random.nextInt(LATER_VISIT_ODDS) == 0)
+
+	/**
+	 * The hints [visit] may offer, from that screen's [hints] in order. While none of them has been
+	 * seen, as on a first visit or after a reset, it offers them all; otherwise it offers what is left
+	 * only if the visit's roll won. Hints for other platforms are left out. None while tips are off.
+	 */
+	fun visitHints(hints: List<NuxHint>, visit: NuxVisit): Flow<List<NuxHint>> {
+		val applicable = hints.filter { platform in it.platforms }
+		return unseen(applicable).map { unseen ->
+			if (unseen.size == applicable.size || visit.laterVisitOffers) unseen else emptyList()
+		}.distinctUntilChanged()
+	}
+
+	/** How many of the hints this platform can show have been seen, tips setting aside. */
+	fun progress(): Flow<NuxProgress> {
+		val applicable = NuxHint.entries.filter { platform in it.platforms }
+		return loadedState().map { state ->
+			NuxProgress(seen = applicable.count { it.id in state.seenHints }, total = applicable.size)
+		}.distinctUntilChanged()
+	}
 
 	/** Whether [hint] is unseen right now, tips setting aside; false until the file has been read. */
 	fun isUnseen(hint: NuxHint): Boolean = state.value?.let { hint.id !in it.seenHints } ?: false
@@ -111,5 +139,10 @@ class NuxRepository(
 		} catch (e: IOException) {
 			Napier.e("Failed to save NUX state.", e)
 		}
+	}
+
+	companion object {
+		/** A visit after the first offers the remaining tips once in this many. */
+		const val LATER_VISIT_ODDS = 3
 	}
 }

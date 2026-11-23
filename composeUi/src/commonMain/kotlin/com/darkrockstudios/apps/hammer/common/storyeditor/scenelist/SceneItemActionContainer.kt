@@ -4,9 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 
-/** Whether a row opens its action menu by swiping it sideways, which [SceneItemActionContainer] decides per platform. */
-expect val sceneRowSwipeOpensMenu: Boolean
-
 @Composable
 expect fun SceneItemActionContainer(
 	scene: SceneItem,

@@ -19,11 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -61,7 +64,6 @@ class HdCoachMarkTest {
 				HdCoachMarkHost(
 					anchors = anchors,
 					activeKey = active,
-					label = "Tip",
 					title = "Swipe a scene right",
 					body = "Rename, move, archive, or delete it from the menu that opens.",
 					dismissLabel = "Got it",
@@ -116,6 +118,13 @@ class HdCoachMarkTest {
 	}
 
 	@Test
+	fun `the callout leads with its title`() {
+		show(activeScene = "Harbor at dawn")
+
+		compose.onNodeWithTag(HD_COACH_MARK_TAG).onChildren().onFirst().assertTextEquals("Swipe a scene right")
+	}
+
+	@Test
 	fun `nothing is shown when no mark is active`() {
 		show(activeScene = null)
 
@@ -153,7 +162,6 @@ class HdCoachMarkTest {
 				HdCoachMarkHost(
 					anchors = anchors,
 					activeKey = active,
-					label = "Tip",
 					title = "Title",
 					body = "Body",
 					dismissLabel = "Got it",
@@ -219,7 +227,6 @@ class HdCoachMarkTest {
 				HdCoachMarkHost(
 					anchors = anchors,
 					activeKey = "row",
-					label = "Tip",
 					title = "Title",
 					body = "Body",
 					dismissLabel = "Got it",
@@ -248,7 +255,6 @@ class HdCoachMarkTest {
 				HdCoachMarkHost(
 					anchors = anchors,
 					activeKey = "tall",
-					label = "Tip",
 					title = "Swipe a scene right",
 					body = "Rename, move, archive, or delete it from the menu that opens.",
 					dismissLabel = "Got it",
@@ -280,7 +286,6 @@ class HdCoachMarkTest {
 				HdCoachMarkHost(
 					anchors = anchors,
 					activeKey = "row",
-					label = "Tip",
 					title = "Title",
 					body = "Body",
 					dismissLabel = "Got it",

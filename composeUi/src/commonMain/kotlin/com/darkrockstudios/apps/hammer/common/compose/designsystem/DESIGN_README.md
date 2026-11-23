@@ -363,16 +363,18 @@ The handwriting of the system. Reach for these instead of styling
 - **[`HdCoachMarkHost`](HdCoachMark.kt)**: a one-time tip pointing at
   one element. Dims the screen around the element marked with
   `Modifier.hdCoachMarkAnchor`, outlines it in `primary`, and sets a
-  hairline callout (mono `TIP` label, title, body, and an emphasised
-  dismiss button, with an optional quieter secondary action beside it
-  through `secondaryLabel`/`onSecondary`, such as "Turn off tips")
+  hairline callout (title, body, and an emphasised dismiss button,
+  with an optional quieter secondary action beside it through
+  `secondaryLabel`/`onSecondary`, such as "Turn off tips")
   below it, or above when there is no room. When it fits on neither
   side it takes the roomier one and scrolls, never covering the
   element. Tapping the dimmed area dismisses it; taps on the callout
   do not. The element itself stays interactive, so the user can try
   the gesture the tip describes while it is up. What has been seen belongs to
-  `NuxRepository`; the screen's component offers its unseen tips in
-  order, and the screen shows the first it can point at.
+  `NuxRepository`, which also paces them (`visitHints`: a first visit
+  always offers, later visits only now and then); the screen's component
+  offers those tips in order, and the screen shows the first it can
+  point at, one per visit.
 
 ### Buttons & inputs
 

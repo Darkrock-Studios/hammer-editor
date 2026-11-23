@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxProgress
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -95,5 +96,7 @@ interface AccountSettings : ComponentToaster {
 		val maxBackups: Int,
 		val initialProjectScreen: InitialProjectScreen = InitialProjectScreen.Home,
 		val tipsEnabled: Boolean = true,
+		/** Null until the seen tips have been read. */
+		@Transient val tipsProgress: NuxProgress? = null,
 	)
 }

@@ -79,14 +79,13 @@ fun ScreenSceneListUiTabletPreview() {
 	}
 }
 
-/** The scene list with a first-visit tip up. [swipe] shows the mobile swipe tip, otherwise the reorder tip. */
+/** The scene list showing [hint]. */
 @Composable
-fun ScreenSceneListUiTipPreview(swipe: Boolean) {
+fun ScreenSceneListUiTipPreview(hint: NuxHint) {
 	val snackbarHostState = rememberRootSnackbarHostState()
 
 	KoinApplicationPreview {
 		TabletPreviewSurface {
-			val hint = if (swipe) NuxHint.SceneListSwipeMenu else NuxHint.SceneListReorder
 			val component = fakeComponent(
 				SceneList.State(
 					projectDef = fakeProjectDef(),
@@ -94,7 +93,7 @@ fun ScreenSceneListUiTipPreview(swipe: Boolean) {
 					offeredHints = persistentListOf(hint),
 				)
 			)
-			SceneListUi(component, snackbarHostState, swipeOpensMenu = swipe)
+			SceneListUi(component, snackbarHostState)
 		}
 	}
 }

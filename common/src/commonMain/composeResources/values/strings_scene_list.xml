@@ -82,12 +82,13 @@
 	<string name="scene_type_meta_root">Root</string>
 	<string name="scene_list_empty">No scenes</string>
 
-	<string name="scene_list_tip_label">Tip</string>
 	<string name="scene_list_tip_dismiss">Got it</string>
 	<string name="scene_list_tip_turn_off">Turn off tips</string>
 	<string name="scene_list_tip_turned_off">Tips are off. Turn them back on in Settings.</string>
 	<string name="scene_list_tip_swipe_title">Swipe for options</string>
 	<string name="scene_list_tip_swipe_body">Swipe a scene to the right to open its menu: rename, move, archive or delete it.</string>
+	<string name="scene_list_tip_context_menu_title">Right-click for options</string>
+	<string name="scene_list_tip_context_menu_body">Right-click a scene to open its menu: archive, rename, move or delete it.</string>
 	<string name="scene_list_tip_reorder_title">Drag to reorder</string>
 	<string name="scene_list_tip_reorder_body">Press and hold a scene or chapter, then drag it to a new place. Drop it inside a chapter or group to nest it there.</string>
 </resources>

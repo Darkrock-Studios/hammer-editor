@@ -91,6 +91,7 @@ import com.darkrockstudios.apps.hammer.common.preview.SceneConflictPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenCreateEntryPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTipPreview
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
 import com.darkrockstudios.apps.hammer.common.preview.CreateSceneDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneRenameDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneDeleteConfirmScrimPreview
@@ -269,8 +270,9 @@ class ScreenGalleryTest {
 		surfaced("Open source libraries") { LibrariesScrimPreview() },
 		screen("Story, no scene selected") { ScreenStoryNoSceneTabletPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
-		screen("Scene list, swipe tip") { ScreenSceneListUiTipPreview(swipe = true) },
-		screen("Scene list, reorder tip") { ScreenSceneListUiTipPreview(swipe = false) },
+		screen("Scene list, swipe tip") { ScreenSceneListUiTipPreview(NuxHint.SceneListSwipeMenu) },
+		screen("Scene list, right-click tip") { ScreenSceneListUiTipPreview(NuxHint.SceneListContextMenu) },
+		screen("Scene list, reorder tip") { ScreenSceneListUiTipPreview(NuxHint.SceneListReorder) },
 		surfaced("Create scene dialog") { CreateSceneDialogScrimPreview() },
 		surfaced("Rename chapter dialog") { SceneRenameDialogScrimPreview() },
 		surfaced("Delete scene confirm") { SceneDeleteConfirmScrimPreview() },

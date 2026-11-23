@@ -14,6 +14,10 @@
 	<string name="settings_tips_show_hint">Point out gestures and features the first time you reach them.</string>
 	<string name="settings_tips_reset_title">Dismissed tips</string>
 	<string name="settings_tips_reset_description">Bring back every tip you have already dismissed.</string>
+	<plurals name="settings_tips_progress">
+		<item quantity="one">Seen %1$d of %2$d tip</item>
+		<item quantity="other">Seen %1$d of %2$d tips</item>
+	</plurals>
 	<string name="settings_tips_reset_button">Reset</string>
 	<string name="settings_tips_reset_toast">Tips will show again.</string>
 	<string name="settings_server_signed_out_message">Your session with this server has ended. Log in again to resume syncing.</string>
