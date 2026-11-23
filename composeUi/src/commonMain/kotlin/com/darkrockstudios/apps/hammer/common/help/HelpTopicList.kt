@@ -33,7 +33,7 @@ const val HELP_WATCH_ALL_TAG = "help-watch-all"
  *     Getting started
  *     ─────────────────────────────
  *     What is Hammer
- *     A writing app for novels…
+ *     Hammer is a tool for writing stories…
  *     ▷ Watch the video ↗
  */
 @Composable

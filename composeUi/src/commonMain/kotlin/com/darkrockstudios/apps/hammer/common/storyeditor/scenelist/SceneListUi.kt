@@ -193,7 +193,7 @@ fun SceneListUi(
 					softWrap = false,
 					modifier = Modifier.testTag(SCENE_LIST_TITLE_TAG),
 				)
-				// Weighted, so in a narrow pane the count gives way before the buttons do.
+				// Weighted, so in a narrow pane the count gives way before the menu does.
 				HdMonoLabel(
 					text = Res.string.scene_list_count_format.get(chapterCount, sceneCount),
 					maxLines = 1,

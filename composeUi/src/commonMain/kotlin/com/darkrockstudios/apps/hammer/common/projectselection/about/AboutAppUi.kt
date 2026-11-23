@@ -83,7 +83,7 @@ fun AboutAppUi(
 	var showHelp by rememberSaveable { mutableStateOf(false) }
 	val state by component.state.subscribeAsState()
 	// One primary per surface: a pending update install or retry outranks help.
-	val updateIsPrimary = state.appUpdate.let { it is AppUpdateState.Failed || (it is AppUpdateState.Available && it.installable) }
+	val updateIsPrimary = state.appUpdate.hasPrimaryAction
 
 	HdPage(
 		title = Res.string.project_select_nav_about_app.get(),

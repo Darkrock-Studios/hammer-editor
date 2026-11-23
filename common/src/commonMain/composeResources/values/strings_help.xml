@@ -17,9 +17,9 @@
 	<string name="help_section_extending">Extending Hammer</string>
 
 	<string name="help_topic_what_is_hammer_title">What is Hammer</string>
-	<string name="help_topic_what_is_hammer_blurb">Hammer is a tool for writing stories and the worlds they live in. There are many like it, but this one is yours. Open source, local first. All data is simple text files you can open and look at your self.</string>
+	<string name="help_topic_what_is_hammer_blurb">Hammer is a tool for writing stories and the worlds they live in. There are many like it, but this one is yours. Open source, local first. All data is simple text files you can open and look at yourself.</string>
 	<string name="help_topic_first_project_title">Your first project</string>
-	<string name="help_topic_first_project_blurb">You can start by exploring the example Alice in Wonderland project. When you're ready to start your own, click the "New Project" button on the Projects List screen. Here you can create a new empty project, or import an existing manuscript.</string>
+	<string name="help_topic_first_project_blurb">You can start by exploring the example Alice in Wonderland project. When you're ready to start your own, click the "New project" button on the Projects List screen. Here you can create a new empty project, or import an existing manuscript.</string>
 	<string name="help_topic_project_groups_title">Project groups</string>
 	<string name="help_topic_project_groups_blurb">Groups are folders for organising your projects. Maybe group the three books of your next trilogy, or the stories for your writing class. Click the down arrow beside "New project" to make one.</string>
 	<string name="help_topic_story_ideas_title">Story ideas</string>
@@ -35,7 +35,7 @@
 	<string name="help_topic_focus_reader_blurb">Focus mode hides everything but the scene you're working on. Reader mode, from "Read" on the scene list, lets you read your whole book in an e-reader style.</string>
 
 	<string name="help_topic_encyclopedia_title">Encyclopedia</string>
-	<string name="help_topic_encyclopedia_blurb">Your story bible. Keep an entry for every character, place and thing in your world, with a picture and a description. Scenes know when you mention an encylopedia entry and keep track.</string>
+	<string name="help_topic_encyclopedia_blurb">Your story bible. Keep an entry for every character, place and thing in your world, with a picture and a description. Scenes know when you mention an encyclopedia entry and keep track.</string>
 	<string name="help_topic_rename_everywhere_title">Rename everywhere</string>
 	<string name="help_topic_rename_everywhere_blurb">Decided your villain needs a better name? Rename everywhere changes it across your whole story in one go. Find it in the entry's menu. Hammer saves a draft of every scene it touches, just in case.</string>
 	<string name="help_topic_notes_title">Notes</string>
