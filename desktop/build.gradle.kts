@@ -22,6 +22,15 @@ val isAppStoreRelease: Boolean = project.distributionChannel() == DistributionCh
 val macBuildNumber: String =
 	(project.findProperty("buildNumber") as String?) ?: "1"
 
+// ComposeTextEditor and Cairn publish a dependency on the macOS arm64 Compose runtime (built with
+// currentOs on a Mac), which would ship its ~18 MB of Skiko natives in every other OS's package.
+if (!org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+	configurations.matching { it.name == "jvmRuntimeClasspath" }.configureEach {
+		exclude(group = "org.jetbrains.compose.desktop", module = "desktop-jvm-macos-arm64")
+		exclude(group = "org.jetbrains.skiko", module = "skiko-awt-runtime-macos-arm64")
+	}
+}
+
 // Keep JNA classes and the pre-bundled libjnidispatch.jnilib at one version.
 configurations.all {
 	resolutionStrategy {
