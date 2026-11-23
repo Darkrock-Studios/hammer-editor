@@ -33,7 +33,6 @@ import com.darkrockstudios.apps.hammer.timeline_move_needs_date
 import com.darkrockstudios.apps.hammer.timeline_move_target_label
 import com.darkrockstudios.apps.hammer.timeline_move_title
 import com.darkrockstudios.apps.hammer.timeline_switcher_cancel
-import com.darkrockstudios.apps.hammer.timeline_switcher_close
 import kotlinx.coroutines.launch
 
 const val MOVE_TO_TIMELINE_TARGET_TAG = "Move To Timeline Target"
@@ -60,8 +59,8 @@ fun MoveToTimelineDialog(
 		val draft = remember { MoveToTimelineDraft(targets.firstOrNull()?.id) }
 		HdHairlineDialogShell(
 			title = Res.string.timeline_move_title.get(),
-			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.timeline_switcher_close.get(),
+			onClose = null,
+			closeContentDescription = null,
 		) {
 			MoveToTimelineFields(targets = targets, draft = draft, onMove = onMove, onCancel = { requestDismiss() })
 		}

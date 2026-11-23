@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.preview.projecthome
 
+import com.darkrockstudios.apps.hammer.common.preview.previewScrim
 import androidx.compose.foundation.background
+import com.darkrockstudios.apps.hammer.common.projecthome.ModeSwitchCard
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -120,7 +124,7 @@ private fun SettingsPreview(state: TimelineSettings.State) {
 					.width(720.dp)
 					.padding(24.dp),
 			) {
-				TimelineSettingsUi(component = PreviewTimelineSettings(state), section = 6)
+				TimelineSettingsUi(component = PreviewTimelineSettings(state))
 			}
 		}
 	}
@@ -224,5 +228,38 @@ internal class PreviewTimelineSettings(initial: TimelineSettings.State) : Timeli
 
 	private fun setSwitcher(switcher: TimelineSwitcher) {
 		_switcher.value = switcher
+	}
+}
+
+/** The timeline editor for a dated story calendar, over a scrim, for the gallery. */
+@Composable
+internal fun TimelineEditorScrimPreview() {
+	val state = TimelineSettings.State(
+		def = TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = storyCalendar, laneOrder = previewLanes),
+		lanes = previewLanes,
+	)
+	Box(
+		modifier = Modifier.fillMaxSize().previewScrim(),
+		contentAlignment = Alignment.Center,
+	) {
+		TimelineEditor(component = PreviewTimelineSettings(state), state = state, named = false, onClose = {})
+	}
+}
+
+/** Switching a manual timeline to dated, over a scrim, for the gallery. */
+@Composable
+internal fun TimelineModeSwitchScrimPreview() {
+	val units = entryUnits(storyCalendar)
+	Box(
+		modifier = Modifier.fillMaxSize().previewScrim(),
+		contentAlignment = Alignment.Center,
+	) {
+		ModeSwitchCard(
+			prompt = ModeSwitchPrompt.ToDated(units, units.first().name, storyCalendar, TimelineDef.DEFAULT, eventCount = 9),
+			named = false,
+			onUnit = {},
+			onConfirm = {},
+			onCancel = {},
+		)
 	}
 }

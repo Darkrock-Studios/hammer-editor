@@ -7,8 +7,6 @@
 	<string name="notes_discard_dialog_title">Discard Changes?</string>
 	<string name="notes_discard_dialog_message">You will lose any changes you have made.</string>
 	<string name="notes_create_header">Create Note</string>
-	<string name="notes_create_marker">III · NEW</string>
-	<string name="notes_create_draft_label">DRAFT</string>
 	<string name="notes_create_create_button">Create</string>
 	<string name="notes_create_cancel_button">Cancel</string>
 	<string name="notes_create_toast_success">Note Created</string>
@@ -23,7 +21,6 @@
 	<string name="notes_delete_toast_success">Note Deleted</string>
 	<string name="notes_menu_group">Note</string>
 	<string name="notes_menu_delete">Delete</string>
-	<string name="notes_view_header">Note</string>
 	<string name="notes_view_label_editing">Editing</string>
 	<string name="notes_view_close_button">Close Note</string>
 	<string name="notes_view_crumb_root">Notes</string>
@@ -36,7 +33,6 @@
 	<string name="notes_search_placeholder">Search notes</string>
 	<string name="notes_search_close">Close search</string>
 	<string name="notes_search_clear">Clear search</string>
-	<string name="notes_header_meta">%1$d NOTES · %2$d TAGS</string>
 	<string name="notes_word_count_short">%1$d W</string>
 	<string name="notes_filter_all">ALL</string>
 	<string name="notes_filter_filtered">FILTERED · %1$d OF %2$d</string>

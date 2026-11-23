@@ -5,6 +5,9 @@
 	<string name="project_select_nav_about_app">About</string>
 	<string name="project_select_nav_projects_list_short">PROJ</string>
 	<string name="project_select_nav_account_settings_short">SETT</string>
-	<string name="project_select_nav_about_app_short">INFO</string>
+	<string name="project_select_nav_about_app_short">ABOUT</string>
 	<string name="project_libraries_dialog_title">Libraries</string>
+	<string name="project_libraries_count">%1$s open source libraries</string>
+	<string name="project_libraries_website">Website</string>
+	<string name="project_libraries_license">License</string>
 </resources>

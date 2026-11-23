@@ -47,8 +47,8 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdWarningNotice
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.storyUnitName
@@ -61,7 +61,6 @@ import com.darkrockstudios.apps.hammer.common.timeline.TimelineSwitcherDialogs
 import com.darkrockstudios.apps.hammer.common.timeline.label
 import com.darkrockstudios.apps.hammer.common.timeline.toastText
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_cancel
-import com.darkrockstudios.apps.hammer.timeline_mode_dialog_close
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_confirm
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_dated_message
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_dated_title
@@ -82,7 +81,6 @@ import com.darkrockstudios.apps.hammer.timeline_settings_delete
 import com.darkrockstudios.apps.hammer.timeline_settings_edit
 import com.darkrockstudios.apps.hammer.timeline_settings_editor_close
 import com.darkrockstudios.apps.hammer.timeline_settings_editor_title
-import com.darkrockstudios.apps.hammer.timeline_settings_epoch_hint
 import com.darkrockstudios.apps.hammer.timeline_settings_epoch_label
 import com.darkrockstudios.apps.hammer.timeline_settings_epoch_placeholder
 import com.darkrockstudios.apps.hammer.timeline_settings_lanes_caption
@@ -92,9 +90,7 @@ import com.darkrockstudios.apps.hammer.timeline_settings_mode_label
 import com.darkrockstudios.apps.hammer.timeline_settings_new
 import com.darkrockstudios.apps.hammer.timeline_settings_preset_label
 import com.darkrockstudios.apps.hammer.timeline_settings_rename
-import com.darkrockstudios.apps.hammer.timeline_settings_section_title
 import com.darkrockstudios.apps.hammer.timeline_settings_timeline_meta
-import com.darkrockstudios.apps.hammer.timeline_settings_timelines_label
 import org.jetbrains.compose.resources.pluralStringResource
 
 const val TIMELINE_SETTINGS_MODE_TAG = "timeline-settings-mode"
@@ -126,19 +122,13 @@ private const val MAX_VISIBLE_LANES = 8
 @Composable
 fun TimelineSettingsUi(
 	component: TimelineSettings,
-	section: Int,
 	modifier: Modifier = Modifier,
 ) {
 	val state by component.state.subscribeAsState()
 	// Timelines go by name once there is more than one; until then the prompts say "the timeline".
 	val named = state.timelines.size >= 2
 
-	HdHairlineSection(
-		modifier = modifier,
-		section = section,
-		title = Res.string.timeline_settings_section_title.get(),
-		contentSpacing = 18.dp,
-	) {
+	Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
 		if (state.timelines.isNotEmpty()) {
 			TimelineList(
 				timelines = state.timelines,
@@ -269,8 +259,8 @@ private fun TimelineList(
 	onRename: (TimelineSummary) -> Unit,
 	onDelete: (TimelineSummary) -> Unit,
 ) {
+	// No "Timelines" label: the tab already says it.
 	Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-		HdMonoLabel(text = Res.string.timeline_settings_timelines_label.get())
 		Column(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -307,7 +297,7 @@ private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: 
 				maxLines = 1,
 				overflow = TextOverflow.Ellipsis,
 			)
-			HdMonoLabel(
+			HdMetaText(
 				text = pluralStringResource(
 					Res.plurals.timeline_settings_timeline_meta,
 					summary.eventCount,
@@ -368,8 +358,10 @@ private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: 
 @Composable
 private fun EpochField(initial: String, onChange: (String) -> Unit) {
 	var text by remember { mutableStateOf(initial) }
-	LaunchedEffect(initial) {
-		if (initial.trim() != text.trim()) text = initial
+	var focused by remember { mutableStateOf(false) }
+	// Saves echo back asynchronously; while typing, an older echo must not replace newer text.
+	LaunchedEffect(initial, focused) {
+		if (!focused && initial.trim() != text.trim()) text = initial
 	}
 	HdHairlineField(
 		label = Res.string.timeline_settings_epoch_label.get(),
@@ -378,7 +370,8 @@ private fun EpochField(initial: String, onChange: (String) -> Unit) {
 			text = it
 			onChange(it)
 		},
-		hint = Res.string.timeline_settings_epoch_hint.get(),
+		onFocusChanged = { focused = it },
+		optional = true,
 		placeholder = Res.string.timeline_settings_epoch_placeholder.get(),
 		testTag = TIMELINE_SETTINGS_EPOCH_TAG,
 	)
@@ -483,68 +476,87 @@ private fun ModeSwitchDialog(
 	val shown = lastOf(prompt)
 	AnimatedDialog(visible = prompt != null, onCloseRequest = onCancel) {
 		val current = shown ?: return@AnimatedDialog
-		val name = current.timeline.name
-		val title = when (current) {
-			is ModeSwitchPrompt.ToDated -> if (named) {
-				Res.string.timeline_mode_dialog_dated_title_named.get(name)
-			} else {
-				Res.string.timeline_mode_dialog_dated_title.get()
-			}
+		ModeSwitchCard(
+			prompt = current,
+			named = named,
+			onUnit = onUnit,
+			onConfirm = onConfirm,
+			onCancel = { requestDismiss() },
+		)
+	}
+}
 
-			is ModeSwitchPrompt.ToManual -> if (named) {
-				Res.string.timeline_mode_dialog_manual_title_named.get(name)
-			} else {
-				Res.string.timeline_mode_dialog_manual_title.get()
-			}
+/** The mode-switch prompt without its dialog window. */
+@Composable
+internal fun ModeSwitchCard(
+	prompt: ModeSwitchPrompt,
+	named: Boolean,
+	onUnit: (String) -> Unit,
+	onConfirm: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	val current = prompt
+	val name = current.timeline.name
+	val title = when (current) {
+		is ModeSwitchPrompt.ToDated -> if (named) {
+			Res.string.timeline_mode_dialog_dated_title_named.get(name)
+		} else {
+			Res.string.timeline_mode_dialog_dated_title.get()
 		}
-		HdHairlineDialogShell(
-			title = title,
-			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.timeline_mode_dialog_close.get(),
-		) {
-			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-				HdMonoLabel(
-					text = pluralStringResource(
-						Res.plurals.timeline_mode_dialog_entry_count,
-						current.eventCount,
-						current.eventCount,
-					),
-					modifier = Modifier.testTag(TIMELINE_MODE_DIALOG_COUNT_TAG),
-				)
-				when (current) {
-					is ModeSwitchPrompt.ToDated -> {
-						Text(
-							text = Res.string.timeline_mode_dialog_dated_message.get(),
-							style = MaterialTheme.typography.bodyMedium,
-						)
-						HdHairlineDropdown(
-							options = current.units.map { it.name },
-							selected = current.selectedUnit,
-							onSelect = onUnit,
-							label = { storyUnitName(it) },
-							title = Res.string.timeline_mode_dialog_space_evenly.get(),
-							modifier = Modifier.testTag(TIMELINE_MODE_DIALOG_UNIT_TAG),
-						)
-					}
 
-					is ModeSwitchPrompt.ToManual -> Text(
-						text = Res.string.timeline_mode_dialog_manual_message.get(),
+		is ModeSwitchPrompt.ToManual -> if (named) {
+			Res.string.timeline_mode_dialog_manual_title_named.get(name)
+		} else {
+			Res.string.timeline_mode_dialog_manual_title.get()
+		}
+	}
+	HdHairlineDialogShell(
+		title = title,
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+			HdMonoLabel(
+				text = pluralStringResource(
+					Res.plurals.timeline_mode_dialog_entry_count,
+					current.eventCount,
+					current.eventCount,
+				),
+				modifier = Modifier.testTag(TIMELINE_MODE_DIALOG_COUNT_TAG),
+			)
+			when (current) {
+				is ModeSwitchPrompt.ToDated -> {
+					Text(
+						text = Res.string.timeline_mode_dialog_dated_message.get(),
 						style = MaterialTheme.typography.bodyMedium,
 					)
-				}
-				Row(horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-					Spacer(modifier = Modifier.weight(1f))
-					HdHairlineButton(
-						label = Res.string.timeline_mode_dialog_cancel.get(),
-						onClick = { requestDismiss() },
-					)
-					HdHairlineButton(
-						label = Res.string.timeline_mode_dialog_confirm.get(),
-						onClick = onConfirm,
-						emphasised = true,
-						modifier = Modifier.testTag(TIMELINE_MODE_DIALOG_CONFIRM_TAG),
+					HdHairlineDropdown(
+						options = current.units.map { it.name },
+						selected = current.selectedUnit,
+						onSelect = onUnit,
+						label = { storyUnitName(it) },
+						title = Res.string.timeline_mode_dialog_space_evenly.get(),
+						modifier = Modifier.testTag(TIMELINE_MODE_DIALOG_UNIT_TAG),
 					)
 				}
+
+				is ModeSwitchPrompt.ToManual -> Text(
+					text = Res.string.timeline_mode_dialog_manual_message.get(),
+					style = MaterialTheme.typography.bodyMedium,
+				)
+			}
+			Row(horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
+				Spacer(modifier = Modifier.weight(1f))
+				HdHairlineButton(
+					label = Res.string.timeline_mode_dialog_cancel.get(),
+					onClick = onCancel,
+				)
+				HdHairlineButton(
+					label = Res.string.timeline_mode_dialog_confirm.get(),
+					onClick = onConfirm,
+					emphasised = true,
+					modifier = Modifier.testTag(TIMELINE_MODE_DIALOG_CONFIRM_TAG),
+				)
 			}
 		}
 	}

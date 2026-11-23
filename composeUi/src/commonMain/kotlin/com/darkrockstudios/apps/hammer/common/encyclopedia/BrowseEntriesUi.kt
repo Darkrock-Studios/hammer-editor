@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -33,7 +34,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -60,7 +60,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
@@ -78,6 +77,7 @@ import com.darkrockstudios.apps.hammer.encyclopedia_search_hint
 import com.darkrockstudios.apps.hammer.notes_search_button
 import com.darkrockstudios.apps.hammer.notes_search_close
 import kotlinx.coroutines.CoroutineScope
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 
 const val ENCYCLOPEDIA_CREATE_FAB_TAG = "encyclopedia-create-fab"
 
@@ -99,6 +99,7 @@ fun BrowseEntriesUi(
 	// and the project list do it; the query field itself keeps the literal text
 	// so `#` is typeable and the tags round-trip.
 	val activeTags = remember(searchText) { parseQuery(searchText).tags }
+	val activeTagSet = remember(activeTags) { activeTags.toSet() }
 
 	// Keyed on `tagIndex` (not just its counts) so results recompute whenever the
 	// async index rebuilds - membership can change without the entry list changing.
@@ -171,17 +172,6 @@ fun BrowseEntriesUi(
 						section = 5,
 						title = Res.string.encyclopedia_header.get(),
 						modifier = Modifier.weight(1f),
-						trailing = {
-							// Counts are redundant with the filter strip on
-							// narrow screens — only surface the summary
-							// when there's room for it on a single line.
-							if (isWide) {
-								HdMonoLabel(
-									text = entrySummary(state.entryDefs),
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							}
-						},
 					)
 					if (!isWide) {
 						IconButton(onClick = { showSearchBar = true }) {
@@ -238,30 +228,23 @@ fun BrowseEntriesUi(
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 			) {
-				if (filteredEntries.isEmpty()) {
-					item {
-						Text(
-							text = Res.string.encyclopedia_browse_list_empty.get(),
-							style = MaterialTheme.typography.headlineSmall,
-							color = MaterialTheme.colorScheme.onBackground,
-							modifier = Modifier.padding(Ui.Padding.XL),
-						)
-					}
-				} else {
-					items(filteredEntries.size) { index ->
-						EncyclopediaEntryItem(
-							entryDef = filteredEntries[index],
-							component = component,
-							viewEntry = viewEntry,
-							scope = scope,
-							sharedTransitionScope = sharedTransitionScope,
-							animatedVisibilityScope = animatedVisibilityScope,
-							activeTags = activeTags.toSet(),
-							tagsScrollHorizontally = !isWide,
-							filterByType = onSelectType,
-						)
-					}
+				items(filteredEntries, key = { it.id }) { entryDef ->
+					EncyclopediaEntryItem(
+						entryDef = entryDef,
+						component = component,
+						viewEntry = viewEntry,
+						scope = scope,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
+						activeTags = activeTagSet,
+						tagsScrollHorizontally = !isWide,
+						filterByType = onSelectType,
+					)
 				}
+			}
+
+			if (filteredEntries.isEmpty()) {
+				HdPageEmpty(text = Res.string.encyclopedia_browse_list_empty.get())
 			}
 
 			MpScrollBarGrid(
@@ -358,26 +341,6 @@ private fun buildFilterOptions(entries: List<EntryDef>): List<HdEntryFilterOptio
 	}
 }
 
-private fun entrySummary(entries: List<EntryDef>): String {
-	if (entries.isEmpty()) return "0 entries"
-	val byType = entries.groupingBy { it.type }.eachCount()
-	val total = entries.size
-	val parts = mutableListOf("$total ENTRIES")
-	val ordered = listOf(
-		EntryType.PERSON,
-		EntryType.PLACE,
-		EntryType.THING,
-		EntryType.EVENT,
-		EntryType.IDEA,
-	)
-	ordered.forEach { type ->
-		val count = byType[type] ?: 0
-		if (count > 0) {
-			parts.add("$count ${type.text.uppercase()}${if (count == 1) "" else "S"}")
-		}
-	}
-	return parts.joinToString(" · ")
-}
 
 @Composable
 fun BrowseEntriesFab(

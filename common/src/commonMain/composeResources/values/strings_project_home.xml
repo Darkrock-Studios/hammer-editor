@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
-	<string name="project_home_stat_created">Created: %1$s</string>
+	<string name="project_home_stat_created">Created %1$s</string>
 	<string name="project_home_cover_description">Book cover</string>
 	<string name="project_home_loading_stats">Calculating statistics...</string>
 	<string name="project_home_refresh_stats_button">Refresh statistics</string>
@@ -20,7 +20,6 @@
 	<string name="project_home_stat_longest_scene_words">%1$s words</string>
 	<string name="project_home_stat_longest_scene_empty">No scenes yet</string>
 	<string name="project_home_stat_last_edited_scene">Last Edited</string>
-	<string name="project_home_stat_scene_median">Median</string>
 
 	<string name="project_home_stat_reading_time">≈ %1$d min reading</string>
 	<string name="project_home_stat_pages">%1$d pages</string>
@@ -43,6 +42,7 @@
 	<string name="project_home_stat_best_day_value">%1$s · %2$s</string>
 
 	<string name="project_home_stat_characters_appearances">Characters by Appearances</string>
+	<string name="project_home_stat_characters_appearances_empty">No characters are linked to scenes yet.</string>
 	<string name="project_home_stat_connections">%1$d connections</string>
 
 	<string name="project_home_stat_words_per_device">Words by Device</string>
@@ -50,12 +50,15 @@
 	<string name="project_home_stat_unknown_author">Unknown author</string>
 
 	<string name="project_home_stat_activity">Activity · %1$d weeks</string>
+	<string name="project_home_stat_activity_empty">No writing recorded yet.</string>
 	<string name="project_home_stat_activity_tooltip">%1$s · %2$s words</string>
 	<string name="project_home_stat_activity_tooltip_empty">%1$s · no writing</string>
 	<string name="project_home_stat_avg_weekday">Avg weekday</string>
 	<string name="project_home_stat_avg_weekend">Avg weekend</string>
 
-	<string name="project_home_stat_chapter_words_summary">σ %1$d · min %2$d · max %3$d</string>
+	<string name="project_home_stat_chapter_words_range">%1$s to %2$s words</string>
+	<string name="project_home_stat_scene_median_format">median %1$s</string>
+	<string name="project_home_stat_scene_spread">σ %1$s</string>
 	<string name="project_home_stat_donut_entries">entries</string>
 	<string name="project_home_stat_donut_tooltip">%1$s · %2$s entries</string>
 
@@ -85,11 +88,9 @@
 	<string name="project_home_action_export_toast_failure">Export failed</string>
 	<string name="project_home_action_export_toast_contact_failure">Contact details could not be saved</string>
 
-	<string name="project_home_export_dialog_title">Export Story</string>
-	<string name="project_home_export_section">EXPORT</string>
-	<string name="project_home_export_close">× CLOSE</string>
+	<string name="project_home_export_dialog_title">Export story</string>
 	<string name="project_home_export_chapter_breaks_label">Break the story into chapters</string>
-	<string name="project_home_export_chapter_breaks_hint">Each top-level scene or group becomes a titled chapter. Turn off to export one continuous text with no chapter titles.</string>
+	<string name="project_home_export_chapter_breaks_hint">Each top-level scene or group becomes a titled chapter. Turn off for one continuous text.</string>
 	<string name="project_home_export_format_label">Format</string>
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>
@@ -101,7 +102,7 @@
 	<string name="project_home_export_number_chapters_label">Number chapter titles</string>
 	<string name="project_home_export_font_label">Font</string>
 	<string name="project_home_export_blank_lines_label">Keep blank lines between paragraphs</string>
-	<string name="project_home_export_blank_lines_hint">Turn off if you separate paragraphs with a blank line and do not want empty paragraphs in the export. Scene breaks and runs of two or more blank lines are kept.</string>
+	<string name="project_home_export_blank_lines_hint">Turn off if you separate paragraphs with blank lines. Scene breaks are kept.</string>
 	<string name="project_home_export_manuscript_short_story_label">Short story layout</string>
 	<string name="project_home_export_manuscript_short_story_hint">Title on the first page, no separate title page</string>
 	<string name="project_home_export_manuscript_classic_label">Classic (Courier)</string>
@@ -113,21 +114,20 @@
 	<string name="project_home_export_contact_phone">Phone</string>
 	<string name="project_home_export_contact_email">Email</string>
 	<string name="project_home_export_limit_scenes_label">Limit to specific scenes</string>
-	<string name="project_home_export_limit_scenes_hint">Only the selected scenes will be included in the export</string>
+	<string name="project_home_export_limit_scenes_hint">Export only the scenes you pick.</string>
 	<string name="project_home_export_scenes_label">Scenes</string>
 	<string name="project_home_export_scenes_selected">%1$d of %2$d selected</string>
 	<string name="project_home_export_scenes_select_all">Select all</string>
 	<string name="project_home_export_scenes_clear_all">Clear all</string>
 
 	<string name="project_home_export_help_icon_description">Learn about export formats</string>
-	<string name="project_home_export_help_title">Choosing an Export Format</string>
-	<string name="project_home_export_help_intro">Each format suits a different purpose. Pick the one that matches how you plan to use the exported story.</string>
-	<string name="project_home_export_help_format_markdown">Plain text with light formatting, in a zip with its images; ideal for version control or other writing tools.</string>
-	<string name="project_home_export_help_format_epub">The standard e-book format; best for beta readers reading on e-readers and phones with reflowable text.</string>
-	<string name="project_home_export_help_format_pdf">A fixed page layout that looks the same everywhere; best for printing or sharing a final, read-only copy.</string>
-	<string name="project_home_export_help_format_docx">Standard Manuscript Format, for submitting to editors, agents and publishers: a first page with your contact details and word count, double spacing, and a running header.</string>
-	<string name="project_home_export_help_format_rtf">A broadly compatible rich-text format; a safe choice when you are unsure which word processor the recipient uses.</string>
-	<string name="project_home_export_help_dismiss">Got it</string>
+	<string name="project_home_export_help_title">Choosing an export format</string>
+	<string name="project_home_export_help_close">Close</string>
+	<string name="project_home_export_help_format_markdown">Plain text with light formatting, zipped with its images. Good for version control and other writing tools.</string>
+	<string name="project_home_export_help_format_epub">The e-book format. Best for beta readers on e-readers and phones.</string>
+	<string name="project_home_export_help_format_pdf">A fixed layout that looks the same everywhere. Best for printing or a final, read-only copy.</string>
+	<string name="project_home_export_help_format_docx">Standard Manuscript Format, for agents, editors and publishers: contact details and word count up front, double spacing, and a running header.</string>
+	<string name="project_home_export_help_format_rtf">Opens in almost any word processor. A safe choice when you don't know what the reader uses.</string>
 
 	<string name="project_home_export_contents_title">Contents</string>
 	<string name="project_home_export_byline">by %1$s</string>
@@ -143,7 +143,7 @@
 
 	<string name="project_home_action_import_toast_success">Story Imported</string>
 	<string name="project_home_action_import_toast_failure">Import failed</string>
-	<string name="project_home_import_dialog_title">Import Story</string>
+	<string name="project_home_import_dialog_title">Import story</string>
 	<string name="project_home_import_heading_label">Chapter detection</string>
 	<string name="project_home_import_heading_auto">Auto</string>
 	<string name="project_home_import_heading_h1">H1 (#)</string>
@@ -157,7 +157,10 @@
 	<string name="project_home_import_preview_label">Preview</string>
 	<string name="project_home_import_preview_empty">Nothing to import</string>
 	<string name="project_home_import_preview_reading">Reading your manuscript</string>
-	<string name="project_home_import_preview_count">Will create %1$d scene(s)</string>
+	<plurals name="project_home_import_preview_scenes">
+		<item quantity="one">%1$d scene</item>
+		<item quantity="other">%1$d scenes</item>
+	</plurals>
 	<string name="project_home_import_large_scene_label">Large scene</string>
 	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
 	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>
@@ -169,4 +172,10 @@
 
 	<string name="project_home_menu_button">Project menu</string>
 	<string name="project_home_menu_images">Images</string>
+	<string name="project_home_stat_structure_title">Structure</string>
+	<string name="project_home_stat_inhabitants_title">Inhabitants</string>
+	<plurals name="project_home_stat_scenes_across_chapters">
+		<item quantity="one">across %1$d chapter</item>
+		<item quantity="other">across %1$d chapters</item>
+	</plurals>
 </resources>

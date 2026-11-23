@@ -4,18 +4,13 @@
 	<string name="save_all_toast">Saved all Scenes</string>
 	<string name="unsaved_scenes_dialog_title">Unsaved Scenes</string>
 	<string name="unsaved_scenes_dialog_message">What should be done with unsaved scenes?</string>
-	<string name="unsaved_encyclopedia_dialog_title">Unsaved Encyclopedia Entry</string>
 	<string name="unsaved_encyclopedia_dialog_message">Discard entry?</string>
-	<string name="unsaved_notes_dialog_title">Unsaved Note</string>
 	<string name="unsaved_notes_dialog_message">Discard note?</string>
-	<string name="unsaved_timeline_dialog_title">Unsaved Timeline Event</string>
 	<string name="unsaved_timeline_dialog_message">Discard event?</string>
-	<string name="unsaved_dialog_negative_button">Cancel</string>
 	<string name="unsaved_dialog_positive_button">Discard and close</string>
 	<string name="unsaved_entity_dialog_negative_button">Discard</string>
 	<string name="unsaved_entity_dialog_neutral_button">Cancel</string>
 	<string name="unsaved_entity_dialog_positive_button">Save</string>
-	<string name="close_dialog_button">Close</string>
 	<string name="more_menu_button">More</string>
 	<string name="network_request_failure_parse_body">Failed to parse response body: %1$s</string>
 	<string name="confirm_dialog_positive">Yes</string>
@@ -39,5 +34,4 @@
 	<string name="markdown_preview_image">Görsel</string>
 	<string name="markdown_format_bar_undo">Undo</string>
 	<string name="markdown_format_bar_redo">Redo</string>
-	<string name="form_dialog_keyboard_hint">ESC cancel</string>
 </resources>

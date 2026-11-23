@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogTitleRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,14 +12,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -46,11 +45,9 @@ import com.darkrockstudios.apps.hammer.common.compose.ConfirmationDialog
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityChip
 import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityPickerDialog
@@ -236,27 +233,15 @@ private fun showsProgress(working: ActionRunState.Working?): Boolean {
 }
 
 @Composable
-private fun DialogSurface(title: String, onClose: (() -> Unit)?, content: @Composable () -> Unit) {
-	Surface(
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		shadowElevation = Ui.Elevation.LARGE,
-		modifier = Modifier
-			.padding(Ui.Padding.XL)
-			.widthIn(max = 640.dp)
-			.fillMaxWidth(),
-	) {
-		Column {
-			HdMasthead(
-				section = title.uppercase(),
-				trailing = {
-					if (onClose != null) HdMastheadAction(label = Res.string.plugin_document_close.get(), onClick = onClose)
-				},
-			)
-			HdFolioDivider()
-			content()
-		}
+internal fun PluginDialogSurface(title: String, onClose: (() -> Unit)?, content: @Composable () -> Unit) {
+	HdDialogFrame(maxWidth = Ui.MaxWidth.Modal) {
+		HdDialogTitleRow(
+			title = title,
+			onClose = onClose,
+			closeContentDescription = Res.string.plugin_document_close.get(),
+		)
+		HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+		content()
 	}
 }
 
@@ -287,7 +272,7 @@ private fun PageDialog(
 		val content = current.page
 		val markdown = content.markdown
 		// Only Stop ends a call, as when there is no page.
-		DialogSurface(content.title ?: current.run.action.label, onClose = runner::dismiss.takeIf { working == null }) {
+		PluginDialogSurface(content.title ?: current.run.action.label, onClose = runner::dismiss.takeIf { working == null }) {
 			val scrollState = rememberScrollState()
 			Box(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
 				Column(
@@ -443,7 +428,8 @@ private fun PageFooter(
 			HdHairlineButton(
 				label = Res.string.plugin_document_save.get(),
 				onClick = runner::saveAsNote,
-				emphasised = !current.first,
+				// A plugin's own primary buttons outrank saving the result.
+				emphasised = !current.first && primary.isEmpty(),
 				enabled = enabled && !current.saving,
 			)
 		}
@@ -481,7 +467,7 @@ private fun StopRow(runner: PluginActionRunner) {
 private fun Progress(working: ActionRunState.Working) {
 	val fraction = working.progress?.fraction
 	if (fraction != null) {
-		LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+		HdHairlineProgressBar(progress = fraction, color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth())
 	} else {
 		LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 	}
@@ -687,7 +673,7 @@ private fun SceneChooser(
 	val shown = lastOf(field)
 	AnimatedDialog(visible = field != null, onCloseRequest = onDone) {
 		val current = shown ?: return@AnimatedDialog
-		DialogSurface(current.label, onClose = onDone) {
+		PluginDialogSurface(current.label, onClose = onDone) {
 			Column(modifier = Modifier.padding(Ui.Padding.XL).heightIn(max = 480.dp)) {
 				SceneSelector(entries = entries, selected = selected, multiple = current.multiple, onSelectionChanged = onChange)
 			}
@@ -713,7 +699,7 @@ private fun ChangedDialog(changed: ActionRunState.Changed?, runner: PluginAction
 	AnimatedDialog(visible = changed != null, onCloseRequest = runner::dismiss) {
 		val current = shown ?: return@AnimatedDialog
 		val markdown = answersMarkdown(current.answers.values, Res.string.plugin_action_yes.get(), Res.string.plugin_action_no.get())
-		DialogSurface(current.run.action.label, onClose = runner::dismiss) {
+		PluginDialogSurface(current.run.action.label, onClose = runner::dismiss) {
 			val scrollState = rememberScrollState()
 			Box(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
 				Column(
@@ -782,7 +768,7 @@ private fun WorkingDialog(working: ActionRunState.Working?, runner: PluginAction
 	val shown = lastOf(working)
 	AnimatedDialog(visible = visible && working != null, onCloseRequest = {}) {
 		val current = shown ?: return@AnimatedDialog
-		DialogSurface(current.run.action.label, onClose = null) {
+		PluginDialogSurface(current.run.action.label, onClose = null) {
 			Column(modifier = Modifier.padding(Ui.Padding.XL), verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
 				Progress(current)
 				StopRow(runner)

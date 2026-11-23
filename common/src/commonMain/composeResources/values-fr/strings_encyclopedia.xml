@@ -11,8 +11,6 @@
 	<string name="encyclopedia_browse_list_empty">Aucune entrée trouvée</string>
 	<string name="encyclopedia_create_button">Créer une Entrée</string>
 	<string name="encyclopedia_create_entry_header">Créer une entrée</string>
-	<string name="encyclopedia_create_entry_section_marker">Nouveau</string>
-	<string name="encyclopedia_create_entry_draft_marker">Brouillon</string>
 	<string name="encyclopedia_create_entry_name_label">Nom</string>
 	<string name="encyclopedia_create_entry_name_placeholder">p. ex. Chat du Cheshire</string>
 	<string name="encyclopedia_create_entry_tags_label">Étiquettes</string>
@@ -57,22 +55,12 @@
 	<string name="encyclopedia_entry_menu_delete">Supprimer l'entrée</string>
 	<string name="encyclopedia_entry_menu_remove_image">Retirer l'image</string>
 	<string name="encyclopedia_entry_menu_add_image">Ajouter une image</string>
-	<string name="encyclopedia_entry_add_tags_dialog_title">Ajouter des tags</string>
-	<string name="encyclopedia_entry_add_tags_button">Ajouter des tags</string>
 	<string name="encyclopedia_entry_crumb_root">Encyclopédie</string>
 	<string name="encyclopedia_entry_edit_button">Modifier</string>
-	<string name="encyclopedia_entry_particulars_label">Détails</string>
-	<string name="encyclopedia_entry_particulars_type">Type</string>
-	<string name="encyclopedia_entry_particulars_tags">Étiquettes</string>
-	<string name="encyclopedia_entry_particulars_aliases">Alias</string>
-	<string name="encyclopedia_entry_particulars_scenes">Scènes</string>
 	<string name="encyclopedia_entry_tags_label">Étiquettes</string>
 	<string name="encyclopedia_entry_add_tag_chip">étiquette</string>
 	<string name="encyclopedia_entry_add_alias_chip">alias</string>
 	<string name="encyclopedia_entry_figure_label">Fig. I</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Ent-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sc.%1$s</string>
-	<string name="encyclopedia_entry_colophon_label">Entrée · Fiche de catalogue</string>
-	<string name="encyclopedia_entry_colophon_label_compact">Modifiée</string>
-	<string name="encyclopedia_entry_colophon_end">Fin de l'entrée ✦</string>
 </resources>

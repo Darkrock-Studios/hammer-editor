@@ -21,7 +21,6 @@ import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.timeline.MoveToTimelineDraft
 import com.darkrockstudios.apps.hammer.common.timeline.MoveToTimelineFields
 import com.darkrockstudios.apps.hammer.timeline_move_title
-import com.darkrockstudios.apps.hammer.timeline_switcher_close
 
 /** An event on main, which can go to the two other timelines. */
 internal val previewMoveTargets = listOf(
@@ -55,8 +54,8 @@ private fun MovePreview(draft: MoveToTimelineDraft) {
 			Surface {
 				HdHairlineDialogShell(
 					title = Res.string.timeline_move_title.get(),
-					onClose = {},
-					closeContentDescription = Res.string.timeline_switcher_close.get(),
+					onClose = null,
+					closeContentDescription = null,
 					modifier = Modifier.padding(16.dp),
 				) {
 					MoveToTimelineFields(

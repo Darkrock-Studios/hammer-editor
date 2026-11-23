@@ -30,9 +30,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdButtonBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -110,7 +108,6 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 				getOverrideColorScheme = ::getDynamicColorScheme
 			) {
 				ConfigUi(
-					widgetId = appWidgetId,
 					projects = projects,
 					onSave = { proj ->
 						lifecycleScope.launch {
@@ -148,7 +145,6 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 
 @Composable
 private fun ConfigUi(
-	widgetId: Int,
 	projects: List<ProjectDef>,
 	onSave: (projectDef: ProjectDef?) -> Unit,
 	onCancel: () -> Unit,
@@ -171,11 +167,6 @@ private fun ConfigUi(
 				.systemBarsPadding()
 				.imePadding(),
 		) {
-			HdMasthead(
-				section = "WIDGET CONFIG",
-				leadingMeta = listOf("ID $widgetId"),
-			)
-			HdFolioDivider()
 
 			Column(
 				modifier = Modifier

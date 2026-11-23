@@ -5,6 +5,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.ScrollWheel
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.unit.dp
@@ -40,17 +41,22 @@ class HdTagFilterBarTest {
 	private fun shown(text: String): Boolean =
 		runCatching { compose.onNodeWithText(text).assertIsDisplayed() }.isSuccess
 
+	private fun firstShownTag(): Int = tags.indices.map { it + 1 }.first { shown("tag number $it · $it") }
+
 	@Test
 	fun `A mouse wheel scrolls the chips sideways`() {
 		showBar()
-		assertFalse(shown("tag number 4 · 4"))
+		assertEquals(1, firstShownTag())
+		val before = compose.onNodeWithText("tag number 1 · 1").getBoundsInRoot().left
 
 		compose.onNodeWithText("tag number 1 · 1").performMouseInput {
 			moveTo(center)
 			repeat(4) { scroll(1f, ScrollWheel.Vertical) }
 		}
 
-		assertTrue(shown("tag number 4 · 4"))
+		// Font widths decide how far four ticks go, so check only that the row moved left.
+		val first = firstShownTag()
+		assertTrue(first > 1 || compose.onNodeWithText("tag number 1 · 1").getBoundsInRoot().left < before)
 	}
 
 	@Test
@@ -67,5 +73,23 @@ class HdTagFilterBarTest {
 
 		assertTrue(shown("tag number 4 · 4"))
 		assertEquals(emptyList(), toggled)
+	}
+
+	@Test
+	fun `A tag named like the bar's own leading item still shows`() {
+		compose.setContent {
+			HdTagFilterBar(
+				tags = listOf(TagCount("scrolling-leading", 2), TagCount("scrolling-leading-rule", 1)),
+				allLabel = "ALL · 2",
+				activeTags = emptySet(),
+				onToggle = {},
+				onClear = {},
+				modifier = Modifier.requiredWidth(360.dp),
+				scrollingLeading = { androidx.compose.material3.Text("Sort") },
+			)
+		}
+
+		assertTrue(shown("scrolling-leading · 2"))
+		assertTrue(shown("scrolling-leading-rule · 1"))
 	}
 }

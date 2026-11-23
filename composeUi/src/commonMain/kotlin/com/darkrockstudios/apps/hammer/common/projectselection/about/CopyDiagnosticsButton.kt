@@ -28,6 +28,7 @@ fun CopyDiagnosticsButton(
 	logDirectoryPath: String,
 	onStatus: (String) -> Unit,
 	modifier: Modifier = Modifier,
+	label: String = Res.string.about_logs_copy_diagnostics_button.get(),
 ) {
 	val scope = rememberCoroutineScope()
 	val copyToClipboard = rememberClipboardCopier()
@@ -37,7 +38,7 @@ fun CopyDiagnosticsButton(
 	val failedMessage = Res.string.about_logs_copy_diagnostics_failed.get()
 
 	HdHairlineButton(
-		label = Res.string.about_logs_copy_diagnostics_button.get(),
+		label = label,
 		enabled = !copying,
 		modifier = modifier,
 		onClick = {

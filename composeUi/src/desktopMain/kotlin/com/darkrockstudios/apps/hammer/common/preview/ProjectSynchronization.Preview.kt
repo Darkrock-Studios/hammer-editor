@@ -520,3 +520,45 @@ private val sceneContent = "Alice was beginning to get very tired of sitting by 
 	"take out of it, and burning with curiosity, she ran across the\n" +
 	"field after it, and fortunately was just in time to see it pop\n" +
 	"down a large rabbit-hole under the hedge.\n"
+
+private val previewSyncLog = listOf(
+	"Starting sync for Lighthouse" to SyncLogLevel.INFO,
+	"Uploading scene The Harbour" to SyncLogLevel.INFO,
+	"Downloading note Lighthouse mechanics" to SyncLogLevel.INFO,
+	"Server copy of Wreck is newer; keeping it" to SyncLogLevel.WARN,
+	"Uploading timeline Main" to SyncLogLevel.INFO,
+).mapIndexed { i, (message, level) ->
+	SyncLogMessage(
+		message = message,
+		level = level,
+		projectName = "Lighthouse",
+		timestamp = kotlin.time.Instant.parse("2026-11-12T22:10:00Z") + (i * 3).seconds,
+	)
+}
+
+@Composable
+private fun SyncScrim(state: ProjectSynchronization.State, compact: Boolean) {
+	KoinApplicationPreview {
+		PreviewScrim {
+			ProjectSynchronizationContent(
+				component = previewProjectSyncComponent(state),
+				showSnackbar = {},
+				screenCharacteristics = if (compact) compactSize() else expandedSize(),
+			)
+		}
+	}
+}
+
+/** A project sync partway through, in the dialog's status view. */
+@Composable
+internal fun ProjectSyncInProgressPreview(compact: Boolean) = SyncScrim(
+	ProjectSynchronization.State(isSyncing = true, syncProgress = 0.42f, syncLog = previewSyncLog),
+	compact,
+)
+
+/** A project sync partway through, showing its log. */
+@Composable
+internal fun ProjectSyncLogPreview(compact: Boolean) = SyncScrim(
+	ProjectSynchronization.State(isSyncing = true, syncProgress = 0.42f, showLog = true, syncLog = previewSyncLog),
+	compact,
+)

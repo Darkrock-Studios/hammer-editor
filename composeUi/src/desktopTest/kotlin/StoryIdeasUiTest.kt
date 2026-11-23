@@ -9,7 +9,7 @@ import androidx.compose.ui.test.performTextInput
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
-import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.IDEAS_CREATE_FAB_TAG
+import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.IDEAS_CREATE_BUTTON_TAG
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.IDEAS_EDITOR_TITLE_TAG
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.StoryIdeasUi
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.ideaCardTag
@@ -68,7 +68,7 @@ class StoryIdeasUiTest : BaseTest() {
 			}
 		}
 
-		compose.onNodeWithTag(IDEAS_CREATE_FAB_TAG).performClick()
+		compose.onNodeWithTag(IDEAS_CREATE_BUTTON_TAG).performClick()
 
 		assertEquals(1, component.createShownCount)
 	}

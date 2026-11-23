@@ -1,26 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
-	<string name="sync_project_dialog_title">Project Synchronization</string>
+	<string name="sync_project_dialog_title">Project sync</string>
+	<string name="sync_project_dialog_percent">%1$d%</string>
 
-	<string name="sync_conflict_scene_title">Scene Conflict</string>
-	<string name="sync_conflict_scene_draft_title">Scene Draft Conflict</string>
-	<string name="sync_conflict_note_title">Note Conflict</string>
-	<string name="sync_conflict_timeline_title">Timeline Event Conflict</string>
-	<string name="sync_conflict_image_title">Image Conflict</string>
+	<string name="sync_conflict_use_version">Use this version</string>
+	<string name="sync_conflict_scene_title">Scene conflict</string>
+	<string name="sync_conflict_scene_draft_title">Scene draft conflict</string>
+	<string name="sync_conflict_note_title">Note conflict</string>
+	<string name="sync_conflict_timeline_title">Timeline event conflict</string>
+	<string name="sync_conflict_image_title">Image conflict</string>
 
 	<string name="sync_conflict_timeline_event_missing_date">No Date</string>
 
 	<string name="sync_conflict_tab_local">Local</string>
 	<string name="sync_conflict_tab_remote">Remote</string>
 
-	<string name="sync_conflict_header_title">%1$s Conflict</string>
+	<string name="sync_conflict_header_title">%1$s conflict</string>
 	<string name="sync_conflict_entity_label_scene">Scene</string>
 	<string name="sync_conflict_entity_label_note">Note</string>
-	<string name="sync_conflict_entity_label_timeline_event">Timeline Event</string>
-	<string name="sync_conflict_entity_label_encyclopedia_entry">Encyclopedia Entry</string>
-	<string name="sync_conflict_entity_label_scene_draft">Scene Draft</string>
+	<string name="sync_conflict_entity_label_timeline_event">Timeline event</string>
+	<string name="sync_conflict_entity_label_encyclopedia_entry">Encyclopedia entry</string>
+	<string name="sync_conflict_entity_label_scene_draft">Scene draft</string>
 	<string name="sync_conflict_entity_label_image">Image</string>
-	<string name="sync_conflict_entity_label_project_data">Project Settings</string>
+	<string name="sync_conflict_entity_label_project_data">Project settings</string>
 
 
 	<string
@@ -28,7 +30,7 @@
 	</string>
 
 
-	<string name="sync_conflict_encyclopedia_title">Encyclopedia Entry Conflict</string>
+	<string name="sync_conflict_encyclopedia_title">Encyclopedia entry conflict</string>
 
 	<string name="project_info_author_label">Author</string>
 	<string name="project_info_theme_section_title">Custom theme</string>
@@ -37,49 +39,34 @@
 	<string name="project_info_theme_secondary_label">Secondary</string>
 	<string name="project_info_word_goal_section_title">Word-count goal</string>
 	<string name="project_info_word_goal_enable_label">Track a writing goal</string>
-	<string name="project_info_word_goal_count_label">Words</string>
-	<string name="project_info_word_goal_cadence_label">Per</string>
 	<string name="project_info_word_goal_cadence_day">Day</string>
 	<string name="project_info_word_goal_cadence_week">Week</string>
-	<string name="project_info_word_goal_effective_label">Effective</string>
-	<string name="project_info_word_goal_effective_unit">W / day</string>
 	<string name="project_info_cover_section_title">Book cover</string>
 	<string name="project_info_cover_caption">Shown on the project home, in the project list and on the web reader, and opens every export. Pick any image from the gallery.</string>
-	<string name="project_info_cover_pick">Pick</string>
 	<string name="project_info_cover_clear">Clear</string>
 	<string name="project_info_cover_none">No cover</string>
 	<string name="project_info_cover_missing">Not on this device yet</string>
 	<string name="project_info_tags_section_title">Tags</string>
-	<string name="project_info_tags_label">Tags</string>
-	<string name="project_info_tags_hint">↵ to add</string>
 	<string name="project_info_tags_placeholder">fantasy, draft, nanowrimo…</string>
 	<string name="project_info_language_label">Language</string>
 	<string name="project_info_language_unset">Not set</string>
 	<string name="project_info_language_dialog_title">Choose a language</string>
 	<string name="project_info_language_dialog_close">Close</string>
 	<string name="project_info_language_search_hint">Search languages</string>
-	<string name="project_info_language_clear">Clear (not set)</string>
 	<string name="project_info_language_empty">No languages match</string>
-	<string name="project_info_color_picker_edit">Edit</string>
+	<string name="project_info_color_picker_title">%1$s color</string>
 	<string name="project_info_color_picker_cancel">Cancel</string>
-	<string name="project_info_color_picker_confirm">OK</string>
+	<string name="project_info_color_picker_confirm">Use color</string>
 	<string name="project_settings_breadcrumb_home">Home</string>
-	<string name="project_settings_breadcrumb_root">Project Settings</string>
+	<string name="project_settings_breadcrumb_root">Project settings</string>
 	<string name="project_settings_autosaved">Autosaved</string>
-	<string name="project_settings_hero_marker">§ 0 · Project</string>
-	<string name="project_settings_hero_by">by %1$s</string>
-	<string name="project_settings_hero_no_author">by (no author set)</string>
 	<string name="project_settings_spellcheck_section_title">Spell checking</string>
 	<string name="project_settings_spellcheck_mismatch_caption">Spell check is off: the project language (%1$s) doesn’t match your dictionary (%2$s). Change either to re-enable it.</string>
 	<string name="project_settings_spellcheck_encyclopedia_enable">Learn encyclopedia names in this project</string>
 	<string name="project_settings_spellcheck_encyclopedia_enable_hint">Turn off to keep this project&#8217;s entry names out of the spell check dictionary</string>
-	<string name="project_settings_dictionary_label">Project dictionary</string>
-	<string name="project_settings_dictionary_hint">↵ to add</string>
 	<string name="project_settings_dictionary_placeholder">Words the spell checker should accept in this project</string>
-	<string name="project_settings_plugins_section_title">Plugins</string>
 	<string name="project_settings_plugins_caption">A plugin turned off here shows no actions, checks, or export formats in this project. It stays on in your other projects, and on your other devices. Installing, removing, and setting up a plugin changes it for every project.</string>
 	<string name="project_settings_plugins_pick_none">None</string>
-	<string name="project_settings_sync_section_title">Sync</string>
 	<string name="project_settings_sync_own_on">Syncs on this device</string>
 	<string name="project_settings_sync_own_off">Kept on this device only</string>
 	<string name="project_settings_sync_own_hint">Change this from the project's menu on the project list.</string>
@@ -88,14 +75,13 @@
 	<string name="project_settings_sync_off_delete">Deleting it on this device will not delete it on the server, and while the server still has it, the next sync brings it back here. When you delete it, you can choose to delete the server copy too.</string>
 	<string name="project_settings_sync_off_confirm">Stop syncing</string>
 	<string name="project_settings_sync_off_cancel">Keep syncing</string>
-	<string name="project_settings_sync_dialog_close">Close</string>
 	<string name="project_settings_sync_shared_syncing">It syncs while it is shared with you. To stop syncing it, leave it from the project list.</string>
 	<string name="project_settings_sync_shared_off">It is no longer shared with you, so this copy stays on this device and does not sync. It syncs again if you are invited back.</string>
 	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 
-	<string name="sync_conflict_project_data_title">Project Settings Conflict</string>
-	<string name="sync_conflict_project_data_explanation">Pick a side for each field. Local is what you have on this device; Server is what was synced from another device.</string>
+	<string name="sync_conflict_project_data_title">Project settings conflict</string>
+	<string name="sync_conflict_project_data_explanation">Pick a side for each field. Local is what you have on this device; Remote is what was synced from another device.</string>
 	<string name="sync_conflict_project_data_field_author">Author Name</string>
 	<string name="sync_conflict_project_data_field_theme">Project Theme</string>
 	<string name="sync_conflict_project_data_field_word_goal">Word Count Goal</string>
@@ -122,13 +108,13 @@
 	</plurals>
 
 
-	<string name="sync_conflict_encyclopedia_label_name">Name:</string>
-	<string name="sync_conflict_encyclopedia_label_type">Type:</string>
-	<string name="sync_conflict_encyclopedia_label_image">Image:</string>
-	<string name="sync_conflict_encyclopedia_label_content">Content:</string>
+	<string name="sync_conflict_encyclopedia_label_name">Name</string>
+	<string name="sync_conflict_encyclopedia_label_type">Type</string>
+	<string name="sync_conflict_encyclopedia_label_image">Image</string>
+	<string name="sync_conflict_encyclopedia_label_content">Content</string>
 	<string name="sync_conflict_encyclopedia_image_not_local">#%1$d</string>
 	<string name="sync_conflict_encyclopedia_image_not_local_description">Image %1$d, not on this device yet</string>
-	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
+	<string name="sync_conflict_encyclopedia_label_tags">Tags</string>
 
 
 	<string name="sync_conflict_title_scene_field_name">Name</string>
@@ -141,7 +127,7 @@
 	<string name="sync_conflict_references_confirmed_label">Confirmed</string>
 	<string name="sync_conflict_references_dismissed_label">Dismissed</string>
 	<string name="sync_conflict_references_empty">None</string>
-	<string name="sync_conflict_encyclopedia_label_aliases">Aliases:</string>
+	<string name="sync_conflict_encyclopedia_label_aliases">Aliases</string>
 
 	<string name="sync_conflict_title_scene_draft_field_name">Name</string>
 	<string name="sync_conflict_title_scene_draft_field_content">Scene Content</string>
@@ -195,7 +181,7 @@
 	<string name="sync_menu_group">Sync</string>
 	<string name="sync_menu_item">Start Sync</string>
 
-	<string name="sync_status_in_progress">Synchronizing...</string>
+	<string name="sync_status_in_progress">Syncing…</string>
 	<string name="sync_status_failed">Sync Failed</string>
 	<string name="sync_status_success">Sync Complete</string>
 
@@ -333,50 +319,50 @@
 	<string name="sync_unauthorized">Unauthorized</string>
 	<string name="sync_general_error">Unhandled server error</string>
 
-	<string name="protocol_mismatch_section">UPDATE REQUIRED</string>
 	<string name="protocol_mismatch_title_client">Your app is out of date</string>
 	<string name="protocol_mismatch_title_server">The sync server is out of date</string>
 	<string name="protocol_mismatch_body_client">This version of Hammer can no longer sync with the server. Update to the latest version to keep syncing your work.</string>
 	<string name="protocol_mismatch_body_server">The sync server is running an older protocol than this app. The server needs to be updated before syncing will work again.</string>
-	<string name="protocol_mismatch_latest_version">Latest version: %s</string>
-	<string name="protocol_mismatch_current_version">You have: %s</string>
-	<string name="protocol_mismatch_open_release_button">Get the Update</string>
+	<string name="protocol_mismatch_latest_version">Latest version: %1$s</string>
+	<string name="protocol_mismatch_current_version">You have: %1$s</string>
+	<string name="protocol_mismatch_open_release_button">Get the update</string>
 	<string name="protocol_mismatch_dismiss_button">Dismiss</string>
 
-	<string name="reauth_title">Reauthorize</string>
-	<string name="reauth_explanation">Your token has expired, please reauthorize with your sync server.</string>
-	<string name="reauth_token_expired">Token Expired</string>
+	<string name="reauth_title">Sign in again</string>
+	<string name="reauth_explanation">Your sign-in to the sync server has expired. Enter your password to keep syncing.</string>
 	<string name="reauth_server_url">Address</string>
-	<string name="reauth_server_email">E-Mail</string>
+	<string name="reauth_server_email">Email</string>
 
-	<string name="server_setup_help_title">About Sync Servers</string>
+	<string name="server_setup_help_title">About sync servers</string>
 	<string
-		name="server_setup_help_intro">Sync Servers for Hammer allow you to work on your projects from multiple devices. They will sync your work across whatever devices you configure with the same server.
-	</string>
-	<string name="server_setup_help_official_header">Official Server</string>
+		name="server_setup_help_intro">A sync server keeps your projects in step across your devices. Run your own, or use the official one.</string>
+	<string name="server_setup_help_official_header">The official server</string>
+	<string name="server_setup_help_note_caption">NOTE</string>
 	<string
-		name="server_setup_help_official_body">You can run your own Sync server, but if that is too technical, or you just want to support the project, we run an official server at hammer.ink.
-	</string>
-	<string
-		name="server_setup_help_patreon">If you subscribe to our Patreon, you get access to the official server. This is the best way to support this project.
-	</string>
+		name="server_setup_help_official_body">hammer.ink comes with a Patreon subscription.</string>
 	<string name="server_setup_help_patreon_link">Patreon</string>
-	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
-	<string name="server_setup_help_registration_header">Registration</string>
+	<string name="server_setup_help_hammer_link">hammer.ink</string>
+	<string name="server_setup_help_registration_header">Getting an account</string>
 	<string
-		name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.
-	</string>
-	<string name="server_setup_help_setup_header">SetUp</string>
-	<string name="server_setup_help_setup_step1">Enter the server's URL, such as "hammer.ink" for the official server.
-	</string>
+		name="server_setup_help_registration_body">Servers don't take open sign-ups. Ask the server's admin to add your email, then choose Create account. On your other devices, choose Log in.</string>
+	<string name="server_setup_help_close">Close</string>
+	<string name="server_setup_help_note_header">Syncing isn't live</string>
 	<string
-		name="server_setup_help_setup_step2">Enter your email and password, then hit "Create" to create your account.
-	</string>
-	<string name="server_setup_help_setup_step3">In the future, and on other devices, you will simply hit "Log In".
-	</string>
-	<string name="server_setup_help_note_header">Important Note</string>
-	<string
-		name="server_setup_help_note_body">Syncing in Hammer is different from online-first applications like Google Docs. The syncing is not real-time. It usually happens when you open or close the app. Make sure you're synced with the latest versions of your projects before going offline. Hammer does automatic syncing, but it's always good to check if you're going to be offline for a while.
-	</string>
-	<string name="server_setup_help_dismiss_button">Got It</string>
+		name="server_setup_help_note_body">Hammer syncs when you open and close it. Sync before you go offline for a while.</string>
+	<string name="project_settings_tab_project">Project</string>
+	<string name="project_settings_tab_writing">Writing</string>
+	<string name="project_settings_tab_timelines">Timelines</string>
+	<string name="project_settings_tab_plugins">Plugins</string>
+	<string name="project_settings_enter_to_add_tag">Press Enter to add a tag.</string>
+	<string name="project_settings_enter_to_add_word">Press Enter to add a word.</string>
+	<string name="project_settings_goal_row">Goal</string>
+	<string name="project_settings_goal_words_per">words per</string>
+	<string name="project_settings_goal_per_day">About %1$d words a day.</string>
+	<string name="project_settings_edit_ellipsis">Edit…</string>
+	<string name="project_settings_pick_ellipsis">Pick…</string>
+	<string name="project_settings_dictionary_title">Project dictionary</string>
+	<string name="project_settings_plugins_empty_title">No plugins installed</string>
+	<string name="project_settings_plugins_empty_body">Plugins add actions, spelling and grammar checks, and export formats. Install them in Settings, on the Plugins tab, from the project list. Then you can turn each one on or off for this project here.</string>
+	<string name="project_settings_plugins_empty_body_here">Plugins add actions, spelling and grammar checks, and export formats. Install them here or in Settings, on the Plugins tab. Then you can turn each one on or off for this project.</string>
+	<string name="sync_conflict_field_changed">CHANGED</string>
 </resources>

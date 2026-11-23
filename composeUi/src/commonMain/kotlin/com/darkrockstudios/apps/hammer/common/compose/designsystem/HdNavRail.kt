@@ -59,7 +59,7 @@ data class HdNavRailDestination<T>(
 )
 
 private val CollapsedWidth = 72.dp
-private val ExpandedWidth = 176.dp
+private val ExpandedWidth = 200.dp
 private val ItemHeight = 72.dp
 private val IndicatorWidth = 3.dp
 private val IndicatorInset = 12.dp

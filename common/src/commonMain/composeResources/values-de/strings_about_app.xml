@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="about_description">Ein einfaches Werkzeug zum Erstellen von Geschichten.</string>
-	<string name="about_studio_header">Studio</string>
 	<string name="about_community_studio_attribution">Hammer is made by Dark Rock Studios, alongside a family of other privacy-respecting, open source apps.</string>
 	<string name="about_community_header">Community</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
 	<string name="about_community_github_link">Github</string>
-	<string name="about_attribution_header">Quellen</string>
-	<string name="about_attribution_libraries_button">Bibliotheken</string>
 	<string name="about_attribution_studio_button">Dark Rock Studios</string>
 	<string name="about_version_changes_button">Changes</string>
 	<string name="about_version_github_button">GitHub Release</string>
@@ -16,7 +13,6 @@
 	<string name="about_update_checking">Checking for updates&#8230;</string>
 	<string name="about_update_up_to_date">Hammer is up to date.</string>
 	<string name="about_update_available">Hammer %1$s is available.</string>
-	<string name="about_update_install_button">Update to %1$s</string>
 	<string name="about_update_downloading">Downloading Hammer %1$s (%2$s)</string>
 	<string name="about_update_installing">Installing Hammer %1$s. Hammer will restart.</string>
 	<string name="about_update_failed">Could not update to %1$s: %2$s</string>
@@ -24,14 +20,9 @@
 	<string name="about_update_later_button">Later</string>
 	<string name="about_update_quit_notice">Hammer will quit to install the update, then reopen.</string>
 	<string name="changelog_dialog_title">What's New</string>
-	<string name="update_dialog_release_notes_section">Versionshinweise</string>
 	<string name="update_dialog_release_notes_empty">Keine Versionshinweise vorhanden.</string>
 	<string name="update_dialog_open_release_button">Release öffnen</string>
-	<string name="about_logs_header">Anwendungsprotokolle</string>
-	<string name="about_logs_directory_label">Protokollverzeichnis:</string>
-	<string name="about_logs_export_button">Protokolle exportieren</string>
 	<string name="about_logs_no_logs">Keine Protokolldateien gefunden</string>
-	<string name="about_logs_open_tooltip">Protokollverzeichnis öffnen</string>
 	<string name="about_logs_export_success">Logs exported.</string>
 	<string name="about_logs_export_failed">Could not export the logs. See the log directory.</string>
 	<string name="about_logs_copy_diagnostics_button">Copy Diagnostics</string>

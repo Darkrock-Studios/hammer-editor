@@ -11,8 +11,6 @@
 	<string name="encyclopedia_browse_list_empty">Keine Einträge gefunden</string>
 	<string name="encyclopedia_create_button">Eintrag erstellen</string>
 	<string name="encyclopedia_create_entry_header">Eintrag erstellen</string>
-	<string name="encyclopedia_create_entry_section_marker">Neu</string>
-	<string name="encyclopedia_create_entry_draft_marker">Entwurf</string>
 	<string name="encyclopedia_create_entry_name_label">Name</string>
 	<string name="encyclopedia_create_entry_name_placeholder">z. B. Grinsekatze</string>
 	<string name="encyclopedia_create_entry_tags_label">Tags</string>
@@ -57,22 +55,12 @@
 	<string name="encyclopedia_entry_menu_delete">Eintrag löschen</string>
 	<string name="encyclopedia_entry_menu_remove_image">Bild entfernen</string>
 	<string name="encyclopedia_entry_menu_add_image">Bild hinzufügen</string>
-	<string name="encyclopedia_entry_add_tags_dialog_title">Tags hinzufügen</string>
-	<string name="encyclopedia_entry_add_tags_button">Tags hinzufügen</string>
 	<string name="encyclopedia_entry_crumb_root">Lexikon</string>
 	<string name="encyclopedia_entry_edit_button">Bearbeiten</string>
-	<string name="encyclopedia_entry_particulars_label">Einzelheiten</string>
-	<string name="encyclopedia_entry_particulars_type">Typ</string>
-	<string name="encyclopedia_entry_particulars_tags">Tags</string>
-	<string name="encyclopedia_entry_particulars_aliases">Aliase</string>
-	<string name="encyclopedia_entry_particulars_scenes">Szenen</string>
 	<string name="encyclopedia_entry_tags_label">Tags</string>
 	<string name="encyclopedia_entry_add_tag_chip">Tag</string>
 	<string name="encyclopedia_entry_add_alias_chip">Alias</string>
 	<string name="encyclopedia_entry_figure_label">Abb. I</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Ein-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sz.%1$s</string>
-	<string name="encyclopedia_entry_colophon_label">Eintrag · Katalogkarte</string>
-	<string name="encyclopedia_entry_colophon_label_compact">Bearbeitet</string>
-	<string name="encyclopedia_entry_colophon_end">Ende des Eintrags ✦</string>
 </resources>

@@ -4,18 +4,13 @@
 	<string name="save_all_toast">Усі сцени збережено</string>
 	<string name="unsaved_scenes_dialog_title">Незбережені сцени</string>
 	<string name="unsaved_scenes_dialog_message">Що зробити з незбереженими сценами?</string>
-	<string name="unsaved_encyclopedia_dialog_title">Незбережений запис енциклопедії</string>
 	<string name="unsaved_encyclopedia_dialog_message">Відхилити запис?</string>
-	<string name="unsaved_notes_dialog_title">Незбережена нотатка</string>
 	<string name="unsaved_notes_dialog_message">Відхилити нотатку?</string>
-	<string name="unsaved_timeline_dialog_title">Незбережена подія хронології</string>
 	<string name="unsaved_timeline_dialog_message">Відхилити подію?</string>
-	<string name="unsaved_dialog_negative_button">Скасувати</string>
 	<string name="unsaved_dialog_positive_button">Відхилити та закрити</string>
 	<string name="unsaved_entity_dialog_negative_button">Відхилити</string>
 	<string name="unsaved_entity_dialog_neutral_button">Скасувати</string>
 	<string name="unsaved_entity_dialog_positive_button">Зберегти</string>
-	<string name="close_dialog_button">Закрити</string>
 	<string name="more_menu_button">Більше</string>
 	<string name="network_request_failure_parse_body">Не вдалося розібрати тіло відповіді: %1$s</string>
 	<string name="confirm_dialog_positive">Так</string>
@@ -39,5 +34,5 @@
 	<string name="markdown_preview_image">Зображення</string>
 	<string name="markdown_format_bar_undo">Скасувати</string>
 	<string name="markdown_format_bar_redo">Повторити</string>
-	<string name="form_dialog_keyboard_hint">ESC скасувати</string>
+	<string name="hd_field_optional">необов'язково</string>
 </resources>

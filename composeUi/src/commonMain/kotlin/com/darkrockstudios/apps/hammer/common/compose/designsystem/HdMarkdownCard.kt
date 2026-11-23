@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,9 +15,9 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -59,6 +58,7 @@ fun HdMarkdownCard(
 	onTagClick: (String) -> Unit = {},
 	header: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
+	val sortedTags = remember(tags) { tags.sorted() }
 	// `wrapContentHeight()` is defensive — staggered grid items already give children unbounded
 	// height, but this guarantees the card sizes to its content even when a sibling modifier
 	// propagates a max.
@@ -66,15 +66,11 @@ fun HdMarkdownCard(
 		modifier = modifier
 			.fillMaxWidth()
 			.wrapContentHeight()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow, RectangleShape)
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				shape = RectangleShape,
-			)
+			.hdCard()
 			.then(surfaceModifier)
 			.clickable(onClick = onClick),
 	) {
+		val tonal = LocalHdGrouping.current.isTonal
 		val previewMarkdown = rememberMarkdownPreview(markdown)
 
 		Row(
@@ -91,10 +87,12 @@ fun HdMarkdownCard(
 			HdMonoLabel(text = metaEnd)
 		}
 
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
+		if (!tonal) {
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+		}
 
 		header?.invoke(this)
 
@@ -121,13 +119,15 @@ fun HdMarkdownCard(
 				horizontalArrangement = Arrangement.spacedBy(6.dp),
 				verticalArrangement = Arrangement.spacedBy(6.dp),
 			) {
-				tags.sorted().forEach { tag ->
-					val isActive = tag in activeTags
-					HdTagChip(
-						label = tag,
-						active = isActive,
-						onClick = { onTagClick(tag) },
-					)
+				CompositionLocalProvider(LocalHdInRegion provides tonal) {
+					sortedTags.forEach { tag ->
+						val isActive = tag in activeTags
+						HdTagChip(
+							label = tag,
+							active = isActive,
+							onClick = { onTagClick(tag) },
+						)
+					}
 				}
 			}
 		}

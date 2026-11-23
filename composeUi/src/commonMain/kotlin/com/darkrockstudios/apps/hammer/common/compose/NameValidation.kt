@@ -24,7 +24,7 @@ internal class NameValidation(
 	val isValid: Boolean,
 	val errorMessage: String?,
 ) {
-	/** The error to surface in a [FormField] — shown only once the field is non-empty and invalid. */
+	/** The error to show under the field: only once the field is non-empty and invalid. */
 	fun fieldError(name: String): String? =
 		if (name.isNotEmpty() && !isValid) errorMessage else null
 }

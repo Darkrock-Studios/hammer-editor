@@ -82,7 +82,6 @@ fun ViewTimeLineEventUi(
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 	val dateText by component.dateText.subscribeAsState()
-	val eventText by component.contentText.subscribeAsState()
 	val event = state.event
 	val isEditing = state.isEditing
 	val isEvent = state.kind == TimelineKind.EVENT
@@ -199,12 +198,12 @@ fun ViewTimeLineEventUi(
 							state = state,
 							component = component,
 							dateText = dateText,
-							eventText = eventText,
+							eventText = remember { component.contentText.value },
 							onAddReferences = { pickingReferences = true },
 							modifier = Modifier.weight(1f),
 						)
 
-						EditStatusFooter(text = eventText)
+						LiveEventStatusFooter(component)
 					}
 
 					isEditing -> {
@@ -220,6 +219,7 @@ fun ViewTimeLineEventUi(
 					}
 
 					isEvent -> {
+						val eventText by component.contentText.subscribeAsState()
 						ViewBody(
 							state = state,
 							eventText = eventText,
@@ -254,10 +254,10 @@ fun ViewTimeLineEventUi(
 	EntityPickerDialog(
 		visible = pickingReferences,
 		title = Res.string.timeline_references_pick_title.get(),
-		items = state.catalog.filter { it.id != event?.id },
+		items = remember(state.catalog, event?.id) { state.catalog.filter { it.id != event?.id } },
 		filter = ReferenceFilter,
 		multiple = true,
-		selected = state.references.map { it.ref },
+		selected = remember(state.references) { state.references.map { it.ref } },
 		onSelectedChange = { refs ->
 			applyReferencePicks(state.references, refs, state.catalog, component::addReference, component::removeReference)
 		},
@@ -283,6 +283,10 @@ fun ViewTimeLineEventUi(
 		SimpleConfirm(
 			title = Res.string.timeline_view_discard_title.get(),
 			message = Res.string.timeline_view_discard_message.get(),
+			positiveButton = Res.string.timeline_view_discard_confirm.get(),
+			negativeButton = Res.string.timeline_view_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { component.cancelClose() }
 		) {
 			component.closeEvent()
@@ -293,6 +297,10 @@ fun ViewTimeLineEventUi(
 		SimpleConfirm(
 			title = Res.string.timeline_view_discard_title.get(),
 			message = Res.string.timeline_view_discard_message.get(),
+			positiveButton = Res.string.timeline_view_discard_confirm.get(),
+			negativeButton = Res.string.timeline_view_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { component.cancelDiscard() }
 		) {
 			component.discardEdit()
@@ -303,6 +311,10 @@ fun ViewTimeLineEventUi(
 		SimpleConfirm(
 			title = Res.string.timeline_view_confirm_delete_title.get(),
 			message = Res.string.timeline_view_confirm_delete_message.get(),
+			positiveButton = Res.string.timeline_view_confirm_delete_button.get(),
+			negativeButton = Res.string.timeline_view_confirm_cancel.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_delete.get(),
 			onDismiss = { component.endDeleteEvent() }
 		) {
 			scope.launch {
@@ -330,4 +342,11 @@ private fun storedWhen(state: ViewTimeLineEvent.State): String? {
 		}
 	}
 	return event.label
+}
+
+/** The edit footer, subscribed on its own so typing recomposes only it. */
+@Composable
+private fun LiveEventStatusFooter(component: ViewTimeLineEvent) {
+	val text by component.contentText.subscribeAsState()
+	EditStatusFooter(text = text)
 }

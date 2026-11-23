@@ -23,6 +23,8 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectSettingsUi
+import com.darkrockstudios.apps.hammer.common.projecthome.ProjectSettingsTab
+import com.darkrockstudios.apps.hammer.common.preview.timeline.previewThreeTimelines
 import com.darkrockstudios.apps.hammer.common.util.Locale
 
 @Preview
@@ -82,7 +84,7 @@ private fun fakeComponent(
 	override val projectName: String = "The Lighthouse"
 	override val spellCheckSettings: SpellCheckSettings = fakeSpellCheckSettings
 	override val timelineSettings: TimelineSettings =
-		PreviewTimelineSettings(TimelineSettings.State(lanes = listOf("Keeper", "The Sea")))
+		PreviewTimelineSettings(TimelineSettings.State(timelines = previewThreeTimelines, lanes = listOf("Keeper", "The Sea")))
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = MutableValue(
 		ProjectSettings.ProjectInfoState(
 			data = ProjectData(
@@ -152,3 +154,24 @@ fun ScreenProjectSettingsUiSharedPreview() {
 		}
 	}
 }
+
+@Composable
+private fun TabletTab(tab: ProjectSettingsTab) {
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectSettingsUi(modifier = Modifier, component = component, onClose = {}, initialTab = tab)
+		}
+	}
+}
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenProjectSettingsUiWritingTabletPreview() = TabletTab(ProjectSettingsTab.Writing)
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenProjectSettingsUiTimelinesTabletPreview() = TabletTab(ProjectSettingsTab.Timelines)
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenProjectSettingsUiPluginsTabletPreview() = TabletTab(ProjectSettingsTab.Plugins)

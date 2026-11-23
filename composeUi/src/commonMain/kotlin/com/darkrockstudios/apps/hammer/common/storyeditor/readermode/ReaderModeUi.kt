@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
@@ -22,7 +21,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -35,7 +33,6 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.base.romanNumeral
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -112,52 +109,46 @@ fun ReaderModeUi(component: ReaderMode, modifier: Modifier = Modifier) {
 	val chapterIndex = state.activeChapterIndex
 
 	Column(modifier = modifier.fillMaxSize()) {
-		HdMasthead(
-			section = Res.string.reader_mode_section.get(),
-			modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
-			leadingMeta = if (compact || chapterIndex < 0) {
-				emptyList()
-			} else {
-				listOf(Res.string.reader_mode_list_position.get(chapterIndex + 1, state.chapters.size))
-			},
-			trailing = {
-				if (!compact) {
-					ReaderTools(state = state, component = component)
-				}
-				if (chapterIndex >= 0) {
-					HdMastheadAction(
-						label = Res.string.reader_mode_edit.get(),
-						onClick = { component.editScene() },
-						modifier = Modifier.testTag(READER_MODE_EDIT_TAG),
-					)
-				}
-				if (screen.needsExplicitClose) {
-					HdMastheadAction(label = Res.string.reader_mode_close.get(), onClick = component::close)
-				}
-			},
-		)
-		HdFolioDivider()
-
 		if (compact) {
-			if (chapterIndex >= 0) {
-				val chapterRows = remember(state.chapters) {
-					state.chapters.map { HdChapterRow(title = it.chapter.name, sceneCount = it.sceneCount) }
-				}
-				HdChapterDropdown(
-					rows = chapterRows,
-					selectedIndex = chapterIndex,
-					onSelect = { component.showChapter(state.chapters[it].chapter.id) },
-				)
-			}
+			// One bar on phones: the text tools take the place of the section label.
 			Row(
 				modifier = Modifier
+					.windowInsetsPadding(WindowInsets.statusBars)
 					.fillMaxWidth()
 					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-				horizontalArrangement = Arrangement.End,
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
 				ReaderTools(state = state, component = component)
+				Spacer(Modifier.weight(1f))
+				ReaderActions(state = state, component = component, showClose = screen.needsExplicitClose)
 			}
-			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+		} else {
+			HdMasthead(
+				section = Res.string.reader_mode_section.get(),
+				modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
+				leadingMeta = if (chapterIndex < 0) {
+					emptyList()
+				} else {
+					listOf(Res.string.reader_mode_list_position.get(chapterIndex + 1, state.chapters.size))
+				},
+				trailing = {
+					ReaderTools(state = state, component = component)
+					ReaderActions(state = state, component = component, showClose = screen.needsExplicitClose)
+				},
+			)
+		}
+		HdFolioDivider()
+
+		if (compact && chapterIndex >= 0) {
+			val chapterRows = remember(state.chapters) {
+				state.chapters.map { HdChapterRow(title = it.chapter.name, sceneCount = it.sceneCount) }
+			}
+			HdChapterDropdown(
+				rows = chapterRows,
+				selectedIndex = chapterIndex,
+				onSelect = { component.showChapter(state.chapters[it].chapter.id) },
+			)
 		}
 
 		if (chapterIndex < 0) {
@@ -171,6 +162,20 @@ fun ReaderModeUi(component: ReaderMode, modifier: Modifier = Modifier) {
 				modifier = Modifier.weight(1f).fillMaxWidth(),
 			)
 		}
+	}
+}
+
+@Composable
+private fun ReaderActions(state: ReaderMode.State, component: ReaderMode, showClose: Boolean) {
+	if (state.activeChapterIndex >= 0) {
+		HdMastheadAction(
+			label = Res.string.reader_mode_edit.get(),
+			onClick = { component.editScene() },
+			modifier = Modifier.testTag(READER_MODE_EDIT_TAG),
+		)
+	}
+	if (showClose) {
+		HdMastheadAction(label = Res.string.reader_mode_close.get(), onClick = component::close)
 	}
 }
 
@@ -350,7 +355,6 @@ private fun ReadingColumn(
 				)
 
 				is ReaderRow.SceneHeading -> SceneHeading(
-					chapterIndex = chapterIndex,
 					row = row,
 					wide = wide,
 					onClick = { component.editScene(row.scene) },
@@ -383,7 +387,6 @@ private fun ReadingColumn(
 
 @Composable
 private fun SceneHeading(
-	chapterIndex: Int,
 	row: ReaderRow.SceneHeading,
 	wide: Boolean,
 	onClick: () -> Unit,

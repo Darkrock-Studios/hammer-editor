@@ -1,24 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
@@ -29,16 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isSpecified
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.FormDialog
-import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerList
@@ -51,19 +38,23 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.computeMoveRequest
 import com.darkrockstudios.apps.hammer.common.data.movePositionCount
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
-import com.darkrockstudios.apps.hammer.common.data.tree.isChapter
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.data.validMoveDestinations
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
 import com.darkrockstudios.apps.hammer.scene_move_dialog_destination_label
 import com.darkrockstudios.apps.hammer.scene_move_dialog_dismiss_button
 import com.darkrockstudios.apps.hammer.scene_move_dialog_invalid_position
-import com.darkrockstudios.apps.hammer.scene_move_dialog_marker
 import com.darkrockstudios.apps.hammer.scene_move_dialog_move_button
+import com.darkrockstudios.apps.hammer.scene_move_dialog_title
 import com.darkrockstudios.apps.hammer.scene_move_dialog_no_results
 import com.darkrockstudios.apps.hammer.scene_move_dialog_position_label
 import com.darkrockstudios.apps.hammer.scene_move_dialog_search_placeholder
 import com.darkrockstudios.apps.hammer.scene_move_dialog_chapters
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
+import androidx.compose.foundation.layout.fillMaxSize
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 private fun moveDestinationTag(id: Int) = "move-dialog-destination-$id"
 
@@ -157,7 +148,7 @@ internal fun MoveSceneDialog(
 	onMove: (MoveRequest) -> Unit,
 ) {
 	val state = remember(item.id) { MoveSceneDialogState(item, tree) }
-	state.updateTree(tree)
+	LaunchedEffect(state, tree) { state.updateTree(tree) }
 
 	fun submit() {
 		val request = state.buildRequest() ?: return
@@ -165,19 +156,35 @@ internal fun MoveSceneDialog(
 		onDismiss()
 	}
 
-	FormDialog(
+	AnimatedDialog(
 		visible = true,
-		marker = "§ ${Res.string.scene_move_dialog_marker.get().uppercase()}",
-		meta = sceneTypeMeta(item, isChapter = tree.isChapter(item)),
-		title = item.name,
+		onCloseRequest = onDismiss,
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center,
+	) {
+		MoveSceneCard(
+			state = state,
+			onConfirm = ::submit,
+			onCancel = onDismiss,
+		)
+	}
+}
+
+@Composable
+internal fun MoveSceneCard(
+	state: MoveSceneDialogState,
+	onConfirm: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	FormDialogScaffold(
+		title = Res.string.scene_move_dialog_title.get(state.item.name),
 		confirmLabel = Res.string.scene_move_dialog_move_button.get(),
 		cancelLabel = Res.string.scene_move_dialog_dismiss_button.get(),
-		onConfirm = ::submit,
-		onCancel = onDismiss,
-		onDismiss = onDismiss,
+		onConfirm = onConfirm,
+		onCancel = onCancel,
 		confirmEnabled = state.selectedNode != null && state.positionValid,
 	) {
-		MoveSceneDialogBody(state = state, onSubmit = ::submit)
+		MoveSceneDialogBody(state = state, onSubmit = onConfirm)
 	}
 }
 
@@ -205,7 +212,7 @@ internal fun ColumnScope.MoveSceneDialogBody(
 		)
 	}
 
-	FormField(
+	HdHairlineField(
 		value = state.positionText,
 		onValueChange = { text -> state.positionText = text.filter { it.isDigit() } },
 		label = Res.string.scene_move_dialog_position_label.get(state.maxPosition),
@@ -214,6 +221,8 @@ internal fun ColumnScope.MoveSceneDialogBody(
 		),
 		onImeAction = onSubmit,
 		testTag = MOVE_DIALOG_POSITION_FIELD_TAG,
+		imeAction = ImeAction.Done,
+		capitalization = KeyboardCapitalization.None,
 	)
 }
 
@@ -253,7 +262,12 @@ private fun DestinationRow(
 	HdPickerRow(
 		label = if (isTopLevel) topLevelLabel else node.value.name,
 		depth = node.depth,
-		icon = if (isTopLevel) Icons.AutoMirrored.Outlined.MenuBook else Icons.Filled.Folder,
+		// Only groups directly under the top level are chapters.
+		icon = when (node.depth) {
+			0 -> null
+			1 -> Icons.AutoMirrored.Outlined.MenuBook
+			else -> Icons.Filled.Folder
+		},
 		modifier = Modifier
 			.background(bg)
 			.leftBorder(2.dp, accent)

@@ -1,27 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
-import androidx.compose.foundation.border
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
-import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModal
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModalDefaults
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -29,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFieldLabel
 
 const val NOTES_CREATE_BODY_TAG = "notes-create-body"
 const val NOTES_CREATE_CONFIRM_TAG = "notes-create-confirm"
@@ -42,7 +38,7 @@ fun CreateNoteUi(
 	rootSnackbar: RootSnackbarHostState
 ) {
 	val state by component.state.subscribeAsState()
-	val noteText by component.noteText.subscribeAsState()
+	val noteText = component.noteText.subscribeAsState()
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	val strRes = rememberStrRes()
@@ -50,37 +46,95 @@ fun CreateNoteUi(
 	var resetVersion by remember { mutableStateOf(0) }
 	val tags = rememberSaveableStringList()
 
-	val wordCount = remember(noteText) {
-		countWords(noteText)
+	val canCreate by remember { derivedStateOf { noteText.value.isNotBlank() } }
+
+	val create: () -> Unit = {
+		scope.launch {
+			val result = component.createNote(noteText.value, tags.toSet())
+			newNoteError = !result.isSuccess
+			when (result) {
+				NoteError.TOO_LONG -> scope.launch {
+					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
+				}
+
+				NoteError.EMPTY -> scope.launch {
+					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
+				}
+
+				NoteError.TAG_TOO_LONG -> scope.launch {
+					rootSnackbar.showSnackbar(
+						strRes.get(
+							Res.string.notes_create_toast_tag_too_long,
+							NotesRepository.MAX_TAG_SIZE,
+						)
+					)
+				}
+
+				NoteError.NONE -> {
+					withContext(mainDispatcher) {
+						component.clearText()
+						tags.clear()
+						resetVersion++
+					}
+					scope.launch {
+						rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
+					}
+				}
+			}
+		}
 	}
-	val charCount = noteText.length
-	val canCreate = noteText.isNotBlank()
 
-	Card(
-		modifier = modifier.padding(Ui.Padding.XL)
-			.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
-		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL),
-		shape = RectangleShape,
+	HdCreateModal(
+		title = Res.string.notes_create_header.get(),
+		modifier = modifier,
+		footerMeta = {
+			val text = noteText.value
+			val wordCount = remember(text) { countWords(text) }
+			HdMonoLabel(
+				text = Res.string.notes_view_status_word_char.get(wordCount, text.length),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.testTag(NOTES_CREATE_META_TAG),
+			)
+		},
+		actions = {
+			HdHairlineButton(
+				label = Res.string.notes_create_cancel_button.get(),
+				onClick = { component.closeCreate() },
+				modifier = Modifier.testTag(NOTES_CREATE_CANCEL_TAG),
+			)
+			HdHairlineButton(
+				label = Res.string.notes_create_create_button.get(),
+				emphasised = true,
+				enabled = canCreate,
+				modifier = Modifier.testTag(NOTES_CREATE_CONFIRM_TAG),
+				onClick = create,
+			)
+		},
 	) {
-		Column(modifier = Modifier.fillMaxWidth()) {
-
-			CollapseWhileTyping {
-				Column(modifier = Modifier.fillMaxWidth()) {
-					HdSectionHeader(
-						marker = Res.string.notes_create_marker.get(),
-						title = Res.string.notes_create_header.get(),
-						trailing = {
-							HdMonoLabel(text = Res.string.notes_create_draft_label.get())
-						},
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.weight(1f, fill = false)
+				.padding(HdCreateModalDefaults.BodyPadding),
+			verticalArrangement = Arrangement.spacedBy(HdCreateModalDefaults.BodySpacing),
+		) {
+			Column(
+				modifier = Modifier.weight(1f, fill = false),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+			) {
+				HdFieldLabel(text = Res.string.notes_create_body_label.get())
+				key(resetVersion) {
+					MarkdownEditField(
+						initialMarkdown = remember { noteText.value },
+						onMarkdownChanged = { component.onTextChanged(it) },
+						enableSpellChecking = state.spellCheckAllowed,
+						autoFocus = true,
+						contentPadding = PaddingValues(Ui.Padding.XL),
+						testTag = NOTES_CREATE_BODY_TAG,
 						modifier = Modifier
 							.fillMaxWidth()
-							.height(Ui.TOP_BAR_HEIGHT)
-							.padding(horizontal = Ui.Padding.XL),
-					)
-
-					HorizontalDivider(
-						thickness = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
+							.weight(1f, fill = false)
+							.heightIn(min = 240.dp),
 					)
 				}
 			}
@@ -95,102 +149,7 @@ fun CreateNoteUi(
 				hint = Res.string.notes_create_tags_hint.get(),
 				placeholder = Res.string.notes_create_tags_placeholder.get(),
 				suggestTags = component::suggestTags,
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
 			)
-
-			// Body editor framed in a hairline so it reads as its own block.
-			Box(
-				modifier = Modifier
-					.padding(horizontal = Ui.Padding.XL)
-					.padding(bottom = Ui.Padding.L)
-					.fillMaxWidth()
-					.weight(1f, fill = true)
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					),
-			) {
-				key(resetVersion) {
-					MarkdownEditField(
-						initialMarkdown = noteText,
-						onMarkdownChanged = { component.onTextChanged(it) },
-						enableSpellChecking = state.spellCheckAllowed,
-						contentPadding = PaddingValues(Ui.Padding.XL),
-						testTag = NOTES_CREATE_BODY_TAG,
-						modifier = Modifier
-							.fillMaxWidth()
-							.widthIn(max = TextEditorDefaults.MAX_WIDTH),
-					)
-				}
-			}
-
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-
-			// Footer — word/char meta, keyboard hint, actions.
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				HdMonoLabel(
-					text = "$wordCount W · $charCount CH",
-					modifier = Modifier.testTag(NOTES_CREATE_META_TAG),
-				)
-				Spacer(modifier = Modifier.weight(1f))
-				HdHairlineButton(
-					label = Res.string.notes_create_cancel_button.get(),
-					onClick = { component.closeCreate() },
-					modifier = Modifier.testTag(NOTES_CREATE_CANCEL_TAG),
-				)
-				HdHairlineButton(
-					label = Res.string.notes_create_create_button.get(),
-					emphasised = canCreate,
-					modifier = Modifier.testTag(NOTES_CREATE_CONFIRM_TAG),
-					onClick = {
-						scope.launch {
-							val result = component.createNote(noteText, tags.toSet())
-							newNoteError = !result.isSuccess
-							when (result) {
-								NoteError.TOO_LONG -> scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
-								}
-
-								NoteError.EMPTY -> scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
-								}
-
-								NoteError.TAG_TOO_LONG -> scope.launch {
-									rootSnackbar.showSnackbar(
-										strRes.get(
-											Res.string.notes_create_toast_tag_too_long,
-											NotesRepository.MAX_TAG_SIZE,
-										)
-									)
-								}
-
-								NoteError.NONE -> {
-									withContext(mainDispatcher) {
-										component.clearText()
-										tags.clear()
-										resetVersion++
-									}
-									scope.launch {
-										rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
-									}
-								}
-							}
-						}
-					},
-				)
-			}
 		}
 	}
 
@@ -198,6 +157,10 @@ fun CreateNoteUi(
 		SimpleConfirm(
 			title = Res.string.notes_discard_dialog_title.get(),
 			message = Res.string.notes_discard_dialog_message.get(),
+			positiveButton = Res.string.notes_discard_confirm.get(),
+			negativeButton = Res.string.notes_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = {
 				component.cancelDiscard()
 			}

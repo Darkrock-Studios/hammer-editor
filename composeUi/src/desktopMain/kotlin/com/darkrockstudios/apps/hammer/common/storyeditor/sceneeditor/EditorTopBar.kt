@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement.Start
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -75,11 +77,10 @@ actual fun EditorTopBar(
 				)
 					.weight(1f),
 				onClick = { component.beginSceneNameEdit() },
-				style = MaterialTheme.typography.headlineMedium
+				style = MaterialTheme.typography.headlineSmall
 					.copy(
 						color = MaterialTheme.colorScheme.onBackground,
-						//textAlign = TextAlign.Center
-					),
+											),
 			)
 
 			val unsaved = state.sceneBuffer?.dirty == true
@@ -102,7 +103,7 @@ actual fun EditorTopBar(
 						}
 					}) {
 						Icon(
-							Icons.Filled.Save,
+							Icons.Outlined.Save,
 							contentDescription = Res.string.scene_editor_save_button.get(),
 							tint = MaterialTheme.colorScheme.onSurface
 						)
@@ -112,17 +113,17 @@ actual fun EditorTopBar(
 
 			IconButton(onClick = onToggleMetadata) {
 				Icon(
-					imageVector = Icons.Default.Info,
-					contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
-					tint = MaterialTheme.colorScheme.onBackground
+					imageVector = Icons.Outlined.Info,
+					contentDescription = Res.string.scene_editor_metadata_button.get(),
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
 
 			IconButton(onClick = component::readScene) {
 				Icon(
-					imageVector = Icons.AutoMirrored.Filled.MenuBook,
+					imageVector = Icons.AutoMirrored.Outlined.MenuBook,
 					contentDescription = Res.string.scene_editor_menu_item_read.get(),
-					tint = MaterialTheme.colorScheme.onBackground
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
 
@@ -130,7 +131,7 @@ actual fun EditorTopBar(
 				Icon(
 					imageVector = Icons.Default.Fullscreen,
 					contentDescription = Res.string.scene_editor_focus_mode_button.get(),
-					tint = MaterialTheme.colorScheme.onBackground
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
 
@@ -138,7 +139,7 @@ actual fun EditorTopBar(
 				Icon(
 					imageVector = Icons.Default.Close,
 					contentDescription = Res.string.scene_editor_menu_item_close.get(),
-					tint = MaterialTheme.colorScheme.onBackground
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
 

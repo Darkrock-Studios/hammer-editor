@@ -193,12 +193,10 @@ private fun AddNoteDialog(
 		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
 	) {
 		Column {
-			HdMasthead(
-				section = "ADD NOTE",
-				leadingMeta = listOfNotNull(preselectedProject?.name),
-				trailing = { HdMastheadAction(label = "× CLOSE", onClick = onCancel) },
+			DialogTitle(
+				title = stringResource(R.string.note_widget_dialog_title),
+				meta = preselectedProject?.name,
 			)
-			HdFolioDivider()
 			Column(
 				modifier = Modifier
 					.fillMaxWidth()
@@ -209,7 +207,7 @@ private fun AddNoteDialog(
 					ProjectDropDownUi(projects = projects, onProjectSelected = onProjectSelected)
 				}
 				HdHairlineField(
-					label = "NOTE",
+					label = stringResource(R.string.note_widget_dialog_note_label),
 					value = noteText,
 					onValueChange = onNoteTextChange,
 					singleLine = false,
@@ -252,19 +250,13 @@ private fun DiscardConfirmDialog(
 		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
 	) {
 		Column {
-			HdMasthead(section = "DISCARD NOTE")
-			HdFolioDivider()
+			DialogTitle(title = stringResource(R.string.note_widget_confirm_cancel_title), meta = null)
 			Column(
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(Ui.Padding.XL),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
-				Text(
-					text = stringResource(R.string.note_widget_confirm_cancel_title),
-					style = MaterialTheme.typography.bodyLarge,
-					color = MaterialTheme.colorScheme.onSurface,
-				)
 				Row(
 					modifier = Modifier.fillMaxWidth(),
 					horizontalArrangement = Arrangement.SpaceBetween,
@@ -281,6 +273,29 @@ private fun DiscardConfirmDialog(
 					)
 				}
 			}
+		}
+	}
+}
+
+@Composable
+private fun DialogTitle(title: String, meta: String?) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, top = Ui.Padding.XL),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+	) {
+		Text(
+			text = title,
+			style = MaterialTheme.typography.titleLarge,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		if (meta != null) {
+			Text(
+				text = meta,
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
 		}
 	}
 }

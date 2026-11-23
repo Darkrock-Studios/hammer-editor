@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Crea una nuova bozza:</string>
-	<string name="save_draft_dialog_name_hint">Nome della bozza</string>
 	<string name="save_draft_dialog_save_button">Salva</string>
 	<string name="save_draft_dialog_cancel_button">Annulla</string>
 	<string name="save_draft_dialog_toast_success">Bozza salvata</string>
-	<string name="save_draft_dialog_current_draft">Salva la bozza attuale come:</string>
 	<string name="save_draft_dialog_error">Il nome della bozza attuale non è valido!</string>
-	<string name="scene_editor_rename_dialog_title">Rinomina scena</string>
 	<string name="scene_editor_name_hint">Nome della scena</string>
 	<string name="scene_editor_rename_button">Rinomina</string>
 	<string name="scene_editor_cancel_button">Annulla</string>
@@ -26,10 +23,6 @@
 	<string name="scene_editor_menu_item_close">Chiudi</string>
 	<string name="scene_editor_menu_item_read">Read</string>
 	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
-	<string name="archive_scene_dialog_title">Archivia scena</string>
-	<string name="archive_scene_dialog_message">Vuoi davvero archiviare «%1$s»? La scena verrà nascosta dall’elenco delle scene ma potrà essere ripristinata in seguito.</string>
-	<string name="archive_scene_dialog_confirm">Archivia</string>
-	<string name="archive_scene_dialog_cancel">Annulla</string>
 	<string name="discard_buffer_dialog_title">Scarta le modifiche</string>
 	<string name="discard_buffer_dialog_message">Vuoi davvero scartare tutte le modifiche non salvate di «%1$s»? Questo ricaricherà l’ultima versione salvata dal disco.</string>
 	<string name="discard_buffer_dialog_confirm">Scarta</string>
@@ -72,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Cerca luoghi…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Cerca voci…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Nessuna voce corrispondente.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Chiudi la finestra</string>
 	<string name="scene_editor_metadata_tags_header">Tag</string>
 	<string name="scene_editor_metadata_tags_empty">Ancora nessun tag</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Aggiungi tag</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Aggiungi tag</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Fatto</string>
 	<string name="scene_editor_no_scene_selected">Seleziona una scena da modificare</string>
 	<string name="default_draft_name">Nuova bozza</string>

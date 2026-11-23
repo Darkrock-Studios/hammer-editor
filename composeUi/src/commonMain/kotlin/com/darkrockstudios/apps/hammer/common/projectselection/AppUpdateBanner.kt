@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.about_update_available
 import com.darkrockstudios.apps.hammer.about_update_checking
@@ -43,8 +45,8 @@ fun appUpdateDescription(state: AppUpdateState): String? = when (state) {
 }
 
 /**
- * The strip above the project list that offers a newer release. Nothing is drawn until a check
- * has found one, and nothing ever is on a build that cannot update itself.
+ * The strip under the project list's masthead rule that offers a newer release. Nothing is drawn
+ * until a check has found one, and nothing ever is on a build that cannot update itself.
  */
 @Composable
 fun AppUpdateBanner(
@@ -53,6 +55,7 @@ fun AppUpdateBanner(
 	onOpenRelease: () -> Unit,
 	onDismiss: () -> Unit,
 	modifier: Modifier = Modifier,
+	horizontalPadding: Dp = 20.dp,
 ) {
 	val title = appUpdateDescription(state) ?: return
 	when (state) {
@@ -61,7 +64,7 @@ fun AppUpdateBanner(
 				title = title,
 				detail = if (state.installable) Res.string.about_update_quit_notice.get() else null,
 				primaryLabel = if (state.installable) {
-					Res.string.about_update_install_button.get(state.version)
+					Res.string.about_update_install_button.get()
 				} else {
 					Res.string.update_dialog_open_release_button.get()
 				},
@@ -69,6 +72,8 @@ fun AppUpdateBanner(
 				secondaryLabel = Res.string.about_update_later_button.get(),
 				onSecondary = onDismiss,
 				modifier = modifier,
+				horizontalPadding = horizontalPadding,
+				topRule = false,
 			)
 		}
 
@@ -76,11 +81,15 @@ fun AppUpdateBanner(
 			title = title,
 			progress = state.fraction,
 			modifier = modifier,
+			horizontalPadding = horizontalPadding,
+			topRule = false,
 		)
 
 		is AppUpdateState.Installing -> HdNoticeStrip(
 			title = title,
 			modifier = modifier,
+			horizontalPadding = horizontalPadding,
+			topRule = false,
 		)
 
 		is AppUpdateState.Failed -> HdNoticeStrip(
@@ -90,6 +99,8 @@ fun AppUpdateBanner(
 			secondaryLabel = Res.string.update_dialog_open_release_button.get(),
 			onSecondary = onOpenRelease,
 			modifier = modifier,
+			horizontalPadding = horizontalPadding,
+			topRule = false,
 		)
 
 		// Described, but only the About row says so.

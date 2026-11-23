@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Créer un nouveau brouillon :</string>
-	<string name="save_draft_dialog_name_hint">Nom du brouillon</string>
 	<string name="save_draft_dialog_save_button">Enregistrer</string>
 	<string name="save_draft_dialog_cancel_button">Annuler</string>
 	<string name="save_draft_dialog_toast_success">Brouillon enregistré</string>
-	<string name="save_draft_dialog_current_draft">Enregistrer le brouillon actuel sous :</string>
 	<string name="save_draft_dialog_error">Le nom du brouillon actuel est invalide !</string>
-	<string name="scene_editor_rename_dialog_title">Renommer la scène</string>
 	<string name="scene_editor_name_hint">Nom de la scène</string>
 	<string name="scene_editor_rename_button">Renommer</string>
 	<string name="scene_editor_cancel_button">Annuler</string>
@@ -26,10 +23,6 @@
 	<string name="scene_editor_menu_item_close">Fermer</string>
 	<string name="scene_editor_menu_item_read">Lire</string>
 	<string name="scene_editor_add_to_dictionary">Ajouter au dictionnaire</string>
-	<string name="archive_scene_dialog_title">Archiver la scène</string>
-	<string name="archive_scene_dialog_message">Voulez-vous vraiment archiver « %1$s » ? La scène sera masquée de la liste des scènes mais pourra être restaurée plus tard.</string>
-	<string name="archive_scene_dialog_confirm">Archiver</string>
-	<string name="archive_scene_dialog_cancel">Annuler</string>
 	<string name="discard_buffer_dialog_title">Abandonner les modifications</string>
 	<string name="discard_buffer_dialog_message">Voulez-vous vraiment abandonner toutes les modifications non enregistrées de « %1$s » ? La dernière version enregistrée sera rechargée depuis le disque.</string>
 	<string name="discard_buffer_dialog_confirm">Abandonner</string>
@@ -72,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Rechercher des lieux…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Rechercher des entrées…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Aucune entrée correspondante.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Fermer la boîte de dialogue</string>
 	<string name="scene_editor_metadata_tags_header">Étiquettes</string>
 	<string name="scene_editor_metadata_tags_empty">Aucun tag pour l'instant</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Ajouter un tag</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Ajouter des tags</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">étiquette1 étiquette2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Terminé</string>
 	<string name="scene_editor_no_scene_selected">Sélectionnez une scène à modifier</string>
 	<string name="default_draft_name">Nouveau brouillon</string>

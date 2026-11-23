@@ -83,6 +83,7 @@ import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneArchiveDialog
 
 const val SCENE_EDITOR_TEXT_TAG = "scene-editor-text"
 const val SCENE_EDITOR_SAVE_TAG = "scene-editor-save"
@@ -291,7 +292,7 @@ fun SceneEditorUi(
 	}
 
 	if (state.confirmArchive) {
-		ArchiveSceneDialog(state.sceneItem) { doArchive ->
+		SceneArchiveDialog(state.sceneItem) { doArchive ->
 			if (doArchive) {
 				component.doArchive()
 			} else {

@@ -3,7 +3,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
-import com.darkrockstudios.apps.hammer.common.projecthome.ProjectSync
+import com.darkrockstudios.apps.hammer.common.projecthome.ProjectSyncRow
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectSyncOwnTestTag
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectSyncSharedTestTag
 import org.junit.Rule
@@ -15,7 +15,7 @@ class ProjectSyncSectionTest {
 
 	private fun render(state: ProjectSettings.SyncState) {
 		compose.setContent {
-			ProjectSync(section = 8, state = state)
+			ProjectSyncRow(state = state)
 		}
 	}
 

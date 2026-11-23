@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.projecthome
 
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,5 +28,13 @@ fun ExportHelpDialogPreview() {
 				ExportHelpContent(onDismiss = {})
 			}
 		}
+	}
+}
+
+/** The export format help over a scrim, for the gallery. */
+@Composable
+internal fun ExportHelpScrimPreview() {
+	PreviewScrim {
+		ExportHelpContent(onDismiss = {})
 	}
 }

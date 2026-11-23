@@ -76,7 +76,6 @@ import com.darkrockstudios.apps.hammer.timeline_error_title_too_long
 import com.darkrockstudios.apps.hammer.timeline_kind_entry
 import com.darkrockstudios.apps.hammer.timeline_kind_event
 import com.darkrockstudios.apps.hammer.timeline_kind_scene
-import com.darkrockstudios.apps.hammer.timeline_lane_hint
 import com.darkrockstudios.apps.hammer.timeline_lane_label
 import com.darkrockstudios.apps.hammer.timeline_lane_placeholder
 import com.darkrockstudios.apps.hammer.timeline_lane_swatch_description
@@ -160,7 +159,7 @@ internal fun LaneField(
 		value = value,
 		onValueChange = onValueChange,
 		suggest = suggest,
-		hint = Res.string.timeline_lane_hint.get(),
+		optional = true,
 		placeholder = Res.string.timeline_lane_placeholder.get(),
 		suggestionAccent = { lane -> lanes.indexOf(lane).takeIf { it >= 0 }?.let(colors::laneColor) },
 		trailing = if (matched >= 0) {

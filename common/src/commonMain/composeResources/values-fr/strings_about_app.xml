@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="about_description">Un outil pour rédiger des histoires.</string>
-	<string name="about_studio_header">Studio</string>
 	<string name="about_community_studio_attribution">Hammer a été créé par Dark Rock Studios, aux côtés d'autres applications open source et respectueuse de votre vie privée.</string>
 	<string name="about_community_header">Communauté</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
 	<string name="about_community_github_link">GitHub</string>
-	<string name="about_attribution_header">Attribution</string>
-	<string name="about_attribution_libraries_button">Bibliothèques</string>
 	<string name="about_attribution_studio_button">Dark Rock Studios</string>
 	<string name="about_version_changes_button">Changements</string>
 	<string name="about_version_github_button">Version GitHub</string>
@@ -16,7 +13,6 @@
 	<string name="about_update_checking">Recherche de mises à jour&#8230;</string>
 	<string name="about_update_up_to_date">Hammer est à jour.</string>
 	<string name="about_update_available">Hammer %1$s est disponible.</string>
-	<string name="about_update_install_button">Mettre à jour ver %1$s</string>
 	<string name="about_update_downloading">Télécharger Hammer %1$s (%2$s)</string>
 	<string name="about_update_installing">Installation de Hammer %1$s. Hammer va redémarrer.</string>
 	<string name="about_update_failed">Impossible de mettre à jour vers la %1$s: %2$s</string>
@@ -24,14 +20,9 @@
 	<string name="about_update_later_button">Plus tard</string>
 	<string name="about_update_quit_notice">Hammer va se fermer pour installer la mise à jour, puis se rouvrira.</string>
 	<string name="changelog_dialog_title">Nouveautés</string>
-	<string name="update_dialog_release_notes_section">Notes de version</string>
 	<string name="update_dialog_release_notes_empty">Aucune note de version publiée.</string>
 	<string name="update_dialog_open_release_button">Ouvrir la version</string>
-	<string name="about_logs_header">Journaux de l'application</string>
-	<string name="about_logs_directory_label">Dossier des journaux :</string>
-	<string name="about_logs_export_button">Exporter les journaux</string>
 	<string name="about_logs_no_logs">Aucun fichier journal trouvé</string>
-	<string name="about_logs_open_tooltip">Ouvrir le dossier des journaux</string>
 	<string name="about_logs_export_success">Journeaux exportés.</string>
 	<string name="about_logs_export_failed">Impossible d'exporter les journeaux. Voir le répertoire des journeaux.</string>
 	<string name="about_logs_copy_diagnostics_button">Copier les diagnostics</string>

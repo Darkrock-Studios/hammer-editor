@@ -1,6 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.preview.projecthome
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
+import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
+import com.darkrockstudios.apps.hammer.common.projectroot.toHdBottomBarDestination
+import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -70,6 +82,45 @@ fun ScreenProjectStatsUiTabletPreview() {
 				component = component,
 				scope = scope,
 			)
+		}
+	}
+}
+
+/** The project shell (rail or bottom bar) around the home stats, as `ProjectRootScaffold` lays it out. */
+@Composable
+fun ScreenProjectShellTabletPreview(railExpanded: Boolean = false) {
+	val scope = rememberCoroutineScope()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			BoxWithConstraints(Modifier.fillMaxSize()) {
+				val compact = rememberWindowSizeClass(constraints).widthSizeClass == WindowWidthSizeClass.Compact
+				val selected = ProjectRoot.DestinationTypes.Home
+				val content: @Composable (Modifier) -> Unit = { modifier ->
+					ProjectStatsUi(modifier = modifier, component = component, scope = scope)
+				}
+				if (compact) {
+					Column(Modifier.fillMaxSize()) {
+						content(Modifier.weight(1f).fillMaxWidth())
+						HdBottomBar(
+							destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdBottomBarDestination() },
+							selectedId = selected,
+							onSelect = {},
+						)
+					}
+				} else {
+					Row(Modifier.fillMaxSize()) {
+						HdNavRail(
+							destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() },
+							selectedId = selected,
+							onSelect = {},
+							expanded = railExpanded,
+							onToggleExpanded = {},
+							footer = { HdMonoLabel(text = "v4.0.0", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+						)
+						content(Modifier.weight(1f))
+					}
+				}
+			}
 		}
 	}
 }

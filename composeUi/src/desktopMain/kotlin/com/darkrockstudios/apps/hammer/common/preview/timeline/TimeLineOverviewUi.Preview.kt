@@ -44,7 +44,6 @@ fun ScreenTimeLineOverviewUiPreview() {
 				TimeLineOverviewUi(
 					component = component,
 					scope = scope,
-					showCreate = {},
 					viewEvent = {},
 					switcher = TimelineSwitcherActions.None,
 					sharedTransitionScope = this@SharedTransitionLayout,
@@ -68,7 +67,6 @@ fun ScreenTimeLineOverviewUiTabletPreview() {
 					TimeLineOverviewUi(
 						component = component,
 						scope = scope,
-						showCreate = {},
 						viewEvent = {},
 						switcher = TimelineSwitcherActions.None,
 						sharedTransitionScope = this@SharedTransitionLayout,
@@ -103,7 +101,6 @@ fun ScreenTimeLineOverviewUiDatedPreview() {
 								)
 							),
 							scope = scope,
-							showCreate = {},
 							viewEvent = {},
 							switcher = TimelineSwitcherActions.None,
 							sharedTransitionScope = this@SharedTransitionLayout,
@@ -141,7 +138,6 @@ private fun PhoneDatedOverview(dark: Boolean) {
 									)
 								),
 								scope = scope,
-								showCreate = {},
 								viewEvent = {},
 								switcher = TimelineSwitcherActions.None,
 								sharedTransitionScope = this@SharedTransitionLayout,
@@ -178,7 +174,6 @@ private fun TabletOverview(state: TimeLineOverview.State) {
 					TimeLineOverviewUi(
 						component = PreviewOverview(state),
 						scope = scope,
-						showCreate = {},
 						viewEvent = {},
 						switcher = TimelineSwitcherActions.None,
 						sharedTransitionScope = this@SharedTransitionLayout,
@@ -243,7 +238,6 @@ fun ScreenTimeLineOverviewUiPhoneSwitcherPreview() {
 								)
 							),
 							scope = scope,
-							showCreate = {},
 							viewEvent = {},
 							switcher = TimelineSwitcherActions.None,
 							sharedTransitionScope = this@SharedTransitionLayout,

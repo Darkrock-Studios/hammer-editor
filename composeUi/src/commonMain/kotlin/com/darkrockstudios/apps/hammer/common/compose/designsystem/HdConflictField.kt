@@ -16,17 +16,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.sync_conflict_field_changed
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 /**
  * Label-over-value block with an amber left gutter when [conflict] is
- * true. Label picks up a `· CHANGED` suffix in the amber tone.
+ * true. Label picks up a [changedSuffix] in the amber tone.
  */
 @Composable
 fun HdConflictField(
 	label: String,
 	modifier: Modifier = Modifier,
 	conflict: Boolean = false,
-	changedSuffix: String = "CHANGED",
+	changedSuffix: String = Res.string.sync_conflict_field_changed.get(),
 	content: @Composable () -> Unit,
 ) {
 	val amber = LocalHammerColors.current.warning

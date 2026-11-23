@@ -12,7 +12,8 @@ fun SimpleConfirm(
 	message: String? = null,
 	positiveButton: String? = null,
 	negativeButton: String? = null,
-	implicitCancel: Boolean = true,
+	destructive: Boolean = false,
+	kind: String = defaultConfirmKind(destructive),
 	onNegative: (() -> Unit)? = null,
 	onDismiss: () -> Unit,
 	onConfirm: () -> Unit,
@@ -26,6 +27,7 @@ fun SimpleConfirm(
 		onConfirm = onConfirm,
 		onDismiss = onDismiss,
 		onCancel = onNegative,
-		implicitDismiss = implicitCancel,
+		destructive = destructive,
+		kind = kind,
 	)
 }

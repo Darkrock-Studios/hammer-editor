@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
+import com.darkrockstudios.apps.hammer.common.compose.stampDate
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -16,7 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -26,19 +27,18 @@ import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPulsingDot
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
-private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
-private val ModalMaxHeight = 760.dp
+internal val NoteModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
+internal val NoteModalMaxHeight = 760.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -53,7 +53,6 @@ fun ViewNoteUi(
 
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
-	val noteText by component.noteText.subscribeAsState()
 	val isEditing = state.isEditing
 
 	val saveChanges: () -> Unit = {
@@ -78,8 +77,8 @@ fun ViewNoteUi(
 					.padding(
 						horizontal = Ui.Padding.XL,
 					)
-					.widthIn(max = ModalMaxWidth)
-					.heightIn(max = ModalMaxHeight)
+					.widthIn(max = NoteModalMaxWidth)
+					.heightIn(max = NoteModalMaxHeight)
 					.fillMaxWidth()
 					.then(if (isEditing) Modifier.fillMaxHeight() else Modifier)
 					.background(MaterialTheme.colorScheme.surface)
@@ -125,10 +124,11 @@ fun ViewNoteUi(
 				)
 
 				if (isEditing) {
-					EditBody(
-						tags = state.tags.toList(),
+					val tags = remember(state.tags) { state.tags.toList() }
+					NoteEditBody(
+						tags = tags,
 						onTagsChanged = { component.onTagsChanged(it.toSet()) },
-						noteText = noteText,
+						noteText = remember { component.noteText.value },
 						onNoteTextChanged = { component.onContentChanged(it) },
 						suggestTags = component::suggestTags,
 						enableSpellChecking = state.spellCheckAllowed,
@@ -136,8 +136,9 @@ fun ViewNoteUi(
 						modifier = Modifier.weight(1f),
 					)
 
-					EditStatusFooter(text = noteText)
+					LiveNoteStatusFooter(component)
 				} else {
+					val noteText by component.noteText.subscribeAsState()
 					ViewBody(
 						note = state.note,
 						noteText = noteText,
@@ -159,6 +160,10 @@ fun ViewNoteUi(
 		SimpleConfirm(
 			title = Res.string.notes_discard_dialog_title.get(),
 			message = Res.string.notes_discard_dialog_message.get(),
+			positiveButton = Res.string.notes_discard_confirm.get(),
+			negativeButton = Res.string.notes_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = {
 				component.cancelDiscard()
 				component.cancelClose()
@@ -217,53 +222,45 @@ private fun StampRow(
 	onSave: () -> Unit,
 	onCancel: () -> Unit,
 ) {
-	val sectionTitle = if (isEditing) {
-		Res.string.notes_view_label_editing.get()
-	} else {
-		Res.string.notes_view_header.get()
-	}
 	val date = remember(note?.created) {
-		note?.created?.toLocalDateTime(TimeZone.currentSystemDefault())
-			?.format("dd MMM yyyy")
-			.orEmpty()
+		note?.created?.stampDate().orEmpty()
 	}
 
 	HdDetailStampRow(
 		stackActionsWhenNarrow = isEditing,
 		leading = {
-			HdMonoLabel(
-				text = "§ III · $sectionTitle",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-
 			if (isEditing) {
-				PulsingDot()
+				HdMonoLabel(
+					text = "§ III · ${Res.string.notes_view_label_editing.get()}",
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+				HdPulsingDot()
+			} else {
+				with(sharedTransitionScope) {
+					HdMonoLabel(
+						text = date,
+						modifier = Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "note-date-${note?.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						),
+					)
+				}
 			}
 		},
-		meta = {
-			Box(
-				modifier = Modifier
-					.height(14.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
-
-			val metaText = if (isEditing) {
-				Res.string.notes_view_status_unsaved.get()
-			} else {
-				date
-			}
-			with(sharedTransitionScope) {
-				HdMonoLabel(
-					text = metaText,
-					modifier = Modifier.sharedElement(
-						sharedContentState = rememberSharedContentState(
-							key = "note-date-${note?.id}",
-						),
-						animatedVisibilityScope = animatedVisibilityScope,
-					),
+		meta = if (isEditing) {
+			{
+				Box(
+					modifier = Modifier
+						.height(14.dp)
+						.width(Dp.Hairline)
+						.background(MaterialTheme.colorScheme.outlineVariant),
 				)
+				HdMonoLabel(text = Res.string.notes_view_status_unsaved.get())
 			}
+		} else {
+			null
 		},
 		actions = {
 			if (isEditing) {
@@ -283,26 +280,6 @@ private fun StampRow(
 				)
 			}
 		},
-	)
-}
-
-@Composable
-private fun PulsingDot() {
-	val transition = rememberInfiniteTransition(label = "noteEditingPulse")
-	val alpha by transition.animateFloat(
-		initialValue = 1f,
-		targetValue = 0.35f,
-		animationSpec = infiniteRepeatable(
-			animation = tween(durationMillis = 800),
-			repeatMode = RepeatMode.Reverse,
-		),
-		label = "noteEditingPulseAlpha",
-	)
-	Box(
-		modifier = Modifier
-			.size(7.dp)
-			.alpha(alpha)
-			.background(MaterialTheme.colorScheme.primary, RectangleShape),
 	)
 }
 
@@ -376,17 +353,35 @@ private fun ViewBody(
 }
 
 @Composable
-private fun EditBody(
+internal fun NoteEditBody(
 	tags: List<String>,
 	onTagsChanged: (List<String>) -> Unit,
 	noteText: String,
 	onNoteTextChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
 	enableSpellChecking: Boolean,
-	imagePicker: suspend () -> ImageDef?,
+	imagePicker: (suspend () -> ImageDef?)?,
 	modifier: Modifier = Modifier,
+	editorTestTag: String? = null,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
+		MarkdownEditField(
+			initialMarkdown = noteText,
+			onMarkdownChanged = onNoteTextChanged,
+			enableSpellChecking = enableSpellChecking,
+			imagePicker = imagePicker,
+			contentPadding = PaddingValues(Ui.Padding.XL),
+			testTag = editorTestTag,
+			modifier = Modifier
+				.fillMaxWidth()
+				.weight(1f),
+		)
+
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
+
 		HdHairlineTagField(
 			label = Res.string.notes_create_tags_label.get(),
 			tags = tags,
@@ -398,24 +393,6 @@ private fun EditBody(
 				horizontal = Ui.Padding.XL,
 				vertical = Ui.Padding.L,
 			),
-		)
-
-		CollapseWhileTyping {
-			HorizontalDivider(
-				thickness = 2.dp,
-				color = MaterialTheme.colorScheme.outline,
-			)
-		}
-
-		MarkdownEditField(
-			initialMarkdown = noteText,
-			onMarkdownChanged = onNoteTextChanged,
-			enableSpellChecking = enableSpellChecking,
-			imagePicker = imagePicker,
-			contentPadding = PaddingValues(Ui.Padding.XL),
-			modifier = Modifier
-				.fillMaxWidth()
-				.weight(1f),
 		)
 	}
 }
@@ -443,40 +420,25 @@ private fun ViewFolioFooter(note: NoteContent?, noteText: String) {
 		HdMonoLabel(
 			text = Res.string.notes_word_count_short.get(words),
 		)
-		val tagCount = note?.tags?.size ?: 0
-		if (tagCount > 0) {
-			Box(
-				modifier = Modifier
-					.height(14.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
-			HdMonoLabel(text = "$tagCount TAGS")
-		}
 	}
 }
 
+/** The edit footer, subscribed on its own so typing recomposes only it. */
 @Composable
-private fun EditStatusFooter(text: String) {
-	val words = remember(text) {
-		countWords(text)
-	}
-	val chars = text.length
+private fun LiveNoteStatusFooter(component: ViewNote) {
+	val text by component.noteText.subscribeAsState()
+	NoteEditStatusFooter(text = text)
+}
 
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(text = Res.string.notes_view_status_word_char.get(words, chars))
+@Composable
+internal fun NoteEditStatusFooter(text: String) {
+	val words = remember(text) { countWords(text) }
+	HdStatusFooter {
+		HdMonoLabel(text = Res.string.notes_view_status_word_char.get(words, text.length))
 		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(text = Res.string.notes_view_status_hint.get())
+		// Esc is the desktop back key; touch platforms have no Esc to mention.
+		if (LocalScreenCharacteristic.current.needsExplicitClose) {
+			HdMonoLabel(text = Res.string.notes_view_status_hint.get())
+		}
 	}
 }

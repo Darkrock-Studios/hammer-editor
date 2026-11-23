@@ -15,7 +15,7 @@
 	<string name="cli_path_failed">That did not work: %1$s</string>
 	<string name="cli_path_full_command">Full command</string>
 	<string name="cli_path_full_command_show">Show the full command</string>
-	<string name="cli_path_full_command_info">Programs that do not look in your PATH can run Hammer with this command.</string>
+	<string name="cli_path_full_command_info">Programs that don't look in your PATH can run Hammer with this command.</string>
 	<string name="cli_path_copy">Copy</string>
 	<string name="cli_path_copied">Copied</string>
 	<string name="cli_path_close">Close</string>

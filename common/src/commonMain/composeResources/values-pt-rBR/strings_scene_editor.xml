@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Iniciar novo rascunho:</string>
-	<string name="save_draft_dialog_name_hint">Nome do rascunho</string>
 	<string name="save_draft_dialog_save_button">Salvar</string>
 	<string name="save_draft_dialog_cancel_button">Cancelar</string>
 	<string name="save_draft_dialog_toast_success">Rascunho Salvo</string>
-	<string name="save_draft_dialog_current_draft">Salvando rascunho atual como:</string>
 	<string name="save_draft_dialog_error">O nome atual do rascunho é inválido!</string>
-	<string name="scene_editor_rename_dialog_title">Renomear Cena</string>
 	<string name="scene_editor_name_hint">Nome da Cena</string>
 	<string name="scene_editor_rename_button">Renomear</string>
 	<string name="scene_editor_cancel_button">Cancelar</string>
@@ -26,10 +23,6 @@
 	<string name="scene_editor_menu_item_close">Fechar</string>
 	<string name="scene_editor_menu_item_read">Read</string>
 	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
-	<string name="archive_scene_dialog_title">Arquivar Cena</string>
-	<string name="archive_scene_dialog_message">Tem certeza que deseja arquivar '%1$s'? A cena será ocultada da lista de cenas, mas pode ser restaurada mais tarde.</string>
-	<string name="archive_scene_dialog_confirm">Arquivar</string>
-	<string name="archive_scene_dialog_cancel">Cancelar</string>
 	<string name="discard_buffer_dialog_title">Descartar Alterações</string>
 	<string name="discard_buffer_dialog_message">Tem certeza que deseja descartar todas as alterações não salvas em '%1$s'? Isso irá recarregar a última versão salva do disco.</string>
 	<string name="discard_buffer_dialog_confirm">Descartar</string>
@@ -72,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Pesquisar locais…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Pesquisar verbetes…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Nenhum verbete correspondente.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Fechar diálogo</string>
 	<string name="scene_editor_metadata_tags_header">Etiquetas</string>
 	<string name="scene_editor_metadata_tags_empty">Ainda não há etiquetas</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Adicionar etiqueta</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Adicionar etiquetas</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">etiqueta1 etiqueta2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Concluído</string>
 	<string name="scene_editor_no_scene_selected">Selecione uma Cena para editar</string>
 	<string name="default_draft_name">Novo Rascunho</string>

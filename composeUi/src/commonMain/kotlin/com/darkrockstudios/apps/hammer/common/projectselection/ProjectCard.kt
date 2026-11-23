@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import com.darkrockstudios.apps.hammer.common.compose.stampDate
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +46,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
@@ -53,6 +53,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdIndentStep
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMetaStyle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
@@ -61,7 +62,6 @@ import com.darkrockstudios.apps.hammer.common.compose.images.coverSize
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.apps.hammer.project_select_card_delete_button
 import com.darkrockstudios.apps.hammer.project_select_card_leave_button
@@ -70,16 +70,14 @@ import com.darkrockstudios.apps.hammer.project_select_card_rename_button
 import com.darkrockstudios.apps.hammer.project_select_card_sync_button
 import com.darkrockstudios.apps.hammer.projects_list_card_by_author
 import com.darkrockstudios.apps.hammer.projects_list_card_content_description
-import com.darkrockstudios.apps.hammer.projects_list_card_created
 import com.darkrockstudios.apps.hammer.projects_list_card_shared
 import com.darkrockstudios.apps.hammer.projects_list_card_shared_by
 import com.darkrockstudios.apps.hammer.projects_list_card_sync_off
 import com.darkrockstudios.apps.hammer.projects_list_card_words
 import com.darkrockstudios.apps.hammer.projects_list_item_more_button
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
-import kotlin.time.Instant
+import com.darkrockstudios.apps.hammer.projects_list_opened_format
+import com.darkrockstudios.apps.hammer.projects_list_opened_inline_format
 
 val ProjectCardTestTag = "project-card"
 const val ProjectCardCoverTestTag = "project-card-cover"
@@ -87,24 +85,12 @@ const val ProjectCardSyncOffTestTag = "project-card-sync-off"
 const val ProjectCardSharedByTestTag = "project-card-shared-by"
 
 private val StripeWidth: Dp = 4.dp
-private val NumberColumnWidth: Dp = 56.dp
-private val CompactNumberColumnWidth: Dp = 44.dp
 private val CoverHeight: Dp = 56.dp
 private val CompactCoverHeight: Dp = 48.dp
 
 /**
- * Editorial-index row for a single project. Reflows between Wide and Compact:
- *
- * Wide:
- *     │ 01   Alice In Wonderland          29 JAN ’23   ⋮
- *     │      by Lewis Carroll · Created 29 JAN ’23
- *
- * Compact (drops the trailing mono cell, lays the dates + word count out as
- * an aligned label/value greeble grid instead of one flowing mono line):
- *     │ 01  Alice In Wonderland           ⋮
- *     │     by Lewis Carroll
- *     │     CREATED      OPENED      WORDS
- *     │     29 JAN ’23   04 MAR ’24  26,351
+ * Editorial-index row for a single project. Wide puts the opened date and word count in a
+ * trailing column; Compact folds them into one meta line under the tags.
  *
  * Inside a group ([depth] > 0) the row hangs one step right of its group's chevron, with a rail
  * per enclosing group. [groupPath], shown while the list is flattened by a filter, names the
@@ -114,7 +100,6 @@ private val CompactCoverHeight: Dp = 48.dp
 @Composable
 fun ProjectIndexRow(
 	isWide: Boolean,
-	index: Int,
 	projectData: ProjectData,
 	onProjectClick: (projectDef: ProjectDef) -> Unit,
 	onProjectAltClick: (projectDef: ProjectDef) -> Unit,
@@ -135,26 +120,15 @@ fun ProjectIndexRow(
 	}
 	val unsetStripeColor = MaterialTheme.colorScheme.outlineVariant
 
-	val createdDate = remember(projectData.metadata.info) {
-		formatStamp(projectData.metadata.info.created)
-	}
 	val lastAccessedDate = remember(projectData.metadata.info) {
-		projectData.metadata.info.lastAccessed?.let { formatStamp(it) }
+		projectData.metadata.info.lastAccessed?.stampDate()
 	}
 	val wordsLabel = projectData.totalWords?.let {
 		Res.string.projects_list_card_words.get(it.formatDecimalSeparator())
 	}
-	val wordsValue = projectData.totalWords?.formatDecimalSeparator()
 	val byAuthor = author?.let { Res.string.projects_list_card_by_author.get(it) }
-	val createdText = Res.string.projects_list_card_created.get(createdDate)
 	val cardContentDescription =
 		Res.string.projects_list_card_content_description.get(projectData.definition.name)
-	val rowNumber = remember(index) { (index + 1).toString().padStart(2, '0') }
-	// Wide keeps the single italic subline; Compact reflows the same facts into
-	// the aligned greeble grid below, so the subline is wide-only now.
-	val subline = remember(byAuthor, createdText) {
-		listOfNotNull(byAuthor, createdText).joinToString(" · ")
-	}
 
 	val breadcrumb = remember(groupPath) { groupPath.takeIf { it.isNotEmpty() }?.joinToString(" › ") }
 	val shared = projectData.metadata.info.ownerId != null
@@ -185,19 +159,7 @@ fun ProjectIndexRow(
 				unsetColor = unsetStripeColor.takeIf { depth == 0 },
 			)
 
-			Text(
-				text = rowNumber,
-				modifier = Modifier
-					.width(if (isWide) NumberColumnWidth else CompactNumberColumnWidth)
-					.padding(start = Ui.Padding.XL),
-				style = if (isWide) {
-					MaterialTheme.typography.headlineMedium
-				} else {
-					MaterialTheme.typography.titleLarge
-				},
-				fontWeight = FontWeight.Light,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
+			Spacer(modifier = Modifier.width(Ui.Padding.XL))
 
 			val coverPath = projectData.coverImagePath
 			if (coverPath != null) {
@@ -258,30 +220,24 @@ fun ProjectIndexRow(
 						modifier = Modifier.testTag(ProjectCardSharedByTestTag),
 					)
 				}
-				if (isWide) {
+				if (byAuthor != null) {
 					Text(
-						text = subline,
+						text = byAuthor,
 						style = MaterialTheme.typography.bodyMedium,
 						fontStyle = FontStyle.Italic,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
-					TagChipRow(tags = tags, onTagClick = onTagClick)
-				} else {
-					if (byAuthor != null) {
+				}
+				TagChipRow(tags = tags, onTagClick = onTagClick)
+				if (!isWide) {
+					val meta = listOfNotNull(wordsLabel, lastAccessedDate?.let { Res.string.projects_list_opened_inline_format.get(it) }).joinToString(" · ")
+					if (meta.isNotEmpty()) {
 						Text(
-							text = byAuthor,
-							style = MaterialTheme.typography.bodyMedium,
-							fontStyle = FontStyle.Italic,
+							text = meta,
+							style = hdMetaStyle(),
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					}
-					TagChipRow(tags = tags, onTagClick = onTagClick)
-					Spacer(modifier = Modifier.height(8.dp))
-					CompactMetaGrid(
-						createdValue = createdDate,
-						openedValue = lastAccessedDate,
-						wordsValue = wordsValue,
-					)
 				}
 			}
 
@@ -291,17 +247,18 @@ fun ProjectIndexRow(
 					horizontalAlignment = Alignment.End,
 					verticalArrangement = Arrangement.spacedBy(2.dp),
 				) {
-					HdMonoLabel(
-						text = lastAccessedDate ?: "—",
-						color = if (lastAccessedDate != null) {
-							MaterialTheme.colorScheme.onSurfaceVariant
-						} else {
-							MaterialTheme.colorScheme.outline
-						},
-					)
+					// Self-labelled, so the list needs no column header.
+					if (lastAccessedDate != null) {
+						Text(
+							text = Res.string.projects_list_opened_format.get(lastAccessedDate),
+							style = hdMetaStyle(),
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
 					if (wordsLabel != null) {
-						HdMonoLabel(
+						Text(
 							text = wordsLabel,
+							style = hdMetaStyle(),
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					}
@@ -309,8 +266,8 @@ fun ProjectIndexRow(
 			}
 
 			ProjectOptionsMenu(
-				items = projectMenuItems(shared, syncEnabled, isServerSynced),
-				toggles = mapOf(Res.string.project_select_card_sync_button to syncEnabled),
+				items = remember(shared, syncEnabled, isServerSynced) { projectMenuItems(shared, syncEnabled, isServerSynced) },
+				toggles = remember(syncEnabled) { mapOf(Res.string.project_select_card_sync_button to syncEnabled) },
 			) {
 				when (it) {
 					Res.string.project_select_card_delete_button, Res.string.project_select_card_leave_button ->
@@ -351,78 +308,6 @@ private fun TagChipRow(tags: List<String>, onTagClick: (String) -> Unit) {
 	}
 }
 
-/**
- * Compact label-over-value greeble grid. Equal-weight columns keep the dates
- * and word count aligned down the whole list instead of flowing and wrapping
- * at arbitrary points. The labels are faint captions; values stay at the same
- * muted weight as the rest of the row so the project title is the only bright
- * anchor per row.
- *
- *     CREATED      OPENED      WORDS
- *     29 JAN ’23   04 MAR ’24  26,351
- */
-@Composable
-private fun CompactMetaGrid(
-	createdValue: String,
-	openedValue: String?,
-	wordsValue: String?,
-) {
-	Row(
-		modifier = Modifier.fillMaxWidth(),
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-	) {
-		MetaColumn(
-			label = "Created",
-			value = createdValue,
-			modifier = Modifier.weight(1f),
-		)
-		MetaColumn(
-			label = "Opened",
-			value = openedValue ?: "—",
-			muted = openedValue == null,
-			modifier = Modifier.weight(1f),
-		)
-		if (wordsValue != null) {
-			MetaColumn(
-				label = "Words",
-				value = wordsValue,
-				modifier = Modifier.weight(1f),
-			)
-		}
-	}
-}
-
-@Composable
-private fun MetaColumn(
-	label: String,
-	value: String,
-	modifier: Modifier = Modifier,
-	muted: Boolean = false,
-) {
-	Column(
-		modifier = modifier,
-		verticalArrangement = Arrangement.spacedBy(3.dp),
-	) {
-		HdMonoLabel(
-			text = label,
-			color = MaterialTheme.colorScheme.outline,
-			maxLines = 1,
-			softWrap = false,
-		)
-		HdMonoLabel(
-			text = value,
-			style = MaterialTheme.typography.labelMedium,
-			color = if (muted) {
-				MaterialTheme.colorScheme.outline
-			} else {
-				MaterialTheme.colorScheme.onSurfaceVariant
-			},
-			maxLines = 1,
-			softWrap = false,
-		)
-	}
-}
-
 @Composable
 private fun ProjectStripe(themePrimary: Color?, unsetColor: Color?) {
 	// Single drawWithCache so the modifier graph is stable per-row regardless
@@ -453,11 +338,6 @@ private fun ProjectStripe(themePrimary: Color?, unsetColor: Color?) {
 			},
 	)
 }
-
-private fun formatStamp(instant: Instant): String =
-	instant.toLocalDateTime(TimeZone.currentSystemDefault())
-		.format("dd MMM `yy")
-		.uppercase()
 
 /** An item in [toggles] is a switch, checked when its value is true. */
 @Composable

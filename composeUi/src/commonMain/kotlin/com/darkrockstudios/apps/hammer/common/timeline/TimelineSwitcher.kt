@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,7 +38,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelect
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
@@ -74,7 +73,6 @@ import com.darkrockstudios.apps.hammer.timeline_rename_title
 import com.darkrockstudios.apps.hammer.timeline_settings_mode_label
 import com.darkrockstudios.apps.hammer.timeline_settings_preset_label
 import com.darkrockstudios.apps.hammer.timeline_switcher_cancel
-import com.darkrockstudios.apps.hammer.timeline_switcher_close
 import com.darkrockstudios.apps.hammer.timeline_switcher_delete
 import com.darkrockstudios.apps.hammer.timeline_switcher_new
 import com.darkrockstudios.apps.hammer.timeline_switcher_rename
@@ -321,27 +319,36 @@ internal fun DeletedTimelineNotice(
 		}
 	}
 	AnimatedDialog(visible = confirmingDelete, onCloseRequest = { confirmingDelete = false }) {
-		HdHairlineDialogShell(
-			title = pluralStringResource(Res.plurals.timeline_deleted_delete_title, count, count),
+		DeleteOrphansCard(
+			count = count,
+			onConfirm = {
+				confirmingDelete = false
+				onDeleteAll()
+			},
 			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.timeline_switcher_close.get(),
-		) {
-			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-				Text(
-					text = Res.string.timeline_deleted_delete_detail.get(),
-					style = MaterialTheme.typography.bodyMedium,
-				)
-				DialogButtons(
-					confirmLabel = Res.string.timeline_deleted_delete_all.get(),
-					confirmTag = TIME_LINE_DELETED_DELETE_CONFIRM_TAG,
-					danger = true,
-					onConfirm = {
-						confirmingDelete = false
-						onDeleteAll()
-					},
-					onCancel = { requestDismiss() },
-				)
-			}
+		)
+	}
+}
+
+@Composable
+internal fun DeleteOrphansCard(count: Int, onConfirm: () -> Unit, onClose: () -> Unit) {
+	HdHairlineDialogShell(
+		title = pluralStringResource(Res.plurals.timeline_deleted_delete_title, count, count),
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+			Text(
+				text = Res.string.timeline_deleted_delete_detail.get(),
+				style = MaterialTheme.typography.bodyMedium,
+			)
+			DialogButtons(
+				confirmLabel = Res.string.timeline_deleted_delete_all.get(),
+				confirmTag = TIME_LINE_DELETED_DELETE_CONFIRM_TAG,
+				danger = true,
+				onConfirm = onConfirm,
+				onCancel = onClose,
+			)
 		}
 	}
 }
@@ -371,23 +378,41 @@ fun TimelineSwitcherDialogs(
 	val shown = lastOf(switcher.dialog)
 	AnimatedDialog(visible = switcher.dialog != null, onCloseRequest = onDismiss) {
 		val dialog = shown ?: return@AnimatedDialog
-		val error = switcher.error.takeIf { switcher.dialog == dialog }
-		val title = when (dialog) {
-			is TimelineSwitcher.Dialog.Create -> Res.string.timeline_new_title.get()
-			is TimelineSwitcher.Dialog.Rename -> Res.string.timeline_rename_title.get()
-			is TimelineSwitcher.Dialog.Delete -> Res.string.timeline_delete_title.get(dialog.name)
-		}
-		HdHairlineDialogShell(
-			title = title,
+		TimelineSwitcherDialogCard(
+			dialog = dialog,
+			error = switcher.error.takeIf { switcher.dialog == dialog },
+			onCreate = onCreate,
+			onRename = onRename,
+			onConfirmDelete = onConfirmDelete,
 			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.timeline_switcher_close.get(),
-		) {
-			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-				when (dialog) {
-					is TimelineSwitcher.Dialog.Create -> CreateFields(dialog, error, onCreate, onCancel = { requestDismiss() })
-					is TimelineSwitcher.Dialog.Rename -> RenameFields(dialog, error, onRename, onCancel = { requestDismiss() })
-					is TimelineSwitcher.Dialog.Delete -> DeleteFields(dialog, error, onConfirmDelete, onCancel = { requestDismiss() })
-				}
+		)
+	}
+}
+
+@Composable
+internal fun TimelineSwitcherDialogCard(
+	dialog: TimelineSwitcher.Dialog,
+	error: TimeLineEventError?,
+	onCreate: (name: String, mode: TimelineMode, preset: CalendarPreset) -> Unit,
+	onRename: (name: String) -> Unit,
+	onConfirmDelete: () -> Unit,
+	onClose: () -> Unit,
+) {
+	val title = when (dialog) {
+		is TimelineSwitcher.Dialog.Create -> Res.string.timeline_new_title.get()
+		is TimelineSwitcher.Dialog.Rename -> Res.string.timeline_rename_title.get(dialog.name)
+		is TimelineSwitcher.Dialog.Delete -> Res.string.timeline_delete_title.get(dialog.name)
+	}
+	HdHairlineDialogShell(
+		title = title,
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+			when (dialog) {
+				is TimelineSwitcher.Dialog.Create -> CreateFields(dialog, error, onCreate, onCancel = onClose)
+				is TimelineSwitcher.Dialog.Rename -> RenameFields(dialog, error, onRename, onCancel = onClose)
+				is TimelineSwitcher.Dialog.Delete -> DeleteFields(dialog, error, onConfirmDelete, onCancel = onClose)
 			}
 		}
 	}
@@ -493,18 +518,15 @@ private fun DialogButtons(
 	confirmEnabled: Boolean = true,
 	danger: Boolean = false,
 ) {
-	Row(horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-		Spacer(modifier = Modifier.weight(1f))
-		HdHairlineButton(label = Res.string.timeline_switcher_cancel.get(), onClick = onCancel)
-		HdHairlineButton(
-			label = confirmLabel,
-			onClick = onConfirm,
-			emphasised = !danger,
-			danger = danger,
-			enabled = confirmEnabled,
-			modifier = Modifier.testTag(confirmTag),
-		)
-	}
+	HdDialogActions(
+		cancelLabel = Res.string.timeline_switcher_cancel.get(),
+		onCancel = onCancel,
+		confirmLabel = confirmLabel,
+		onConfirm = onConfirm,
+		confirmEnabled = confirmEnabled,
+		destructive = danger,
+		confirmModifier = Modifier.testTag(confirmTag),
+	)
 }
 
 /** [error] as the toast would say it; null while there is none, or until it is read. */

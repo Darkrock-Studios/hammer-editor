@@ -47,6 +47,15 @@ object Ui {
 	 * coordinated across the app.
 	 */
 	object MaxWidth {
+		/** Short forms: sign-in, server setup, a single question. */
+		val DialogNarrow = 480.dp
+
+		/** Most dialogs: forms, confirms, lists. */
+		val Dialog = 560.dp
+
+		/** Dialogs that carry wide content: search results, logs. */
+		val DialogWide = 720.dp
+
 		val Modal = 640.dp
 		val CatalogueCard = 920.dp
 	}

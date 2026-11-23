@@ -25,13 +25,18 @@ import org.koin.mp.KoinPlatform.getKoin
 
 /** The runtime plugins, each with its settings in a dialog, where the platform can install them. */
 @Composable
-internal fun ColumnScope.PluginSettingsSection(panes: List<PluginSettingsPane>, runtimePlugins: RuntimePlugins) {
+internal fun ColumnScope.PluginSettingsSection(
+	panes: List<PluginSettingsPane>,
+	runtimePlugins: RuntimePlugins,
+	showHeader: Boolean = true,
+) {
 	var open by remember { mutableStateOf<String?>(null) }
 
 	RuntimePluginsSection(
 		runtimePlugins = runtimePlugins,
 		settings = { id -> panes.firstOrNull { it.pluginId == id } },
 		onOpenSettings = { id -> open = id },
+		showHeader = showHeader,
 	)
 
 	// Closes itself if the plugin goes away, such as when it is disabled.
@@ -53,18 +58,25 @@ internal fun ManagePluginsButton() {
 @Composable
 private fun ManagePluginsDialog(visible: Boolean, runtimePlugins: RuntimePlugins, onDismiss: () -> Unit) {
 	AnimatedDialog(visible = visible, onCloseRequest = onDismiss) {
-		HdHairlineDialogShell(
-			title = Res.string.plugins_manage_title.get(),
-			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.plugins_manage_close.get(),
-		) {
-			Column(
-				modifier = Modifier.verticalScroll(rememberScrollState()),
-				verticalArrangement = Arrangement.spacedBy(24.dp),
-			) {
-				PluginSettingsSection(koinInject<PluginUiRegistry>().settingsPanes(), runtimePlugins)
-			}
+		ManagePluginsCard(onClose = { requestDismiss() }) {
+			PluginSettingsSection(koinInject<PluginUiRegistry>().settingsPanes(), runtimePlugins, showHeader = false)
 		}
+	}
+}
+
+/** The manage dialog without its window; [content] is the plugin list. */
+@Composable
+internal fun ManagePluginsCard(onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+	HdHairlineDialogShell(
+		title = Res.string.plugins_manage_title.get(),
+		onClose = onClose,
+		closeContentDescription = Res.string.plugins_manage_close.get(),
+	) {
+		Column(
+			modifier = Modifier.verticalScroll(rememberScrollState()),
+			verticalArrangement = Arrangement.spacedBy(24.dp),
+			content = content,
+		)
 	}
 }
 
@@ -75,17 +87,23 @@ private fun PluginSettingsDialog(pane: PluginSettingsPane?, onDismiss: () -> Uni
 	if (pane != null) shown = pane
 	AnimatedDialog(visible = pane != null, onCloseRequest = onDismiss) {
 		val current = shown ?: return@AnimatedDialog
-		HdHairlineDialogShell(
-			title = current.name,
-			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.plugin_settings_close.get(),
+		PluginSettingsCard(pane = current, onClose = { requestDismiss() })
+	}
+}
+
+/** One plugin's settings without the dialog window. */
+@Composable
+internal fun PluginSettingsCard(pane: PluginSettingsPane, onClose: () -> Unit) {
+	HdHairlineDialogShell(
+		title = pane.name,
+		onClose = onClose,
+		closeContentDescription = Res.string.plugin_settings_close.get(),
+	) {
+		Column(
+			modifier = Modifier.verticalScroll(rememberScrollState()),
+			verticalArrangement = Arrangement.spacedBy(12.dp),
 		) {
-			Column(
-				modifier = Modifier.verticalScroll(rememberScrollState()),
-				verticalArrangement = Arrangement.spacedBy(12.dp),
-			) {
-				current.content(this)
-			}
+			pane.content(this)
 		}
 	}
 }

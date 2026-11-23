@@ -19,9 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 
 private val DialogMaxWidth = 480.dp
 
@@ -44,11 +42,6 @@ fun WearPairingDialog(
 		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
 	) {
 		Column {
-			HdMasthead(
-				section = stringResource(R.string.wear_pairing_masthead),
-				leadingMeta = listOf(deviceLabel),
-			)
-			HdFolioDivider()
 			Column(
 				modifier = Modifier
 					.fillMaxWidth()
@@ -58,7 +51,7 @@ fun WearPairingDialog(
 				if (accountEmail != null) {
 					Text(
 						text = stringResource(R.string.wear_pairing_title, deviceLabel),
-						style = MaterialTheme.typography.titleMedium,
+						style = MaterialTheme.typography.titleLarge,
 					)
 					Text(
 						text = stringResource(R.string.wear_pairing_body, accountEmail),

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,13 +26,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 
 /**
  * Postage-stamp filter affordance. Two-pane: a colored glyph square
- * on the left, a stacked `TYPE / FILTER ↗` label on the right. Sits
- * top-left of an entry card; clicking re-runs the encyclopedia filter.
- *
- *   ┌────┬───────────┐
- *   │ ☉  │  PERSON   │
- *   │    │  FILTER ↗ │
- *   └────┴───────────┘
+ * on the left, the type label (over an optional [actionLabel]) on the right.
+ * Sits top-left of an entry card; clicking re-runs the encyclopedia filter.
  */
 @Composable
 fun HdTypeStamp(
@@ -42,7 +36,7 @@ fun HdTypeStamp(
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
 	height: Dp = 44.dp,
-	actionLabel: String = "FILTER ↗",
+	actionLabel: String? = null,
 ) {
 	val color = LocalHammerColors.current.colorFor(type)
 	val ruleColor = MaterialTheme.colorScheme.outlineVariant
@@ -85,12 +79,14 @@ fun HdTypeStamp(
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				style = MaterialTheme.typography.labelSmall,
 			)
-			Text(
-				text = actionLabel,
-				style = MaterialTheme.typography.labelMedium,
-				color = MaterialTheme.colorScheme.onSurface,
-				fontWeight = FontWeight.Medium,
-			)
+			if (actionLabel != null) {
+				Text(
+					text = actionLabel,
+					style = MaterialTheme.typography.labelMedium,
+					color = MaterialTheme.colorScheme.onSurface,
+					fontWeight = FontWeight.Medium,
+				)
+			}
 		}
 	}
 }

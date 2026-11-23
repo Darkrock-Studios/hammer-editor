@@ -20,14 +20,10 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -44,12 +40,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
+import com.darkrockstudios.apps.hammer.confirm_kind_alert
+import com.darkrockstudios.apps.hammer.confirm_kind_confirm
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import androidx.compose.foundation.BorderStroke
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActionButtons
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 
 /**
  * Card-style confirmation dialog with a left-side index gutter and a vertical mono caption
  * (DISCARD / DELETE / CONFIRM) that doubles as a redundant signal alongside accent color.
  * Built on the predictive-back gesture container, so callers get the same dismissal model
- * as [SimpleDialog].
+ * as [AnimatedDialog].
  *
  * Pass [cancelLabel] = null for a single-button info-alert variant.
  *
@@ -65,13 +68,8 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
  * @param implicitDismiss if false, ESC and predictive-back do nothing — the user must use
  *   an explicit button.
  * @param destructive paints the gutter rule and the confirm button in the error color.
- * @param kind short uppercase mono caption shown vertically in the gutter (e.g. "DELETE",
- *   "DISCARD", "ARCHIVE", "INFO").
- * @param index folio-style label in the gutter top (e.g. "07.A"). When null (the default),
- *   a stable code is derived from [title] — same dialog always renders the same code, mimicking
- *   the design's manuscript-folio look. Pass an empty string to suppress the label entirely.
- * @param keyboardHint optional small mono cue rendered at the left of the action bar
- *   (e.g. "ESC"). Pass null to omit.
+ * @param kind short mono caption shown vertically in the gutter, from a `confirm_kind_*` string;
+ *   uppercased there.
  */
 @Composable
 fun ConfirmationDialog(
@@ -85,9 +83,7 @@ fun ConfirmationDialog(
 	onCancel: (() -> Unit)? = null,
 	modifier: Modifier = Modifier,
 	destructive: Boolean = false,
-	kind: String = if (destructive) "ALERT" else "CONFIRM",
-	index: String? = null,
-	keyboardHint: String? = null,
+	kind: String = defaultConfirmKind(destructive),
 	implicitDismiss: Boolean = true,
 	onDismissed: () -> Unit = {},
 ) {
@@ -99,35 +95,58 @@ fun ConfirmationDialog(
 		modifier = modifier,
 		destructive = destructive,
 		kind = kind,
-		index = index,
-		keyboardHint = keyboardHint,
 		implicitDismiss = implicitDismiss,
 		onDismissed = onDismissed,
 	) {
-		if (cancelLabel != null) {
-			TextButton(
-				onClick = onCancel ?: onDismiss,
-				shape = RoundedCornerShape(4.dp),
-			) {
-				Text(cancelLabel)
-			}
-		}
-		val confirmColors = if (destructive) {
-			ButtonDefaults.buttonColors(
-				containerColor = MaterialTheme.colorScheme.error,
-				contentColor = MaterialTheme.colorScheme.onError,
-			)
-		} else {
-			ButtonDefaults.buttonColors()
-		}
-		Button(
-			onClick = onConfirm,
-			shape = RoundedCornerShape(4.dp),
-			colors = confirmColors,
-		) {
-			Text(confirmLabel)
-		}
+		ConfirmationActions(
+			confirmLabel = confirmLabel,
+			onConfirm = onConfirm,
+			cancelLabel = cancelLabel,
+			onCancel = onCancel ?: onDismiss,
+			destructive = destructive,
+		)
 	}
+}
+
+/** The card [ConfirmationDialog] shows, without the dialog window. */
+@Composable
+internal fun ConfirmationCard(
+	title: String,
+	message: String,
+	confirmLabel: String,
+	onConfirm: () -> Unit,
+	cancelLabel: String?,
+	onCancel: () -> Unit,
+	modifier: Modifier = Modifier,
+	destructive: Boolean = false,
+	kind: String = defaultConfirmKind(destructive),
+) {
+	IndexStripCard(title = title, message = message, modifier = modifier, destructive = destructive, kind = kind) {
+		ConfirmationActions(
+			confirmLabel = confirmLabel,
+			onConfirm = onConfirm,
+			cancelLabel = cancelLabel,
+			onCancel = onCancel,
+			destructive = destructive,
+		)
+	}
+}
+
+@Composable
+internal fun RowScope.ConfirmationActions(
+	confirmLabel: String,
+	onConfirm: () -> Unit,
+	cancelLabel: String?,
+	onCancel: () -> Unit,
+	destructive: Boolean,
+) {
+	HdDialogActionButtons(
+		cancelLabel = cancelLabel,
+		onCancel = onCancel,
+		confirmLabel = confirmLabel,
+		onConfirm = onConfirm,
+		destructive = destructive,
+	)
 }
 
 /**
@@ -135,11 +154,9 @@ fun ConfirmationDialog(
  * row (e.g. the 3-button save/discard/cancel pattern). For the standard 2-button confirm
  * shape, prefer [ConfirmationDialog].
  *
- * The [actions] slot is a [Row] with [Arrangement.spacedBy] applied — drop in plain
- * [androidx.compose.material3.Button] / [androidx.compose.material3.TextButton] children
- * and they line up against the right edge.
+ * The [actions] slot is a [Row] with [Arrangement.spacedBy] applied; drop in [HdHairlineButton]
+ * children and they line up against the right edge.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun IndexStripDialog(
 	visible: Boolean,
@@ -148,9 +165,7 @@ fun IndexStripDialog(
 	onDismiss: () -> Unit,
 	modifier: Modifier = Modifier,
 	destructive: Boolean = false,
-	kind: String = if (destructive) "ALERT" else "CONFIRM",
-	index: String? = null,
-	keyboardHint: String? = null,
+	kind: String = defaultConfirmKind(destructive),
 	implicitDismiss: Boolean = true,
 	onDismissed: () -> Unit = {},
 	actions: @Composable RowScope.() -> Unit,
@@ -162,92 +177,104 @@ fun IndexStripDialog(
 		modifier = Modifier.fillMaxSize(),
 		contentAlignment = Alignment.Center,
 	) {
-		val accent = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-		val resolvedIndex = index ?: folioCodeFor(title)
-		Surface(
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			shadowElevation = Ui.Elevation.LARGE,
-			modifier = modifier
-				.padding(horizontal = Ui.Padding.XL)
-				.widthIn(max = 560.dp)
-				.fillMaxWidth(),
-		) {
-			BoxWithConstraints {
-				val gutterWidth = if (maxWidth < 380.dp) 60.dp else GutterWidth
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.height(IntrinsicSize.Min),
-				) {
-					IndexGutter(
-						index = resolvedIndex,
-						kind = kind,
-						accent = accent,
-						width = gutterWidth
-					)
-					VerticalDivider(
+		IndexStripCard(
+			title = title,
+			message = message,
+			modifier = modifier,
+			destructive = destructive,
+			kind = kind,
+			actions = actions,
+		)
+	}
+}
+
+/** The card [IndexStripDialog] shows, without the dialog window. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun IndexStripCard(
+	title: String,
+	message: String,
+	modifier: Modifier = Modifier,
+	destructive: Boolean = false,
+	kind: String = defaultConfirmKind(destructive),
+	actions: @Composable RowScope.() -> Unit,
+) {
+	val accent = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+	val resolvedIndex = folioCodeFor(title)
+	Surface(
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
+		modifier = modifier
+			.padding(horizontal = Ui.Padding.XL)
+			.widthIn(max = 560.dp)
+			.fillMaxWidth(),
+	) {
+		BoxWithConstraints {
+			val gutterWidth = if (maxWidth < 380.dp) 60.dp else GutterWidth
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(IntrinsicSize.Min),
+			) {
+				IndexGutter(
+					index = resolvedIndex,
+					kind = kind,
+					accent = accent,
+					width = gutterWidth
+				)
+				VerticalDivider(
+					color = MaterialTheme.colorScheme.outlineVariant,
+					thickness = 1.dp,
+				)
+				Column(modifier = Modifier.weight(1f)) {
+					Column(
+						modifier = Modifier.padding(
+							start = 26.dp,
+							end = 26.dp,
+							top = 22.dp,
+							bottom = 20.dp,
+						),
+						verticalArrangement = Arrangement.spacedBy(10.dp),
+					) {
+						Text(
+							text = title,
+							style = MaterialTheme.typography.titleLarge.copy(
+								fontWeight = FontWeight.Normal,
+								letterSpacing = (-0.22).sp,
+								lineHeight = 25.sp,
+							),
+							color = MaterialTheme.colorScheme.onSurface,
+						)
+						if (message.isNotEmpty()) {
+							Text(
+								text = message,
+								style = MaterialTheme.typography.bodyMedium.copy(
+									lineHeight = 22.sp,
+								),
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
+					}
+					HorizontalDivider(
 						color = MaterialTheme.colorScheme.outlineVariant,
 						thickness = 1.dp,
 					)
-					Column(modifier = Modifier.weight(1f)) {
-						Column(
-							modifier = Modifier.padding(
-								start = 26.dp,
-								end = 26.dp,
-								top = 22.dp,
-								bottom = 20.dp,
-							),
-							verticalArrangement = Arrangement.spacedBy(10.dp),
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(10.dp),
+					) {
+						FlowRow(
+							modifier = Modifier.weight(1f),
+							horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+							verticalArrangement = Arrangement.spacedBy(8.dp),
+							itemVerticalAlignment = Alignment.CenterVertically,
 						) {
-							Text(
-								text = title,
-								style = MaterialTheme.typography.titleLarge.copy(
-									fontWeight = FontWeight.Normal,
-									letterSpacing = (-0.22).sp,
-									lineHeight = 25.sp,
-								),
-								color = MaterialTheme.colorScheme.onSurface,
-							)
-							if (message.isNotEmpty()) {
-								Text(
-									text = message,
-									style = MaterialTheme.typography.bodyMedium.copy(
-										lineHeight = 22.sp,
-									),
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							}
-						}
-						HorizontalDivider(
-							color = MaterialTheme.colorScheme.outlineVariant,
-							thickness = 1.dp,
-						)
-						Row(
-							modifier = Modifier
-								.fillMaxWidth()
-								.padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(10.dp),
-						) {
-							if (keyboardHint != null) {
-								Text(
-									text = keyboardHint,
-									fontFamily = hammerMonoFontFamily(),
-									fontSize = 10.sp,
-									letterSpacing = 0.4.sp,
-									color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-								)
-							}
-							FlowRow(
-								modifier = Modifier.weight(1f),
-								horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-								verticalArrangement = Arrangement.spacedBy(8.dp),
-								itemVerticalAlignment = Alignment.CenterVertically,
-							) {
-								actions()
-							}
+							actions()
 						}
 					}
 				}
@@ -259,7 +286,7 @@ fun IndexStripDialog(
 private val GutterWidth = 88.dp
 
 @Composable
-private fun IndexGutter(index: String?, kind: String, accent: Color, width: Dp = GutterWidth) {
+private fun IndexGutter(index: String, kind: String, accent: Color, width: Dp = GutterWidth) {
 	val horizontalPadding = if (width < GutterWidth) 10.dp else 12.dp
 	Column(
 		modifier = Modifier
@@ -275,15 +302,13 @@ private fun IndexGutter(index: String?, kind: String, accent: Color, width: Dp =
 				.size(width = 18.dp, height = 2.dp)
 				.background(accent),
 		)
-		if (!index.isNullOrEmpty()) {
-			Text(
-				text = index,
-				fontFamily = hammerMonoFontFamily(),
-				fontSize = 10.sp,
-				letterSpacing = 0.4.sp,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
+		Text(
+			text = index,
+			fontFamily = hammerMonoFontFamily(),
+			fontSize = 10.sp,
+			letterSpacing = 0.4.sp,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
 		Spacer(modifier = Modifier.weight(1f))
 		VerticalCaption(text = kind, color = accent)
 	}
@@ -304,8 +329,9 @@ private fun VerticalCaption(text: String, color: Color) {
 	)
 	val measurer = rememberTextMeasurer()
 	val density = LocalDensity.current
-	val (boxWidth, boxHeight) = remember(text, style, density) {
-		val measured = measurer.measure(text, style = style, maxLines = 1, softWrap = false)
+	val caption = text.uppercase()
+	val (boxWidth, boxHeight) = remember(caption, style, density) {
+		val measured = measurer.measure(caption, style = style, maxLines = 1, softWrap = false)
 		with(density) {
 			measured.size.height.toDp() to measured.size.width.toDp()
 		}
@@ -315,7 +341,7 @@ private fun VerticalCaption(text: String, color: Color) {
 		contentAlignment = Alignment.Center,
 	) {
 		Text(
-			text = text,
+			text = caption,
 			maxLines = 1,
 			softWrap = false,
 			style = style,
@@ -334,3 +360,7 @@ private fun folioCodeFor(title: String): String {
 	val letter = 'A' + (h / 100) % 5
 	return "$number.$letter"
 }
+
+@Composable
+internal fun defaultConfirmKind(destructive: Boolean): String =
+	if (destructive) Res.string.confirm_kind_alert.get() else Res.string.confirm_kind_confirm.get()

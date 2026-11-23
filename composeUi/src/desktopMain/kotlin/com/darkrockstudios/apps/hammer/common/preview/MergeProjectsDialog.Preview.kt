@@ -11,6 +11,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeMode
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeProjectsDialogContent
+import com.darkrockstudios.apps.hammer.common.projectselection.settings.MergeReplaceConfirmCard
 
 @Preview(widthDp = 560, heightDp = 440)
 @Composable
@@ -38,5 +39,21 @@ private fun MergeProjectsDialogPreview(mode: MergeMode) {
 				)
 			}
 		}
+	}
+}
+
+/** The merge prompt with [mode] chosen, over a scrim in the surrounding theme. */
+@Composable
+internal fun MergeProjectsScrimPreview(mode: MergeMode) {
+	PreviewScrim {
+		MergeProjectsDialogContent(mode = mode, onModeChange = {}, onCancel = {}, onContinue = {})
+	}
+}
+
+/** The confirm Replace raises before deleting every local project. */
+@Composable
+internal fun MergeReplaceConfirmScrimPreview() {
+	PreviewScrim {
+		MergeReplaceConfirmCard(onConfirm = {}, onCancel = {})
 	}
 }

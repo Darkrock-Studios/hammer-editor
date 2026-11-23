@@ -31,11 +31,26 @@ fun TermsOfServiceDialogPreview() {
 			) {
 				TermsOfServiceDialogContent(
 					text = SAMPLE_TOS,
+					server = "hammer.ink",
 					working = false,
 					onAccept = {},
 					onDecline = {},
 				)
 			}
 		}
+	}
+}
+
+/** The terms over a scrim in the surrounding theme. */
+@Composable
+internal fun TermsOfServiceScrimPreview() {
+	PreviewScrim {
+		TermsOfServiceDialogContent(
+			text = SAMPLE_TOS,
+			server = "hammer.ink",
+			working = false,
+			onAccept = {},
+			onDecline = {},
+		)
 	}
 }

@@ -17,7 +17,6 @@
 	<string name="project_home_stat_longest_scene_words">%1$s palavras</string>
 	<string name="project_home_stat_longest_scene_empty">Ainda não há cenas</string>
 	<string name="project_home_stat_last_edited_scene">Última Edição</string>
-	<string name="project_home_stat_scene_median">Mediana</string>
 	<string name="project_home_stat_reading_time">≈ %1$d min de leitura</string>
 	<string name="project_home_stat_pages">%1$d páginas</string>
 	<string name="project_home_stat_daily_goal">Meta diária</string>
@@ -41,7 +40,6 @@
 	<string name="project_home_stat_activity_tooltip_empty">%1$s · sem escrita</string>
 	<string name="project_home_stat_avg_weekday">Avg weekday</string>
 	<string name="project_home_stat_avg_weekend">Avg weekend</string>
-	<string name="project_home_stat_chapter_words_summary">σ %1$d · mín %2$d · máx %3$d</string>
 	<string name="project_home_stat_donut_entries">verbetes</string>
 	<string name="project_home_stat_donut_tooltip">%1$s · %2$s verbetes</string>
 	<string name="project_home_stat_themes_title">Temas</string>
@@ -67,8 +65,6 @@
 	<string name="project_home_action_export_toast_success">História Exportada</string>
 	<string name="project_home_action_export_toast_failure">Falha na exportação</string>
 	<string name="project_home_export_dialog_title">Exportar História</string>
-	<string name="project_home_export_section">EXPORTAR</string>
-	<string name="project_home_export_close">× FECHAR</string>
 	<string name="project_home_export_format_label">Formato</string>
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>
@@ -89,13 +85,11 @@
 	<string name="project_home_export_scenes_clear_all">Limpar tudo</string>
 	<string name="project_home_export_help_icon_description">Saiba mais sobre os formatos de exportação</string>
 	<string name="project_home_export_help_title">Escolhendo um Formato de Exportação</string>
-	<string name="project_home_export_help_intro">Cada formato serve a um propósito diferente. Escolha o que corresponde à forma como você planeja usar a história exportada.</string>
 	<string name="project_home_export_help_format_markdown">Texto simples com formatação leve, em um ZIP com suas imagens; ideal para controle de versão ou outras ferramentas de escrita.</string>
 	<string name="project_home_export_help_format_epub">O formato padrão de e-book; melhor para beta leitores em e-readers e celulares com texto redimensionável.</string>
 	<string name="project_home_export_help_format_pdf">Um layout de página fixo que fica igual em qualquer lugar; melhor para imprimir ou compartilhar uma cópia final somente leitura.</string>
 	<string name="project_home_export_help_format_docx">Abre no Word e no Google Docs; melhor para editores e beta leitores que deixam comentários ou controlam alterações.</string>
 	<string name="project_home_export_help_format_rtf">Um formato de texto formatado amplamente compatível; uma escolha segura quando você não sabe qual editor de texto o destinatário usa.</string>
-	<string name="project_home_export_help_dismiss">Entendi</string>
 	<string name="project_home_export_contents_title">Sumário</string>
 	<string name="project_home_export_byline">por %1$s</string>
 	<string name="project_home_action_import_toast_success">História Importada</string>
@@ -114,7 +108,10 @@
 	<string name="project_home_import_preview_label">Prévia</string>
 	<string name="project_home_import_preview_empty">Nada para importar</string>
 	<string name="project_home_import_preview_reading">Reading your manuscript</string>
-	<string name="project_home_import_preview_count">Criará %1$d cena(s)</string>
+	<plurals name="project_home_import_preview_scenes">
+		<item quantity="one">Criará %1$d cena(s)</item>
+		<item quantity="other">Criará %1$d cena(s)</item>
+	</plurals>
 	<string name="project_home_import_large_scene_label">Large scene</string>
 	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
 	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>

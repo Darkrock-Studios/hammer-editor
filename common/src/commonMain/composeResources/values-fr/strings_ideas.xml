@@ -2,7 +2,6 @@
 <resources>
 	<string name="project_select_nav_story_ideas">Mes idées</string>
 	<string name="project_select_nav_story_ideas_short">IDÉE</string>
-	<string name="ideas_header">Mes idées</string>
 	<string name="ideas_header_meta">%1$d IDÉES · %2$d ÉTIQUETTES</string>
 	<string name="ideas_list_empty">Vous n'avez déposé aucune de vos idées pour le moment. Une petite étincelle peut être le début de toutes choses.</string>
 	<string name="ideas_list_empty_archived">Aucune idée archivée.</string>
@@ -27,7 +26,6 @@
 	<string name="ideas_sort_glyph_title_az">↓ A–Z</string>
 	<string name="ideas_stamp_promoted">CONVERTIE · %1$s</string>
 	<string name="ideas_stamp_archived">ARCHIVÉE · %1$s</string>
-	<string name="ideas_create_fab">Capturer une nouvelle idée</string>
 	<string name="ideas_create_marker">Nouvelle idée</string>
 	<string name="ideas_view_header">Idée d'histoire</string>
 	<string name="ideas_view_label_editing">Modification</string>

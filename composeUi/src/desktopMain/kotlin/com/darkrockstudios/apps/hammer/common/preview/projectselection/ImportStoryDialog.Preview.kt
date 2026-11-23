@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.projectselection
 
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.projectselection.ImportStoryConten
  * Rendered at a deliberately short canvas height with many scenes: the preview list scrolls within
  * the bounded dialog while the option controls and footer buttons stay visible.
  */
+/** Over a scrim, as it shows over the project list. Many scenes, so the preview list scrolls. */
 @Preview(widthDp = 640, heightDp = 560)
 @Composable
 fun ImportStoryDialogPreview() {
@@ -29,24 +31,17 @@ fun ImportStoryDialogPreview() {
 		items = List(14) { i -> PreviewItem.Scene(name = "Chapter ${i + 1}", markdown = "") },
 	)
 	KoinApplicationPreview {
-		AppTheme(globalSettingsPreview, true) {
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.background(MaterialTheme.colorScheme.background),
-				contentAlignment = Alignment.Center,
-			) {
-				ImportStoryContent(
-					projectName = "Alice In Wonderland 2",
-					options = ImportOptions(),
-					preview = preview,
-					isParsing = false,
-					onProjectNameChange = {},
-					onCancel = {},
-					onOptionsChange = {},
-					onConfirm = {},
-				)
-			}
+		PreviewScrim {
+			ImportStoryContent(
+				projectName = "Alice In Wonderland 2",
+				options = ImportOptions(),
+				preview = preview,
+				isParsing = false,
+				onProjectNameChange = {},
+				onCancel = {},
+				onOptionsChange = {},
+				onConfirm = {},
+			)
 		}
 	}
 }

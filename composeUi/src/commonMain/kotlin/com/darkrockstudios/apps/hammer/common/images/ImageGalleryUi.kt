@@ -1,5 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.images
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCloseButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineCheckbox
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,11 +33,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -64,14 +66,11 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImageGallery
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
 import com.darkrockstudios.apps.hammer.common.compose.ConfirmationDialog
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPrimaryAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
@@ -104,7 +103,6 @@ import com.darkrockstudios.apps.hammer.images_gallery_empty_message
 import com.darkrockstudios.apps.hammer.images_gallery_empty_search
 import com.darkrockstudios.apps.hammer.images_gallery_empty_title
 import com.darkrockstudios.apps.hammer.images_gallery_empty_unused
-import com.darkrockstudios.apps.hammer.images_gallery_filter_all
 import com.darkrockstudios.apps.hammer.images_gallery_filter_unused
 import com.darkrockstudios.apps.hammer.images_gallery_pick_section
 import com.darkrockstudios.apps.hammer.images_gallery_rename
@@ -134,6 +132,7 @@ import com.darkrockstudios.apps.hammer.images_usage_type_scene
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
+import com.darkrockstudios.apps.hammer.confirm_kind_delete
 
 const val IMAGE_GALLERY_TAG = "image-gallery"
 const val IMAGE_GALLERY_ADD_TAG = "image-gallery-add"
@@ -238,34 +237,15 @@ fun ImageGalleryUi(component: ImageGallery, modifier: Modifier = Modifier) {
 			.testTag(IMAGE_GALLERY_TAG),
 	) {
 		Column(modifier = Modifier.fillMaxSize()) {
-			HdMasthead(
-				section = if (pickMode != null) {
+			GalleryTitleRow(
+				title = if (pickMode != null) {
 					Res.string.images_gallery_pick_section.get()
 				} else {
 					Res.string.images_gallery_section.get()
 				},
-				leadingMeta = listOf(state.images.size.toString()),
-				trailing = {
-					HdMastheadAction(
-						label = if (state.filterUnused) {
-							Res.string.images_gallery_filter_all.get()
-						} else {
-							Res.string.images_gallery_filter_unused.get()
-						},
-						onClick = component::toggleFilterUnused,
-						modifier = Modifier.testTag(IMAGE_GALLERY_FILTER_TAG),
-					)
-					HdMastheadAction(
-						label = Res.string.images_gallery_add.get(),
-						onClick = onAdd,
-						modifier = Modifier.testTag(IMAGE_GALLERY_ADD_TAG),
-					)
-					HdMastheadAction(
-						label = Res.string.images_gallery_close.get(),
-						onClick = component::dismiss,
-						modifier = Modifier.testTag(IMAGE_GALLERY_CLOSE_TAG),
-					)
-				},
+				count = state.images.size,
+				onAdd = onAdd,
+				onClose = component::dismiss,
 			)
 			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
 			if (state.images.isNotEmpty()) {
@@ -274,6 +254,8 @@ fun ImageGalleryUi(component: ImageGallery, modifier: Modifier = Modifier) {
 					onQueryChange = component::setSearchQuery,
 					newestFirst = state.newestFirst,
 					onToggleSort = component::toggleSortOrder,
+					unusedOnly = state.filterUnused,
+					onToggleUnused = component::toggleFilterUnused,
 				)
 				HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
 			}
@@ -384,31 +366,106 @@ fun ImageGalleryUi(component: ImageGallery, modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun GalleryTitleRow(title: String, count: Int, onAdd: () -> Unit, onClose: () -> Unit) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.M, bottom = Ui.Padding.M),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
+			Text(
+				text = title,
+				style = MaterialTheme.typography.titleLarge,
+				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+				modifier = Modifier.alignByBaseline(),
+			)
+			HdMonoLabel(text = count.toString(), modifier = Modifier.alignByBaseline())
+		}
+		HdHairlineButton(
+			label = Res.string.images_gallery_add.get(),
+			onClick = onAdd,
+			modifier = Modifier.testTag(IMAGE_GALLERY_ADD_TAG),
+		)
+		HdCloseButton(onClick = onClose, modifier = Modifier.testTag(IMAGE_GALLERY_CLOSE_TAG), contentDescription = Res.string.images_gallery_close.get())
+	}
+}
+
+/** Search beside sort and the unused filter; on a narrow screen those two drop under the search. */
+@Composable
 private fun GalleryToolbar(
 	query: String,
 	onQueryChange: (String) -> Unit,
 	newestFirst: Boolean,
 	onToggleSort: () -> Unit,
+	unusedOnly: Boolean,
+	onToggleUnused: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
+	val search: @Composable (Modifier) -> Unit = { searchModifier ->
 		HdSearchField(
 			value = query,
 			onValueChange = onQueryChange,
 			placeholder = Res.string.images_gallery_search_placeholder.get(),
 			onClear = { onQueryChange("") },
 			clearContentDescription = Res.string.images_gallery_search_clear.get(),
-			modifier = Modifier.weight(1f),
+			modifier = searchModifier,
 			testTag = IMAGE_GALLERY_SEARCH_TAG,
 		)
+	}
+	val controls: @Composable RowScope.() -> Unit = {
+		UnusedFilter(checked = unusedOnly, onToggle = onToggleUnused)
 		SortToggle(newestFirst = newestFirst, onToggle = onToggleSort)
 	}
+	BoxWithConstraints(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+	) {
+		if (maxWidth < ToolbarStackThreshold) {
+			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
+				search(Modifier.fillMaxWidth())
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L, Alignment.End),
+					content = controls,
+				)
+			}
+		} else {
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			) {
+				search(Modifier.weight(1f))
+				controls()
+			}
+		}
+	}
 }
+
+@Composable
+private fun UnusedFilter(checked: Boolean, onToggle: () -> Unit) {
+	Row(
+		modifier = Modifier
+			.clickable(onClick = onToggle)
+			.padding(vertical = 6.dp)
+			.testTag(IMAGE_GALLERY_FILTER_TAG),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+	) {
+		HdHairlineCheckbox(checked = checked)
+		Text(
+			text = Res.string.images_gallery_filter_unused.get(),
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+	}
+}
+
+private val ToolbarStackThreshold = 560.dp
 
 /** [HdSortPill] flipping between the two orders, as there are only two to choose from. */
 @Composable
@@ -621,16 +678,11 @@ private fun ImageDetail(
 					color = MaterialTheme.colorScheme.onSurface,
 					modifier = Modifier.weight(1f),
 				)
-				IconButton(
+				HdCloseButton(
 					onClick = onClose,
 					modifier = Modifier.testTag(IMAGE_GALLERY_DETAIL_CLOSE_TAG),
-				) {
-					Icon(
-						imageVector = Icons.Default.Close,
-						contentDescription = Res.string.images_gallery_detail_close.get(),
-						tint = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-				}
+					contentDescription = Res.string.images_gallery_detail_close.get(),
+				)
 			}
 			Row(
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
@@ -692,28 +744,49 @@ private fun RenameDialog(
 	val renaming = state.renaming?.let { id -> state.images.find { it.def.id == id } }
 	val image = lastOf(renaming) ?: return
 
-	SimpleDialog(
-		title = Res.string.images_gallery_rename_title.get(),
-		visible = renaming != null,
-		onCloseRequest = onClose,
-	) {
+	AnimatedDialog(visible = renaming != null, onCloseRequest = onClose) {
 		var name by rememberSaveable(image.def.id) { mutableStateOf(image.def.name) }
+		RenameImageCard(
+			name = name,
+			onNameChange = { name = it },
+			busy = state.busy,
+			onRename = { onRename(image.def.id, name) },
+			onCancel = { requestDismiss() },
+		)
+	}
+}
+
+/** The rename form without its dialog window. */
+@Composable
+internal fun RenameImageCard(
+	name: String,
+	onNameChange: (String) -> Unit,
+	busy: Boolean,
+	onRename: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	HdHairlineDialogShell(
+		title = Res.string.images_gallery_rename_title.get(),
+		onClose = null,
+		closeContentDescription = null,
+	) {
 		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
 			HdHairlineField(
 				label = Res.string.images_gallery_rename_label.get(),
 				value = name,
-				onValueChange = { name = it },
+				onValueChange = onNameChange,
 				error = if (name.isNotBlank() && !ImageFormat.isValidName(name.trim())) {
 					Res.string.images_toast_name_invalid.get()
 				} else {
 					null
 				},
 			)
-			HdHairlineButton(
-				label = Res.string.images_gallery_rename_button.get(),
-				emphasised = true,
-				enabled = !state.busy && ImageFormat.isValidName(name.trim()),
-				onClick = { onRename(image.def.id, name) },
+			HdDialogActions(
+				cancelLabel = Res.string.images_gallery_cancel.get(),
+				onCancel = onCancel,
+				confirmLabel = Res.string.images_gallery_rename_button.get(),
+				onConfirm = onRename,
+				confirmEnabled = !busy && ImageFormat.isValidName(name.trim()),
 			)
 		}
 	}
@@ -738,24 +811,25 @@ private fun DeleteDialog(
 		onConfirm = { onConfirm(showing) },
 		onDismiss = onCancel,
 		destructive = true,
-		kind = "DELETE",
+		kind = Res.string.confirm_kind_delete.get(),
 	)
 }
 
 /** What deleting the image would take it out of, one line per kind of entity. */
 @Composable
-private fun usageMessage(usages: ImageUsages): String {
+internal fun usageMessage(usages: ImageUsages): String {
 	if (usages.isUnused) return Res.string.images_gallery_delete_unused.get()
 	val header = Res.string.images_gallery_delete_used.get(usages.usages.size)
 	val lines = usages.usages
 		.sortedBy { usageOrder(it.referrer) }
 		.groupBy { usageTypeLabel(it.referrer) }
 		.map { (label, uses) ->
-			Res.string.images_gallery_delete_usage_line.get(
-				label.get(),
-				uses.size,
-				uses.joinToString { it.name },
-			)
+			// There is one cover, so its line is its label alone.
+			if (uses.all { it.referrer == ImageReferrer.ProjectCover }) {
+				label.get()
+			} else {
+				Res.string.images_gallery_delete_usage_line.get(label.get(), uses.joinToString { it.name })
+			}
 		}
 	return (listOf(header) + lines).joinToString("\n")
 }

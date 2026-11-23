@@ -38,8 +38,8 @@ class IdeaConflictUiTest : BaseTest() {
 			)
 		}
 
-		// The compact layout opens on the Remote tab, whose pane holds the only USE action.
-		compose.onNodeWithText("USE").performClick()
+		// The compact layout opens on the Remote tab, whose pane holds the only Use this version action.
+		compose.onNodeWithText("Use this version").performClick()
 
 		assertEquals(server, resolved)
 	}
@@ -60,7 +60,7 @@ class IdeaConflictUiTest : BaseTest() {
 
 		compose.onNodeWithText("LOCAL").performClick()
 		compose.onNodeWithText("local words").performTextReplacement("merged words")
-		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("Use this version").performClick()
 
 		assertEquals("merged words", resolved?.content)
 		assertEquals(local.id, resolved?.id)

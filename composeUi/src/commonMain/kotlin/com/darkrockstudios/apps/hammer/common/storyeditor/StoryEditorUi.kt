@@ -1,16 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -34,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.ReaderModeU
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
 import com.darkrockstudios.apps.hammer.scene_editor_no_scene_selected
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 
 private val LIST_PANE_WIDTH = 300.dp
 
@@ -201,25 +196,10 @@ private fun DetailsPane(
 }
 
 @Composable
-private fun EmptySceneEditor(isMultipane: Boolean) {
-	Box(modifier = Modifier.fillMaxSize()) {
-		if (isMultipane) {
-			Column(
-				modifier = Modifier.align(Alignment.Center),
-				horizontalAlignment = CenterHorizontally
-			) {
-				Icon(
-					Icons.Default.EditNote,
-					contentDescription = null,
-					tint = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.size(96.dp)
-				)
-				Text(
-					Res.string.scene_editor_no_scene_selected.get(),
-					style = MaterialTheme.typography.labelSmall,
-					color = MaterialTheme.colorScheme.onBackground
-				)
-			}
-		}
+internal fun EmptySceneEditor(isMultipane: Boolean) {
+	if (isMultipane) {
+		HdPageEmpty(text = Res.string.scene_editor_no_scene_selected.get())
+	} else {
+		Box(modifier = Modifier.fillMaxSize())
 	}
 }

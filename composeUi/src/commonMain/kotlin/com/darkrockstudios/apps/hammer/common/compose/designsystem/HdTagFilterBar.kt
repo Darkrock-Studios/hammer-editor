@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +31,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -42,11 +44,11 @@ import kotlin.math.abs
  * both pinned. [scrollingLeading] opens the scrolling row behind its own hairline, for a second
  * set of filter chips that may outgrow the row. A mouse scrolls the row with its wheel or by dragging.
  *
- *     [⌕ search] │ ALL · 12 │ # gothic · 3  # coastal · 1 …   [SORT ▾]
- *     ALL · 12 │ ▪ Alice · 4  ▪ Queen · 2 │ # gothic · 3 …     (scrollingLeading)
+ *     [⌕ search] │ All · 12 │ # gothic · 3  # coastal · 1 …   [SORT ▾]
+ *     All · 12 │ ▪ Alice · 4  ▪ Queen · 2 │ # gothic · 3 …     (scrollingLeading)
  *
  * The row always renders even with no tags, so the trailing affordance has a stable home.
- * [allLabel] arrives pre-formatted (`"ALL · 12"`) so the component stays string-resource free.
+ * [allLabel] arrives pre-formatted so the component stays string-resource free.
  */
 @Composable
 fun HdTagFilterBar(
@@ -95,13 +97,15 @@ fun HdTagFilterBar(
 					}
 				}
 			}
-			items(count = tags.size) { i ->
+			items(count = tags.size, key = { "tag:${tags[it].tag}" }) { i ->
 				val (label, count) = tags[i]
 				val isActive = label in activeTags
 				HdTagChip(
 					label = "$label · $count",
 					active = isActive,
 					onClick = { onToggle(label) },
+					// Coloured by the tag alone, so it matches the same tag on a card.
+					accent = LocalHammerColors.current.tagColor(label),
 				)
 			}
 		}
@@ -183,6 +187,12 @@ private fun AllChip(
 			.padding(horizontal = Ui.Padding.L),
 		contentAlignment = Alignment.Center,
 	) {
-		HdMonoLabel(text = label, color = labelColor, maxLines = 1, softWrap = false)
+		Text(
+			text = label,
+			style = MaterialTheme.typography.labelLarge,
+			color = labelColor,
+			maxLines = 1,
+			softWrap = false,
+		)
 	}
 }

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="global_search_button">Пошук у проєкті</string>
-	<string name="global_search_title">Пошук у проєкті</string>
 	<string name="global_search_placeholder">Введіть для пошуку, використовуйте #тег для фільтрації…</string>
 	<string name="global_search_clear">Очистити пошук</string>
 	<string name="global_search_no_results">Немає результатів</string>

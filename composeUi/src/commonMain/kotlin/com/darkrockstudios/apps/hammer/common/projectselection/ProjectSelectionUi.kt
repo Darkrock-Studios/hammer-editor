@@ -102,13 +102,13 @@ fun ProjectSelectionUi(
 						destination.component,
 						rootSnackbar,
 						// Only the list carries the update notice: the About screen has its own row.
-						notice = { noticeModifier ->
+						notice = { noticePadding ->
 							AppUpdateBanner(
 								state = appUpdate,
 								onUpdate = component::updateApp,
 								onOpenRelease = component::openLatestRelease,
 								onDismiss = component::dismissUpdate,
-								modifier = noticeModifier,
+								horizontalPadding = noticePadding,
 							)
 						},
 					)

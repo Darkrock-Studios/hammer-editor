@@ -1,6 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.preview.timeline
 
+import com.darkrockstudios.apps.hammer.common.preview.previewScrim
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import com.darkrockstudios.apps.hammer.common.timeline.TimelineSwitcherDialogCard
+import com.darkrockstudios.apps.hammer.common.timeline.DeleteOrphansCard
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -120,3 +126,44 @@ fun TimelineSwitcherRenameRefusedPreview() = SwitcherDialog(
 fun TimelineSwitcherDeleteDialogPreview() = SwitcherDialog(
 	TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Delete(timelineId = "backstory", name = "Before the evening", eventCount = 13))
 )
+
+/** New, rename and delete timeline, stacked over a scrim. */
+@Composable
+internal fun TimelineSwitcherDialogsScrimPreview() {
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.previewScrim(),
+		verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+		horizontalAlignment = Alignment.CenterHorizontally,
+	) {
+		listOf(
+			TimelineSwitcher.Dialog.Create(name = "Before the evening", mode = TimelineMode.DATED),
+			TimelineSwitcher.Dialog.Rename(timelineId = "backstory", name = "Main"),
+			TimelineSwitcher.Dialog.Delete(timelineId = "backstory", name = "Before the evening", eventCount = 13),
+		).forEach { dialog ->
+			TimelineSwitcherDialogCard(
+				dialog = dialog,
+				error = null,
+				onCreate = { _, _, _ -> },
+				onRename = {},
+				onConfirmDelete = {},
+				onClose = {},
+			)
+		}
+	}
+}
+
+/** Deleting the events left by a timeline deleted on another device, over a scrim. */
+@Composable
+internal fun DeleteOrphansScrimPreview() {
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.previewScrim(),
+		verticalArrangement = Arrangement.Center,
+		horizontalAlignment = Alignment.CenterHorizontally,
+	) {
+		DeleteOrphansCard(count = 3, onConfirm = {}, onClose = {})
+	}
+}

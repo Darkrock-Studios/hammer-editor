@@ -1,32 +1,24 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
+import com.darkrockstudios.apps.hammer.settings_row_projects_folder
+import com.darkrockstudios.apps.hammer.settings_row_projects_folder_button
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.settings_automatic_update_checks
 import com.darkrockstudios.apps.hammer.settings_automatic_update_checks_hint
-import com.darkrockstudios.apps.hammer.settings_projects_directory
-import com.darkrockstudios.apps.hammer.settings_projects_directory_button
-import com.darkrockstudios.apps.hammer.settings_projects_directory_description
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
@@ -41,25 +33,12 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 
 	val scope = rememberCoroutineScope()
 
-	Column(
-		modifier = Modifier.fillMaxWidth(),
-		verticalArrangement = Arrangement.spacedBy(16.dp),
+	HdSettingRow(
+		title = Res.string.settings_row_projects_folder.get(),
+		meta = projectsPathText,
 	) {
-		Text(
-			text = Res.string.settings_projects_directory_description.get(),
-			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-			HdMonoLabel(text = Res.string.settings_projects_directory.get())
-			Text(
-				text = projectsPathText,
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-		}
 		HdHairlineButton(
-			label = Res.string.settings_projects_directory_button.get(),
+			label = Res.string.settings_row_projects_folder_button.get(),
 			onClick = {
 				scope.launch {
 					val directory = FileKit.openDirectoryPicker()
@@ -70,14 +49,14 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 				}
 			},
 		)
-		if (state.updateChecksSupported) {
-			HdHairlineToggleRow(
-				checked = state.automaticUpdateChecks,
-				onCheckedChange = component::setAutomaticUpdateChecks,
-				label = Res.string.settings_automatic_update_checks.get(),
-				hint = Res.string.settings_automatic_update_checks_hint.get(),
-			)
-		}
-		CommandLineSettings()
 	}
+	if (state.updateChecksSupported) {
+		HdHairlineToggleRow(
+			checked = state.automaticUpdateChecks,
+			onCheckedChange = component::setAutomaticUpdateChecks,
+			label = Res.string.settings_automatic_update_checks.get(),
+			hint = Res.string.settings_automatic_update_checks_hint.get(),
+		)
+	}
+	CommandLineSettings()
 }

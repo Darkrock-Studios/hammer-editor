@@ -1,9 +1,26 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
+import com.darkrockstudios.apps.hammer.common.storyeditor.EmptySceneEditor
+import com.darkrockstudios.apps.hammer.common.compose.rightBorder
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.CreateDialogCard
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneRenameCard
+import com.darkrockstudios.apps.hammer.common.storyeditor.SceneKind
+import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
@@ -47,13 +64,41 @@ fun ScreenSceneListUiTabletPreview() {
 
 	KoinApplicationPreview {
 		TabletPreviewSurface {
+			val summary = nestedSceneSummary()
 			val component = fakeComponent(
 				SceneList.State(
 					projectDef = fakeProjectDef(),
-					sceneSummary = fakeSceneSummary()
+					sceneSummary = summary,
+					selectedSceneItem = summary.sceneTree.find { it.value.name == SELECTED_SCENE }?.value,
 				)
 			)
 			SceneListUi(component, snackbarHostState)
+		}
+	}
+}
+
+/** The story split view before a scene is opened: the list, and beside it on wide screens the empty editor. */
+@Composable
+fun ScreenStoryNoSceneTabletPreview() {
+	val snackbarHostState = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			val component = fakeComponent(SceneList.State(projectDef = fakeProjectDef(), sceneSummary = fakeSceneSummary()))
+			BoxWithConstraints(Modifier.fillMaxSize()) {
+				if (maxWidth < 600.dp) {
+					SceneListUi(component, snackbarHostState)
+				} else {
+					Row(Modifier.fillMaxSize()) {
+						Box(
+							Modifier.width(300.dp).fillMaxHeight()
+								.rightBorder(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
+						) {
+							SceneListUi(component, snackbarHostState, inSplitPane = true)
+						}
+						Box(Modifier.weight(1f).fillMaxHeight()) { EmptySceneEditor(isMultipane = true) }
+					}
+				}
+			}
 		}
 	}
 }
@@ -107,10 +152,10 @@ private fun nestedSceneSummary(): SceneSummary {
 		group("Chapter IV").apply {
 			addChild(scene("Mushroom Consumed"))
 			addChild(
-				group("Chapter III").apply {
+				group("Underground").apply {
 					addChild(scene("Down the hole"))
 					addChild(
-						group("Chapter II").apply {
+						group("A sea of tears").apply {
 							addChild(scene("The Pool of Tears"))
 							addChild(scene("White Rabbit Arrives"))
 						}
@@ -124,7 +169,7 @@ private fun nestedSceneSummary(): SceneSummary {
 	root.addChild(
 		group("Chapter VI").apply {
 			addChild(
-				group("Chapter V").apply {
+				group("The Duchess").apply {
 					addChild(scene("Pig and Pepper"))
 				}
 			)
@@ -247,4 +292,36 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override suspend fun unarchiveScene(scene: SceneItem) {}
 	override fun showArchivedScenes() {}
 	override fun dismissArchivedDialog() {}
+}
+/** New scene inside a group, over a scrim; the card directly, since the animated dialog can't settle in a preview. */
+@Composable
+fun CreateSceneDialogScrimPreview() {
+	PreviewScrim {
+		CreateDialogCard(
+			title = Res.string.scene_list_create_scene_dialog_title.get(),
+			parentName = "Chapter IV",
+			name = "The Lobster Quadrille",
+			onNameChange = {},
+			error = null,
+			confirmEnabled = true,
+			onConfirm = {},
+			onCancel = {},
+		)
+	}
+}
+
+/** Renaming a chapter, over a scrim. */
+@Composable
+fun SceneRenameDialogScrimPreview() {
+	PreviewScrim {
+		SceneRenameCard(
+			kind = SceneKind.Chapter,
+			name = "Down the Rabbit-Hole",
+			onNameChange = {},
+			error = null,
+			confirmEnabled = true,
+			onConfirm = {},
+			onCancel = {},
+		)
+	}
 }

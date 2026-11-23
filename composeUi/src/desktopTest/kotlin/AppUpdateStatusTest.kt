@@ -33,24 +33,24 @@ class AppUpdateStatusTest {
 	@Test
 	fun `a build that cannot update shows nothing`() {
 		show(AppUpdateState.Unsupported)
-		compose.onNodeWithText("Check for Updates").assertDoesNotExist()
+		compose.onNodeWithText("Check for updates").assertDoesNotExist()
 	}
 
 	@Test
 	fun `check for updates is offered before and after a check`() {
 		show(AppUpdateState.Idle)
-		compose.onNodeWithText("Check for Updates").performClick()
+		compose.onNodeWithText("Check for updates").performClick()
 		assertEquals(1, checks)
 
 		show(AppUpdateState.UpToDate)
 		compose.onNodeWithText("Hammer is up to date.").assertIsDisplayed()
-		compose.onNodeWithText("Check for Updates").assertIsDisplayed()
+		compose.onNodeWithText("Check for updates").assertIsDisplayed()
 	}
 
 	@Test
 	fun `the button is disabled while checking`() {
 		show(AppUpdateState.Checking)
-		compose.onNodeWithText("Check for Updates").assertIsNotEnabled()
+		compose.onNodeWithText("Check for updates").assertIsNotEnabled()
 	}
 
 	@Test
@@ -58,7 +58,7 @@ class AppUpdateStatusTest {
 		show(AppUpdateState.Available(version = "9.9.9", installable = true))
 
 		compose.onNodeWithText("Hammer 9.9.9 is available.").assertIsDisplayed()
-		compose.onNodeWithText("Update to 9.9.9").performClick()
+		compose.onNodeWithText("Update").performClick()
 		assertEquals(1, updates)
 	}
 
@@ -67,7 +67,7 @@ class AppUpdateStatusTest {
 		show(AppUpdateState.Available(version = "9.9.9", installable = false))
 
 		compose.onNodeWithText("Hammer 9.9.9 is available.").assertIsDisplayed()
-		compose.onNodeWithText("Update to 9.9.9").assertDoesNotExist()
+		compose.onNodeWithText("Update").assertDoesNotExist()
 	}
 
 	@Test

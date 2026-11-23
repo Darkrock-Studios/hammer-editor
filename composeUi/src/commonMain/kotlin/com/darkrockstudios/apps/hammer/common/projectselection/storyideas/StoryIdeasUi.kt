@@ -1,17 +1,26 @@
 ﻿package com.darkrockstudios.apps.hammer.common.projectselection.storyideas
 
+import com.darkrockstudios.apps.hammer.ideas_discard_dialog_confirm
+import com.darkrockstudios.apps.hammer.ideas_discard_dialog_keep
+import com.darkrockstudios.apps.hammer.ideas_delete_dialog_confirm
+import com.darkrockstudios.apps.hammer.ideas_dialog_cancel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPulsingDot
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusFooter
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioFooter
 import androidx.compose.animation.AnimatedContent
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietSortMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietButton
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -42,29 +51,24 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -88,7 +92,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFilte
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDetailStampRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
@@ -96,8 +99,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTag
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMarkdownCard
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
@@ -121,7 +122,6 @@ import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.ideas_archive_button
 import com.darkrockstudios.apps.hammer.ideas_cancel_button
 import com.darkrockstudios.apps.hammer.ideas_create_button
-import com.darkrockstudios.apps.hammer.ideas_create_fab
 import com.darkrockstudios.apps.hammer.ideas_create_marker
 import com.darkrockstudios.apps.hammer.ideas_delete_button
 import com.darkrockstudios.apps.hammer.ideas_delete_dialog_message
@@ -133,8 +133,6 @@ import com.darkrockstudios.apps.hammer.ideas_filter_all
 import com.darkrockstudios.apps.hammer.ideas_filter_archived
 import com.darkrockstudios.apps.hammer.ideas_filter_clear_all
 import com.darkrockstudios.apps.hammer.ideas_filter_filtered
-import com.darkrockstudios.apps.hammer.ideas_header
-import com.darkrockstudios.apps.hammer.ideas_header_meta
 import com.darkrockstudios.apps.hammer.ideas_list_empty
 import com.darkrockstudios.apps.hammer.ideas_list_empty_archived
 import com.darkrockstudios.apps.hammer.ideas_load_failed_label
@@ -175,11 +173,13 @@ import com.darkrockstudios.apps.hammer.ideas_unarchive_button
 import com.darkrockstudios.apps.hammer.ideas_view_action_edit
 import com.darkrockstudios.apps.hammer.ideas_view_close_button
 import com.darkrockstudios.apps.hammer.ideas_view_crumb_root
-import com.darkrockstudios.apps.hammer.ideas_view_header
 import com.darkrockstudios.apps.hammer.ideas_view_label_editing
+import com.darkrockstudios.apps.hammer.ideas_word_count_short
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.ideas_header_meta
+import com.darkrockstudios.apps.hammer.ideas_view_header
 import com.darkrockstudios.apps.hammer.ideas_view_status_unsaved
 import com.darkrockstudios.apps.hammer.ideas_tag_count_short
-import com.darkrockstudios.apps.hammer.ideas_word_count_short
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
@@ -187,8 +187,12 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
+import com.darkrockstudios.apps.hammer.confirm_kind_delete
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import com.darkrockstudios.apps.hammer.confirm_kind_promote
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEmptyNote
 
-const val IDEAS_CREATE_FAB_TAG = "ideas-create-fab"
+const val IDEAS_CREATE_BUTTON_TAG = "ideas-create-button"
 const val IDEAS_EDITOR_TITLE_TAG = "ideas-editor-title"
 const val IDEAS_EDITOR_BODY_TAG = "ideas-editor-body"
 const val IDEAS_EDITOR_CONFIRM_TAG = "ideas-editor-confirm"
@@ -295,39 +299,33 @@ private fun IdeasBrowse(
 	var showArchived by rememberSaveable { mutableStateOf(false) }
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
-	val scopedIdeas by remember(ideas, showArchived) {
-		derivedStateOf {
-			ideas.filter { (it.archived != null) == showArchived }
-		}
+	val scopedIdeas = remember(ideas, showArchived) {
+		ideas.filter { (it.archived != null) == showArchived }
 	}
 
-	val rankedTags by remember(scopedIdeas) {
-		derivedStateOf {
+	val rankedTags = remember(scopedIdeas) {
+		scopedIdeas
+			.flatMap { it.tags }
+			.groupingBy { it }
+			.eachCount()
+			.entries
+			.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+			.map { TagCount(it.key, it.value) }
+	}
+
+	val visibleIdeas = remember(scopedIdeas, searchQuery, sortMode, activeTags) {
+		val query = searchQuery.trim()
+		val byText = if (query.isBlank()) {
 			scopedIdeas
-				.flatMap { it.tags }
-				.groupingBy { it }
-				.eachCount()
-				.entries
-				.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-				.map { TagCount(it.key, it.value) }
+		} else {
+			scopedIdeas.filter { ideaMatchesQuery(it, query) }
 		}
-	}
-
-	val visibleIdeas by remember(scopedIdeas, searchQuery, sortMode, activeTags) {
-		derivedStateOf {
-			val query = searchQuery.trim()
-			val byText = if (query.isBlank()) {
-				scopedIdeas
-			} else {
-				scopedIdeas.filter { ideaMatchesQuery(it, query) }
-			}
-			val byTags = if (activeTags.isEmpty()) {
-				byText
-			} else {
-				byText.filter { idea -> activeTags.all { it in idea.tags } }
-			}
-			applySort(byTags, sortMode)
+		val byTags = if (activeTags.isEmpty()) {
+			byText
+		} else {
+			byText.filter { idea -> activeTags.all { it in idea.tags } }
 		}
+		applySort(byTags, sortMode)
 	}
 
 	val toggleTag: (String) -> Unit = { tag ->
@@ -345,94 +343,53 @@ private fun IdeasBrowse(
 				.fillMaxSize()
 				.nestedScroll(scrollBehavior.nestedScrollConnection),
 		) {
-			AnimatedContent(
-				targetState = showSearchBar && !isWide,
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(Ui.TOP_BAR_HEIGHT)
-					.padding(horizontal = Ui.Padding.XL),
-				transitionSpec = {
-					fadeIn() togetherWith fadeOut() using SizeTransform(clip = false)
-				},
-				label = "IdeasTitleAnim",
-			) { searching ->
-				if (searching) {
-					HdSearchRow(
-						query = searchQuery,
-						onQueryChange = { searchQuery = it },
-						placeholder = Res.string.ideas_search_placeholder.get(),
-						clearContentDescription = Res.string.ideas_search_clear.get(),
-						onCollapse = {
-							showSearchBar = false
-							searchQuery = ""
-						},
-						collapseContentDescription = Res.string.ideas_search_close.get(),
-						modifier = Modifier.fillMaxSize(),
-					)
-				} else {
-					Row(
-						modifier = Modifier.fillMaxSize(),
-						verticalAlignment = Alignment.CenterVertically,
-					) {
-						HdSectionHeader(
-							section = 2,
-							title = Res.string.ideas_header.get(),
-							modifier = Modifier.weight(1f),
-							trailing = {
-								if (isWide) {
-									HdMonoLabel(
-										text = Res.string.ideas_header_meta.get(
-											ideas.size,
-											rankedTags.size,
-										),
-									)
-								}
-							},
-						)
-						IconButton(
-							onClick = {
-								if (showSearchBar) {
-									showSearchBar = false
-									searchQuery = ""
-								} else {
-									showSearchBar = true
-								}
-							},
-						) {
-							Icon(
-								imageVector = Icons.Default.Search,
-								contentDescription = Res.string.ideas_search_button.get(),
-								tint = MaterialTheme.colorScheme.onSurface,
-							)
-						}
+			IdeasMasthead(
+				isWide = isWide,
+				meta = if (isWide) Res.string.ideas_header_meta.get(ideas.size, rankedTags.size) else null,
+				searchActive = showSearchBar,
+				onToggleSearch = {
+					if (showSearchBar) {
+						showSearchBar = false
+						searchQuery = ""
+					} else {
+						showSearchBar = true
 					}
-				}
-			}
+				},
+				sortMode = sortMode,
+				onSortChange = { sortMode = it },
+				onCreate = { component.showCreate() },
+			)
 
 			HdFolioDivider()
 
 			HdCollapsingStrip(scrollBehavior = scrollBehavior) {
-				// On wide screens the search field is hidden until the masthead icon reveals
-				// it; on compact the reveal swaps into the title row instead (above).
-				if (isWide) {
-					AnimatedVisibility(visible = showSearchBar) {
-						Row(
-							modifier = Modifier
-								.fillMaxWidth()
-								.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-							verticalAlignment = Alignment.CenterVertically,
-						) {
-							HdSearchRow(
-								query = searchQuery,
-								onQueryChange = { searchQuery = it },
-								placeholder = Res.string.ideas_search_placeholder.get(),
-								clearContentDescription = Res.string.ideas_search_clear.get(),
-								onCollapse = {
-									showSearchBar = false
-									searchQuery = ""
-								},
-								collapseContentDescription = Res.string.ideas_search_close.get(),
-								modifier = Modifier.fillMaxWidth(),
+				AnimatedVisibility(visible = showSearchBar) {
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+					) {
+						HdSearchRow(
+							query = searchQuery,
+							onQueryChange = { searchQuery = it },
+							placeholder = Res.string.ideas_search_placeholder.get(),
+							clearContentDescription = Res.string.ideas_search_clear.get(),
+							onCollapse = {
+								showSearchBar = false
+								searchQuery = ""
+							},
+							collapseContentDescription = Res.string.ideas_search_close.get(),
+							modifier = Modifier.weight(1f),
+						)
+						if (!isWide) {
+							HdQuietSortMenu(
+								options = IdeasSortMode.entries,
+								selected = sortMode,
+								onSelect = { sortMode = it },
+								contentDescription = Res.string.ideas_sort_label.get(),
+								iconOnly = true,
 							)
 						}
 					}
@@ -440,25 +397,20 @@ private fun IdeasBrowse(
 
 				HdTagFilterBar(
 					tags = rankedTags,
-					allLabel = "${Res.string.ideas_filter_all.get()} · ${scopedIdeas.size}",
+					allLabel = Res.string.ideas_filter_all.get(),
 					activeTags = activeTags,
 					onToggle = toggleTag,
 					onClear = clearTags,
 					trailing = {
 						val archivedCount = ideas.count { it.archived != null }
 						ArchivedToggle(
-							label = "${Res.string.ideas_filter_archived.get()} · $archivedCount",
+							label = Res.string.ideas_filter_archived.get(),
+							count = archivedCount,
 							active = showArchived,
 							onClick = {
 								showArchived = !showArchived
 								activeTags = emptySet()
 							},
-						)
-						HdSortMenu(
-							label = Res.string.ideas_sort_label,
-							options = IdeasSortMode.entries,
-							selected = sortMode,
-							onSelect = { sortMode = it },
 						)
 					},
 				)
@@ -483,14 +435,26 @@ private fun IdeasBrowse(
 			}
 
 			val gridState = rememberLazyStaggeredGridState()
-			Box(modifier = Modifier.weight(1f)) {
+			val createBarState = rememberHdScrollAwayFooterState()
+			// Always reachable when the grid can't scroll down to it.
+			// With nothing loaded, the notice stands in for the empty text.
+			val showEmpty = visibleIdeas.isEmpty() && !(loadFailed && ideas.isEmpty())
+			val emptyText = (if (showArchived) Res.string.ideas_list_empty_archived
+				else Res.string.ideas_list_empty).get()
+			val createBarVisible =
+				!isWide && (!gridState.canScrollForward || !createBarState.isHiddenByScroll)
+			Box(modifier = Modifier.weight(1f).clipToBounds()) {
 				LazyVerticalStaggeredGrid(
 					state = gridState,
 					columns = StaggeredGridCells.Adaptive(400.dp),
-					modifier = Modifier.fillMaxSize(),
+					modifier = Modifier
+						.fillMaxSize()
+						.nestedScroll(createBarState.nestedScrollConnection),
 					contentPadding = PaddingValues(
-						horizontal = Ui.Padding.XL,
-						vertical = Ui.Padding.L,
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.L,
+						bottom = Ui.Padding.L + if (isWide) 0.dp else createBarState.height,
 					),
 					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				) {
@@ -504,22 +468,9 @@ private fun IdeasBrowse(
 						}
 					}
 
-					// With nothing loaded, the notice stands in for the empty text
-					if (visibleIdeas.isEmpty() && !(loadFailed && ideas.isEmpty())) {
+					if (showEmpty && loadFailed) {
 						item(span = StaggeredGridItemSpan.FullLine) {
-							Box(
-								modifier = Modifier
-									.fillMaxWidth()
-									.padding(vertical = Ui.Padding.XXL),
-								contentAlignment = Alignment.Center,
-							) {
-								Text(
-									text = (if (showArchived) Res.string.ideas_list_empty_archived
-										else Res.string.ideas_list_empty).get(),
-									style = MaterialTheme.typography.headlineSmall,
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							}
+							HdEmptyNote(text = emptyText)
 						}
 					}
 
@@ -539,28 +490,94 @@ private fun IdeasBrowse(
 					}
 				}
 
+				// Centred on the page, unless the load-failed notice sits at the top of the grid.
+				if (showEmpty && !loadFailed) {
+					HdPageEmpty(text = emptyText)
+				}
+
 				MpScrollBarStaggeredGrid(
 					modifier = scrollBarOverlay(),
 					state = gridState,
 				)
+
+				HdScrollAwayFooter(
+					state = createBarState,
+					visible = createBarVisible,
+					containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+					dividerColor = MaterialTheme.colorScheme.outline,
+					contentPadding = PaddingValues(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+				) {
+					NewIdeaButton(
+						onClick = { component.showCreate() },
+						modifier = Modifier.weight(1f).height(44.dp),
+					)
+				}
 			}
 		}
-
-		HdFab(
-			onClick = { component.showCreate() },
-			icon = Icons.Filled.Add,
-			contentDescription = Res.string.ideas_create_fab.get(),
-			modifier = Modifier
-				.align(Alignment.BottomEnd)
-				.padding(Ui.Padding.XL)
-				.testTag(IDEAS_CREATE_FAB_TAG),
-		)
 	}
 }
 
 @Composable
+private fun IdeasMasthead(
+	isWide: Boolean,
+	meta: String?,
+	searchActive: Boolean,
+	onToggleSearch: () -> Unit,
+	sortMode: IdeasSortMode,
+	onSortChange: (IdeasSortMode) -> Unit,
+	onCreate: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = Ui.Padding.XL),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdSectionHeader(
+			section = 2,
+			title = ProjectSelection.Locations.StoryIdeas.text.get(),
+			modifier = Modifier.weight(1f),
+			trailing = { meta?.let { HdMonoLabel(text = it) } },
+		)
+		HdQuietButton(
+			onClick = onToggleSearch,
+			icon = Icons.Default.Search,
+			contentDescription = Res.string.ideas_search_button.get(),
+			active = searchActive,
+		)
+		if (isWide) {
+			HdQuietSortMenu(
+				options = IdeasSortMode.entries,
+				selected = sortMode,
+				onSelect = onSortChange,
+				contentDescription = Res.string.ideas_sort_label.get(),
+			)
+			NewIdeaButton(onClick = onCreate, modifier = Modifier.height(32.dp))
+		}
+	}
+}
+
+/** Framed primary action; [filled] for the phone's bottom bar. */
+@Composable
+private fun NewIdeaButton(
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	HdHairlineButton(
+		label = "＋  ${Res.string.ideas_create_marker.get()}",
+		onClick = onClick,
+		emphasised = true,
+		modifier = modifier.testTag(IDEAS_CREATE_BUTTON_TAG),
+	)
+}
+
+/** Archived ideas are hidden from the default view, so a nonzero count is worth showing. */
+@Composable
 private fun ArchivedToggle(
 	label: String,
+	count: Int,
 	active: Boolean,
 	onClick: () -> Unit,
 ) {
@@ -582,7 +599,13 @@ private fun ArchivedToggle(
 			.padding(horizontal = Ui.Padding.L),
 		contentAlignment = Alignment.Center,
 	) {
-		HdMonoLabel(text = label, color = labelColor)
+		Row(
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(6.dp),
+		) {
+			Text(text = label, style = MaterialTheme.typography.labelLarge, color = labelColor)
+			if (count > 0) HdMetaText(text = count.toString(), color = labelColor)
+		}
 	}
 }
 
@@ -751,32 +774,34 @@ private fun IdeaDetail(
 		else component.closeEditor()
 	}
 
-	val menuItems = if (existing == null) {
-		emptySet()
-	} else {
-		setOf(
-			MenuItemDescriptor("idea-delete", Res.string.ideas_delete_button, "") {
-				confirmDelete = true
-			},
-			MenuItemDescriptor(
-				"idea-archive",
-				if (existing.archived == null) Res.string.ideas_archive_button
-				else Res.string.ideas_unarchive_button,
-				"",
-			) {
-				scope.launch {
-					val toast = if (existing.archived == null) {
-						component.archiveIdea(existing.id)
-						Res.string.ideas_toast_archived
-					} else {
-						component.unarchiveIdea(existing.id)
-						Res.string.ideas_toast_unarchived
+	val menuItems = remember(existing) {
+		if (existing == null) {
+			emptySet()
+		} else {
+			setOf(
+				MenuItemDescriptor("idea-delete", Res.string.ideas_delete_button, "") {
+					confirmDelete = true
+				},
+				MenuItemDescriptor(
+					"idea-archive",
+					if (existing.archived == null) Res.string.ideas_archive_button
+					else Res.string.ideas_unarchive_button,
+					"",
+				) {
+					scope.launch {
+						val toast = if (existing.archived == null) {
+							component.archiveIdea(existing.id)
+							Res.string.ideas_toast_archived
+						} else {
+							component.unarchiveIdea(existing.id)
+							Res.string.ideas_toast_unarchived
+						}
+						withContext(mainDispatcher) { component.closeEditor() }
+						rootSnackbar.showSnackbar(strRes.get(toast))
 					}
-					withContext(mainDispatcher) { component.closeEditor() }
-					rootSnackbar.showSnackbar(strRes.get(toast))
-				}
-			},
-		)
+				},
+			)
+		}
 	}
 
 	Box(
@@ -885,6 +910,10 @@ private fun IdeaDetail(
 		SimpleConfirm(
 			title = Res.string.ideas_discard_dialog_title.get(),
 			message = Res.string.ideas_discard_dialog_message.get(),
+			positiveButton = Res.string.ideas_discard_dialog_confirm.get(),
+			negativeButton = Res.string.ideas_discard_dialog_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = {
 				confirmDiscard = false
 				confirmClose = false
@@ -904,6 +933,10 @@ private fun IdeaDetail(
 		SimpleConfirm(
 			title = Res.string.ideas_delete_dialog_title.get(),
 			message = Res.string.ideas_delete_dialog_message.get(),
+			positiveButton = Res.string.ideas_delete_dialog_confirm.get(),
+			negativeButton = Res.string.ideas_dialog_cancel.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_delete.get(),
 			onDismiss = { confirmDelete = false },
 		) {
 			confirmDelete = false
@@ -919,6 +952,9 @@ private fun IdeaDetail(
 		SimpleConfirm(
 			title = Res.string.ideas_promote_dialog_title.get(),
 			message = Res.string.ideas_promote_dialog_message.get(),
+			positiveButton = Res.string.ideas_promote_button.get(),
+			negativeButton = Res.string.ideas_dialog_cancel.get(),
+			kind = Res.string.confirm_kind_promote.get(),
 			onDismiss = { confirmPromote = false },
 		) {
 			confirmPromote = false
@@ -990,7 +1026,7 @@ private fun StampRow(
 			)
 
 			if (isEditing) {
-				PulsingDot()
+				HdPulsingDot()
 			}
 		},
 		meta = {
@@ -1048,26 +1084,6 @@ private fun StampRow(
 				)
 			}
 		},
-	)
-}
-
-@Composable
-private fun PulsingDot() {
-	val transition = rememberInfiniteTransition(label = "ideaEditingPulse")
-	val alpha by transition.animateFloat(
-		initialValue = 1f,
-		targetValue = 0.35f,
-		animationSpec = infiniteRepeatable(
-			animation = tween(durationMillis = 800),
-			repeatMode = RepeatMode.Reverse,
-		),
-		label = "ideaEditingPulseAlpha",
-	)
-	Box(
-		modifier = Modifier
-			.size(7.dp)
-			.alpha(alpha)
-			.background(MaterialTheme.colorScheme.primary, RectangleShape),
 	)
 }
 
@@ -1233,48 +1249,21 @@ private fun ViewFolioFooter(markdown: String, tagCount: Int) {
 	val words = remember(markdown) {
 		countWords(markdown)
 	}
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
+	HdFolioFooter(
+		parts = listOfNotNull(
+			Res.string.ideas_word_count_short.get(words),
+			Res.string.ideas_tag_count_short.get(tagCount).takeIf { tagCount > 0 },
+		),
+		spread = true,
 	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(text = Res.string.ideas_word_count_short.get(words))
-		Spacer(modifier = Modifier.weight(1f))
-		if (tagCount > 0) {
-			HdMonoLabel(text = Res.string.ideas_tag_count_short.get(tagCount))
-		}
-	}
 }
 
 @Composable
 private fun EditStatusFooter(charCount: Int, overLimit: Boolean) {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
+	HdStatusFooter {
 		HdMonoLabel(
-			text = Res.string.ideas_editor_counter.get(
-				charCount,
-				StoryIdea.MAX_CONTENT_LENGTH,
-			),
-			color = if (overLimit) {
-				MaterialTheme.colorScheme.error
-			} else {
-				MaterialTheme.colorScheme.onSurfaceVariant
-			},
+			text = Res.string.ideas_editor_counter.get(charCount, StoryIdea.MAX_CONTENT_LENGTH),
+			color = if (overLimit) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
 }

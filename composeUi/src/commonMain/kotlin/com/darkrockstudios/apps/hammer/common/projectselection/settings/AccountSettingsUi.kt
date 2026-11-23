@@ -1,336 +1,174 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
+import com.darkrockstudios.apps.hammer.account_settings_folio_caption
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabbedPage
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
-import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.compose.theme.oledBlackThemeAvailable
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.getDataVersion
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.backups.BackupsSettingsUi
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
+import com.darkrockstudios.apps.hammer.project_select_nav_account_settings
+import com.darkrockstudios.apps.hammer.settings_example_project_button
+import com.darkrockstudios.apps.hammer.settings_example_project_success_message
+import com.darkrockstudios.apps.hammer.settings_group_appearance
+import com.darkrockstudios.apps.hammer.settings_group_device
+import com.darkrockstudios.apps.hammer.settings_group_spellcheck
+import com.darkrockstudios.apps.hammer.settings_initial_screen_editor
+import com.darkrockstudios.apps.hammer.settings_initial_screen_home
+import com.darkrockstudios.apps.hammer.settings_row_example_project
+import com.darkrockstudios.apps.hammer.settings_row_example_project_desc
+import com.darkrockstudios.apps.hammer.settings_row_initial_screen
+import com.darkrockstudios.apps.hammer.settings_row_theme
+import com.darkrockstudios.apps.hammer.settings_tab_general
+import com.darkrockstudios.apps.hammer.settings_tab_plugins
+import com.darkrockstudios.apps.hammer.settings_tab_sync
+import com.darkrockstudios.apps.hammer.settings_tab_writing
+import com.darkrockstudios.apps.hammer.settings_theme_dark
+import com.darkrockstudios.apps.hammer.settings_theme_followsystem
+import com.darkrockstudios.apps.hammer.settings_theme_light
+import com.darkrockstudios.apps.hammer.settings_theme_oled_black
+import org.koin.compose.koinInject
 
-private val MaxColumnWidth = 880.dp
-private const val CORE_SECTION_COUNT = 7
+private val MaxColumnWidth = 720.dp
 
+/** The tabs of app Settings. Plugins shows only where plugins can be installed. */
+enum class SettingsTab { General, Writing, Sync, Plugins }
+
+/**
+ * App Settings as four tabs of setting rows. The masthead names the screen as the nav does;
+ * connection, account and version each show once, where they belong.
+ */
 @Composable
 internal fun AccountSettingsUi(
 	component: AccountSettings,
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 	runtimePlugins: RuntimePlugins? = null,
+	initialTab: SettingsTab = SettingsTab.General,
+	/** The Plugins tab; left out where plugins cannot be installed. */
+	pluginsTab: (@Composable ColumnScope.() -> Unit)? = runtimePlugins?.let { plugins -> { PluginsTab(plugins) } },
 ) {
-	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
-	val showPlugins = runtimePlugins != null
-	val sectionCount = CORE_SECTION_COUNT + if (showPlugins) 1 else 0
-	val screen = LocalScreenCharacteristic.current
-	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
+	val tabs = SettingsTab.entries.filter { it != SettingsTab.Plugins || pluginsTab != null }
+	var tab by rememberSaveable { mutableStateOf(initialTab) }
 
 	Toaster(component, rootSnackbar)
 
-	val outerHorizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
-	val outerVertical: Dp = if (isCompact) Ui.Padding.L else 28.dp
-
-	Column(
-		modifier = modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.surface),
+	HdTabbedPage(
+		title = Res.string.project_select_nav_account_settings.get(),
+		tabs = tabs,
+		selected = tab,
+		label = { tabLabel(it) },
+		onSelect = { tab = it },
+		maxWidth = MaxColumnWidth,
+		modifier = modifier,
+		autosaved = true,
+		folio = listOf(Res.string.account_settings_folio_caption.get(), "§§ ${tabs.size}"),
 	) {
-		Breadcrumb(isCompact = isCompact)
-		HdFolioDivider()
+		when (tab) {
+			SettingsTab.General -> GeneralTab(component, rootSnackbar)
+			SettingsTab.Writing -> WritingTab(component)
+			SettingsTab.Sync -> SyncSettingsTab(component, scope)
+			SettingsTab.Plugins -> pluginsTab?.invoke(this)
+		}
+	}
 
-		val scrollState = rememberScrollState()
-		Box(
-			modifier = Modifier
-				.weight(1f)
-				.fillMaxWidth(),
-		) {
-			Column(
-				modifier = Modifier
-					.fillMaxSize()
-					.verticalScroll(scrollState)
-					.padding(horizontal = outerHorizontal, vertical = outerVertical),
-			) {
-				Box(
-					modifier = Modifier
-						.widthIn(max = MaxColumnWidth)
-						.fillMaxWidth()
-						.align(Alignment.CenterHorizontally),
-				) {
-					Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
-						Hero(
-							loggedIn = state.serverIsLoggedIn,
-							email = state.currentEmail,
-							isCompact = isCompact,
-						)
+	// Server setup can raise these while any tab shows, so they live above the tabs.
+	ServerSetupDialog(component, scope)
+	MergeProjectsDialog(component)
+	TermsOfServiceDialog(component)
+}
 
-						HdHairlineSection(
-							section = 1,
-							title = Res.string.settings_theme_label.get(),
-							headerTrailing = {
-								HdMonoLabel(text = uiThemeLabel(state.uiTheme))
-							},
-							contentSpacing = 12.dp,
-						) {
-							HdHairlineSegmentedPicker(
-								options = UiTheme.entries.filter { it != UiTheme.OledBlack || oledBlackThemeAvailable },
-								selected = state.uiTheme,
-								onSelect = { component.setUiTheme(it) },
-								label = { uiThemeLabel(it) },
-							)
-						}
-
-						HdHairlineSection(
-							section = 2,
-							title = Res.string.settings_initial_screen_label.get(),
-							headerTrailing = {
-								HdMonoLabel(text = initialScreenLabel(state.initialProjectScreen))
-							},
-							contentSpacing = 12.dp,
-						) {
-							HdHairlineSegmentedPicker(
-								options = InitialProjectScreen.entries,
-								selected = state.initialProjectScreen,
-								onSelect = { component.setInitialProjectScreen(it) },
-								label = { initialScreenLabel(it) },
-							)
-						}
-
-						HdHairlineSection(
-							section = 3,
-							title = Res.string.settings_spellcheck_heading.get(),
-							contentSpacing = 18.dp,
-						) {
-							SpellCheckSettingsContent(component.spellCheckSettings)
-						}
-
-						ServerSettingsUi(
-							component = component,
-							scope = scope,
-							rootSnackbar = rootSnackbar,
-						)
-
-						HdHairlineSection(
-							section = 5,
-							title = Res.string.settings_backups_header.get(),
-							headerTrailing = {
-								HdMonoLabel(
-									text = "${state.maxBackups} / ${GlobalSettings.MAX_BACKUPS}",
-								)
-							},
-							contentSpacing = 16.dp,
-						) {
-							BackupsSettingsUi(component, scope)
-						}
-
-						HdHairlineSection(
-							section = 6,
-							title = Res.string.settings_platform_settings_title.get(),
-							contentSpacing = 16.dp,
-						) {
-							PlatformSettingsUi(component.platformSettings)
-						}
-
-						HdHairlineSection(
-							section = 7,
-							title = Res.string.settings_example_project_header.get(),
-							contentSpacing = 14.dp,
-						) {
-							ExampleProjectSection(component, rootSnackbar)
-						}
-
-						if (runtimePlugins != null) {
-							HdHairlineSection(
-								section = CORE_SECTION_COUNT + 1,
-								title = Res.string.settings_plugins_header.get(),
-								contentSpacing = 24.dp,
-							) {
-								Text(
-									text = Res.string.settings_plugins_caption.get(),
-									style = MaterialTheme.typography.bodySmall,
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-								ManagePluginsButton()
-							}
-						}
-
-						Spacer(Modifier.height(8.dp))
-					}
-				}
-			}
-
-			MpScrollBarColumn(
-				modifier = scrollBarOverlay(),
-				state = scrollState,
+@Composable
+private fun ColumnScope.GeneralTab(component: AccountSettings, rootSnackbar: RootSnackbarHostState) {
+	val state by component.state.subscribeAsState()
+	HdSettingGroup(title = Res.string.settings_group_appearance.get()) {
+		HdSettingRow(title = Res.string.settings_row_theme.get()) {
+			HdHairlineSegmentedPicker(
+				options = UiTheme.entries.filter { it != UiTheme.OledBlack || oledBlackThemeAvailable },
+				selected = state.uiTheme,
+				onSelect = { component.setUiTheme(it) },
+				label = { uiThemeLabel(it) },
+				compact = true,
 			)
 		}
-
-		FolioCaption(
-			horizontalPadding = outerHorizontal,
-			sectionCount = sectionCount,
-		)
-	}
-}
-
-@Composable
-private fun Breadcrumb(
-	isCompact: Boolean,
-) {
-	val horizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.height(Ui.TOP_BAR_HEIGHT)
-			.padding(horizontal = horizontal),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(12.dp),
-	) {
-		HdMonoLabel(
-			text = Res.string.app_name.get().uppercase(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		HdMonoLabel(
-			text = "/",
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		HdMonoLabel(
-			text = Res.string.account_settings_breadcrumb.get(),
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		Spacer(Modifier.weight(1f))
-		AutosaveBadge()
-	}
-}
-
-@Composable
-private fun AutosaveBadge() {
-	val success = LocalHammerColors.current.success
-	Row(
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(8.dp),
-	) {
-		Box(
-			modifier = Modifier
-				.size(6.dp)
-				.background(success, RectangleShape),
-		)
-		HdMonoLabel(
-			text = Res.string.project_settings_autosaved.get(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-	}
-}
-
-@Composable
-private fun Hero(
-	loggedIn: Boolean,
-	email: String?,
-	isCompact: Boolean,
-) {
-	val connectedLabel = Res.string.settings_server_status_connected.get()
-	val localInstallLabel = Res.string.account_settings_subtitle_local_install.get()
-	val subtitle = buildString {
-		append("v")
-		append(getDataVersion())
-		append(" · ")
-		if (loggedIn && !email.isNullOrBlank()) {
-			append("$connectedLabel · ${email.uppercase()}")
-		} else if (loggedIn) {
-			append(connectedLabel)
-		} else {
-			append(localInstallLabel)
+		HdSettingRow(title = Res.string.settings_row_initial_screen.get()) {
+			HdHairlineSegmentedPicker(
+				options = InitialProjectScreen.entries,
+				selected = state.initialProjectScreen,
+				onSelect = { component.setInitialProjectScreen(it) },
+				label = { initialScreenLabel(it) },
+				compact = true,
+			)
 		}
 	}
-	Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-		Text(
-			text = Res.string.app_name.get(),
-			style = if (isCompact) MaterialTheme.typography.displaySmall
-			else MaterialTheme.typography.displayMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-			maxLines = 1,
-			overflow = TextOverflow.Ellipsis,
-		)
-		HdMonoLabel(
-			text = subtitle,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+
+	HdSettingGroup(title = Res.string.settings_group_device.get()) {
+		PlatformSettingsUi(component.platformSettings)
+		val successMessage = Res.string.settings_example_project_success_message.get()
+		HdSettingRow(
+			title = Res.string.settings_row_example_project.get(),
+			description = Res.string.settings_row_example_project_desc.get(),
+		) {
+			HdHairlineButton(
+				label = Res.string.settings_example_project_button.get(),
+				onClick = { component.reinstallExampleProject { rootSnackbar.showSnackbar(successMessage) } },
+			)
+		}
 	}
 }
 
 @Composable
-private fun ExampleProjectSection(
-	component: AccountSettings,
-	rootSnackbar: RootSnackbarHostState,
-) {
-	val successMessage = Res.string.settings_example_project_success_message.get()
-	Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-		Text(
-			text = Res.string.settings_example_project_description.get(),
-			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		HdHairlineButton(
-			label = Res.string.settings_example_project_button.get(),
-			onClick = {
-				component.reinstallExampleProject {
-					rootSnackbar.showSnackbar(successMessage)
-				}
-			},
-		)
+private fun ColumnScope.WritingTab(component: AccountSettings) {
+	HdSettingGroup(title = Res.string.settings_group_spellcheck.get()) {
+		SpellCheckSettingsContent(component.spellCheckSettings)
+	}
+}
+
+/** The plugin manager itself, not a button that opens it. */
+@Composable
+private fun ColumnScope.PluginsTab(runtimePlugins: RuntimePlugins) {
+	Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+		PluginSettingsSection(koinInject<PluginUiRegistry>().settingsPanes(), runtimePlugins)
 	}
 }
 
 @Composable
-private fun FolioCaption(
-	horizontalPadding: Dp,
-	sectionCount: Int,
-) {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = horizontalPadding, vertical = 10.dp),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-	) {
-		HdMonoLabel(text = Res.string.account_settings_folio_caption.get())
-		HdMonoLabel(
-			text = "·",
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		HdMonoLabel(text = "§§ $sectionCount")
-	}
+private fun ColumnScope.SyncSettingsTab(component: AccountSettings, scope: kotlinx.coroutines.CoroutineScope) {
+	SyncSettingsContent(component, scope)
+	BackupsSettingsUi(component, scope)
+	RemoveServerRow(component, scope)
+}
+
+@Composable
+private fun tabLabel(tab: SettingsTab): String = when (tab) {
+	SettingsTab.General -> Res.string.settings_tab_general.get()
+	SettingsTab.Writing -> Res.string.settings_tab_writing.get()
+	SettingsTab.Sync -> Res.string.settings_tab_sync.get()
+	SettingsTab.Plugins -> Res.string.settings_tab_plugins.get()
 }
 
 @Composable

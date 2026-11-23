@@ -15,41 +15,40 @@
 	<string name="timeline_view_cancel_button">Cancel</string>
 	<string name="timeline_view_edit_button">Edit</string>
 	<string name="timeline_view_close_button">Close Entry</string>
-	<string name="timeline_view_date_hint">optional</string>
 	<string name="timeline_view_date_placeholder">e.g. Spring of Y3</string>
 	<string name="timeline_view_undated">UNDATED</string>
 	<string name="timeline_view_status_unsaved">UNSAVED</string>
 	<string name="timeline_view_status_word_char">%1$d W · %2$d CH</string>
 	<string name="timeline_view_status_hint">ESC TO CANCEL</string>
 	<string name="timeline_view_word_count_short">%1$d W</string>
-	<string name="timeline_view_tag_count_short">%1$d TAGS</string>
 	<string name="timeline_view_toast_save_success">Saved</string>
 	<string name="timeline_view_toast_save_failure">Failed to save</string>
-	<string name="timeline_create_header">Create Event</string>
-	<string name="timeline_create_marker">III · NEW</string>
-	<string name="timeline_create_draft_label">DRAFT</string>
+	<string name="timeline_create_header">Create event</string>
+	<string name="timeline_create_body_label">Description</string>
 	<string name="timeline_create_word_count">%1$d W · %2$d CH</string>
 	<string name="timeline_create_cancel_button">Cancel</string>
 	<string name="timeline_create_create_button">Create</string>
-	<string name="timeline_create_date_hint">optional</string>
 	<string name="timeline_create_date_placeholder">e.g. Spring of Y3</string>
 
-	<string name="timeline_view_discard_title">Discard Changes?</string>
-	<string name="timeline_view_discard_message">You will lose any changes you have made.</string>
+	<string name="timeline_view_discard_title">Discard your changes?</string>
+	<string name="timeline_view_discard_message">Your edits to this event will be lost.</string>
 
 	<string name="timeline_view_menu_group">Event</string>
 	<string name="timeline_view_menu_delete">Delete</string>
 
-	<string name="timeline_view_confirm_delete_title">Delete Timeline Event?</string>
-	<string name="timeline_view_confirm_delete_message">This cannot be undone!</string>
+	<string name="timeline_view_discard_confirm">Discard</string>
+	<string name="timeline_view_discard_keep">Keep editing</string>
+	<string name="timeline_view_confirm_delete_button">Delete</string>
+	<string name="timeline_view_confirm_cancel">Cancel</string>
+	<string name="timeline_view_confirm_delete_title">Delete this event?</string>
+	<string name="timeline_view_confirm_delete_message">It can't be recovered.</string>
 
 	<string name="timeline_header">Timeline</string>
-	<string name="timeline_header_meta">%1$d ENTRIES · %2$d TAGS</string>
 	<string name="timeline_search_button">Search timeline</string>
 	<string name="timeline_search_placeholder">Search timeline</string>
 	<string name="timeline_search_close">Close search</string>
 	<string name="timeline_search_clear">Clear search</string>
-	<string name="timeline_filter_all">ALL</string>
+	<string name="timeline_filter_all">All</string>
 	<string name="timeline_filter_filtered">FILTERED · %1$d OF %2$d</string>
 	<string name="timeline_filter_clear_all">CLEAR ALL</string>
 
@@ -59,10 +58,8 @@
 	<string name="timeline_kind_entry">Encyclopedia event</string>
 	<string name="timeline_when_label">When</string>
 	<string name="timeline_title_label">Title</string>
-	<string name="timeline_title_hint">optional</string>
 	<string name="timeline_title_placeholder">e.g. The ship runs aground</string>
 	<string name="timeline_lane_label">Lane</string>
-	<string name="timeline_lane_hint">optional</string>
 	<string name="timeline_lane_placeholder">e.g. Alice</string>
 	<string name="timeline_milestone_label">Milestone</string>
 	<string name="timeline_milestone_hint">A turning point of the story, marked with a diamond</string>
@@ -143,7 +140,6 @@
 	<string name="timeline_view_sequence">Sequence</string>
 	<string name="timeline_view_to_scale">To scale</string>
 
-	<string name="timeline_settings_section_title">Timeline</string>
 	<string name="timeline_settings_caption">How the timeline orders its entries. A manual timeline follows the order you drag them into; a dated one orders them by their dates.</string>
 	<string name="timeline_settings_mode_label">Mode</string>
 	<string name="timeline_mode_manual">Manual</string>
@@ -152,7 +148,6 @@
 	<string name="timeline_preset_story">Story</string>
 	<string name="timeline_preset_gregorian">Gregorian</string>
 	<string name="timeline_settings_epoch_label">Epoch</string>
-	<string name="timeline_settings_epoch_hint">optional</string>
 	<string name="timeline_settings_epoch_placeholder">e.g. The Landing</string>
 	<string name="timeline_settings_coarsest_label">Told in</string>
 	<string name="timeline_settings_lanes_label">Lane order</string>
@@ -165,7 +160,6 @@
 	<string name="timeline_mode_dialog_manual_message">The current date order becomes the manual order. Dates are kept, but no longer order the timeline.</string>
 	<string name="timeline_mode_dialog_confirm">Switch</string>
 	<string name="timeline_mode_dialog_cancel">Cancel</string>
-	<string name="timeline_mode_dialog_close">Close</string>
 	<string name="timeline_preset_warning_label">Some dates do not fit</string>
 	<plurals name="timeline_preset_warning_message">
 		<item quantity="one">%1$d entry keeps its date as a label</item>
@@ -204,7 +198,6 @@
 	<string name="timeline_switcher_delete">Delete “%1$s”…</string>
 	<string name="timeline_switcher_settings">Timeline settings…</string>
 	<string name="timeline_switcher_cancel">Cancel</string>
-	<string name="timeline_switcher_close">Close</string>
 	<plurals name="timeline_deleted_notice_title">
 		<item quantity="one">%1$d event was added on another device to a timeline that has since been deleted.</item>
 		<item quantity="other">%1$d events were added on another device to a timeline that has since been deleted.</item>
@@ -220,7 +213,7 @@
 	<string name="timeline_new_title">New timeline</string>
 	<string name="timeline_new_confirm">Create</string>
 	<string name="timeline_name_label">Name</string>
-	<string name="timeline_rename_title">Rename timeline</string>
+	<string name="timeline_rename_title">Rename “%1$s”</string>
 	<string name="timeline_rename_confirm">Rename</string>
 	<string name="timeline_delete_title">Delete “%1$s”?</string>
 	<plurals name="timeline_delete_detail">
@@ -234,7 +227,6 @@
 	<string name="timeline_move_confirm">Move</string>
 	<string name="timeline_move_done">Moved to “%1$s”</string>
 	<string name="timeline_also_on">Also on</string>
-	<string name="timeline_settings_timelines_label">Timelines</string>
 	<string name="timeline_settings_new">+ New timeline</string>
 	<string name="timeline_settings_rename">Rename</string>
 	<string name="timeline_settings_delete">Delete</string>

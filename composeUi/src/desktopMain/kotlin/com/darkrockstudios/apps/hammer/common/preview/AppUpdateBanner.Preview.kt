@@ -1,7 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -22,6 +25,19 @@ private val bannerStates = listOf(
 	AppUpdateState.Installing(version = "9.9.9"),
 	AppUpdateState.Failed(version = "9.9.9", reason = "HTTP 503"),
 )
+
+/** Every state that draws, stacked, in whatever theme the caller provides. */
+@Composable
+fun AppUpdateBannerStates() {
+	Column(
+		modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp),
+	) {
+		for (state in bannerStates) {
+			AppUpdateBanner(state = state, onUpdate = {}, onOpenRelease = {}, onDismiss = {})
+		}
+	}
+}
 
 @Preview
 @Composable

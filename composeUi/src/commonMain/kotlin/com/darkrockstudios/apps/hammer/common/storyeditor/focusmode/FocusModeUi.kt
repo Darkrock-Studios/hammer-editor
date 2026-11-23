@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.focusmode
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCloseButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -14,11 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
@@ -140,8 +137,10 @@ fun FocusModeUi(component: FocusMode) {
 		) {
 			Row(
 				modifier = Modifier
-					.fillMaxWidth(),
+					.fillMaxWidth()
+					.background(MaterialTheme.colorScheme.surfaceContainerLow),
 				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically,
 			) {
 				// No insert image action: focus mode fills the project's one modal slot, which the
 				// image gallery would need.
@@ -153,16 +152,7 @@ fun FocusModeUi(component: FocusMode) {
 					modifier = Modifier.weight(1f),
 				)
 
-				IconButton(
-					onClick = component::dismiss,
-					modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
-				) {
-					Icon(
-						imageVector = Icons.Default.Close,
-						contentDescription = Res.string.scene_editor_menu_item_close.get(),
-						tint = MaterialTheme.colorScheme.onBackground
-					)
-				}
+				HdCloseButton(onClick = component::dismiss, contentDescription = Res.string.scene_editor_menu_item_close.get())
 			}
 
 			AnimatedVisibility(
@@ -206,6 +196,7 @@ fun FocusModeUi(component: FocusMode) {
 						style = rememberHammerEditorStyle(
 							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
+							unfocusedBorderColor = Color.Transparent,
 						),
 						modifier = Modifier
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))

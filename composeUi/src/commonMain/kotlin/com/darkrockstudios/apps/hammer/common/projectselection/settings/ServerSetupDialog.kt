@@ -7,7 +7,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -19,6 +18,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.common.account.MfaCodeStep
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
@@ -26,7 +26,6 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-private val DialogMaxWidth = 480.dp
 
 @Composable
 fun ServerSetupDialog(
@@ -82,36 +81,34 @@ fun ServerSetupDialogContent(
 			&& state.currentUserId != -1L
 	}
 
-	Surface(
-		modifier = modifier
-			.padding(Ui.Padding.M)
-			.widthIn(max = DialogMaxWidth)
-			.fillMaxWidth(),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
-	) {
+	HdDialogFrame(modifier = modifier, maxWidth = Ui.MaxWidth.DialogNarrow) {
 		Column {
-			Masthead(
-				existingServer = existingServer,
-				loggedIn = state.serverIsLoggedIn,
-				secondFactor = challenge != null,
+			TitleRow(
+				title = if (challenge != null) {
+					Res.string.settings_server_setup_mfa_title.get()
+				} else {
+					Res.string.settings_server_setup_title.get()
+				},
+				stamp = when {
+					challenge != null -> Res.string.settings_server_setup_mfa_step_stamp.get()
+					state.serverIsLoggedIn -> Res.string.settings_server_setup_connected_stamp.get()
+					else -> null
+				},
 				onHelp = { showHelpDialog = true },
-				onClose = { component.cancelServerSetup() },
 			)
-			HdFolioDivider()
 
-			Header()
+			if (challenge != null) {
+				HdMetaText(
+					text = Res.string.settings_server_setup_mfa_account.get(state.serverEmail ?: "", state.serverUrl ?: ""),
+					modifier = Modifier.padding(horizontal = Ui.Padding.XL),
+				)
+			}
 
 			if (state.serverWorking) {
 				LinearProgressIndicator(
 					modifier = Modifier
 						.fillMaxWidth()
-						.padding(horizontal = Ui.Padding.XL)
+						.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, top = Ui.Padding.M)
 						.height(2.dp),
 					color = MaterialTheme.colorScheme.primary,
 				)
@@ -124,39 +121,11 @@ fun ServerSetupDialogContent(
 					.padding(
 						start = Ui.Padding.XL,
 						end = Ui.Padding.XL,
-						top = Ui.Padding.L,
-						bottom = Ui.Padding.L,
+						top = Ui.Padding.XL,
+						bottom = Ui.Padding.XL,
 					),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
-				HdHairlineField(
-					label = "URL",
-					value = state.serverUrl ?: "",
-					onValueChange = { component.updateServerUrl(it) },
-					placeholder = Res.string.settings_server_setup_url_hint.get(),
-					singleLine = true,
-					imeAction = ImeAction.Next,
-					capitalization = KeyboardCapitalization.None,
-					autoCorrectEnabled = false,
-					keyboardType = KeyboardType.Uri,
-					enabled = !state.serverWorking && !existingServer && challenge == null,
-				)
-
-				if (state.serverUrlInsecure) {
-					HdMonoLabel(
-						text = "! " + Res.string.settings_server_setup_insecure_warning.get(),
-						color = MaterialTheme.colorScheme.error,
-					)
-				}
-
-				HdEmailField(
-					label = "EMAIL",
-					value = state.serverEmail ?: "",
-					onValueChange = { component.updateServerEmail(it) },
-					placeholder = Res.string.settings_server_setup_email_hint.get(),
-					enabled = !state.serverWorking && !existingServer && challenge == null,
-				)
-
 				if (challenge != null) {
 					MfaCodeStep(
 						challenge = challenge,
@@ -167,13 +136,37 @@ fun ServerSetupDialogContent(
 						enabled = !state.serverWorking,
 					)
 				} else {
+					HdHairlineField(
+						label = Res.string.settings_server_setup_url_label.get(),
+						value = state.serverUrl ?: "",
+						onValueChange = { component.updateServerUrl(it) },
+						placeholder = Res.string.settings_server_setup_url_hint.get(),
+						singleLine = true,
+						imeAction = ImeAction.Next,
+						capitalization = KeyboardCapitalization.None,
+						autoCorrectEnabled = false,
+						keyboardType = KeyboardType.Uri,
+						enabled = !state.serverWorking && !existingServer,
+					)
+
+					if (state.serverUrlInsecure) {
+						ErrorText(Res.string.settings_server_setup_insecure_warning.get())
+					}
+
+					HdEmailField(
+						label = Res.string.settings_server_setup_email_label.get(),
+						value = state.serverEmail ?: "",
+						onValueChange = { component.updateServerEmail(it) },
+						placeholder = Res.string.settings_server_setup_email_hint.get(),
+						enabled = !state.serverWorking && !existingServer,
+					)
+
 					HdPasswordField(
-						label = "PASSWORD",
+						label = Res.string.settings_server_setup_password_label.get(),
 						value = state.serverPassword ?: "",
 						onValueChange = { component.updateServerPassword(it) },
 						visible = passwordVisible,
 						onVisibleChange = { passwordVisible = it },
-						placeholder = Res.string.settings_server_setup_password_hint.get(),
 						hint = Res.string.settings_server_setup_password_requirements.get(
 							PasswordValidator.MIN_LENGTH,
 							PasswordValidator.MAX_LENGTH,
@@ -182,12 +175,7 @@ fun ServerSetupDialogContent(
 					)
 				}
 
-				state.serverError?.let { error ->
-					HdMonoLabel(
-						text = "! $error",
-						color = MaterialTheme.colorScheme.error,
-					)
-				}
+				state.serverError?.let { ErrorText(it) }
 			}
 
 			HorizontalDivider(
@@ -207,22 +195,39 @@ fun ServerSetupDialogContent(
 				)
 			}
 
-			if (challenge != null) {
-				MfaActionRow(
-					working = state.serverWorking,
-					canVerify = mfaCode.isNotBlank(),
-					onBack = { component.cancelMfa() },
-					onVerify = { component.submitMfaCode(mfaCode) },
-				)
-			} else {
-				ActionRow(
-					working = state.serverWorking,
-					isLoggedIn = state.serverIsLoggedIn,
-					canCreate = state.currentUrl == null,
-					onCancel = { scope.launch { component.cancelServerSetup() } },
-					onCreate = { setupServer(create = true) },
-					onLogin = { setupServer(create = false) },
-				)
+			ActionRow {
+				if (challenge != null) {
+					HdHairlineButton(
+						label = Res.string.settings_server_setup_mfa_back_button.get(),
+						onClick = { component.cancelMfa() },
+						enabled = !state.serverWorking,
+					)
+					HdHairlineButton(
+						label = Res.string.settings_server_setup_mfa_verify_button.get(),
+						onClick = { component.submitMfaCode(mfaCode) },
+						enabled = !state.serverWorking && mfaCode.isNotBlank(),
+						emphasised = true,
+					)
+				} else {
+					HdHairlineButton(
+						label = Res.string.settings_server_setup_cancel_button.get(),
+						onClick = { scope.launch { component.cancelServerSetup() } },
+						enabled = !state.serverWorking,
+					)
+					if (!state.serverIsLoggedIn) {
+						HdHairlineButton(
+							label = Res.string.settings_server_setup_create_button.get(),
+							onClick = { setupServer(create = true) },
+							enabled = !state.serverWorking && state.currentUrl == null,
+						)
+					}
+					HdHairlineButton(
+						label = Res.string.settings_server_setup_login_button.get(),
+						onClick = { setupServer(create = false) },
+						enabled = !state.serverWorking,
+						emphasised = true,
+					)
+				}
 			}
 		}
 	}
@@ -233,113 +238,40 @@ fun ServerSetupDialogContent(
 }
 
 @Composable
-private fun Masthead(
-	existingServer: Boolean,
-	loggedIn: Boolean,
-	secondFactor: Boolean,
-	onHelp: () -> Unit,
-	onClose: () -> Unit,
-) {
-	val meta = buildList {
-		if (existingServer) add("EXISTING")
-		if (loggedIn) add("CONNECTED")
-		if (secondFactor) add(Res.string.settings_server_setup_mfa_meta.get())
-	}
-	HdMasthead(
-		section = "SERVER SETUP",
-		leadingMeta = meta,
-		trailing = {
-			HdMastheadAction(label = "? HELP", onClick = onHelp)
-			HdMastheadAction(label = "× CLOSE", onClick = onClose)
-		},
-	)
-}
-
-@Composable
-private fun Header() {
-	Text(
-		text = Res.string.settings_server_setup_title.get(),
-		style = MaterialTheme.typography.headlineSmall,
-		color = MaterialTheme.colorScheme.onSurface,
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
-				top = Ui.Padding.L,
-				bottom = Ui.Padding.S,
-			),
-	)
-}
-
-@Composable
-private fun ActionRow(
-	working: Boolean,
-	isLoggedIn: Boolean,
-	canCreate: Boolean,
-	onCancel: () -> Unit,
-	onCreate: () -> Unit,
-	onLogin: () -> Unit,
-) {
+private fun TitleRow(title: String, stamp: String?, onHelp: () -> Unit) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+			.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, top = Ui.Padding.XL, bottom = Ui.Padding.S),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		HdHairlineButton(
-			label = Res.string.settings_server_setup_cancel_button.get(),
-			onClick = onCancel,
-			enabled = !working,
+		Text(
+			text = title,
+			style = MaterialTheme.typography.titleLarge,
+			color = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier.weight(1f),
 		)
-
-		Spacer(modifier = Modifier.weight(1f))
-
-		if (!isLoggedIn) {
-			HdHairlineButton(
-				label = Res.string.settings_server_setup_create_button.get(),
-				onClick = onCreate,
-				enabled = !working && canCreate,
-			)
-		}
-
-		HdHairlineButton(
-			label = Res.string.settings_server_setup_login_button.get(),
-			onClick = onLogin,
-			enabled = !working,
-			emphasised = true,
-		)
+		stamp?.let { HdMonoLabel(text = it) }
+		HdHelpButton(onClick = onHelp, contentDescription = Res.string.settings_server_setup_help_description.get())
 	}
 }
 
 @Composable
-private fun MfaActionRow(
-	working: Boolean,
-	canVerify: Boolean,
-	onBack: () -> Unit,
-	onVerify: () -> Unit,
-) {
-	Row(
+private fun ErrorText(text: String) {
+	Text(text = text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ActionRow(buttons: @Composable () -> Unit) {
+	FlowRow(
 		modifier = Modifier
 			.fillMaxWidth()
 			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		HdHairlineButton(
-			label = Res.string.settings_server_setup_mfa_back_button.get(),
-			onClick = onBack,
-			enabled = !working,
-		)
-
-		Spacer(modifier = Modifier.weight(1f))
-
-		HdHairlineButton(
-			label = Res.string.settings_server_setup_mfa_verify_button.get(),
-			onClick = onVerify,
-			enabled = !working && canVerify,
-			emphasised = true,
-		)
+		buttons()
 	}
 }

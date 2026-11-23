@@ -1,12 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview.duplicateids
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.components.duplicateids.DuplicateIds
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
@@ -54,12 +49,7 @@ private val previewState = DuplicateIds.State(
 private fun DuplicateIdsPreviewScaffold(state: DuplicateIds.State, darkTheme: Boolean) {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, useDarkTheme = darkTheme) {
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-				contentAlignment = Alignment.Center,
-			) {
+			PreviewScrim {
 				DuplicateIdsContent(state = state, onToggleKeep = {}, onKeep = {}, onDecideLater = {})
 			}
 		}

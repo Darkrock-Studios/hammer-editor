@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="save_draft_dialog_title">Start New Draft:</string>
-	<string name="save_draft_dialog_name_hint">Draft name</string>
-	<string name="save_draft_dialog_save_button">Save</string>
+	<string name="save_draft_dialog_title">Start a new draft</string>
+	<string name="save_draft_dialog_save_button">Start draft</string>
 	<string name="save_draft_dialog_cancel_button">Cancel</string>
-	<string name="save_draft_dialog_toast_success">Draft Saved</string>
-	<string name="save_draft_dialog_current_draft">Saving current draft as:</string>
-	<string name="save_draft_dialog_error">Current draft name is invalid!</string>
-	<string name="scene_editor_rename_dialog_title">Rename Scene</string>
+	<string name="save_draft_dialog_toast_success">Draft saved</string>
+	<string name="save_draft_dialog_current_draft_named">The current draft is kept as “%1$s”.</string>
+	<string name="save_draft_dialog_name_label">New draft name</string>
+	<string name="save_draft_dialog_name_error">That name can't be used for a draft</string>
+	<string name="save_draft_dialog_error">The current draft's name isn't valid. Change it in Scene Info.</string>
 	<string name="scene_editor_name_hint">Scene Name</string>
 	<string name="scene_editor_rename_button">Rename</string>
 	<string name="scene_editor_cancel_button">Cancel</string>
 	<string name="scene_editor_unsaved_chip">Unsaved</string>
 	<string name="scene_editor_save_button">Save</string>
-	<string name="scene_editor_metadata_button">Scene Info</string>
+	<string name="scene_editor_metadata_button">Scene info</string>
 	<string name="scene_editor_toast_save_successful">Saved</string>
 	<string name="scene_editor_menu_group">Scene</string>
 	<string name="scene_editor_menu_item_save_draft">New Draft</string>
@@ -27,17 +27,13 @@
 	<string name="scene_editor_menu_item_read">Read</string>
 	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
 
-	<string name="archive_scene_dialog_title">Archive Scene</string>
-	<string name="archive_scene_dialog_message">Are you sure you want to archive '%1$s'? The scene will be hidden from the scene list but can be restored later.</string>
-	<string name="archive_scene_dialog_confirm">Archive</string>
-	<string name="archive_scene_dialog_cancel">Cancel</string>
 
-	<string name="discard_buffer_dialog_title">Discard Changes</string>
-	<string name="discard_buffer_dialog_message">Are you sure you want to discard all unsaved changes to '%1$s'? This will reload the last saved version from disk.</string>
+	<string name="discard_buffer_dialog_title">Discard changes to “%1$s”?</string>
+	<string name="discard_buffer_dialog_message">This drops your unsaved edits and reloads the last saved version.</string>
 	<string name="discard_buffer_dialog_confirm">Discard</string>
-	<string name="discard_buffer_dialog_cancel">Cancel</string>
+	<string name="discard_buffer_dialog_cancel">Keep editing</string>
 
-	<string name="archived_scenes_dialog_title">Archived Scenes</string>
+	<string name="archived_scenes_dialog_title">Archived scenes</string>
 	<string name="archived_scenes_empty">No archived scenes</string>
 	<string name="archived_scenes_restore_button">Restore</string>
 	<string name="archived_scenes_restored_snackbar">"%1$s" has been restored</string>
@@ -46,8 +42,8 @@
 
 	<string name="scene_editor_focus_mode_button">Enter Focus Mode</string>
 
-	<string name="scene_editor_metadata_title">Metadata</string>
-	<string name="scene_editor_metadata_hide_button">Hide Info</string>
+	<string name="scene_editor_metadata_title">Scene info</string>
+	<string name="scene_editor_metadata_hide_button">Hide scene info</string>
 	<string name="scene_editor_metadata_word_count_label">Words:</string>
 	<string name="scene_editor_metadata_advanced_header">Advanced</string>
 	<string name="scene_editor_metadata_entity_id">Entity ID:</string>
@@ -62,7 +58,7 @@
 
 	<string name="scene_editor_metadata_notes_label">Notes</string>
 	<string name="scene_editor_metadata_notes_placeholder">Notes to yourself.</string>
-	<string name="scene_editor_metadata_draft_name_label">Draft Name</string>
+	<string name="scene_editor_metadata_draft_name_label">Draft name</string>
 
 	<string name="scene_editor_metadata_references_header">References</string>
 	<string name="scene_editor_metadata_references_dismissed_label">Dismissed</string>
@@ -81,16 +77,16 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Search locations…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Search entries…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">No matching entries.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Close dialog</string>
 
 	<string name="scene_editor_metadata_tags_header">Tags</string>
 	<string name="scene_editor_metadata_tags_empty">No tags yet</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Add tag</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Add tags</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Done</string>
+	<string name="scene_editor_metadata_tags_add_dialog_add">Add</string>
+	<string name="scene_editor_metadata_tags_add_dialog_field_label">Tags, separated by spaces</string>
 
-	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
+	<string name="scene_editor_no_scene_selected">Pick a scene to start writing.</string>
 
 	<string name="default_draft_name">New Draft</string>
 </resources>

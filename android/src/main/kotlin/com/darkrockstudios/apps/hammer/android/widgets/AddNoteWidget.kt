@@ -38,6 +38,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import io.github.aakira.napier.Napier
+import androidx.glance.LocalContext
+import com.darkrockstudios.apps.hammer.android.R
 
 class AddNoteWidget : GlanceAppWidget() {
 
@@ -143,7 +145,7 @@ private fun AddNoteWidgetContent(
 					verticalAlignment = Alignment.Vertical.Bottom,
 				) {
 					Text(
-						text = "NOTE",
+						text = LocalContext.current.getString(R.string.add_note_widget_label),
 						style = monoLabelStyle(widgetColor { it.onSurface }),
 					)
 					Box(modifier = GlanceModifier.defaultWeight()) {}

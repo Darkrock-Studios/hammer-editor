@@ -1,13 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogTitleRow
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
@@ -17,20 +15,17 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toCompactText
-import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
+import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -77,6 +72,8 @@ internal fun ProjectSynchronization(
 		SimpleConfirm(
 			title = Res.string.account_sync_confirm_cancel_title.get(),
 			message = Res.string.account_sync_confirm_cancel_message.get(),
+			positiveButton = Res.string.account_sync_confirm_cancel_stop.get(),
+			negativeButton = Res.string.account_sync_confirm_cancel_keep.get(),
 			onDismiss = { confirmCancel = false },
 			onConfirm = {
 				component.cancelSync()
@@ -120,32 +117,14 @@ internal fun ProjectSynchronizationContent(
 		}
 	}
 
-	Surface(
-		modifier = modifier
-			.padding(Ui.Padding.M)
-			.widthIn(max = maxWidth)
-			.fillMaxWidth(),
-		shape = RectangleShape,
-		color = MaterialTheme.colorScheme.surface,
-		contentColor = MaterialTheme.colorScheme.onSurface,
-		border = BorderStroke(
-			width = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		),
-	) {
+	HdDialogFrame(modifier = modifier, maxWidth = maxWidth) {
 		Column {
-			Masthead(
-				inLogView = state.showLog,
-				state = state,
-				onClose = onClose,
-			)
-			HdFolioDivider()
-
 			TitleAndToolbar(
 				inLogView = state.showLog,
 				isSyncing = state.isSyncing,
 				onStop = { component.cancelSync() },
 				onToggleLog = { component.showLog(!state.showLog) },
+				onClose = onClose,
 			)
 
 			if (!state.showLog) {
@@ -197,7 +176,7 @@ internal fun ProjectSynchronizationContent(
 						}
 					}
 
-					state.showLog -> LogList(state.syncLog)
+					state.showLog -> SyncLogList(state.syncLog, showProjectName = false, horizontalPadding = Ui.Padding.XL)
 
 					else -> StatusBody(state)
 				}
@@ -208,29 +187,8 @@ internal fun ProjectSynchronizationContent(
 				)
 			}
 
-			FooterBar(inLogView = state.showLog)
 		}
 	}
-}
-
-@Composable
-private fun Masthead(
-	inLogView: Boolean,
-	state: ProjectSynchronization.State,
-	onClose: () -> Unit,
-) {
-	val meta = when {
-		inLogView -> "${state.syncLog.size} ENTRIES"
-		state.failed -> "FAILED"
-		state.isSyncing -> "${(state.syncProgress * 100).toInt()}% · IN PROGRESS"
-		else -> "DONE"
-	}
-
-	HdMasthead(
-		section = "PROJECT",
-		leadingMeta = listOf(meta),
-		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
-	)
 }
 
 @Composable
@@ -239,40 +197,21 @@ private fun TitleAndToolbar(
 	isSyncing: Boolean,
 	onStop: () -> Unit,
 	onToggleLog: () -> Unit,
+	onClose: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(
-				start = Ui.Padding.XL,
-				end = Ui.Padding.XL,
-				top = Ui.Padding.L,
-				bottom = Ui.Padding.M,
-			),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	HdDialogTitleRow(
+		title = if (inLogView) {
+			Res.string.account_sync_log_title.get()
+		} else {
+			Res.string.sync_project_dialog_title.get()
+		},
+		onClose = onClose,
 	) {
-		Text(
-			text = if (inLogView) {
-				Res.string.account_sync_log_title.get()
-			} else {
-				Res.string.sync_project_dialog_title.get()
-			},
-			style = MaterialTheme.typography.headlineSmall,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-
 		if (isSyncing) {
 			HdToolButton(active = false, onClick = onStop) {
-				Box(
-					modifier = Modifier
-						.size(9.dp)
-						.background(MaterialTheme.colorScheme.onSurfaceVariant),
-				)
+				HdStopGlyph()
 			}
 		}
-
 		HdToolButton(active = inLogView, onClick = onToggleLog) {
 			HdLogGlyph()
 		}
@@ -281,12 +220,11 @@ private fun TitleAndToolbar(
 
 @Composable
 private fun OverallProgressStrip(state: ProjectSynchronization.State) {
-	val (status, statusWord) = when {
-		state.failed -> HdStatus.Failed to "FAILED"
-		state.isSyncing -> HdStatus.Syncing to "SYNCING"
-		else -> HdStatus.Complete to "DONE"
+	val status = when {
+		state.failed -> HdStatus.Failed
+		state.isSyncing -> HdStatus.Syncing
+		else -> HdStatus.Complete
 	}
-	val pct = (state.syncProgress * 100).toInt()
 
 	Row(
 		modifier = Modifier
@@ -295,17 +233,13 @@ private fun OverallProgressStrip(state: ProjectSynchronization.State) {
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		HdMonoLabel(
-			text = statusWord,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 		HdHairlineProgressBar(
 			progress = state.syncProgress,
 			color = status.accentColor(),
 			modifier = Modifier.weight(1f),
 		)
 		HdMonoLabel(
-			text = "$pct%",
+			text = Res.string.sync_project_dialog_percent.get((state.syncProgress * 100).toInt()),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
@@ -327,61 +261,6 @@ private fun BoxScope.StatusBody(state: ProjectSynchronization.State) {
 	) {
 		HdStatusGlyph(status, size = 28.dp)
 		HdMonoLabel(text = label)
-	}
-}
-
-@Composable
-private fun LogList(log: List<SyncLogMessage>) {
-	val listState: LazyListState = rememberLazyListState()
-
-	LazyColumn(
-		state = listState,
-		modifier = Modifier.fillMaxWidth(),
-		contentPadding = PaddingValues(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-	) {
-		items(
-			count = log.size,
-			key = { log[it].timestamp.toEpochMilliseconds() to it },
-		) { index ->
-			SyncLogMessageUi(log[index], showProjectName = false)
-		}
-	}
-
-	val pinnedToTail by remember {
-		derivedStateOf {
-			val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-			last < 0 || last >= log.size - 2
-		}
-	}
-	LaunchedEffect(log.size) {
-		if (log.isNotEmpty() && pinnedToTail) {
-			listState.scrollToItem(log.size - 1)
-		}
-	}
-}
-
-@Composable
-private fun FooterBar(inLogView: Boolean) {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
-		HdMonoLabel(
-			text = if (inLogView) "LIVE · TAIL" else "PROJECT · SYNC",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "ESC CLOSE",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 	}
 }
 
@@ -428,7 +307,7 @@ private fun rememberConflictSummary(
 			is ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict -> ConflictSummary(
 				label = encyclopediaLabel,
 				name = entity.serverEntity.name,
-				meta = "ENC · ${entity.serverEntity.entryType.uppercase()}",
+				meta = null,
 			)
 			is ProjectSynchronization.EntityConflict.SceneDraftConflict -> ConflictSummary(
 				label = sceneDraftLabel,
@@ -438,10 +317,10 @@ private fun rememberConflictSummary(
 			is ProjectSynchronization.EntityConflict.ImageConflict -> ConflictSummary(
 				label = imageLabel,
 				name = entity.serverEntity.name,
-				meta = "IMG · ${entity.serverEntity.fileExtension.uppercase()}",
+				meta = entity.serverEntity.fileExtension.uppercase(),
 			)
 			null -> ConflictSummary(
-				label = if (projectData != null) projectDataLabel else "Conflict",
+				label = projectDataLabel,
 				name = null,
 				meta = null,
 			)

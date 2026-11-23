@@ -1,12 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview.protocolmismatch
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import com.darkrockstudios.apps.hammer.common.preview.PreviewScrim
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatch
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
@@ -36,12 +31,7 @@ private fun ProtocolMismatchPreviewScaffold(
 ) {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, useDarkTheme = darkTheme) {
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
-				contentAlignment = Alignment.Center,
-			) {
+			PreviewScrim {
 				ProtocolMismatchContent(
 					state = state,
 					onOpenRelease = {},
@@ -80,4 +70,16 @@ fun ProtocolMismatchNoVersionInfoPreview() {
 		previewState(latestVersionTag = null, isNewVersionAvailable = false, releaseUrl = null),
 		darkTheme = false,
 	)
+}
+
+/** Gallery entry: the theme comes from the gallery harness. */
+@Composable
+fun ProtocolMismatchDialogPreview(clientIsBehind: Boolean = true) {
+	PreviewScrim {
+		ProtocolMismatchContent(
+			state = previewState(clientIsBehind = clientIsBehind, isNewVersionAvailable = clientIsBehind),
+			onOpenRelease = {},
+			onDismiss = {},
+		)
+	}
 }

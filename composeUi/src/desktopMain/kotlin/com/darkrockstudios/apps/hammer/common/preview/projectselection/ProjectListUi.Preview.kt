@@ -1,6 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.preview.projectselection
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
+import com.darkrockstudios.apps.hammer.common.projectselection.toHdBottomBarDestination
+import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
@@ -14,6 +30,7 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.components.projectselection.GroupData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
@@ -26,12 +43,15 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
-import com.darkrockstudios.apps.hammer.common.preview.fakeProjectMetadata
+import com.darkrockstudios.apps.hammer.common.projectselection.AppUpdateBanner
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectListUi
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.jetbrains.compose.resources.StringResource
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
 
@@ -51,6 +71,65 @@ fun ScreenProjectListUiTabletPreview() {
 	KoinApplicationPreview {
 		TabletPreviewSurface {
 			ProjectListUi(previewComponent, rootSnackbar)
+		}
+	}
+}
+
+/** The list with the update notice under its masthead. */
+@Composable
+fun ScreenProjectListUiUpdateTabletPreview() {
+	val rootSnackbar = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectListUi(
+				previewComponent,
+				rootSnackbar,
+				notice = { padding ->
+					AppUpdateBanner(
+						state = AppUpdateState.Available(version = "9.9.9", installable = true),
+						onUpdate = {},
+						onOpenRelease = {},
+						onDismiss = {},
+						horizontalPadding = padding,
+					)
+				},
+			)
+		}
+	}
+}
+
+/** The project selection shell (rail or bottom bar) around the project list, as `ProjectSelectScaffold` lays it out. */
+@Composable
+fun ScreenProjectSelectShellTabletPreview(railExpanded: Boolean = false) {
+	val rootSnackbar = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			BoxWithConstraints(Modifier.fillMaxSize()) {
+				val compact = rememberWindowSizeClass(constraints).widthSizeClass == WindowWidthSizeClass.Compact
+				val selected = ProjectSelection.Locations.Projects
+				if (compact) {
+					Column(Modifier.fillMaxSize()) {
+						Box(Modifier.weight(1f).fillMaxWidth()) { ProjectListUi(previewComponent, rootSnackbar) }
+						HdBottomBar(
+							destinations = ProjectSelection.Locations.entries.map { it.toHdBottomBarDestination() },
+							selectedId = selected,
+							onSelect = {},
+						)
+					}
+				} else {
+					Row(Modifier.fillMaxSize()) {
+						HdNavRail(
+							destinations = ProjectSelection.Locations.entries.map { it.toHdNavRailDestination() },
+							selectedId = selected,
+							onSelect = {},
+							expanded = railExpanded,
+							onToggleExpanded = {},
+							footer = { HdMonoLabel(text = "v4.0.0", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+						)
+						ProjectListUi(previewComponent, rootSnackbar)
+					}
+				}
+			}
 		}
 	}
 }
@@ -75,6 +154,17 @@ fun ScreenProjectListUiGroupedTabletPreview() {
 	}
 }
 
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenProjectListUiSearchingTabletPreview() {
+	val rootSnackbar = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectListUi(groupedPreviewComponent, rootSnackbar, initialSearchOpen = true)
+		}
+	}
+}
+
 fun previewProject(
 	name: String,
 	tags: Set<String> = setOf("fantasy", "draft"),
@@ -85,8 +175,14 @@ fun previewProject(
 		name = name,
 		path = HPath(name = name, path = "${parent?.path?.path ?: ""}/$name", isAbsolute = true),
 	),
-	metadata = fakeProjectMetadata(),
+	metadata = ProjectMetadata(
+		info = Info(
+			created = Instant.parse("2024-02-03T10:00:00Z") + (name.length * 9).days,
+			lastAccessed = Instant.parse("2026-11-16T10:00:00Z") - (name.length * 3).days,
+		),
+	),
 	storedData = StoredData(authorName = "A. Writer", tags = tags),
+	totalWords = name.length * 4_381,
 )
 
 fun previewGroup(name: String, parent: GroupDef? = null, description: String? = null) = GroupDef(

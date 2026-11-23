@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="save_draft_dialog_title">Neuen Entwurf beginnen:</string>
-	<string name="save_draft_dialog_name_hint">Entwurfsname</string>
 	<string name="save_draft_dialog_save_button">Speichern</string>
 	<string name="save_draft_dialog_cancel_button">Abbrechen</string>
 	<string name="save_draft_dialog_toast_success">Entwurf gespeichert</string>
-	<string name="save_draft_dialog_current_draft">Aktuellen Entwurf speichern als:</string>
 	<string name="save_draft_dialog_error">Der aktuelle Entwurfsname ist ungültig!</string>
-	<string name="scene_editor_rename_dialog_title">Szene umbenennen</string>
 	<string name="scene_editor_name_hint">Szenenname</string>
 	<string name="scene_editor_rename_button">Umbenennen</string>
 	<string name="scene_editor_cancel_button">Abbrechen</string>
@@ -26,10 +23,6 @@
 	<string name="scene_editor_menu_item_close">Schließen</string>
 	<string name="scene_editor_menu_item_read">Read</string>
 	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
-	<string name="archive_scene_dialog_title">Szene archivieren</string>
-	<string name="archive_scene_dialog_message">Möchten Sie '%1$s' wirklich archivieren? Die Szene wird aus der Szenenliste ausgeblendet, kann aber später wiederhergestellt werden.</string>
-	<string name="archive_scene_dialog_confirm">Archivieren</string>
-	<string name="archive_scene_dialog_cancel">Abbrechen</string>
 	<string name="discard_buffer_dialog_title">Änderungen verwerfen</string>
 	<string name="discard_buffer_dialog_message">Möchten Sie wirklich alle nicht gespeicherten Änderungen an '%1$s' verwerfen? Dadurch wird die zuletzt gespeicherte Version von der Festplatte neu geladen.</string>
 	<string name="discard_buffer_dialog_confirm">Verwerfen</string>
@@ -72,12 +65,10 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Orte suchen…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Einträge suchen…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Keine passenden Einträge.</string>
-	<string name="scene_editor_metadata_references_add_dialog_close">Dialog schließen</string>
 	<string name="scene_editor_metadata_tags_header">Tags</string>
 	<string name="scene_editor_metadata_tags_empty">Noch keine Tags</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Tag hinzufügen</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Tags hinzufügen</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Fertig</string>
 	<string name="scene_editor_no_scene_selected">Wählen Sie eine Szene zum Bearbeiten</string>
 	<string name="default_draft_name">Neuer Entwurf</string>

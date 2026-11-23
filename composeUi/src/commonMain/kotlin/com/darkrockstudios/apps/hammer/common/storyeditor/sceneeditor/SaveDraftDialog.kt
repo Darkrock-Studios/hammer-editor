@@ -1,9 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Icon
@@ -13,20 +12,20 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.FormDialog
-import com.darkrockstudios.apps.hammer.common.compose.FormField
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.FormDialogScaffold
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 @Composable
 internal fun SaveDraftDialog(
@@ -66,66 +65,78 @@ internal fun SaveDraftDialog(
 		}
 	}
 
-	FormDialog(
+	AnimatedDialog(
 		visible = true,
-		marker = "§ SAVE",
-		meta = "DRAFT",
+		onCloseRequest = ::close,
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center,
+	) {
+		SaveDraftCard(
+			currentDraftName = currentDraftName,
+			currentDraftIsValid = currentDraftIsValid,
+			draftName = draftName,
+			onDraftNameChange = { draftName = it },
+			isValidDraftName = isValidDraftName,
+			onConfirm = ::submit,
+			onCancel = ::close,
+			autoFocus = true,
+		)
+	}
+}
+
+@Composable
+internal fun SaveDraftCard(
+	currentDraftName: String,
+	currentDraftIsValid: Boolean,
+	draftName: String,
+	onDraftNameChange: (String) -> Unit,
+	isValidDraftName: Boolean,
+	onConfirm: () -> Unit,
+	onCancel: () -> Unit,
+	autoFocus: Boolean = false,
+) {
+	FormDialogScaffold(
 		title = Res.string.save_draft_dialog_title.get(),
 		confirmLabel = Res.string.save_draft_dialog_save_button.get(),
 		cancelLabel = Res.string.save_draft_dialog_cancel_button.get(),
-		onConfirm = ::submit,
-		onCancel = ::close,
-		onDismiss = ::close,
+		onConfirm = onConfirm,
+		onCancel = onCancel,
 		confirmEnabled = isValidDraftName && currentDraftIsValid,
 	) {
-		// Read-only "current draft" status block — uses the same mono-caps-label vocabulary.
-		Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-			Text(
-				text = Res.string.save_draft_dialog_current_draft.get().uppercase(),
-				fontFamily = hammerMonoFontFamily(),
-				fontSize = 10.sp,
-				letterSpacing = 1.8.sp,
-				color = if (currentDraftIsValid) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
-			)
-			Text(
-				text = "\"$currentDraftName\"",
-				style = MaterialTheme.typography.titleMedium.copy(
-					fontWeight = FontWeight.Normal,
-					letterSpacing = (-0.16).sp,
-				),
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-			if (!currentDraftIsValid) {
-				Row(
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(6.dp),
-					modifier = Modifier.padding(top = 2.dp),
-				) {
-					Icon(
-						Icons.Filled.Error,
-						tint = MaterialTheme.colorScheme.error,
-						contentDescription = null,
-						modifier = Modifier.padding(end = 2.dp),
-					)
-					Text(
-						text = Res.string.save_draft_dialog_error.get(),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.error,
-					)
-				}
+		Text(
+			text = Res.string.save_draft_dialog_current_draft_named.get(currentDraftName),
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		if (!currentDraftIsValid) {
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+			) {
+				Icon(
+					Icons.Filled.Error,
+					tint = MaterialTheme.colorScheme.error,
+					contentDescription = null,
+				)
+				Text(
+					text = Res.string.save_draft_dialog_error.get(),
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.error,
+				)
 			}
 		}
 
-		FormField(
+		HdHairlineField(
 			value = draftName,
-			onValueChange = { draftName = it },
-			label = "NEW DRAFT NAME",
-			placeholder = Res.string.save_draft_dialog_name_hint.get(),
-			autoFocus = true,
+			onValueChange = onDraftNameChange,
+			label = Res.string.save_draft_dialog_name_label.get(),
+			autoFocus = autoFocus,
 			error = if (draftName.isNotEmpty() && !isValidDraftName) {
-				Res.string.save_draft_dialog_error.get()
+				Res.string.save_draft_dialog_name_error.get()
 			} else null,
-			onImeAction = ::submit,
+			onImeAction = onConfirm,
+			imeAction = ImeAction.Done,
+			capitalization = KeyboardCapitalization.None,
 		)
 	}
 }

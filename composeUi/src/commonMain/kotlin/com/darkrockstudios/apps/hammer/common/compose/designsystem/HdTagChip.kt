@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 
@@ -67,7 +66,7 @@ fun HdTagChip(
 			.height(24.dp)
 			.widthIn(max = MAX_TAG_CHIP_WIDTH)
 			.background(background, RectangleShape)
-			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
+			.hdControlFrame(borderColor)
 			.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
 			.padding(start = 6.dp, end = if (onRemove != null) 2.dp else 8.dp),
 		verticalAlignment = Alignment.CenterVertically,

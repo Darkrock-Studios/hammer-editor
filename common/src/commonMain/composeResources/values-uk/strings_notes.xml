@@ -7,8 +7,6 @@
 	<string name="notes_discard_dialog_title">Відхилити зміни?</string>
 	<string name="notes_discard_dialog_message">Ви втратите всі внесені зміни.</string>
 	<string name="notes_create_header">Створити нотатку</string>
-	<string name="notes_create_marker">III · НОВЕ</string>
-	<string name="notes_create_draft_label">ЧЕРНЕТКА</string>
 	<string name="notes_create_create_button">Створити</string>
 	<string name="notes_create_cancel_button">Скасувати</string>
 	<string name="notes_create_toast_success">Нотатку створено</string>
@@ -23,7 +21,6 @@
 	<string name="notes_delete_toast_success">Note Deleted</string>
 	<string name="notes_menu_group">Нотатка</string>
 	<string name="notes_menu_delete">Видалити</string>
-	<string name="notes_view_header">Нотатка</string>
 	<string name="notes_view_label_editing">Редагування</string>
 	<string name="notes_view_close_button">Закрити нотатку</string>
 	<string name="notes_view_crumb_root">Нотатки</string>
@@ -36,7 +33,6 @@
 	<string name="notes_search_placeholder">Пошук нотаток</string>
 	<string name="notes_search_close">Закрити пошук</string>
 	<string name="notes_search_clear">Очистити пошук</string>
-	<string name="notes_header_meta">%1$d НОТАТОК · %2$d ТЕГІВ</string>
 	<string name="notes_word_count_short">%1$d СЛ</string>
 	<string name="notes_filter_all">УСІ</string>
 	<string name="notes_filter_filtered">ВІДФІЛЬТРОВАНО · %1$d З %2$d</string>

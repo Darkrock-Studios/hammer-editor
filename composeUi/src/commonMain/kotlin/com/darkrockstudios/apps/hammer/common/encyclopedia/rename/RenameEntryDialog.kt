@@ -60,68 +60,64 @@ internal fun RenameEntryDialog(component: RenameEntry) {
 			usePlatformDefaultWidth = false,
 		),
 	) {
-		val frame = if (isCompact) {
-			Modifier.fillMaxSize()
-		} else {
-			Modifier
-				.padding(Ui.Padding.XL)
-				.widthIn(max = DialogMaxWidth)
-				.heightIn(max = DialogMaxHeight)
-				.fillMaxWidth()
-				.fillMaxHeight(0.9f)
-		}
-		Surface(
-			modifier = frame.predictiveBackTransform(),
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
-		) {
-			Column(modifier = Modifier.fillMaxSize()) {
-				HdMasthead(
-					section = Res.string.encyclopedia_entry_rename_marker.get(),
-					leadingMeta = mastheadMeta(state),
-					trailing = {
-						if (state.canClose) {
-							HdMastheadAction(
-								label = Res.string.encyclopedia_entry_rename_close.get(),
-								onClick = ::requestDismiss,
-							)
-						}
-					},
-				)
-				HdFolioDivider()
-
-				Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-					when (val step = state.step) {
-						Step.Loading -> ProgressBody(label = null, progress = null)
-						Step.Names -> NamesBody(state, component)
-						is Step.Searching -> ProgressBody(
-							label = Res.string.encyclopedia_entry_rename_searching.get(),
-							progress = step.progress,
-						)
-
-						is Step.Summary -> SummaryBody(step, component)
-						is Step.Applying -> ProgressBody(
-							label = Res.string.encyclopedia_entry_rename_applying.get(),
-							progress = step.progress,
-						)
-
-						is Step.Done -> DoneBody(step.result)
-					}
-				}
-
-				Footer(state, component, onDone = ::requestDismiss)
-			}
-		}
+		RenameEntryCard(
+			state = state,
+			component = component,
+			isCompact = isCompact,
+			onClose = ::requestDismiss,
+			modifier = Modifier.predictiveBackTransform(),
+		)
 	}
 }
 
 @Composable
-private fun mastheadMeta(state: RenameEntry.State): List<String> = when (val step = state.step) {
-	Step.Names -> listOf(Res.string.encyclopedia_entry_rename_meta_forms.get(1 + state.aliases.size))
-	is Step.Summary -> listOf(Res.string.encyclopedia_entry_rename_meta_changes.get(step.pendingCount))
-	else -> emptyList()
+internal fun RenameEntryCard(
+	state: RenameEntry.State,
+	component: RenameEntry,
+	isCompact: Boolean,
+	onClose: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	val frame = if (isCompact) {
+		Modifier.fillMaxSize()
+	} else {
+		Modifier
+			.padding(Ui.Padding.XL)
+			.widthIn(max = DialogMaxWidth)
+			.heightIn(max = DialogMaxHeight)
+			.fillMaxWidth()
+			.fillMaxHeight(0.9f)
+	}
+	Surface(
+		modifier = frame.then(modifier),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
+	) {
+		Column(modifier = Modifier.fillMaxSize()) {
+			Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+				when (val step = state.step) {
+					Step.Loading -> ProgressBody(label = null, progress = null)
+					Step.Names -> NamesBody(state, component)
+					is Step.Searching -> ProgressBody(
+						label = Res.string.encyclopedia_entry_rename_searching.get(),
+						progress = step.progress,
+					)
+
+					is Step.Summary -> SummaryBody(step, component)
+					is Step.Applying -> ProgressBody(
+						label = Res.string.encyclopedia_entry_rename_applying.get(),
+						progress = step.progress,
+					)
+
+					is Step.Done -> DoneBody(step.result)
+				}
+			}
+
+			Footer(state, component, onDone = onClose)
+		}
+	}
 }
 
 @Composable
@@ -296,7 +292,7 @@ private fun SummaryBody(summary: Step.Summary, component: RenameEntry) {
 		item {
 			Text(
 				text = summaryHeadline(summary),
-				style = MaterialTheme.typography.titleMedium,
+				style = MaterialTheme.typography.headlineSmall,
 			)
 		}
 		item {
@@ -458,12 +454,7 @@ private fun summaryHeadline(summary: Step.Summary): String {
 	val preview = summary.preview
 	return when {
 		preview.items.isEmpty() -> Res.string.encyclopedia_entry_rename_summary_none.get()
-		summary.pendingCount == 1 -> Res.string.encyclopedia_entry_rename_summary_one.get(preview.oldName, preview.newName)
-		else -> Res.string.encyclopedia_entry_rename_summary_other.get(
-			summary.pendingCount,
-			preview.oldName,
-			preview.newName,
-		)
+		else -> Res.string.encyclopedia_entry_rename_summary_title.get(preview.oldName, preview.newName)
 	}
 }
 
@@ -539,6 +530,11 @@ private fun Footer(state: RenameEntry.State, component: RenameEntry, onDone: () 
 			)
 
 			is Step.Summary -> {
+				HdHairlineButton(
+					label = Res.string.encyclopedia_entry_rename_cancel_button.get(),
+					onClick = onDone,
+				)
+				Spacer(modifier = Modifier.weight(1f))
 				HdHairlineButton(
 					label = Res.string.encyclopedia_entry_rename_back_button.get(),
 					onClick = component::backToNames,

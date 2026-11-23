@@ -1,12 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdPlaceholderColor
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRegion
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdHangsHeads
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdControlFrame
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,8 +62,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,19 +75,14 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDetailStampRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagSuggestionStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberTagSuggestions
 import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
@@ -110,7 +109,6 @@ import com.darkrockstudios.apps.hammer.timeline_subject_timelines_label
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_alias_too_long
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_invalid_name
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_name_too_short
@@ -121,8 +119,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_chip
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_dialog_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tag_chip
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tags_button
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tags_dialog_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_alias_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_aliases_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_appears_in_empty
@@ -131,10 +127,20 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_body_empty_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_close_button
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_end
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label_compact
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_crumb_root
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.AddTagCard
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
+import com.darkrockstudios.apps.hammer.common.compose.SpacerL
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_done
+import com.darkrockstudios.apps.hammer.confirm_kind_discard
+import com.darkrockstudios.apps.hammer.confirm_kind_delete
+import com.darkrockstudios.apps.hammer.confirm_kind_remove
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_discard_confirm
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_discard_keep
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_confirm
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_confirm
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_confirm_cancel
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_message
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_toast
@@ -146,11 +152,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_toast
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_folio_format
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_name_hint
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_aliases
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_label
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_scenes
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_tags
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_type
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_message
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_scene_index_format
@@ -304,7 +305,6 @@ internal fun ViewEntryUi(
 					CollapseWhileTyping(enabled = editing) {
 						Column {
 							CrumbRow(
-								title = entryNameText.ifBlank { state.entryDef.name }.uppercase(),
 								menuSlot = { DetailViewDropdownMenu(state.menuItems, ActionPlace.Entry, state.entryDef.id) },
 								onClose = {
 									val isDirty = content != null &&
@@ -390,15 +390,6 @@ internal fun ViewEntryUi(
 					}
 
 					if (!editing) {
-						if (content != null) {
-							ParticularsLedger(
-								state = state,
-								modifier = Modifier
-									.padding(horizontal = Ui.Padding.XXL)
-									.padding(top = 28.dp),
-							)
-						}
-
 						TagsAndAliasesZone(
 							state = state,
 							component = component,
@@ -421,10 +412,7 @@ internal fun ViewEntryUi(
 							scope = scope,
 						)
 
-						FooterColophon(
-							compact = isCompact,
-							ruleSoft = ruleSoft,
-						)
+						Spacer(modifier = Modifier.height(Ui.Padding.XXL))
 					}
 				}
 			}
@@ -444,6 +432,10 @@ internal fun ViewEntryUi(
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_discard_title.get(),
 			message = Res.string.encyclopedia_entry_discard_message.get(),
+			positiveButton = Res.string.encyclopedia_entry_discard_confirm.get(),
+			negativeButton = Res.string.encyclopedia_entry_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { discardConfirm = false },
 			onConfirm = {
 				discardChanges()
@@ -473,6 +465,9 @@ internal fun ViewEntryUi(
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_remove_image_title.get(),
 			message = Res.string.encyclopedia_entry_remove_image_message.get(),
+			positiveButton = Res.string.encyclopedia_entry_remove_image_confirm.get(),
+			negativeButton = Res.string.encyclopedia_entry_confirm_cancel.get(),
+			kind = Res.string.confirm_kind_remove.get(),
 			onDismiss = { component.dismissRemoveImageConfirm() },
 			onConfirm = {
 				scope.launch { component.removeImage(imageId) }
@@ -483,8 +478,12 @@ internal fun ViewEntryUi(
 
 	if (state.showDeleteEntryDialog) {
 		SimpleConfirm(
-			title = Res.string.encyclopedia_entry_delete_title.get(),
+			title = Res.string.encyclopedia_entry_delete_title.get(state.entryDef.name),
 			message = Res.string.encyclopedia_entry_delete_message.get(),
+			positiveButton = Res.string.encyclopedia_entry_delete_confirm.get(),
+			negativeButton = Res.string.encyclopedia_entry_confirm_cancel.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_delete.get(),
 			onDismiss = { component.closeDeleteEntryDialog() },
 			onConfirm = {
 				scope.launch(dispatcherDefault) {
@@ -504,6 +503,10 @@ internal fun ViewEntryUi(
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_discard_title.get(),
 			message = Res.string.encyclopedia_entry_discard_message.get(),
+			positiveButton = Res.string.encyclopedia_entry_discard_confirm.get(),
+			negativeButton = Res.string.encyclopedia_entry_discard_keep.get(),
+			destructive = true,
+			kind = Res.string.confirm_kind_discard.get(),
 			onDismiss = { component.dismissConfirmClose() },
 			onConfirm = {
 				component.dismissConfirmClose()
@@ -529,7 +532,6 @@ internal fun ViewEntryUi(
 
 @Composable
 private fun CrumbRow(
-	title: String,
 	menuSlot: @Composable () -> Unit,
 	onClose: () -> Unit,
 ) {
@@ -541,28 +543,12 @@ private fun CrumbRow(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		Row(
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			HdCrumbBackLink(
-				label = Res.string.encyclopedia_entry_crumb_root.get(),
-				onClick = onClose,
-				onClickLabel = Res.string.encyclopedia_entry_close_button.get(),
-			)
-			HdMonoLabel(
-				text = "/",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
-		Text(
-			text = title,
-			style = MaterialTheme.typography.labelSmall,
-			color = MaterialTheme.colorScheme.onSurface,
-			maxLines = 1,
-			overflow = TextOverflow.Ellipsis,
-			modifier = Modifier.weight(1f),
+		HdCrumbBackLink(
+			label = Res.string.encyclopedia_entry_crumb_root.get(),
+			onClick = onClose,
+			onClickLabel = Res.string.encyclopedia_entry_close_button.get(),
 		)
+		Spacer(modifier = Modifier.weight(1f))
 		menuSlot()
 	}
 }
@@ -702,7 +688,7 @@ private fun NameZone(
 			if (entryNameText.isEmpty()) {
 				Text(
 					text = Res.string.encyclopedia_entry_name_hint.get(),
-					style = titleStyle.copy(color = mutedColor),
+					style = titleStyle.copy(color = hdPlaceholderColor),
 				)
 			}
 		} else {
@@ -867,59 +853,6 @@ private fun BodyTextZone(
 	}
 }
 
-@Composable
-private fun ParticularsLedger(
-	state: ViewEntry.State,
-	modifier: Modifier = Modifier,
-) {
-	val content = state.content ?: return
-	val cells = listOf<@Composable () -> Unit>(
-		{
-			HdMetadataItem(
-				label = Res.string.encyclopedia_entry_particulars_type.get(),
-				value = state.entryDef.type.toStringResource().get(),
-			)
-		},
-		{
-			HdMetadataItem(
-				label = Res.string.encyclopedia_entry_particulars_tags.get(),
-				value = content.tags.size.toString(),
-			)
-		},
-		{
-			HdMetadataItem(
-				label = Res.string.encyclopedia_entry_particulars_aliases.get(),
-				value = content.aliases.size.toString(),
-			)
-		},
-		{
-			HdMetadataItem(
-				label = Res.string.encyclopedia_entry_particulars_scenes.get(),
-				value = state.appearsIn.size.toString(),
-			)
-		},
-	)
-
-	Column(modifier = modifier.fillMaxWidth()) {
-		HdSectionHeader(
-			marker = "—",
-			title = Res.string.encyclopedia_entry_particulars_label.get(),
-		)
-		Box(
-			modifier = Modifier
-				.fillMaxWidth()
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-					shape = RectangleShape,
-				)
-				.background(MaterialTheme.colorScheme.surfaceContainerLow),
-		) {
-			HdHairlineGrid(columns = 2, cells = cells)
-		}
-	}
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TagsAndAliasesZone(
@@ -929,7 +862,7 @@ private fun TagsAndAliasesZone(
 ) {
 	val content = state.content ?: return
 	val padding = Modifier.padding(horizontal = Ui.Padding.XXL).padding(top = 28.dp)
-	if (compact) {
+	if (compact || hdHangsHeads()) {
 		Column(
 			modifier = padding.fillMaxWidth(),
 			verticalArrangement = Arrangement.spacedBy(28.dp),
@@ -977,14 +910,11 @@ private fun TagsSection(
 	component: ViewEntry,
 	modifier: Modifier = Modifier,
 ) {
-	Column(
-		modifier = modifier.fillMaxWidth(),
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	HdRegion(
+		modifier = modifier,
+		contentSpacing = Ui.Padding.L,
+		title = Res.string.encyclopedia_entry_tags_label.get(),
 	) {
-		HdSectionHeader(
-			marker = "—",
-			title = Res.string.encyclopedia_entry_tags_label.get(),
-		)
 		FlowRow(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1012,14 +942,11 @@ private fun AliasesSection(
 	component: ViewEntry,
 	modifier: Modifier = Modifier,
 ) {
-	Column(
-		modifier = modifier.fillMaxWidth(),
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	HdRegion(
+		modifier = modifier,
+		contentSpacing = Ui.Padding.L,
+		title = Res.string.encyclopedia_entry_aliases_label.get(),
 	) {
-		HdSectionHeader(
-			marker = "—",
-			title = Res.string.encyclopedia_entry_aliases_label.get(),
-		)
 		FlowRow(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1041,23 +968,19 @@ private fun AppearsInZone(
 	state: ViewEntry.State,
 	component: ViewEntry,
 ) {
-	Column(
+	HdRegion(
 		modifier = Modifier
-			.fillMaxWidth()
 			.padding(horizontal = Ui.Padding.XXL)
 			.padding(top = 28.dp),
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		contentSpacing = Ui.Padding.L,
+		title = Res.string.encyclopedia_entry_appears_in_label.get(),
+		headerTrailing = {
+			HdMonoLabel(
+				text = "${state.appearsIn.size}",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		},
 	) {
-		HdSectionHeader(
-			marker = "—",
-			title = Res.string.encyclopedia_entry_appears_in_label.get(),
-			trailing = {
-				HdMonoLabel(
-					text = "${state.appearsIn.size}",
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-			},
-		)
 		if (state.appearsIn.isEmpty()) {
 			Text(
 				text = Res.string.encyclopedia_entry_appears_in_empty.get(),
@@ -1068,11 +991,7 @@ private fun AppearsInZone(
 			Column(
 				modifier = Modifier
 					.fillMaxWidth()
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					)
+					.hdControlFrame(MaterialTheme.colorScheme.outlineVariant)
 					.padding(horizontal = Ui.Padding.L),
 			) {
 				state.appearsIn.forEachIndexed { index, appearance ->
@@ -1161,80 +1080,41 @@ private fun SceneRow(
 }
 
 @Composable
-private fun FooterColophon(compact: Boolean, ruleSoft: Color) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XXL)
-			.padding(top = 36.dp, bottom = Ui.Padding.XXL),
-	) {
-		HorizontalDivider(thickness = Dp.Hairline, color = ruleSoft)
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(top = Ui.Padding.L),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			HdMonoLabel(
-				text = if (compact) {
-					Res.string.encyclopedia_entry_colophon_label_compact.get()
-				} else {
-					Res.string.encyclopedia_entry_colophon_label.get()
-				},
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_colophon_end.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
-	}
-}
-
-@Composable
 private fun TagAddDialog(
 	state: ViewEntry.State,
 	component: ViewEntry,
 	scope: CoroutineScope,
 ) {
 	val mainDispatcher = rememberMainDispatcher()
-	SimpleDialog(
-		title = Res.string.encyclopedia_entry_add_tags_dialog_title.get(),
+	var newTagsText by rememberSaveable { mutableStateOf("") }
+	val existingTags = state.content?.tags.orEmpty()
+	val suggestions = rememberTagSuggestions(newTagsText, existingTags, component::suggestTags)
+
+	AnimatedDialog(
 		visible = state.showTagAdd,
 		onCloseRequest = component::endTagAdd,
+		dismissOnTapOutside = true,
+		onDismissed = { newTagsText = "" },
 	) {
-		var newTagsText by rememberSaveable { mutableStateOf("") }
-		val existingTags = state.content?.tags.orEmpty()
-		val suggestions = rememberTagSuggestions(newTagsText, existingTags, component::suggestTags)
-		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-			HdHairlineField(
-				label = Res.string.encyclopedia_create_entry_tags_label.get(),
-				value = newTagsText,
-				onValueChange = { newTagsText = it },
-				capitalization = KeyboardCapitalization.None,
-				autoCorrectEnabled = false,
-			)
-			HdTagSuggestionStrip(
-				suggestions = suggestions,
-				onSelect = { tag ->
-					scope.launch {
-						component.addTags(replaceTagPrefix(newTagsText, tag))
-						withContext(mainDispatcher) { newTagsText = "" }
-					}
-				},
-			)
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_add_tags_button.get(),
-				emphasised = true,
-				onClick = {
-					scope.launch {
-						component.addTags(newTagsText)
-						withContext(mainDispatcher) { newTagsText = "" }
-					}
-				},
-			)
-		}
+		AddTagCard(
+			draft = newTagsText,
+			onDraftChange = { newTagsText = it },
+			suggestions = suggestions,
+			onSelectSuggestion = { tag ->
+				scope.launch {
+					component.addTags(replaceTagPrefix(newTagsText, tag))
+					withContext(mainDispatcher) { newTagsText = "" }
+				}
+			},
+			onDone = {
+				val draft = newTagsText
+				if (draft.isNotBlank()) {
+					scope.launch { component.addTags(draft) }
+				}
+				newTagsText = ""
+				requestDismiss()
+			},
+		)
 	}
 }
 
@@ -1247,30 +1127,70 @@ private fun AliasAddDialog(
 	strRes: StrRes,
 ) {
 	val mainDispatcher = rememberMainDispatcher()
-	SimpleDialog(
-		title = Res.string.encyclopedia_entry_add_alias_dialog_title.get(),
+	var newAliasText by rememberSaveable { mutableStateOf("") }
+
+	AnimatedDialog(
 		visible = state.showAliasAdd,
 		onCloseRequest = component::endAliasAdd,
+		dismissOnTapOutside = true,
+		onDismissed = { newAliasText = "" },
 	) {
-		var newAliasText by rememberSaveable { mutableStateOf("") }
-		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-			HdHairlineField(
-				label = Res.string.encyclopedia_entry_alias_hint.get(),
-				value = newAliasText,
-				onValueChange = { newAliasText = it },
-			)
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_add_alias_button.get(),
-				emphasised = true,
-				onClick = {
+		AliasAddCard(
+			alias = newAliasText,
+			onAliasChange = { newAliasText = it },
+			onDone = {
+				val alias = newAliasText
+				if (alias.isBlank()) {
+					requestDismiss()
+				} else {
 					scope.launch {
-						val result = component.addAlias(newAliasText)
+						val result = component.addAlias(alias)
 						withContext(mainDispatcher) {
-							if (result.error == EntryError.NONE) newAliasText = ""
+							if (result.error == EntryError.NONE) {
+								newAliasText = ""
+								requestDismiss()
+							}
 						}
 						reportSaveResult(result, rootSnackbar, scope, strRes)
 					}
+				}
+			},
+		)
+	}
+}
+
+@Composable
+internal fun AliasAddCard(
+	alias: String,
+	onAliasChange: (String) -> Unit,
+	onDone: () -> Unit,
+) {
+	HdHairlineDialogShell(
+		title = Res.string.encyclopedia_entry_add_alias_dialog_title.get(),
+		onClose = null,
+		closeContentDescription = null,
+	) {
+		HdHairlineField(
+			label = Res.string.encyclopedia_entry_alias_hint.get(),
+			value = alias,
+			onValueChange = onAliasChange,
+			singleLine = true,
+		)
+
+		SpacerL()
+
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.End,
+		) {
+			HdHairlineButton(
+				label = if (alias.isBlank()) {
+					Res.string.encyclopedia_entry_add_alias_done.get()
+				} else {
+					Res.string.encyclopedia_entry_add_alias_button.get()
 				},
+				onClick = onDone,
+				emphasised = true,
 			)
 		}
 	}

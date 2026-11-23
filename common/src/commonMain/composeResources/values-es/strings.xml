@@ -4,18 +4,13 @@
 	<string name="save_all_toast">Todas las escenas guardadas</string>
 	<string name="unsaved_scenes_dialog_title">Escenas sin guardar</string>
 	<string name="unsaved_scenes_dialog_message">¿Qué hacer con las escenas sin guardar?</string>
-	<string name="unsaved_encyclopedia_dialog_title">Entrada de enciclopedia sin guardar</string>
 	<string name="unsaved_encyclopedia_dialog_message">¿Descartar la entrada?</string>
-	<string name="unsaved_notes_dialog_title">Nota sin guardar</string>
 	<string name="unsaved_notes_dialog_message">¿Descartar la nota?</string>
-	<string name="unsaved_timeline_dialog_title">Evento de cronología sin guardar</string>
 	<string name="unsaved_timeline_dialog_message">¿Descartar el evento?</string>
-	<string name="unsaved_dialog_negative_button">Cancelar</string>
 	<string name="unsaved_dialog_positive_button">Descartar y cerrar</string>
 	<string name="unsaved_entity_dialog_negative_button">Descartar</string>
 	<string name="unsaved_entity_dialog_neutral_button">Cancelar</string>
 	<string name="unsaved_entity_dialog_positive_button">Guardar</string>
-	<string name="close_dialog_button">Cerrar</string>
 	<string name="more_menu_button">Más</string>
 	<string name="network_request_failure_parse_body">Error al analizar el cuerpo de la respuesta: %1$s</string>
 	<string name="confirm_dialog_positive">Sí</string>
@@ -39,5 +34,5 @@
 	<string name="markdown_preview_image">Imagen</string>
 	<string name="markdown_format_bar_undo">Deshacer</string>
 	<string name="markdown_format_bar_redo">Rehacer</string>
-	<string name="form_dialog_keyboard_hint">ESC cancelar</string>
+	<string name="hd_field_optional">opcional</string>
 </resources>

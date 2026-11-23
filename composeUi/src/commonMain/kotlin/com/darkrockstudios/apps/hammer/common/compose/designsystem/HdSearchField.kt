@@ -1,5 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -90,17 +94,23 @@ fun HdSearchField(
 			if (value.isEmpty()) {
 				Text(
 					text = placeholder,
-					style = textStyle.copy(color = mutedAccent),
+					style = textStyle.copy(color = hdPlaceholderColor),
 					maxLines = 1,
 					overflow = TextOverflow.Ellipsis,
 				)
 			}
 		}
 		if (value.isNotEmpty() && onClear != null) {
-			HdClearGlyph(
-				onClick = onClear,
-				color = onSurfaceMuted,
+			// A circled mark, so a field's clear never reads as the close of the dialog around it.
+			Icon(
+				imageVector = Icons.Filled.Cancel,
 				contentDescription = clearContentDescription,
+				tint = onSurfaceMuted,
+				modifier = Modifier
+					.size(20.dp)
+					.clip(CircleShape)
+					.clickable(onClick = onClear)
+					.padding(1.dp),
 			)
 		}
 	}

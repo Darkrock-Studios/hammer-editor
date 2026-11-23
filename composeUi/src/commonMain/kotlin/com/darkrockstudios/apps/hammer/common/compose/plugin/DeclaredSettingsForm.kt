@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPasswordField
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.MaterialTheme
@@ -9,9 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
@@ -36,21 +35,13 @@ fun ColumnScope.DeclaredSettingsForm(
 		val hint = setting.hint
 		val value = values[setting.key]?.jsonPrimitive ?: setting.default
 		when (setting) {
-			is SettingDeclaration.Toggle -> Column {
-				HdHairlineToggleRow(
-					checked = value.booleanOrNull ?: setting.defaultValue,
-					onCheckedChange = { onChange(setting.key, JsonPrimitive(it)) },
-					label = label,
-					hint = hint,
-				)
-				if (setting.danger) {
-					Text(
-						text = Res.string.plugin_setting_danger.get(),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.error,
-					)
-				}
-			}
+			is SettingDeclaration.Toggle -> HdHairlineToggleRow(
+				checked = value.booleanOrNull ?: setting.defaultValue,
+				onCheckedChange = { onChange(setting.key, JsonPrimitive(it)) },
+				label = label,
+				hint = hint,
+				warning = if (setting.danger) Res.string.plugin_setting_danger.get() else null,
+			)
 
 			is SettingDeclaration.Choice -> HdHairlineDropdown(
 				title = label,
@@ -66,14 +57,13 @@ fun ColumnScope.DeclaredSettingsForm(
 			}
 
 			is SettingDeclaration.Secret -> Column {
-				HdHairlineField(
+				var shown by remember(setting.key) { mutableStateOf(false) }
+				HdPasswordField(
 					label = label,
 					value = value.content,
 					onValueChange = { onChange(setting.key, JsonPrimitive(it)) },
-					capitalization = KeyboardCapitalization.None,
-					autoCorrectEnabled = false,
-					keyboardType = KeyboardType.Password,
-					visualTransformation = PasswordVisualTransformation(),
+					visible = shown,
+					onVisibleChange = { shown = it },
 				)
 				FieldHint(hint)
 			}

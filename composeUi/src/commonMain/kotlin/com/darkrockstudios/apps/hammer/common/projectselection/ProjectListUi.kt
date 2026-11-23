@@ -1,9 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,11 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,20 +32,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.filterProjects
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
@@ -60,16 +49,17 @@ import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietSortMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSplitButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSplitButtonItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -78,18 +68,9 @@ import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import com.darkrockstudios.apps.hammer.project_select_project_list_empty
-import com.darkrockstudios.apps.hammer.projects_list_column_last_open
-import com.darkrockstudios.apps.hammer.projects_list_column_title
-import com.darkrockstudios.apps.hammer.projects_list_create_button
-import com.darkrockstudios.apps.hammer.projects_list_create_group_button
-import com.darkrockstudios.apps.hammer.projects_list_empty_index
-import com.darkrockstudios.apps.hammer.projects_list_entry_count_none
-import com.darkrockstudios.apps.hammer.projects_list_entry_count_one
-import com.darkrockstudios.apps.hammer.projects_list_entry_count_other
-import com.darkrockstudios.apps.hammer.projects_list_footer_library
-import com.darkrockstudios.apps.hammer.projects_list_footer_local
-import com.darkrockstudios.apps.hammer.projects_list_footer_sync_on
-import com.darkrockstudios.apps.hammer.projects_list_masthead_title
+import com.darkrockstudios.apps.hammer.projects_list_create_menu
+import com.darkrockstudios.apps.hammer.projects_list_new_group
+import com.darkrockstudios.apps.hammer.projects_list_new_project
 import com.darkrockstudios.apps.hammer.projects_list_no_matches
 import com.darkrockstudios.apps.hammer.projects_list_search_button
 import com.darkrockstudios.apps.hammer.projects_list_search_clear
@@ -108,7 +89,6 @@ import com.darkrockstudios.apps.hammer.projects_list_sort_newest
 import com.darkrockstudios.apps.hammer.projects_list_sort_oldest
 import com.darkrockstudios.apps.hammer.projects_list_sort_recently_opened
 import com.darkrockstudios.apps.hammer.projects_list_sort_shortest
-import com.darkrockstudios.apps.hammer.projects_list_sync_button
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
@@ -118,10 +98,11 @@ private val NarrowContentPadding: Dp = Ui.Padding.XL
 
 /**
  * The narrowest pane that holds the wide masthead's controls. German, the longest shipped locale,
- * needs 537dp with the sync button showing; the rest is margin for font metrics. Guarded by
- * ProjectListMastheadTest, which measures every locale.
+ * needs about 567dp with the sync button showing when the system sans is DejaVu (wider than
+ * Noto); the rest is margin for font metrics. Guarded by ProjectListMastheadTest, which measures
+ * every locale.
  */
-internal val ProjectListWideMinWidth: Dp = 560.dp
+internal val ProjectListWideMinWidth: Dp = 600.dp
 
 /** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
 const val CreateProjectButtonTestTag = "create-project-button"
@@ -174,8 +155,9 @@ fun ProjectListUi(
 	component: ProjectsList,
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
-	/** A slip laid under the masthead, given the page's inset; composes nothing when there is no notice. */
-	notice: @Composable (Modifier) -> Unit = {},
+	/** A full-width slip under the masthead rule, given the page's inset; composes nothing when there is no notice. */
+	notice: @Composable (horizontalPadding: Dp) -> Unit = {},
+	initialSearchOpen: Boolean = false,
 ) = BoxWithConstraints(modifier = modifier.fillMaxSize()) {
 	// Measured on the list's own pane: a window of any size can leave it narrow beside the nav rail.
 	val isWide = maxWidth >= ProjectListWideMinWidth
@@ -187,7 +169,7 @@ fun ProjectListUi(
 	val horizontalPadding = if (isWide) WideContentPadding else NarrowContentPadding
 
 	var sortMode by remember { mutableStateOf(ProjectsSortMode.LastAccessedDesc) }
-	var showSearchBar by rememberSaveable { mutableStateOf(false) }
+	var showSearchBar by rememberSaveable { mutableStateOf(initialSearchOpen) }
 	var query by rememberSaveable { mutableStateOf("") }
 	val parsed = remember(query) { parseQuery(query) }
 	// Every input is a remember key, so derivedStateOf would add nothing here.
@@ -211,10 +193,13 @@ fun ProjectListUi(
 			onDelete = component::showGroupDelete,
 		)
 	}
-	val onTagClick: (String) -> Unit = { tag ->
-		showSearchBar = true
-		if (parsed.tags.none { it.equals(tag, ignoreCase = true) }) {
-			query = "$query #$tag".trim()
+	// Reads the query when clicked, so the lambda stays the same across keystrokes and rows skip.
+	val onTagClick: (String) -> Unit = remember {
+		{ tag ->
+			showSearchBar = true
+			if (parseQuery(query).tags.none { it.equals(tag, ignoreCase = true) }) {
+				query = "$query #$tag".trim()
+			}
 		}
 	}
 
@@ -228,8 +213,6 @@ fun ProjectListUi(
 		modifier = Modifier.fillMaxSize(),
 	) {
 		Masthead(
-			entryCount = state.projects.size,
-			showEntryCount = isWide,
 			isServerSynced = state.isServerSynced,
 			onSync = component::showProjectsSync,
 			onCreate = { component.showCreate() },
@@ -240,6 +223,7 @@ fun ProjectListUi(
 			onSortChange = { sortMode = it },
 			showSort = isWide,
 			searchActive = showSearchBar,
+			syncing = state.syncState.projectsStatus.isNotEmpty() && !state.syncState.syncComplete,
 			onToggleSearch = {
 				if (showSearchBar) {
 					showSearchBar = false
@@ -252,7 +236,7 @@ fun ProjectListUi(
 
 		HdFolioDivider()
 
-		notice(Modifier.padding(start = horizontalPadding, end = horizontalPadding, top = 12.dp, bottom = 12.dp))
+		notice(horizontalPadding)
 
 		AnimatedVisibility(visible = showSearchBar) {
 			SearchStrip(
@@ -270,8 +254,9 @@ fun ProjectListUi(
 			)
 		}
 
-		ColumnHeader(showLastOpen = isWide)
-
+		// Captured as plain values so sync progress ticks don't rebuild the list's items.
+		val isServerSynced = state.isServerSynced
+		val libraryEmpty = state.projects.isEmpty() && state.groups.isEmpty()
 		Box(modifier = Modifier.weight(1f).clipToBounds()) {
 			LazyColumn(
 				modifier = Modifier
@@ -284,22 +269,11 @@ fun ProjectListUi(
 					bottom = if (isWide) 0.dp else createBarState.height,
 				),
 			) {
-				if (rows.isEmpty()) {
-					item(key = "empty") {
-						if (state.projects.isEmpty() && state.groups.isEmpty()) {
-							EmptyState(horizontalPadding = horizontalPadding)
-						} else {
-							NoMatchesState(horizontalPadding = horizontalPadding)
-						}
-					}
-				}
-
 				items(count = rows.size, key = { index -> rows[index].key }) { index ->
 					when (val row = rows[index]) {
 						is ProjectListRow.Group -> ProjectGroupRow(row = row, actions = groupActions)
 						is ProjectListRow.Project -> ProjectIndexRow(
 							isWide = isWide,
-							index = row.number - 1,
 							projectData = row.data,
 							onProjectClick = component::selectProject,
 							onProjectAltClick = component::showProjectDelete,
@@ -309,10 +283,18 @@ fun ProjectListUi(
 							onProjectSyncClick = component::setProjectSync,
 							depth = row.depth,
 							groupPath = row.groupPath,
-							isServerSynced = state.isServerSynced,
+							isServerSynced = isServerSynced,
 						)
 					}
 				}
+			}
+			if (rows.isEmpty()) {
+				// Centred in the space above the bottom create bar, not behind it.
+				HdPageEmpty(
+					text = (if (libraryEmpty) Res.string.project_select_project_list_empty
+						else Res.string.projects_list_no_matches).get(),
+					modifier = Modifier.padding(bottom = if (isWide) 0.dp else createBarState.height),
+				)
 			}
 			MpScrollBarList(
 				modifier = scrollBarOverlay(),
@@ -327,11 +309,6 @@ fun ProjectListUi(
 				horizontalPadding = horizontalPadding,
 			)
 		}
-
-		FooterFolio(
-			horizontalPadding = horizontalPadding,
-			isServerSynced = state.isServerSynced,
-		)
 	}
 
 	ModalContent(component, rootSnackbar)
@@ -357,8 +334,6 @@ fun ProjectListUi(
 
 @Composable
 internal fun Masthead(
-	entryCount: Int,
-	showEntryCount: Boolean,
 	isServerSynced: Boolean,
 	onSync: () -> Unit,
 	onCreate: () -> Unit,
@@ -370,6 +345,7 @@ internal fun Masthead(
 	showSort: Boolean,
 	searchActive: Boolean,
 	onToggleSearch: () -> Unit,
+	syncing: Boolean = false,
 ) {
 	Row(
 		modifier = Modifier
@@ -385,103 +361,38 @@ internal fun Masthead(
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		) {
-			HdMonoLabel(
-				text = Res.string.projects_list_masthead_title.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			// UI 2.1: the page title names the rail destination; the window title already names the app.
+			Text(
+				text = ProjectSelection.Locations.Projects.text.get(),
+				style = MaterialTheme.typography.headlineSmall,
+				color = MaterialTheme.colorScheme.onSurface,
 				maxLines = 1,
 				softWrap = false,
 				overflow = TextOverflow.Ellipsis,
 			)
 			Spacer(modifier = Modifier.weight(1f))
-			if (showEntryCount) {
-				HdMonoLabel(
-					text = entrySummary(entryCount),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					maxLines = 1,
-					softWrap = false,
-					overflow = TextOverflow.Ellipsis,
-				)
-			}
 		}
-		SearchAffordance(active = searchActive, onClick = onToggleSearch)
+		HdQuietButton(
+			onClick = onToggleSearch,
+			icon = Icons.Default.Search,
+			contentDescription = Res.string.projects_list_search_button.get(),
+			active = searchActive,
+			modifier = Modifier.testTag("projects-list-search-toggle"),
+		)
 		if (showSort) {
-			HdSortMenu(
-				label = Res.string.projects_list_sort_label,
+			HdQuietSortMenu(
 				options = ProjectsSortMode.entries,
 				selected = sortMode,
 				onSelect = onSortChange,
+				contentDescription = Res.string.projects_list_sort_label.get(),
 			)
 		}
 		if (isServerSynced) {
-			RefreshAffordance(onClick = onSync)
+			SyncStatusButton(syncing = syncing, onClick = onSync)
 		}
 		if (showCreate) {
-			NewGroupAffordance(onClick = onCreateGroup)
-			HdHairlineButton(
-				label = "＋  ${Res.string.projects_list_create_button.get()}",
-				onClick = onCreate,
-				emphasised = true,
-				modifier = Modifier.testTag(CreateProjectButtonTestTag),
-			)
+			NewProjectButton(onCreate = onCreate, onCreateGroup = onCreateGroup)
 		}
-	}
-}
-
-@Composable
-private fun NewGroupAffordance(onClick: () -> Unit) {
-	HdToolButton(
-		active = false,
-		onClick = onClick,
-		modifier = Modifier.testTag(CreateGroupButtonTestTag),
-	) {
-		Icon(
-			imageVector = Icons.Outlined.Folder,
-			contentDescription = Res.string.projects_list_create_group_button.get(),
-			tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			modifier = Modifier.size(16.dp),
-		)
-	}
-}
-
-@Composable
-private fun RefreshAffordance(onClick: () -> Unit) {
-	Box(
-		modifier = Modifier
-			.size(32.dp)
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				shape = RectangleShape,
-			)
-			.clickable(onClick = onClick),
-		contentAlignment = Alignment.Center,
-	) {
-		Icon(
-			imageVector = Icons.Default.Refresh,
-			contentDescription = Res.string.projects_list_sync_button.get(),
-			tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			modifier = Modifier.size(16.dp),
-		)
-	}
-}
-
-@Composable
-private fun SearchAffordance(active: Boolean, onClick: () -> Unit) {
-	HdToolButton(
-		active = active,
-		onClick = onClick,
-		modifier = Modifier.testTag("projects-list-search-toggle"),
-	) {
-		Icon(
-			imageVector = Icons.Default.Search,
-			contentDescription = Res.string.projects_list_search_button.get(),
-			tint = if (active) {
-				MaterialTheme.colorScheme.onSurface
-			} else {
-				MaterialTheme.colorScheme.onSurfaceVariant
-			},
-			modifier = Modifier.size(16.dp),
-		)
 	}
 }
 
@@ -502,17 +413,32 @@ internal fun SearchStrip(
 			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.L),
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		HdSearchRow(
-			query = query,
-			onQueryChange = onQueryChange,
-			placeholder = Res.string.projects_list_search_placeholder.get(),
-			clearContentDescription = Res.string.projects_list_search_clear.get(),
-			onCollapse = onClose,
-			collapseContentDescription = Res.string.projects_list_search_close.get(),
+		Row(
 			modifier = Modifier.fillMaxWidth(),
-			testTag = "projects-list-search",
-		)
-		if (showSort || parsedTags.isNotEmpty()) {
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+		) {
+			HdSearchRow(
+				query = query,
+				onQueryChange = onQueryChange,
+				placeholder = Res.string.projects_list_search_placeholder.get(),
+				clearContentDescription = Res.string.projects_list_search_clear.get(),
+				onCollapse = onClose,
+				collapseContentDescription = Res.string.projects_list_search_close.get(),
+				modifier = Modifier.weight(1f),
+				testTag = "projects-list-search",
+			)
+			if (showSort) {
+				HdQuietSortMenu(
+					options = ProjectsSortMode.entries,
+					selected = sortMode,
+					onSelect = onSortChange,
+					contentDescription = Res.string.projects_list_sort_label.get(),
+					iconOnly = true,
+				)
+			}
+		}
+		if (parsedTags.isNotEmpty()) {
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				verticalAlignment = Alignment.CenterVertically,
@@ -521,141 +447,8 @@ internal fun SearchStrip(
 				parsedTags.forEach { tag ->
 					HdTagChip(label = tag, active = true)
 				}
-				if (showSort) {
-					Spacer(modifier = Modifier.weight(1f))
-					HdSortMenu(
-						label = Res.string.projects_list_sort_label,
-						options = ProjectsSortMode.entries,
-						selected = sortMode,
-						onSelect = onSortChange,
-					)
-				}
 			}
 		}
-	}
-}
-
-@Composable
-private fun NoMatchesState(horizontalPadding: Dp) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.XXL),
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		Text(
-			text = Res.string.projects_list_no_matches.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			fontStyle = FontStyle.Italic,
-			textAlign = TextAlign.Center,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-	}
-}
-
-@Composable
-private fun ColumnHeader(showLastOpen: Boolean) {
-	Column(modifier = Modifier.fillMaxWidth()) {
-		HorizontalDivider(
-			modifier = Modifier.fillMaxWidth(),
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(
-					start = 4.dp + Ui.Padding.XL,
-					end = Ui.Padding.L + MpScrollBarGutter,
-					top = Ui.Padding.M,
-					bottom = Ui.Padding.M,
-				),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			HdMonoLabel(
-				text = "№",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.width(40.dp),
-			)
-			HdMonoLabel(
-				text = Res.string.projects_list_column_title.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.weight(1f),
-			)
-			if (showLastOpen) {
-				HdMonoLabel(
-					text = Res.string.projects_list_column_last_open.get(),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-			}
-			Spacer(modifier = Modifier.width(48.dp))
-		}
-		HorizontalDivider(
-			modifier = Modifier.fillMaxWidth(),
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-	}
-}
-
-@Composable
-private fun EmptyState(horizontalPadding: Dp) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.XXL),
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = Res.string.projects_list_empty_index.get(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Text(
-			text = Res.string.project_select_project_list_empty.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			fontStyle = FontStyle.Italic,
-			textAlign = TextAlign.Center,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-	}
-}
-
-@Composable
-private fun FooterFolio(
-	horizontalPadding: Dp,
-	isServerSynced: Boolean,
-) {
-	HorizontalDivider(
-		modifier = Modifier.fillMaxWidth(),
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.M),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = Res.string.projects_list_footer_library.get(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = if (isServerSynced) {
-				Res.string.projects_list_footer_sync_on.get()
-			} else {
-				Res.string.projects_list_footer_local.get()
-			},
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		HdMonoLabel(
-			text = "v${BuildMetadata.APP_VERSION}",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 	}
 }
 
@@ -677,55 +470,39 @@ private fun BoxScope.BottomCreateBar(
 			vertical = Ui.Padding.L,
 		),
 	) {
-		Box(
-			modifier = Modifier
-				.weight(1f)
-				.height(44.dp)
-				.testTag(CreateProjectButtonTestTag)
-				.background(MaterialTheme.colorScheme.primary)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outline,
-					shape = RectangleShape,
-				)
-				.clickable(onClick = onCreate),
-			contentAlignment = Alignment.Center,
-		) {
-			Text(
-				text = "＋  ${Res.string.projects_list_create_button.get()}",
-				style = MaterialTheme.typography.labelLarge,
-				fontWeight = FontWeight.Medium,
-				color = MaterialTheme.colorScheme.onPrimary,
-			)
-		}
-		Spacer(modifier = Modifier.width(Ui.Padding.M))
-		Box(
-			modifier = Modifier
-				.size(44.dp)
-				.testTag(CreateGroupButtonTestTag)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outline,
-					shape = RectangleShape,
-				)
-				.clickable(onClick = onCreateGroup),
-			contentAlignment = Alignment.Center,
-		) {
-			Icon(
-				imageVector = Icons.Outlined.Folder,
-				contentDescription = Res.string.projects_list_create_group_button.get(),
-				tint = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.size(20.dp),
-			)
-		}
+		NewProjectButton(
+			onCreate = onCreate,
+			onCreateGroup = onCreateGroup,
+			stretch = true,
+			height = 44.dp,
+			modifier = Modifier.weight(1f),
+		)
 	}
 }
 
+/** "+ New project ▾": the menu holds New group, which used to be a separate folder icon. */
 @Composable
-private fun entrySummary(count: Int): String = when (count) {
-	0 -> Res.string.projects_list_entry_count_none.get()
-	1 -> Res.string.projects_list_entry_count_one.get()
-	else -> Res.string.projects_list_entry_count_other.get(count)
+private fun NewProjectButton(
+	onCreate: () -> Unit,
+	onCreateGroup: () -> Unit,
+	modifier: Modifier = Modifier,
+	stretch: Boolean = false,
+	height: Dp = 32.dp,
+) {
+	HdSplitButton(
+		label = "＋  ${Res.string.projects_list_new_project.get()}",
+		onClick = onCreate,
+		menuItems = listOf(
+			HdSplitButtonItem(Res.string.projects_list_new_project.get(), onCreate),
+			HdSplitButtonItem(Res.string.projects_list_new_group.get(), onCreateGroup),
+		),
+		menuContentDescription = Res.string.projects_list_create_menu.get(),
+		modifier = modifier,
+		mainModifier = Modifier.testTag(CreateProjectButtonTestTag),
+		menuModifier = Modifier.testTag(CreateGroupButtonTestTag),
+		stretch = stretch,
+		height = height,
+	)
 }
 
 @Composable

@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -29,11 +30,20 @@ fun HdHairlineSection(
 	contentSpacing: Dp = 16.dp,
 	content: @Composable ColumnScope.() -> Unit,
 ) {
+	if (hdHangsHeads()) {
+		HdRegion(
+			modifier = modifier,
+			contentSpacing = contentSpacing,
+			title = title,
+			headerTrailing = headerTrailing,
+			content = content,
+		)
+		return
+	}
 	val dividerColor = MaterialTheme.colorScheme.outlineVariant
 	val strokePx = with(LocalDensity.current) { Dp.Hairline.toPx().coerceAtLeast(1f) }
-	Column(
-		modifier = modifier
-			.fillMaxWidth()
+	val grouping = when (LocalHdGrouping.current) {
+		HdGrouping.Rules -> Modifier
 			.drawBehind {
 				val x = strokePx / 2f
 				drawLine(
@@ -43,16 +53,27 @@ fun HdHairlineSection(
 					strokeWidth = strokePx,
 				)
 			}
-			.padding(start = 16.dp),
+			.padding(start = 16.dp)
+
+		else -> Modifier.hdRegion()
+	}
+	Column(
+		modifier = modifier
+			.fillMaxWidth()
+			.then(grouping),
 		verticalArrangement = Arrangement.spacedBy(contentSpacing),
 	) {
-		HdSectionHeader(
-			section = section,
-			title = title,
-			modifier = Modifier.fillMaxWidth(),
-			trailing = headerTrailing,
-		)
-		content()
+		CompositionLocalProvider(
+			LocalHdInRegion provides (LocalHdGrouping.current.isTonal || LocalHdInRegion.current),
+		) {
+			HdSectionHeader(
+				section = section,
+				title = title,
+				modifier = Modifier.fillMaxWidth(),
+				trailing = headerTrailing,
+			)
+			content()
+		}
 	}
 }
 

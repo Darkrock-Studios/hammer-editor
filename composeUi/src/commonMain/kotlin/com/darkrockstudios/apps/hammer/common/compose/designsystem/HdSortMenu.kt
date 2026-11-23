@@ -9,7 +9,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import org.jetbrains.compose.resources.StringResource
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.hd_sort_menu_description_format
 
 interface HdSortOption {
 	/** Long-form label shown in the dropdown menu (e.g. "Newest"). */
@@ -125,5 +132,63 @@ fun HdSortPill(
 			maxLines = 1,
 			softWrap = false,
 		)
+	}
+}
+
+/**
+ * The quiet form of [HdSortMenu]: a sort icon plus the selected option's label, or with
+ * [iconOnly] an [HdToolButton] square for rows beside a framed field. Option labels show as
+ * written, so they should be sentence case in the string resources.
+ */
+@Composable
+fun <T : HdSortOption> HdQuietSortMenu(
+	options: List<T>,
+	selected: T,
+	onSelect: (T) -> Unit,
+	contentDescription: String,
+	modifier: Modifier = Modifier,
+	iconOnly: Boolean = false,
+) {
+	var expanded by remember { mutableStateOf(false) }
+	val selectedLabel = selected.labelRes.get()
+	Box(modifier = modifier) {
+		if (iconOnly) {
+			HdToolButton(active = expanded, onClick = { expanded = true }) {
+				Icon(
+					imageVector = Icons.AutoMirrored.Filled.Sort,
+					contentDescription = Res.string.hd_sort_menu_description_format.get(contentDescription, selectedLabel),
+					tint = MaterialTheme.colorScheme.onSurfaceVariant,
+					modifier = Modifier.size(16.dp),
+				)
+			}
+		} else {
+			HdQuietButton(
+				onClick = { expanded = true },
+				icon = Icons.AutoMirrored.Filled.Sort,
+				label = selectedLabel,
+				contentDescription = contentDescription,
+				trailingIcon = Icons.Filled.ArrowDropDown,
+			)
+		}
+		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+			options.forEach { option ->
+				DropdownMenuItem(
+					text = {
+						Text(
+							text = option.labelRes.get(),
+							color = if (option == selected) {
+								MaterialTheme.colorScheme.onSurface
+							} else {
+								MaterialTheme.colorScheme.onSurfaceVariant
+							},
+						)
+					},
+					onClick = {
+						onSelect(option)
+						expanded = false
+					},
+				)
+			}
+		}
 	}
 }

@@ -18,42 +18,13 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
-import kotlin.time.Clock
+import kotlin.time.Instant
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 fun ScreenViewNoteUiPreview() {
-	val component = object : ViewNote {
-		override val state: Value<ViewNote.State>
-			get() = MutableValue(
-				ViewNote.State(
-					projectDef = fakeProjectDef(),
-					note = fakeNoteContent(),
-				)
-			)
-		override val noteText: Value<String>
-			get() = MutableValue("This is a test note.")
-
-		override fun discardEdit() {}
-		override fun onContentChanged(newContent: String) {}
-		override fun onTagsChanged(newTags: Set<String>) {}
-		override suspend fun removeTag(tag: String) {}
-		override fun showGlobalSearchForTag(tag: String) {}
-		override suspend fun deleteNote(id: Int) {}
-		override fun confirmDelete() {}
-		override fun dismissConfirmDelete() {}
-		override suspend fun storeNoteUpdate() {}
-		override fun closeNote() {}
-		override fun beginEdit() {}
-		override fun isEditingAndDirty(): Boolean = false
-		override fun confirmDiscard() {}
-		override fun cancelDiscard() {}
-		override fun confirmClose() {}
-		override fun cancelClose() {}
-		override suspend fun pickImageForText(): ImageDef? = null
-		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
-	}
+	val component = previewViewNote()
 
 	val rootSnackbar = rememberRootSnackbarHostState()
 
@@ -76,36 +47,7 @@ fun ScreenViewNoteUiPreview() {
 @Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
 @Composable
 fun ScreenViewNoteUiTabletPreview() {
-	val component = object : ViewNote {
-		override val state: Value<ViewNote.State>
-			get() = MutableValue(
-				ViewNote.State(
-					projectDef = fakeProjectDef(),
-					note = fakeNoteContent(),
-				)
-			)
-		override val noteText: Value<String>
-			get() = MutableValue("This is a test note.")
-
-		override fun discardEdit() {}
-		override fun onContentChanged(newContent: String) {}
-		override fun onTagsChanged(newTags: Set<String>) {}
-		override suspend fun removeTag(tag: String) {}
-		override fun showGlobalSearchForTag(tag: String) {}
-		override suspend fun deleteNote(id: Int) {}
-		override fun confirmDelete() {}
-		override fun dismissConfirmDelete() {}
-		override suspend fun storeNoteUpdate() {}
-		override fun closeNote() {}
-		override fun beginEdit() {}
-		override fun isEditingAndDirty(): Boolean = false
-		override fun confirmDiscard() {}
-		override fun cancelDiscard() {}
-		override fun confirmClose() {}
-		override fun cancelClose() {}
-		override suspend fun pickImageForText(): ImageDef? = null
-		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
-	}
+	val component = previewViewNote()
 
 	val rootSnackbar = rememberRootSnackbarHostState()
 
@@ -128,6 +70,37 @@ fun ScreenViewNoteUiTabletPreview() {
 
 private fun fakeNoteContent(): NoteContent = NoteContent(
 	id = 1,
-	created = Clock.System.now(),
+	created = Instant.parse("2026-11-12T22:10:00Z"),
 	content = "This is a test note."
 )
+
+private fun previewViewNote(): ViewNote = object : ViewNote {
+	override val state: Value<ViewNote.State>
+		get() = MutableValue(
+			ViewNote.State(
+				projectDef = fakeProjectDef(),
+				note = fakeNoteContent(),
+			)
+		)
+	override val noteText: Value<String>
+		get() = MutableValue("This is a test note.")
+
+	override fun discardEdit() {}
+	override fun onContentChanged(newContent: String) {}
+	override fun onTagsChanged(newTags: Set<String>) {}
+	override suspend fun removeTag(tag: String) {}
+	override fun showGlobalSearchForTag(tag: String) {}
+	override suspend fun deleteNote(id: Int) {}
+	override fun confirmDelete() {}
+	override fun dismissConfirmDelete() {}
+	override suspend fun storeNoteUpdate() {}
+	override fun closeNote() {}
+	override fun beginEdit() {}
+	override fun isEditingAndDirty(): Boolean = false
+	override fun confirmDiscard() {}
+	override fun cancelDiscard() {}
+	override fun confirmClose() {}
+	override fun cancelClose() {}
+	override suspend fun pickImageForText(): ImageDef? = null
+	override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
+}

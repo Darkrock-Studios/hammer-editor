@@ -51,9 +51,7 @@ class ProjectLifecycleTest {
 		// 2. Type the project name into the dialog's only editable field, then confirm.
 		composeRule.onNode(hasSetTextAction()).performTextInput(projectName)
 
-		// The confirm button and the dialog title both read "Create Project";
-		// only the button is clickable, so combine the matchers to disambiguate.
-		composeRule.onNode(hasText("Create Project").and(hasClickAction())).performClick()
+		composeRule.onNode(hasText("Create").and(hasClickAction())).performClick()
 
 		// 3. createProject and the list refresh run off the test thread, so poll rather than
 		// asserting immediately. First wait for the dialog to dismiss - until its editable field

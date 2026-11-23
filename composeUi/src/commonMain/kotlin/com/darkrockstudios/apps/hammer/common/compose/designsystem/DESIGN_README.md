@@ -15,7 +15,7 @@ manuscript**, not a SaaS dashboard. The reference points are
 typeset book pages, ledger paper, and editorial layouts — not Material
 You's pillow-soft elevation or iOS's glassy cards.
 
-That intent shows up in five rules. Every component in this directory
+That intent shows up in six rules. Every component in this directory
 follows them; every new screen should too.
 
 ### 1. Hairlines, never elevation
@@ -45,6 +45,10 @@ deliberately ignore its elevation system.
   See [`HdHairlineSection`](HdHairlineSection.kt). When you need to
   signal "these things belong together" on a long-scrolling screen,
   reach for the marginalia rule before any heavier chrome.
+- **Settings-style screens group with space.** A group is a title with
+  one hairline under it; the rows inside separate by space alone, never
+  by rules. Hairlines between every row turn a page of options into a
+  grid to parse. See [`HdSettingGroup`](HdSettingRow.kt).
 
 ### 2. Square corners
 
@@ -97,12 +101,24 @@ Three faces, used for three jobs:
 |---------|-----------------------------|------------------------------------------------------|
 | Display | Roboto Flex (light weights) | Section titles, hero text, big stat numbers          |
 | Body    | Roboto                      | Paragraphs, list rows, descriptions                  |
-| Mono    | IBM Plex Mono (bundled)     | All-caps captions, counters, breadcrumbs, folio meta |
+| Mono    | IBM Plex Mono (bundled)     | Numbers, dates, codes, IDs, greebles                 |
 
-The mono is doing the most work. Anything that would be a "label",
-"caption", or "metadata" in Material is a small-caps mono line in
-Hammer — see [`HdMonoLabel`](HdMonoLabel.kt). It's the single most
-recognizable signal of the design.
+Mono is the most recognizable signal of the design, so it is spent
+where it helps and never on primary content. The line between mono
+and sans:
+
+- **Readable mono: values people scan or compare while doing a task.** Numbers, dates, counts,
+  codes, IDs, and identifiers such as host names, emails and paths,
+  even inside a sentence ("Connected to `hammer.ink` as
+  `you@example.com`"). Equal-width digits line values up down a column. Set
+  them with [`HdMetaText`](HdMetaText.kt): sentence case, regular
+  weight, near-normal tracking ("Opened 11 Nov 2026", "35,048 words").
+- **Sans: words people read or act on.** Titles, control labels,
+  hints, descriptions, sentences. Sentence case.
+- **Tracked mono caps** ([`HdMonoLabel`](HdMonoLabel.kt)) are the
+  [greeble](#greebles) voice, in their terse form: `24 W`, `02 JUL \`26`,
+  `§ II`. All caps costs reading speed, so it never carries control
+  labels, instructions or prose.
 
 Section titles are introduced with a roman-numeral marker
 (`§ I  Structure`) — see [`HdSectionHeader`](HdSectionHeader.kt) and
@@ -119,6 +135,25 @@ color regressions when the parent didn't set the content color.
 
 If you write a new `Hd*` component, follow the same rule.
 
+### 6. Say it once
+
+Each fact appears once per screen. App name, screen name, version,
+sync state, a count: pick the one place it belongs (the most specific)
+and drop the rest. Repeats cost attention without adding anything, and
+readers who struggle to parse dense screens pay that cost most.
+
+- The window or OS chrome names the app; the screen masthead names
+  the screen; nothing restates either.
+- Don't count what's visible. A count earns a place only when the
+  things counted are hidden (a collapsed group, a filtered list).
+- Values label themselves ("Opened 11 Nov 2026") instead of sitting
+  under a column header, unless it's a true table people scan across.
+- Show a state on the control that changes it (the Sync button), not
+  in a separate caption.
+
+[Greebles](#greebles) are exempt. They sit in their own zones, and a
+folio footer or masthead stamp may echo a fact said elsewhere.
+
 ---
 
 ## Greebles
@@ -131,9 +166,12 @@ mono lines that make a page feel set in lead rather than rendered
 from a template, and they're a big part of why the design system
 works. We want more of them, not fewer.
 
-The rule is **a greeble has to mean something**. It has to encode a
-real value the user could in principle verify, even if they never
-would. `ENT-034` is the entry's actual id. `256 W` is the actual
+A greeble's job is to look good. Keep the terse form (`24 W`, not
+`24 words`); readability comes second, which is why greebles stay out
+of anything people have to read to use the screen.
+
+The rule is **a greeble has to mean something**. It has to encode a real value the user could in principle verify,
+even if they never would. `ENT-034` is the entry's actual id. `256 W` is the actual
 word count. `§ I  Structure` numbers the actual first section of
 the screen. The shape is decorative; the content is not.
 
@@ -151,6 +189,23 @@ versions, dictionary status, sync state, on/off toggles
 confident invented one. If after looking you genuinely can't find
 something real for the slot — leave the slot empty rather than
 fabricate.
+
+### Where greebles live
+
+- **The masthead:** the `§` folio mark before the title, and a stamp
+  at the end of the rule (`3 IDEAS · 5 TAGS`).
+- **Card header strips:** date and size (`02 JUL \`26 · 24 W`).
+- **Folio footers:** [`HdFolioFooter`](HdFolioFooter.kt) at the foot of
+  a page or view (`ACCOUNT SETTINGS · §§ 3`, `30 W · 3 TAGS`). Wide
+  screens only; on a phone the height is worth more.
+- **Status stamps** on an item (`PROMOTED · 01 JUL \`26`), one per item.
+
+Not on buttons, menus, filter chips, form labels or body copy. Those
+are read to be used, so they're sans, sentence case.
+
+Each slot is still judged on its own. A greeble that only fills space
+next to the real controls (a project count beside a dialog's Close
+button) adds nothing; leave it out.
 
 ---
 
@@ -274,9 +329,13 @@ These set up the page. Use them before reaching for raw `Column` /
 The handwriting of the system. Reach for these instead of styling
 `Text` by hand.
 
-- **[`HdMonoLabel`](HdMonoLabel.kt)** — auto-uppercase mono caption.
-  The default label primitive everywhere — counters, breadcrumbs,
-  metadata, "FILTER ↗" affordances, footer folios.
+- **[`HdMonoLabel`](HdMonoLabel.kt)**: auto-uppercase, tracked mono
+  caption. The greeble voice: folio marks, masthead stamps, card
+  headers, footers, status stamps. Not for text people need to read.
+- **[`HdMetaText`](HdMetaText.kt)**: mono in sentence case at regular
+  weight. For values read while doing a task ("Opened 11 Nov 2026"),
+  outside the greeble zones. `hdMetaStyle()` gives the style for
+  custom `Text`.
 - **[`HdEntityId`](HdEntityId.kt)** — catalogue-card identifier
   greeble: `ENT-034`, `SCN-12`, `NOTE-007`. Short type prefix +
   zero-padded id, rendered as a [`HdMonoLabel`](HdMonoLabel.kt). Sits
@@ -304,10 +363,57 @@ The handwriting of the system. Reach for these instead of styling
 
 ### Buttons & inputs
 
+Buttons come in three tiers. **In a masthead only the primary action
+is framed**; everything else there is quiet, so the row reads as one
+action plus tools.
+
+| Tier    | Components                                                  | Use                                                         |
+|---------|-------------------------------------------------------------|-------------------------------------------------------------|
+| Primary | `HdHairlineButton(emphasised = true)`, `HdSplitButton`, `HdFab` | The one main action. At most one per surface.               |
+| Tool    | `HdToolButton`                                              | Icon actions beside other framed things (a field, a strip). |
+| Quiet   | `HdQuietButton`, `HdQuietSortMenu`                          | Masthead tools: search, sort, sync.                         |
+
+**Colored means filled.** A colored button is filled, so it stands
+apart by more than hue. Each surface (a dialog, a masthead, a settings
+tab, a pane) gets at most one `primary` button, for the action it
+exists for. Any action that destroys something is filled in `error`,
+wherever it sits, even beside the primary. Everything else is a plain
+hairline. A choice between equals (the two sides of a sync conflict)
+has no primary.
+
+A tool sitting next to a framed element is framed too; match the
+neighbour. With an icon and a label, the icon names the kind of
+control and the label gives its current value or action ("Recently
+opened", "Sync"). Never a label that repeats the icon ("Sort:" beside
+a sort icon). Control labels are sentence case in the body face.
+
+- **"…" means another step.** A label ending in an ellipsis opens a
+  dialog or picker ("Change…", "Open…", "Remove…"); without one, the
+  button acts at once ("Reinstall").
+- **Only real links look like links.** Accent colour and underline mean
+  "this opens something". An identifier that isn't clickable gets mono,
+  not link styling.
+- **Destructive actions go last and alone**: error-coloured title, a
+  one-line consequence, and a red "…" button that asks to confirm.
+- **Bounded numbers use a stepper** (− n +) clamped to the range, not a
+  text field that needs validation.
+
+- **[`HdQuietButton`](HdQuietButton.kt)**: unframed icon and/or
+  label in `onSurfaceVariant`; `active` lifts it to `onSurface`.
+- **[`HdSplitButton`](HdSplitButton.kt)**: the primary action with an
+  attached ▾ menu for related, rarer actions ("New project ▾" → New
+  group). Use it instead of a primary button plus sibling icon
+  buttons. `stretch` lets a bottom bar size it.
+- **[`HdQuietSortMenu`](HdSortMenu.kt)**: sort icon plus the selected
+  option's label; `iconOnly` gives an `HdToolButton` square for a row
+  beside a search field. Option labels show as written, so keep them
+  sentence case in the strings. The framed `HdSortMenu` pill is the
+  older form.
 - **[`HdHairlineButton`](HdHairlineButton.kt)** — square-cornered
-  hairline-bordered text button. Replaces `OutlinedButton` /
-  `TextButton`. `emphasised = true` flips the border and label to
-  `primary` for the "Save" half of a Save / Cancel pair.
+  text button. Replaces `OutlinedButton` / `TextButton` / `Button`.
+  Plain, a hairline frame; `emphasised = true` fills it with `primary`
+  for the "Save" half of a Save / Cancel pair, and `danger = true`
+  fills it with `error` for a destructive confirm.
 - **[`HdFab`](HdFab.kt)** — square FAB, primary fill, hairline
   outline, no elevation. Replaces M3 `FloatingActionButton`.
 - **[`HdToolButton`](HdToolButton.kt)** — 30dp square hairline
@@ -319,10 +425,18 @@ The handwriting of the system. Reach for these instead of styling
   label, too chrome-light for an M3 `IconButton`. Pair with
   [`HdLogGlyph`](HdToolButton.kt) — three stacked hairlines — for
   the log/list toggle glyph.
-- **[`HdHairlineField`](HdHairlineField.kt)** — labeled
-  hairline-underline text field. Mono label + optional hint and
-  counter, chrome-less `BasicTextField`, hairline rule below. The
-  default text input.
+- **[`HdHairlineField`](HdHairlineField.kt)**: the one text field,
+  in dialogs and on screens alike: chrome-less `BasicTextField` on a
+  hairline rule. The label is sentence-case mono (`HdFieldLabel`, the
+  label style for every input, pickers and tag fields included).
+  - With a `placeholder` (an example value, `hammer.ink`), the label
+    stays above and the example is the hint, in `hdPlaceholderColor`.
+  - Without one, the label sits in the empty field as the hint and
+    floats up once there is text.
+  - `optional` adds "· optional" to the label. `counter` sits at the end
+    of the label row.
+  - `hint` is help text below the rule, in sans; `error` replaces it in
+    red and turns the rule red.
 - **[`HdHairlineTagField`](HdHairlineTagField.kt)** — same vocabulary
   but the value is a `List<String>` of `HdTagChip`s; Enter / comma
   adds a tag, Backspace on empty removes the last.
@@ -381,7 +495,18 @@ The handwriting of the system. Reach for these instead of styling
   borders by overlapping 1dp; selected cell takes `onSurface` border
   and label color, the rest stay muted. Use for small enums (3–4
   values) where a dropdown would feel out of vocabulary. `enabled =
-  false` dims it and ignores clicks, as the dropdown does.
+  false` dims it and ignores clicks, as the dropdown does. `compact =
+  true` is the settings-row form: cells only as wide as the widest
+  label, sentence case labels. A picker spans the row only when it's
+  the main content, or when it's stacked under an `HdSettingRow` title.
+- **[`HdSettingRow`](HdSettingRow.kt)**: one setting per row: title,
+  optional one-line description, optional mono `meta` value (a path),
+  and the control on the right, sized to its content. Below 420dp the
+  control drops under the title and pickers span the width
+  (`LocalHdSettingRowStacked`). A lone action is a row, never a section.
+- **[`HdSettingGroup`](HdSettingRow.kt)**: titled group of setting and
+  toggle rows. The title is a size step above row titles (`titleLarge`
+  over `bodyLarge`) with one hairline under it.
 - **[`HdHairlineDropdown`](HdHairlineDropdown.kt)** — generic
   full-width hairline pill `[ Markdown            ▾ ]` opening a
   `DropdownMenu`. Same signature as `HdHairlineSegmentedPicker`, so
@@ -397,6 +522,18 @@ The handwriting of the system. Reach for these instead of styling
   in a dialog, a label over a 2dp rule that takes the accent when
   active. Used where a dialog's list splits into a few kinds, such as
   Add reference's entry groups and the entity picker's kinds.
+- **[`HdTabbedPage`](HdTabbedPage.kt)**: a page split into tabs
+  (settings screens). Wide screens list the tabs down a side column
+  under the back button, an accent bar beside the active one, and the
+  title and content share the next edge. Phones put an even row of tabs
+  under the masthead, seated on its folio rule. Nothing is centered
+  against a left-pinned masthead.
+  The side column is only as wide as its widest label (120 to 200dp),
+  with a 32dp gutter before it and a 32dp gap after it. Extra window
+  width goes after the content column, never between tabs and content.
+- **`HdPage`** (in [`HdTabbedPage.kt`](HdTabbedPage.kt)): the same
+  masthead without tabs (About). On wide screens the title and the
+  content column are centered together, so they still share one edge.
 - **[`HdResizeHandle`](HdResizeHandle.kt)**: full-height 16dp gutter
   on the start edge of a centered, width-capped column (the scene
   editor, focus mode) that drags the column wider or narrower. Shows
@@ -464,8 +601,11 @@ screen that surfaces them.
 - **[`HdClearGlyph`](HdClearGlyph.kt)** — the small `×` clear/remove
   affordance, drawn as two strokes so it stays geometrically centered
   (a font-rendered `×` sits low in a small box). Use this instead of
-  `Text("×")` anywhere a chip, field, or panel needs a dismiss glyph;
-  pass `onClick = null` when a parent handles the click.
+  `Text("×")` anywhere a chip or attachment needs a remove glyph;
+  pass `onClick = null` when a parent handles the click. A text field's
+  clear is the circled mark built into `HdSearchField`, so it never reads
+  as the close of the dialog around it; dialog and panel closes are
+  `HdCloseButton`.
 - **[`HdCollapseGlyph`](HdCollapseGlyph.kt)** — dock-to-top arrow
   (`⤒`) for dismissing a strip that tucks back up into the chrome,
   e.g. a revealed search bar. Not an `×`: clear empties a value,
@@ -475,6 +615,17 @@ screen that surfaces them.
   zone for entry cards: 6dp accent stripe + low-opacity glyph
   backdrop + the entry name in display weight. Use when no cover
   image is set so the card never feels half-formed.
+- **[`HdEmptyState`](HdEmptyState.kt)**: "nothing here yet" for a
+  list or tab: a dashed hairline frame (dashes mean "a place for
+  something") around a light icon, what's missing in `titleLarge`, and
+  one or two sentences on what it's for and where to get some. Name
+  the place in the app's own words ("Settings, on the Plugins tab").
+  Optional `action` for when the fix is right here.
+- **`HdPageEmpty`** (in [`HdEmptyState.kt`](HdEmptyState.kt)): the
+  empty state of a whole page or pane (a list screen with nothing in
+  it, an editor with nothing open). One quiet meta line, centred both
+  ways in the space the content would fill. Overlay it on the list
+  rather than putting it in a list item, so it centres vertically.
 - **[`HdEngravingPlaceholder`](HdEngravingPlaceholder.kt)** — 45°
   hatched stripes + `[ENGRAVING · NAME]`. The "no image" placeholder
   inside detail layouts. `compact = true` shows a centred `[NAME]` for
@@ -596,58 +747,67 @@ reading column; below 720dp the rail collapses into a top dropdown
 above the same reading column. The reading content itself is
 identical — only the chapter-jump affordance reflows.
 
-### Dialog masthead
+### Form dialogs
 
-The standard masthead for any modal dialog —
-[`FormDialog`](../FormDialog.kt),
-[`ConfirmationDialog` / `IndexStripDialog`](../ConfirmationDialog.kt),
-and [`GlobalSearchUi`](../../globalsearch/GlobalSearchUi.kt) all use this
-shape, and any new dialog should too:
+Forms and confirmations that act on one thing use
+[`FormDialogScaffold`](../FormDialog.kt) (or `FormDialog`, which animates
+it): a square hairline frame, title, optional meta line, body, and
+`[Cancel] [Confirm]` at the bottom right. No masthead and no close glyph;
+Cancel is the way out.
 
 ```
-  § MARKER ──────────────── META  ×
-  ════════════════════════════════
-  ────────────────────────────────
-  <body content>
+  Delete group
+  In Fantasy                     (meta: context, optional)
+
+  Trilogy                        (subject: large mono)
+
+  <body>
+                      [Cancel] [Delete]
 ```
 
-- **§-marker row.** A small-caps mono caption on the left, optional
-  matching mono meta caption on the right (`PROJECT`, `12 RESULTS`,
-  `LAST EDIT 14:32` — must obey the [greeble rule](#greebles): real
-  values, not fabricated). On desktop add a trailing `×` close glyph
-  after the meta, since the dialog has no system back gesture.
-- **[`HdFolioDivider`](HdFolioDivider.kt) underneath.** The 2dp +
-  hairline rule stack is what gives the dialog its "title bar"
-  weight without a shadow.
-- **Body.** Padded `start = 26.dp, end = 26.dp, top = 22.dp, bottom = 22–26.dp`
-  (the wider gutter sets dialogs apart from scrolling screens, which
-  use `Padding.XL = 16.dp`).
+- **Subject.** When the dialog acts on a named thing (a project, a
+  group), pass its name as `subject`. It is set large in mono by
+  `FormDialogSubject`, the one place that name appears. The title says
+  what is happening ("Leave project", "Move group"), never the name.
+  Use `FormDialogSubject` directly when the name sits deeper in the body,
+  such as the copyable name in the delete-project confirmation.
+- **Meta.** Small mono line under the title for context the title and
+  subject don't carry ("In Fantasy"). Not a type tag: `PROJECT` or
+  `GROUP` belongs in the title.
+- **Renames** show the current name as the subject and the field
+  labelled "New name" below it.
 
-The marker row is **not** an `HdSectionHeader` — that primitive is
-reserved for in-screen sections and renders a roman-numeral marker
-(`§ I`). Dialogs use a single short keyword (`§ RENAME`, `§ DELETE`,
-`§ SEARCH PROJECT`) which doubles as the dialog's accessible title.
-Pass the `§` as a literal character in the marker string.
+### Dialog frame
 
-Exact mono styling, copied so far in each call site:
+Every dialog that isn't a confirm sits on the same pieces:
 
-```kotlin
-fontFamily = FontFamily.Monospace,
-fontSize = 10.sp,
-fontWeight = FontWeight.Medium,
-letterSpacing = 1.8.sp,
-color = MaterialTheme.colorScheme.onSurfaceVariant,
+```
+  Title                          [trailing]  ×
+  meta (optional)
+  ────────────────────────────────────────────  (list dialogs)
+  <body>
+                              [Cancel] [Confirm]
 ```
 
-(Destructive variants — `IndexStripDialog(destructive = true)` —
-swap the marker color to `error`.)
+- **[`HdDialogFrame`](HdDialogFrame.kt)**: the square surface with one
+  `outlineVariant` hairline and no elevation. Width comes from the
+  `Ui.MaxWidth` tokens: `DialogNarrow` (480) for short forms, `Dialog`
+  (560, the default) for most, `DialogWide` (720) for wide content.
+- **`HdDialogTitleRow`**: titleLarge title, optional meta line, a
+  `trailing` slot for tool buttons, then the close. A null `onClose`
+  drops the close for dialogs whose Cancel or Done is the way out.
+- **`HdCloseButton`**: the one close ×, always `onSurfaceVariant`.
+  Panel and screen headers use it too.
+- **`HdDialogActions`**: `[Cancel] [Confirm]` at the bottom right;
+  `destructive` makes the confirm a danger button.
+- **[`HdHairlineDialogShell`](HdHairlineDialogShell.kt)**: frame, title
+  row and a padded body in one, for simple dialogs.
+- **`HdEmptyNote`**: the quiet centred line where a dialog's list would be.
 
-Three occurrences now share this shape, so per the
-[Adding to the system](#adding-to-the-system) rules this is the next
-candidate to lift into a real `Hd*` primitive (working name:
-`HdDialogMasthead`). Until that lands, copy the exact styling above
-rather than improvising — the cohesion comes from the consistent
-metrics, not just the layout.
+Confirms keep their own index-strip card
+([`ConfirmationDialog`](../ConfirmationDialog.kt)), on the same hairline
+and with the same `HdHairlineButton` actions as every other dialog; forms use
+[`FormDialogScaffold`](#form-dialogs), which sits on `HdDialogFrame`.
 
 ### Screen masthead
 
@@ -693,14 +853,19 @@ from the screen edge.
   horizontal value is in play (e.g. About / Account Settings switch to `56.dp` on Expanded), feed that through — same
   rule, different number.
 
+**Title and trailing side.** The title is the screen's name in the
+body face, matching its nav label ("Projects"), not a mono eyebrow
+restating app and screen. The trailing side holds quiet tools and at
+most one primary action. A footer folio stays only if it carries
+something found nowhere else on the screen.
+
 **Pairs with `HdFolioDivider`.** A masthead row sits directly above an `HdFolioDivider` (for top-level screens) or a
 `HorizontalDivider(thickness = Dp.Hairline)` (for in-card mastheads). The divider, not extra padding, separates the
 masthead from the body.
 
-**Contrast with [Dialog masthead](#dialog-masthead).** Dialogs are floating overlays on a scrim — no `statusBarsPadding`
-above them, smaller surface — and use the documented `26.dp` horizontal / `22.dp` top body padding. That's a different
-context with a different rule. Screen masthead = any title row that sits at the top of a screen-sized surface. Dialog
-masthead = the §-marker row inside an overlay dialog.
+**Contrast with [Dialog frame](#dialog-frame).** Dialogs are floating overlays on a scrim, with no `statusBarsPadding`
+above them and a smaller surface; their title row is `HdDialogTitleRow`. Screen masthead = any title row that sits at
+the top of a screen-sized surface.
 
 **Exceptions.**
 
@@ -768,6 +933,40 @@ A second set of filter chips (the timeline's lanes) goes in
 `scrollingLeading` at every width, so it scrolls with the tag chips
 instead of squeezing the pinned cells. Every chip in the bar keeps to
 one line; a long label ellipsizes.
+
+### Settings screens
+
+App Settings ([`AccountSettingsUi`](../../projectselection/settings/AccountSettingsUi.kt))
+is the model for any page of options.
+
+- **Split by job, not by length.** Tabs ([`HdTabbedPage`](HdTabbedPage.kt))
+  when a screen mixes unrelated jobs, each tab named for its job
+  (General, Writing, Sync, Plugins). A tab fits about one screen; if it
+  doesn't, the grouping is wrong. Each tab opens at the top.
+- **A heading has to group things.** A group title only over two or
+  more rows. A lone action joins a related group as an
+  [`HdSettingRow`](HdSettingRow.kt).
+- **A gating state gets one status block.** When one state decides what
+  everything below can do (sync connected, signed out, not set up), it
+  sits at the top in a single framed block with the one action that
+  state needs. It's the only framed container on the page, which is
+  what makes it stand out.
+- **Inline beats a hop.** If a dialog would be the whole point of a
+  section, put its content in the tab instead of behind a button (the
+  Plugins tab is the plugin manager).
+- **No Save button.** Every change applies as it's made; the masthead's
+  "Autosaved" mark says so once.
+
+```
+  Settings                                         ■ Autosaved
+  ═══════════════════════════════════════════════════════════
+     General       Writing       Sync        Plugins
+  ━━━━━━━━━━━━──────────────────────────────────────────
+  Appearance
+  ───────────────────────────────────────────────────
+  Theme                            [ Light | Dark | System ]
+  Open projects to                   [ Home | Scene editor ]
+```
 
 ### Collapse chrome while typing
 

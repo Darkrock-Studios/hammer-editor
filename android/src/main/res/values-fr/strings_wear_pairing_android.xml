@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="wear_pairing_masthead">APPAIRER LA MONTRE</string>
 	<string name="wear_pairing_title">Se connecter à %1$s sur Hammer ?</string>
 	<string name="wear_pairing_body">La montre sera synchronisée en tant que %1$s avec sa propre session. Vous pouvez la déconnecter depuis la montre à tout moment.</string>
 	<string name="wear_pairing_not_signed_in">Connectez-vous au serveur sur ce smartphone en premier, puis appairez la montre de nouveau.</string>

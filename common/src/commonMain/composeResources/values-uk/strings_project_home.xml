@@ -17,7 +17,6 @@
 	<string name="project_home_stat_longest_scene_words">%1$s слів</string>
 	<string name="project_home_stat_longest_scene_empty">Ще немає сцен</string>
 	<string name="project_home_stat_last_edited_scene">Востаннє відредаговано</string>
-	<string name="project_home_stat_scene_median">Медіана</string>
 	<string name="project_home_stat_reading_time">≈ %1$d хв читання</string>
 	<string name="project_home_stat_pages">%1$d сторінок</string>
 	<string name="project_home_stat_daily_goal">Щоденна ціль</string>
@@ -41,7 +40,6 @@
 	<string name="project_home_stat_activity_tooltip_empty">%1$s · без письма</string>
 	<string name="project_home_stat_avg_weekday">Сер. у будні</string>
 	<string name="project_home_stat_avg_weekend">Сер. у вихідні</string>
-	<string name="project_home_stat_chapter_words_summary">σ %1$d · мін %2$d · макс %3$d</string>
 	<string name="project_home_stat_donut_entries">записів</string>
 	<string name="project_home_stat_donut_tooltip">%1$s · %2$s записів</string>
 	<string name="project_home_stat_themes_title">Теми</string>
@@ -67,8 +65,6 @@
 	<string name="project_home_action_export_toast_success">Історію експортовано</string>
 	<string name="project_home_action_export_toast_failure">Не вдалося експортувати</string>
 	<string name="project_home_export_dialog_title">Експортувати історію</string>
-	<string name="project_home_export_section">ЕКСПОРТ</string>
-	<string name="project_home_export_close">× ЗАКРИТИ</string>
 	<string name="project_home_export_format_label">Формат</string>
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>
@@ -89,13 +85,11 @@
 	<string name="project_home_export_scenes_clear_all">Очистити все</string>
 	<string name="project_home_export_help_icon_description">Дізнатися про формати експорту</string>
 	<string name="project_home_export_help_title">Вибір формату експорту</string>
-	<string name="project_home_export_help_intro">Кожен формат підходить для різних цілей. Виберіть той, що відповідає тому, як ви плануєте використовувати експортовану історію.</string>
 	<string name="project_home_export_help_format_markdown">Простий текст із легким форматуванням, у ZIP-архіві з його зображеннями; ідеальний для контролю версій чи інших інструментів письма.</string>
 	<string name="project_home_export_help_format_epub">Стандартний формат електронних книг; найкращий для бета-читачів на електронних читалках і телефонах із переливним текстом.</string>
 	<string name="project_home_export_help_format_pdf">Фіксований макет сторінки, що виглядає однаково всюди; найкращий для друку чи надсилання остаточної копії лише для читання.</string>
 	<string name="project_home_export_help_format_docx">Відкривається у Word і Google Docs; найкращий для редакторів і бета-читачів, які залишають коментарі чи відстежують зміни.</string>
 	<string name="project_home_export_help_format_rtf">Широко сумісний формат форматованого тексту; безпечний вибір, коли ви не впевнені, який текстовий редактор використовує одержувач.</string>
-	<string name="project_home_export_help_dismiss">Зрозуміло</string>
 	<string name="project_home_export_contents_title">Зміст</string>
 	<string name="project_home_export_byline">автор: %1$s</string>
 	<string name="project_home_action_import_toast_success">Історію імпортовано</string>
@@ -114,7 +108,10 @@
 	<string name="project_home_import_preview_label">Попередній перегляд</string>
 	<string name="project_home_import_preview_empty">Немає що імпортувати</string>
 	<string name="project_home_import_preview_reading">Reading your manuscript</string>
-	<string name="project_home_import_preview_count">Буде створено %1$d сцен</string>
+	<plurals name="project_home_import_preview_scenes">
+		<item quantity="one">Буде створено %1$d сцен</item>
+		<item quantity="other">Буде створено %1$d сцен</item>
+	</plurals>
 	<string name="project_home_import_large_scene_label">Large scene</string>
 	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
 	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>

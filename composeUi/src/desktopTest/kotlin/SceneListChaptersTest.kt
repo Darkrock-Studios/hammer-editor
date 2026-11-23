@@ -95,9 +95,9 @@ class SceneListChaptersTest : BaseTest() {
 		compose.onNodeWithTag(SCENE_LIST_ADD_BUTTON_TAG).performClick()
 
 		compose.onNodeWithTag(SCENE_LIST_ADD_SCENE_TAG).assertIsDisplayed()
-		compose.onNodeWithText("New Chapter Scene").assertIsDisplayed()
+		compose.onNodeWithText("New chapter scene").assertIsDisplayed()
 		compose.onNodeWithTag(SCENE_LIST_ADD_GROUP_TAG).assertIsDisplayed()
-		compose.onNodeWithText("New Chapter Group").assertIsDisplayed()
+		compose.onNodeWithText("New chapter group").assertIsDisplayed()
 	}
 
 	@Test
@@ -107,8 +107,8 @@ class SceneListChaptersTest : BaseTest() {
 		compose.onNodeWithTag(SCENE_LIST_ADD_BUTTON_TAG).performClick()
 		compose.onNodeWithTag(SCENE_LIST_ADD_GROUP_TAG).performClick()
 
-		compose.onNodeWithText("Create Chapter Group").assertIsDisplayed()
-		compose.onNodeWithText("Chapter Name").assertIsDisplayed()
+		compose.onNodeWithText("New chapter group").assertIsDisplayed()
+		compose.onNodeWithText("Name").assertIsDisplayed()
 	}
 }
 

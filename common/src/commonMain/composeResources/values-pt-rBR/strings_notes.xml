@@ -7,8 +7,6 @@
 	<string name="notes_discard_dialog_title">Descartar Alterações?</string>
 	<string name="notes_discard_dialog_message">Você perderá todas as alterações que fez.</string>
 	<string name="notes_create_header">Criar Anotação</string>
-	<string name="notes_create_marker">III · NOVO</string>
-	<string name="notes_create_draft_label">RASCUNHO</string>
 	<string name="notes_create_create_button">Criar</string>
 	<string name="notes_create_cancel_button">Cancelar</string>
 	<string name="notes_create_toast_success">Anotação Criada</string>
@@ -23,7 +21,6 @@
 	<string name="notes_delete_toast_success">Note Deleted</string>
 	<string name="notes_menu_group">Anotação</string>
 	<string name="notes_menu_delete">Excluir</string>
-	<string name="notes_view_header">Anotação</string>
 	<string name="notes_view_label_editing">Editando</string>
 	<string name="notes_view_close_button">Fechar Anotação</string>
 	<string name="notes_view_crumb_root">Anotações</string>
@@ -36,7 +33,6 @@
 	<string name="notes_search_placeholder">Pesquisar anotações</string>
 	<string name="notes_search_close">Fechar busca</string>
 	<string name="notes_search_clear">Limpar busca</string>
-	<string name="notes_header_meta">%1$d ANOTAÇÕES · %2$d ETIQUETAS</string>
 	<string name="notes_word_count_short">%1$d PAL</string>
 	<string name="notes_filter_all">TODAS</string>
 	<string name="notes_filter_filtered">FILTRADO · %1$d DE %2$d</string>
