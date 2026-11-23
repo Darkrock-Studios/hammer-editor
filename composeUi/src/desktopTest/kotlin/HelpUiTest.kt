@@ -2,7 +2,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -13,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.help.HELP_ALL_TOPICS_TAG
 import com.darkrockstudios.apps.hammer.common.help.HELP_PLAYLIST_URL
 import com.darkrockstudios.apps.hammer.common.help.HELP_WATCH_ALL_TAG
 import com.darkrockstudios.apps.hammer.common.help.HelpScreen
+import com.darkrockstudios.apps.hammer.common.help.HelpDialog
 import com.darkrockstudios.apps.hammer.common.help.HelpDialogContent
 import com.darkrockstudios.apps.hammer.common.help.HelpSection
 import com.darkrockstudios.apps.hammer.common.help.HelpTopic
@@ -102,5 +107,21 @@ class HelpUiTest : BaseTest() {
 
 		HelpTopic.entries.forEach { compose.onNodeWithTag(helpTopicTag(it)).assertExists() }
 		compose.onAllNodesWithTag(HELP_ALL_TOPICS_TAG).assertCountEquals(0)
+	}
+
+	@Test
+	fun `Tapping outside the help dialog closes it, tapping inside does not`() {
+		var closed = 0
+		show { HelpDialog(screen = HelpScreen.Notes, onDismiss = { closed++ }) }
+
+		compose.onNodeWithTag(helpTopicTag(HelpScreen.Notes.topics.first())).performClick()
+		compose.waitForIdle()
+		val closedByInsideTap = closed
+		compose.onAllNodes(isRoot()).let { it[it.fetchSemanticsNodes().size - 1] }
+			.performTouchInput { click(Offset(2f, 2f)) }
+		compose.waitForIdle()
+
+		assertEquals(0, closedByInsideTap)
+		assertEquals(1, closed)
 	}
 }
