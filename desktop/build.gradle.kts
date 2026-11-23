@@ -106,6 +106,27 @@ val runtimeModules: List<String> = providers.exec {
 	.map { it.substringBefore('@').trim() }
 	.filter { it.isNotEmpty() && it != "jdk.jlink" && it != "jdk.jpackage" }
 
+// Class data sharing built on the user's machine: the JVM writes the archive at the first exit after an
+// install or update and maps it on later launches. Built per OS on its own runner, so set by host OS.
+// The jpackage launcher expands environment variables in its .cfg; the directory is per version so the
+// window can drop old ones (see ClassDataArchive.kt).
+val classDataArchiveDir: String = run {
+	val os = org.gradle.internal.os.OperatingSystem.current()
+	val version = libs.versions.app.get()
+	when {
+		os.isWindows -> "\$LOCALAPPDATA\\DarkrockStudios\\hammer\\Cache\\cds\\$version"
+		os.isMacOsX -> "\$HOME/Library/Caches/hammer/cds/$version"
+		else -> "\$HOME/.cache/hammer/cds/$version"
+	}
+}
+// Also given to the base archive's dump: a module option that differs at run time turns off its module graph.
+val nativeAccessArg = "--enable-native-access=ALL-UNNAMED"
+val classDataArchiveArgs = listOf(
+	"-XX:+AutoCreateSharedArchive",
+	"-XX:SharedArchiveFile=$classDataArchiveDir${File.separator}hammer.jsa",
+	"-Dhammer.cds.dir=$classDataArchiveDir",
+)
+
 compose.desktop {
 	application {
 		javaHome = packagingJavaHome
@@ -180,7 +201,11 @@ compose.desktop {
 		}
 		jvmArgs("-Dcompose.application.configure.swing.globals=false")
 		// JNA, Skiko, and Nucleus load natives; JDK 24+ warns on every restricted call otherwise.
-		jvmArgs("--enable-native-access=ALL-UNNAMED")
+		jvmArgs(nativeAccessArg)
+		// JVM warnings default to stdout, which carries the CLI's and MCP server's output. Class data
+		// sharing falls back and rebuilds on its own, so its messages are noise.
+		jvmArgs("-Xlog:disable", "-Xlog:all=warning:stderr", "-Xlog:aot*=off,cds*=off:stderr")
+		jvmArgs.addAll(classDataArchiveArgs)
 		if (isAppStoreRelease) {
 			// Load libjnidispatch.jnilib from Contents/app/resources/, never extract.
 			jvmArgs("-Djna.nounpack=true", "-Djna.nosys=true")
@@ -303,6 +328,34 @@ val compileMacosBookmarksLib = tasks.register("compileMacosBookmarksLib") {
 tasks.matching { it.name == "checkRuntime" || it.name == "createRuntimeImage" }.configureEach {
 	inputs.property("packagingJavaHome", packagingJavaHome)
 }
+// The JVM cannot create a dynamic class data archive without a base one. jlink's --generate-cds-archive
+// runs the image's bin/java, which Compose strips, so the base archive is dumped with a java copied in.
+tasks.withType<org.jetbrains.compose.desktop.application.tasks.AbstractJLinkTask>().configureEach {
+	val execOps = project.providers
+	val javaExe = if (org.gradle.internal.os.OperatingSystem.current().isWindows) "bin/java.exe" else "bin/java"
+	doLast {
+		val image = destinationDir.get().asFile
+		val java = image.resolve(javaExe)
+		File(packagingJavaHome, javaExe).copyTo(java, overwrite = true)
+		java.setExecutable(true)
+		try {
+			execOps.exec { commandLine(java.absolutePath, nativeAccessArg, "-Xshare:dump") }.result.get()
+			// Used when the default heap is too large for compressed oops (machines with 128 GB or more).
+			val noCoops = image.resolve("lib/server/classes_nocoops.jsa").absolutePath
+			execOps.exec {
+				commandLine(java.absolutePath, nativeAccessArg, "-XX:-UseCompressedOops", "-XX:SharedArchiveFile=$noCoops", "-Xshare:dump")
+			}.result.get()
+		} finally {
+			java.delete()
+			// Only removes bin/ where it held nothing else; on Windows it also holds the runtime's DLLs.
+			java.parentFile.delete()
+		}
+	}
+}
+// Nothing expands $HOME outside the jpackage launcher.
+tasks.withType<JavaExec>().configureEach {
+	doFirst { jvmArgs = jvmArgs.orEmpty().filterNot { it in classDataArchiveArgs } }
+}
 // ProGuard reads JDK classes from jmods, which Temurin 25 lacks; the code targets the toolchain's API anyway.
 // Set late because Compose sets javaHome in its own afterEvaluate.
 afterEvaluate {
@@ -396,7 +449,9 @@ tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDi
 		if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
 			val variant = if (name == "createReleaseDistributable") "main-release" else "main"
 			val appImage = project.layout.buildDirectory.dir("installers/$variant/app/hammer").get().asFile
-			addWindowsConsoleLauncher(appImage, launcher = "hammer", name = "hammer-cli")
+			// Only the window builds the class data archive; the CLI runs on the base one.
+			val cdsOptions = classDataArchiveArgs.map { it.substringBefore('=') }
+			addWindowsConsoleLauncher(appImage, launcher = "hammer", name = "hammer-cli", omitJavaOptions = cdsOptions)
 		}
 	}
 }

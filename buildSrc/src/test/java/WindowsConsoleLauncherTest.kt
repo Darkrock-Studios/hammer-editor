@@ -54,4 +54,20 @@ class WindowsConsoleLauncherTest {
 		assertEquals("[Application]\napp.mainclass=Main\n", image.resolve("app/hammer-cli.cfg").readText())
 		image.deleteRecursively()
 	}
+
+	@Test
+	fun `the console launcher's config can leave out JVM options`() {
+		val image = Files.createTempDirectory("hammer").toFile()
+		image.resolve("hammer.exe").writeBytes(exe(subsystem = 2))
+		image.resolve("app").mkdirs()
+		image.resolve("app/hammer.cfg").writeText(
+			"[JavaOptions]\njava-options=-Xss2m\njava-options=-XX:SharedArchiveFile=a.jsa\njava-options=-Dx=1\n"
+		)
+
+		addWindowsConsoleLauncher(image, launcher = "hammer", name = "hammer-cli", omitJavaOptions = listOf("-XX:SharedArchiveFile="))
+
+		val expected = listOf("[JavaOptions]", "java-options=-Xss2m", "java-options=-Dx=1")
+		assertEquals(expected, image.resolve("app/hammer-cli.cfg").readLines())
+		image.deleteRecursively()
+	}
 }

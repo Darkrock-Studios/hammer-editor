@@ -17,12 +17,16 @@ private const val SUBSYSTEM_CONSOLE = 3
  * Adds a console launcher, [name]`.exe`, beside the GUI launcher [launcher] in a jpackage app image
  * at [appImage]. jpackage has one launcher per app here, and a GUI one never shows output in a
  * terminal. The copy differs only in its PE subsystem, which is what `editbin /SUBSYSTEM:CONSOLE`
- * changes, and gets its own copy of the launcher's `.cfg`, which jpackage finds by the exe's name.
+ * changes, and gets its own copy of the launcher's `.cfg`, which jpackage finds by the exe's name,
+ * less any JVM option starting with one of [omitJavaOptions].
  */
-fun addWindowsConsoleLauncher(appImage: File, launcher: String, name: String) {
+fun addWindowsConsoleLauncher(appImage: File, launcher: String, name: String, omitJavaOptions: List<String> = emptyList()) {
 	val gui = appImage.resolve("$launcher.exe")
 	appImage.resolve("$name.exe").writeBytes(withConsoleSubsystem(gui.readBytes()))
-	appImage.resolve("app/$launcher.cfg").copyTo(appImage.resolve("app/$name.cfg"), overwrite = true)
+	val cfg = appImage.resolve("app/$launcher.cfg").readLines().filterNot { line ->
+		omitJavaOptions.any { line.startsWith("java-options=$it") }
+	}
+	appImage.resolve("app/$name.cfg").writeText(cfg.joinToString(System.lineSeparator(), postfix = System.lineSeparator()))
 }
 
 /** [exe] with its PE subsystem set to console. */

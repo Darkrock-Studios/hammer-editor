@@ -180,6 +180,7 @@ private fun openAppInstance(appScope: CoroutineScope, args: Array<String>, launc
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
 	relaunchUnderUtf8LocaleIfNeeded()
+	prepareClassDataArchive(isCli = Cli.isInvocation(args))
 	if (Cli.isInvocation(args)) {
 		setInDevelopmentMode(Cli.isDevInvocation(args))
 		exitProcess(runCli(Cli.commandArgs(args)))
@@ -193,6 +194,7 @@ fun main(args: Array<String>) {
 	// Buffered, since a launch can be handed over before the window is up to take it.
 	val launches = Channel<DesktopLaunchArgs>(HANDED_OFF_LAUNCHES)
 	val appInstance = openAppInstance(appScope, args, launches)
+	adoptClassDataArchive()
 	logStartupBanner()
 	installGlobalExceptionHandler()
 
