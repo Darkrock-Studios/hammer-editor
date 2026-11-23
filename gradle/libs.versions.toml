@@ -6,6 +6,8 @@ data_version = "1.0"
 # Kotlin
 flatlaf = "3.8"
 jvm = "21"
+# The JDK bundled into desktop packages; its AOT cache needs 25+.
+desktopRuntimeJvm = "25"
 kache = "2.1.1"
 kotlin = "2.4.21"
 serialization = "1.12.0"
