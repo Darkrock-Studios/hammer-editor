@@ -19,6 +19,9 @@ interface AccountSettings : ComponentToaster {
 
 	fun setUiTheme(theme: UiTheme)
 	fun setInitialProjectScreen(value: InitialProjectScreen)
+	fun setTipsEnabled(enabled: Boolean)
+	/** Shows every tip again, as if on a fresh install. */
+	fun resetTips()
 	fun reinstallExampleProject(onComplete: (Boolean) -> Unit)
 	fun beginSetupServer()
 	fun cancelServerSetup()
@@ -91,5 +94,6 @@ interface AccountSettings : ComponentToaster {
 		val syncAutoCloseDialog: Boolean,
 		val maxBackups: Int,
 		val initialProjectScreen: InitialProjectScreen = InitialProjectScreen.Home,
+		val tipsEnabled: Boolean = true,
 	)
 }

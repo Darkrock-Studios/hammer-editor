@@ -34,10 +34,12 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 
 
@@ -73,6 +75,26 @@ fun ScreenSceneListUiTabletPreview() {
 				)
 			)
 			SceneListUi(component, snackbarHostState)
+		}
+	}
+}
+
+/** The scene list with a first-visit tip up. [swipe] shows the mobile swipe tip, otherwise the reorder tip. */
+@Composable
+fun ScreenSceneListUiTipPreview(swipe: Boolean) {
+	val snackbarHostState = rememberRootSnackbarHostState()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			val hint = if (swipe) NuxHint.SceneListSwipeMenu else NuxHint.SceneListReorder
+			val component = fakeComponent(
+				SceneList.State(
+					projectDef = fakeProjectDef(),
+					sceneSummary = nestedSceneSummary(),
+					offeredHints = persistentListOf(hint),
+				)
+			)
+			SceneListUi(component, snackbarHostState, swipeOpensMenu = swipe)
 		}
 	}
 }
@@ -222,7 +244,7 @@ fun SceneItemPreview() {
 			depth = 1,
 			hasDirtyBuffer = false,
 			isSelected = false,
-			shouldNux = false,
+			demonstrateSwipe = false,
 			isChapter = false,
 			onSceneSelected = {},
 			onSceneDeleteRequest = {},
@@ -236,7 +258,7 @@ fun SceneItemPreview() {
 			depth = 1,
 			hasDirtyBuffer = true,
 			isSelected = false,
-			shouldNux = false,
+			demonstrateSwipe = false,
 			isChapter = false,
 			onSceneSelected = {},
 			onSceneDeleteRequest = {},
@@ -250,7 +272,7 @@ fun SceneItemPreview() {
 			depth = 1,
 			hasDirtyBuffer = false,
 			isSelected = true,
-			shouldNux = false,
+			demonstrateSwipe = false,
 			isChapter = false,
 			onSceneSelected = {},
 			onSceneDeleteRequest = {},
@@ -292,6 +314,8 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override suspend fun unarchiveScene(scene: SceneItem) {}
 	override fun showArchivedScenes() {}
 	override fun dismissArchivedDialog() {}
+	override fun dismissHint(hint: NuxHint) {}
+	override fun turnOffTips() {}
 }
 /** New scene inside a group, over a scrim; the card directly, since the animated dialog can't settle in a preview. */
 @Composable

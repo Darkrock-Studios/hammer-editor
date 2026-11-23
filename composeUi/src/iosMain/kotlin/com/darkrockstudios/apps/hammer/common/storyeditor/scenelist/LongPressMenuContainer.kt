@@ -23,12 +23,13 @@ internal data class LongPressMenuEntry(
 @Composable
 internal fun LongPressMenuContainer(
 	entries: List<LongPressMenuEntry>,
+	modifier: Modifier = Modifier,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 ) {
 	val hapticFeedback = LocalHapticFeedback.current
 	var showMenu by remember { mutableStateOf(false) }
 
-	Box {
+	Box(modifier) {
 		itemContent(
 			Modifier.combinedClickable(
 				onClick = {},

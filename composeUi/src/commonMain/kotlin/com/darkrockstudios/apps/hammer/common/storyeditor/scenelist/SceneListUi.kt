@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,9 +55,13 @@ import com.darkrockstudios.apps.hammer.collapse
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCoachMarkAnchors
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCoachMarkHost
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdCoachMarkAnchor
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdCoachMarkAnchors
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -66,6 +71,7 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.data.tree.isChapter
 import com.darkrockstudios.apps.hammer.common.storyeditor.SceneKind
@@ -88,13 +94,20 @@ import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_header
 import com.darkrockstudios.apps.hammer.scene_list_outline_button
 import com.darkrockstudios.apps.hammer.scene_list_reader_button
+import com.darkrockstudios.apps.hammer.scene_list_tip_dismiss
+import com.darkrockstudios.apps.hammer.scene_list_tip_label
+import com.darkrockstudios.apps.hammer.scene_list_tip_reorder_body
+import com.darkrockstudios.apps.hammer.scene_list_tip_reorder_title
+import com.darkrockstudios.apps.hammer.scene_list_tip_swipe_body
+import com.darkrockstudios.apps.hammer.scene_list_tip_swipe_title
+import com.darkrockstudios.apps.hammer.scene_list_tip_turn_off
+import com.darkrockstudios.apps.hammer.scene_list_tip_turned_off
 import com.darkrockstudios.apps.hammer.view_archived_scenes_button
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
-import kotlin.random.Random
 
 const val SCENE_LIST_ADD_BUTTON_TAG = "scene-list-add"
 const val SCENE_LIST_ADD_SCENE_TAG = "scene-list-add-scene"
@@ -103,6 +116,17 @@ const val CREATE_ITEM_NAME_FIELD_TAG = "create-item-name-field"
 const val SCENE_LIST_TREE_TAG = "scene-list-tree"
 const val SCENE_LIST_READER_BUTTON_TAG = "scene-list-reader"
 
+@Composable
+fun SceneListUi(
+	component: SceneList,
+	snackbarHostState: RootSnackbarHostState,
+	modifier: Modifier = Modifier,
+	inSplitPane: Boolean = false,
+) {
+	SceneListUi(component, snackbarHostState, modifier, inSplitPane, swipeOpensMenu = sceneRowSwipeOpensMenu)
+}
+
+/** [swipeOpensMenu] is [sceneRowSwipeOpensMenu], open here so tests can stand in for either platform. */
 @OptIn(
 	ExperimentalMaterialApi::class,
 	ExperimentalComposeApi::class,
@@ -110,11 +134,12 @@ const val SCENE_LIST_READER_BUTTON_TAG = "scene-list-reader"
 	ExperimentalFoundationApi::class
 )
 @Composable
-fun SceneListUi(
+internal fun SceneListUi(
 	component: SceneList,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 	inSplitPane: Boolean = false,
+	swipeOpensMenu: Boolean,
 ) {
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
@@ -148,13 +173,18 @@ fun SceneListUi(
 		}
 	}
 
-	// 1 in 10 chance of doing NUX
-	// TODO implement a real NUX system
-	val shouldNux = remember { Random.nextInt(0, 9) == 0 }
-
 	val footerState = rememberHdScrollAwayFooterState()
 	// Always reachable when the list can't scroll down to it (e.g. all groups collapsed).
 	val footerVisible = !treeState.listState.canScrollForward || !footerState.isHiddenByScroll
+
+	val coachMarkAnchors = rememberHdCoachMarkAnchors()
+	val tipsTurnedOffMessage = Res.string.scene_list_tip_turned_off.get()
+	val offeredHints = state.offeredHints
+	val shownTip by remember(treeState, offeredHints, swipeOpensMenu, footerVisible) {
+		derivedStateOf { anchorableTip(treeState, offeredHints, swipeOpensMenu, footerVisible) }
+	}
+	val shownHint = shownTip?.hint
+	val hintRowId = shownTip?.rowId
 
 	val surfaceColor = if (inSplitPane) {
 		MaterialTheme.colorScheme.surfaceContainerLow
@@ -166,130 +196,154 @@ fun SceneListUi(
 		modifier = modifier,
 		color = surfaceColor,
 	) {
-		Column(modifier = Modifier.fillMaxSize()) {
-			val sceneCount = remember(state.sceneSummary) { countScenes(state.sceneSummary) }
-			val chapterCount = treeState.summary.sceneTree.root.children.size
+		HdCoachMarkHost(
+			anchors = coachMarkAnchors,
+			activeKey = hintRowId,
+			label = Res.string.scene_list_tip_label.get(),
+			title = when (shownHint) {
+				NuxHint.SceneListReorder -> Res.string.scene_list_tip_reorder_title.get()
+				else -> Res.string.scene_list_tip_swipe_title.get()
+			},
+			body = when (shownHint) {
+				NuxHint.SceneListReorder -> Res.string.scene_list_tip_reorder_body.get()
+				else -> Res.string.scene_list_tip_swipe_body.get()
+			},
+			dismissLabel = Res.string.scene_list_tip_dismiss.get(),
+			onDismiss = { shownHint?.let(component::dismissHint) },
+			secondaryLabel = Res.string.scene_list_tip_turn_off.get(),
+			onSecondary = {
+				component.turnOffTips()
+				snackbarHostState.showSnackbar(tipsTurnedOffMessage)
+			},
+			modifier = Modifier.fillMaxSize(),
+		) {
+			Column(modifier = Modifier.fillMaxSize()) {
+				val sceneCount = remember(state.sceneSummary) { countScenes(state.sceneSummary) }
+				val chapterCount = treeState.summary.sceneTree.root.children.size
 
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(Ui.TOP_BAR_HEIGHT)
-					.padding(horizontal = Ui.Padding.XL),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				HdMonoLabel(text = Res.string.scene_list_header.get())
 				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(Ui.TOP_BAR_HEIGHT)
+						.padding(horizontal = Ui.Padding.XL),
+					horizontalArrangement = Arrangement.SpaceBetween,
 					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
 				) {
-					HdMonoLabel(text = Res.string.scene_list_count_format.get(chapterCount, sceneCount))
-					OverflowMenu(component, treeState)
+					HdMonoLabel(text = Res.string.scene_list_header.get())
+					Row(
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+					) {
+						HdMonoLabel(text = Res.string.scene_list_count_format.get(chapterCount, sceneCount))
+						OverflowMenu(component, treeState)
+					}
 				}
-			}
 
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-
-			Box(modifier = Modifier.weight(1f).clipToBounds()) {
-				SceneTree(
-					modifier = Modifier.fillMaxSize().testTag(SCENE_LIST_TREE_TAG)
-						.nestedScroll(footerState.nestedScrollConnection),
-					state = treeState,
-					itemUi = { node: TreeValue<SceneItem>,
-					           toggleExpanded: (nodeId: Int) -> Unit,
-					           collapsed: Boolean,
-					           draggable: Modifier ->
-
-						SceneNode(
-							sceneNode = node,
-							draggableModifier = draggable,
-							state = state,
-							summary = treeState.summary,
-							component = component,
-							toggleExpand = toggleExpanded,
-							collapsed = collapsed,
-							shouldNux = shouldNux,
-							isChapter = node.depth == 1,
-							sceneDefDeleteTarget = { deleteTarget ->
-								sceneDefDeleteTarget = deleteTarget
-							},
-							sceneDefRenameTarget = { renameTarget ->
-								sceneDefRenameTarget = renameTarget
-							},
-							sceneDefArchiveTarget = { archiveTarget ->
-								sceneDefArchiveTarget = archiveTarget
-							},
-							sceneDefMoveTarget = { moveTarget ->
-								sceneDefMoveTarget = moveTarget
-							},
-							createScene = { parent -> showCreateSceneDialog = parent },
-							createGroup = { parent -> showCreateGroupDialog = parent },
-						)
-					},
-					contentPadding = PaddingValues(bottom = footerState.height)
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
 				)
 
-				HdScrollAwayFooter(
-					state = footerState,
-					visible = footerVisible,
-					containerColor = surfaceColor,
-				) {
-					HdHairlineButton(
-						label = Res.string.scene_list_outline_button.get(),
-						onClick = component::showOutlineOverview,
-						modifier = Modifier.weight(1f),
+				Box(modifier = Modifier.weight(1f).clipToBounds()) {
+					SceneTree(
+						modifier = Modifier.fillMaxSize().testTag(SCENE_LIST_TREE_TAG)
+							.nestedScroll(footerState.nestedScrollConnection),
+						state = treeState,
+						itemUi = { node: TreeValue<SceneItem>,
+						           toggleExpanded: (nodeId: Int) -> Unit,
+						           collapsed: Boolean,
+						           draggable: Modifier ->
+
+							SceneNode(
+								sceneNode = node,
+								draggableModifier = draggable,
+								state = state,
+								summary = treeState.summary,
+								component = component,
+								toggleExpand = toggleExpanded,
+								collapsed = collapsed,
+								coachMarkAnchors = coachMarkAnchors,
+								isHintRow = node.value.id == hintRowId,
+								demonstrateSwipe = shownHint == NuxHint.SceneListSwipeMenu && node.value.id == hintRowId,
+								isChapter = node.depth == 1,
+								sceneDefDeleteTarget = { deleteTarget ->
+									sceneDefDeleteTarget = deleteTarget
+								},
+								sceneDefRenameTarget = { renameTarget ->
+									sceneDefRenameTarget = renameTarget
+								},
+								sceneDefArchiveTarget = { archiveTarget ->
+									sceneDefArchiveTarget = archiveTarget
+								},
+								sceneDefMoveTarget = { moveTarget ->
+									sceneDefMoveTarget = moveTarget
+								},
+								createScene = { parent -> showCreateSceneDialog = parent },
+								createGroup = { parent -> showCreateGroupDialog = parent },
+							)
+						},
+						contentPadding = PaddingValues(bottom = footerState.height)
 					)
-					HdHairlineButton(
-						label = Res.string.scene_list_reader_button.get(),
-						onClick = component::showReaderMode,
-						modifier = Modifier.weight(1f).testTag(SCENE_LIST_READER_BUTTON_TAG),
-					)
-					Box {
-						IconButton(
-							onClick = { addMenuOpen = true },
-							modifier = Modifier.testTag(SCENE_LIST_ADD_BUTTON_TAG),
-						) {
-							Icon(
-								imageVector = Icons.Filled.Add,
-								contentDescription = Res.string.scene_list_add_button.get(),
-								tint = MaterialTheme.colorScheme.onSurfaceVariant,
-							)
-						}
-						DropdownMenu(
-							expanded = addMenuOpen,
-							onDismissRequest = { addMenuOpen = false },
-						) {
-							DropdownMenuItem(
-								modifier = Modifier.testTag(SCENE_LIST_ADD_SCENE_TAG),
-								text = { Text(Res.string.scene_list_create_menu_chapter_scene.get()) },
-								leadingIcon = {
-									Icon(
-										imageVector = Icons.Outlined.Bookmark,
-										contentDescription = null,
-									)
-								},
-								onClick = {
-									addMenuOpen = false
-									showCreateSceneDialog = treeState.summary.sceneTree.root.value
-								},
-							)
-							DropdownMenuItem(
-								modifier = Modifier.testTag(SCENE_LIST_ADD_GROUP_TAG),
-								text = { Text(Res.string.scene_list_create_menu_chapter_group.get()) },
-								leadingIcon = {
-									Icon(
-										imageVector = Icons.AutoMirrored.Outlined.MenuBook,
-										contentDescription = null,
-									)
-								},
-								onClick = {
-									addMenuOpen = false
-									showCreateGroupDialog = treeState.summary.sceneTree.root.value
-								},
-							)
+
+					HdScrollAwayFooter(
+						state = footerState,
+						visible = footerVisible,
+						containerColor = surfaceColor,
+					) {
+						HdHairlineButton(
+							label = Res.string.scene_list_outline_button.get(),
+							onClick = component::showOutlineOverview,
+							modifier = Modifier.weight(1f),
+						)
+						HdHairlineButton(
+							label = Res.string.scene_list_reader_button.get(),
+							onClick = component::showReaderMode,
+							modifier = Modifier.weight(1f).testTag(SCENE_LIST_READER_BUTTON_TAG),
+						)
+						Box {
+							IconButton(
+								onClick = { addMenuOpen = true },
+								modifier = Modifier.testTag(SCENE_LIST_ADD_BUTTON_TAG),
+							) {
+								Icon(
+									imageVector = Icons.Filled.Add,
+									contentDescription = Res.string.scene_list_add_button.get(),
+									tint = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+							}
+							DropdownMenu(
+								expanded = addMenuOpen,
+								onDismissRequest = { addMenuOpen = false },
+							) {
+								DropdownMenuItem(
+									modifier = Modifier.testTag(SCENE_LIST_ADD_SCENE_TAG),
+									text = { Text(Res.string.scene_list_create_menu_chapter_scene.get()) },
+									leadingIcon = {
+										Icon(
+											imageVector = Icons.Outlined.Bookmark,
+											contentDescription = null,
+										)
+									},
+									onClick = {
+										addMenuOpen = false
+										showCreateSceneDialog = treeState.summary.sceneTree.root.value
+									},
+								)
+								DropdownMenuItem(
+									modifier = Modifier.testTag(SCENE_LIST_ADD_GROUP_TAG),
+									text = { Text(Res.string.scene_list_create_menu_chapter_group.get()) },
+									leadingIcon = {
+										Icon(
+											imageVector = Icons.AutoMirrored.Outlined.MenuBook,
+											contentDescription = null,
+										)
+									},
+									onClick = {
+										addMenuOpen = false
+										showCreateGroupDialog = treeState.summary.sceneTree.root.value
+									},
+								)
+							}
 						}
 					}
 				}
@@ -529,7 +583,9 @@ private fun SceneNode(
 	component: SceneList,
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
-	shouldNux: Boolean,
+	coachMarkAnchors: HdCoachMarkAnchors,
+	isHintRow: Boolean,
+	demonstrateSwipe: Boolean,
 	isChapter: Boolean,
 	sceneDefDeleteTarget: (SceneItem) -> Unit,
 	sceneDefRenameTarget: (SceneItem) -> Unit,
@@ -538,10 +594,10 @@ private fun SceneNode(
 	createScene: (SceneItem) -> Unit,
 	createGroup: (SceneItem) -> Unit,
 ) {
-	val doNux = (shouldNux && sceneNode.index == 1)
-
 	val scene = sceneNode.value
 	val isSelected = scene == state.selectedSceneItem
+	// Anchored on the action container, so the highlight holds still while the row slides.
+	val anchor = if (isHintRow) Modifier.hdCoachMarkAnchor(coachMarkAnchors, scene.id) else Modifier
 	if (scene.type == SceneItem.Type.Scene) {
 		SceneItem(
 			scene = scene,
@@ -549,13 +605,14 @@ private fun SceneNode(
 			depth = sceneNode.depth,
 			hasDirtyBuffer = summary.hasDirtyBuffer.contains(scene.id),
 			isSelected = isSelected,
-			shouldNux = doNux,
+			demonstrateSwipe = demonstrateSwipe,
 			isChapter = isChapter,
 			onSceneSelected = component::onSceneSelected,
 			onSceneDeleteRequest = sceneDefDeleteTarget,
 			onSceneRenameRequest = sceneDefRenameTarget,
 			onSceneArchiveRequest = sceneDefArchiveTarget,
 			onSceneMoveRequest = sceneDefMoveTarget,
+			modifier = anchor,
 		)
 	} else {
 		SceneGroupItem(
@@ -564,13 +621,14 @@ private fun SceneNode(
 			hasDirtyBuffer = summary.hasDirtyBuffer,
 			toggleExpand = toggleExpand,
 			collapsed = collapsed,
-			shouldNux = doNux,
+			demonstrateSwipe = demonstrateSwipe,
 			isChapter = isChapter,
 			onSceneDeleteRequest = sceneDefDeleteTarget,
 			onSceneRenameRequest = sceneDefRenameTarget,
 			onSceneMoveRequest = sceneDefMoveTarget,
 			onCreateGroupClick = createGroup,
-			onCreateSceneClick = createScene
+			onCreateSceneClick = createScene,
+			modifier = anchor,
 		)
 	}
 }
@@ -584,4 +642,31 @@ internal fun UnsavedMark() {
 			.size(6.dp)
 			.background(LocalHammerColors.current.danger)
 	)
+}
+
+private data class ShownTip(val hint: NuxHint, val rowId: Int)
+
+/**
+ * The first of [offered] that has a row to point at right now, and that row. A tip points at the
+ * first row wholly in view, and the swipe tip at the first such scene, whose menu it describes.
+ */
+private fun anchorableTip(
+	treeState: SceneTreeState,
+	offered: List<NuxHint>,
+	swipeOpensMenu: Boolean,
+	footerVisible: Boolean,
+): ShownTip? {
+	val layout = treeState.listState.layoutInfo
+	// The end padding sits under the footer, so it only hides rows while the footer is up.
+	val visibleEnd = layout.viewportEndOffset - if (footerVisible) layout.afterContentPadding else 0
+	val inView = layout.visibleItemsInfo.filter { it.offset >= 0 && it.offset + it.size <= visibleEnd }
+	return offered.firstNotNullOfOrNull { hint ->
+		val row = when (hint) {
+			NuxHint.SceneListSwipeMenu ->
+				if (swipeOpensMenu) inView.firstOrNull { it.contentType == SceneItem.Type.Scene } else null
+
+			NuxHint.SceneListReorder -> inView.firstOrNull()
+		}
+		(row?.key as? Int)?.let { ShownTip(hint, it) }
+	}
 }

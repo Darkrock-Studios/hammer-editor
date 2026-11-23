@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
 import androidx.compose.foundation.ContextMenuArea
 import androidx.compose.foundation.ContextMenuItem
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,12 +23,13 @@ import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 @Composable
 actual fun SceneGroupActionContainer(
 	scene: SceneItem,
-	shouldNux: Boolean,
+	demonstrateSwipe: Boolean,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onSceneMoveClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
+	modifier: Modifier,
 	itemContent: @Composable (modifier: Modifier) -> Unit
 ) {
 	val scope = rememberCoroutineScope()
@@ -47,32 +49,34 @@ actual fun SceneGroupActionContainer(
 		createGroupLabel = strRes.get(Res.string.scene_list_group_action_create_group)
 	}
 
-	ContextMenuArea(
-		items = {
-			listOf(
-				ContextMenuItem(
-					label = deleteLabel,
-					onClick = { onSceneAltClick(scene) }
-				),
-				ContextMenuItem(
-					label = renameLabel,
-					onClick = { onSceneRenameClick(scene) }
-				),
-				ContextMenuItem(
-					label = moveLabel,
-					onClick = { onSceneMoveClick(scene) }
-				),
-				ContextMenuItem(
-					label = createSceneLabel,
-					onClick = { onCreateSceneClick(scene) }
-				),
-				ContextMenuItem(
-					label = createGroupLabel,
-					onClick = { onCreateGroupClick(scene) }
+	Box(modifier) {
+		ContextMenuArea(
+			items = {
+				listOf(
+					ContextMenuItem(
+						label = deleteLabel,
+						onClick = { onSceneAltClick(scene) }
+					),
+					ContextMenuItem(
+						label = renameLabel,
+						onClick = { onSceneRenameClick(scene) }
+					),
+					ContextMenuItem(
+						label = moveLabel,
+						onClick = { onSceneMoveClick(scene) }
+					),
+					ContextMenuItem(
+						label = createSceneLabel,
+						onClick = { onCreateSceneClick(scene) }
+					),
+					ContextMenuItem(
+						label = createGroupLabel,
+						onClick = { onCreateGroupClick(scene) }
+					)
 				)
-			)
-		},
-	) {
-		itemContent(Modifier)
+			},
+		) {
+			itemContent(Modifier)
+		}
 	}
 }

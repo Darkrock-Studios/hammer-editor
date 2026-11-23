@@ -54,6 +54,8 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 
 		override fun setUiTheme(theme: UiTheme) {}
 		override fun setInitialProjectScreen(value: InitialProjectScreen) {}
+		override fun setTipsEnabled(enabled: Boolean) {}
+		override fun resetTips() {}
 		override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {}
 		override fun beginSetupServer() {}
 		override fun cancelServerSetup() {}

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
 import androidx.compose.foundation.ContextMenuArea
 import androidx.compose.foundation.ContextMenuItem
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,6 +19,8 @@ import com.darkrockstudios.apps.hammer.scene_list_item_action_delete
 import com.darkrockstudios.apps.hammer.scene_list_item_action_move
 import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 
+actual val sceneRowSwipeOpensMenu: Boolean = false
+
 @Composable
 actual fun SceneItemActionContainer(
 	scene: SceneItem,
@@ -25,7 +28,8 @@ actual fun SceneItemActionContainer(
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onSceneArchiveClick: (scene: SceneItem) -> Unit,
 	onSceneMoveClick: (scene: SceneItem) -> Unit,
-	shouldNux: Boolean,
+	demonstrateSwipe: Boolean,
+	modifier: Modifier,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 ) {
 	val scope = rememberCoroutineScope()
@@ -43,28 +47,30 @@ actual fun SceneItemActionContainer(
 		moveLabel = strRes.get(Res.string.scene_list_item_action_move)
 	}
 
-	ContextMenuArea(
-		items = {
-			listOf(
-				ContextMenuItem(
-					label = archiveLabel,
-					onClick = { onSceneArchiveClick(scene) }
-				),
-				ContextMenuItem(
-					label = renameLabel,
-					onClick = { onSceneRenameClick(scene) }
-				),
-				ContextMenuItem(
-					label = moveLabel,
-					onClick = { onSceneMoveClick(scene) }
-				),
-				ContextMenuItem(
-					label = deleteLabel,
-					onClick = { onSceneDeleteClick(scene) }
+	Box(modifier) {
+		ContextMenuArea(
+			items = {
+				listOf(
+					ContextMenuItem(
+						label = archiveLabel,
+						onClick = { onSceneArchiveClick(scene) }
+					),
+					ContextMenuItem(
+						label = renameLabel,
+						onClick = { onSceneRenameClick(scene) }
+					),
+					ContextMenuItem(
+						label = moveLabel,
+						onClick = { onSceneMoveClick(scene) }
+					),
+					ContextMenuItem(
+						label = deleteLabel,
+						onClick = { onSceneDeleteClick(scene) }
+					)
 				)
-			)
-		},
-	) {
-		itemContent(Modifier)
+			},
+		) {
+			itemContent(Modifier)
+		}
 	}
 }

@@ -6,12 +6,19 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import io.github.aakira.napier.Napier
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 
 class SceneListComponent(
 	componentContext: ComponentContext,
@@ -24,14 +31,21 @@ class SceneListComponent(
 ) : ProjectComponentBase(projectDef, componentContext), SceneList {
 
 	private val projectEditor: SceneEditorService by projectInject()
+	private val nuxRepository: NuxRepository by inject()
 
 	private val _state = MutableValue(SceneList.State(projectDef = projectDef))
 	override val state: Value<SceneList.State> = _state
+
+	private val hasRows = MutableStateFlow(false)
+
+	/** The hint dismissed on this visit; while set no other is offered, so each list shows at most one. Main thread only. */
+	private var dismissedHint: NuxHint? = null
 
 	init {
 		Napier.d { "Project editor: " + projectEditor.projectDef.name }
 
 		loadScenes()
+		watchHints()
 
 		watchSelectedScene(selectedSceneItem)
 
@@ -62,10 +76,42 @@ class SceneListComponent(
 	}
 
 	override fun loadScenes() {
-		_state.getAndUpdate {
-			val scenes = projectEditor.getSceneSummaries()
-			it.copy(sceneSummary = scenes)
+		setSummary(projectEditor.getSceneSummaries())
+	}
+
+	private fun setSummary(scenes: SceneSummary) {
+		_state.getAndUpdate { it.copy(sceneSummary = scenes) }
+		hasRows.value = scenes.sceneTree.root.children.isNotEmpty()
+	}
+
+	private fun watchHints() {
+		val offer = combine(nuxRepository.unseen(LIST_HINTS), hasRows) { unseen, rows ->
+			if (rows) unseen else emptyList()
 		}
+
+		scope.launch {
+			offer.distinctUntilChanged().collect { hints ->
+				withContext(dispatcherMain) {
+					// Only a reset makes a dismissed hint unseen again; an update worked out before the dismissal does not.
+					val dismissed = dismissedHint
+					if (dismissed != null && dismissed in hints && nuxRepository.isUnseen(dismissed)) dismissedHint = null
+					val offered = if (dismissedHint == null) hints.toImmutableList() else persistentListOf()
+					_state.getAndUpdate { it.copy(offeredHints = offered) }
+				}
+			}
+		}
+	}
+
+	override fun dismissHint(hint: NuxHint) {
+		if (dismissedHint != null || hint !in _state.value.offeredHints) return
+		dismissedHint = hint
+		_state.getAndUpdate { it.copy(offeredHints = persistentListOf()) }
+		nuxRepository.markSeen(hint)
+	}
+
+	override fun turnOffTips() {
+		_state.getAndUpdate { it.copy(offeredHints = persistentListOf()) }
+		nuxRepository.setTipsEnabled(false)
 	}
 
 	override suspend fun createScene(parent: SceneItem?, sceneName: String) {
@@ -127,11 +173,7 @@ class SceneListComponent(
 	}
 
 	override fun onSceneListUpdate(scenes: SceneSummary) {
-		_state.getAndUpdate {
-			it.copy(
-				sceneSummary = scenes
-			)
-		}
+		setSummary(scenes)
 	}
 
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
@@ -194,3 +236,6 @@ class SceneListComponent(
 		}
 	}
 }
+
+/** The scene list's tips, most wanted first. */
+private val LIST_HINTS = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListReorder)

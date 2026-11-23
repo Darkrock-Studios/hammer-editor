@@ -1,5 +1,7 @@
 package components.projectroot
 
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
@@ -180,6 +182,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		setupComponentKoin(module {
 			single<CoroutineScope>(named(APP_SCOPE)) { scope }
 			single { globalSettingsStore }
+			single { NuxRepository(NuxFilesystemDatasource(FakeFileSystem(), createTomlSerializer()), get()) }
 			single { projectsRepository }
 			single { ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer())) }
 			single { StoryExporterRegistry(emptyList()) }

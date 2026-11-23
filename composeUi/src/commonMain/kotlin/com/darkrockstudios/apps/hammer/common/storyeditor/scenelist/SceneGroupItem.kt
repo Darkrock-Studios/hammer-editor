@@ -44,13 +44,14 @@ internal fun SceneGroupItem(
 	hasDirtyBuffer: Set<Int>,
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
-	shouldNux: Boolean,
+	demonstrateSwipe: Boolean,
 	isChapter: Boolean,
 	onSceneDeleteRequest: (SceneItem) -> Unit,
 	onSceneRenameRequest: (SceneItem) -> Unit,
 	onSceneMoveRequest: (SceneItem) -> Unit,
 	onCreateSceneClick: (SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
+	modifier: Modifier = Modifier,
 ) {
 	val scene = sceneNode.value
 	val isTopLevel = isChapter
@@ -67,12 +68,13 @@ internal fun SceneGroupItem(
 
 	SceneGroupActionContainer(
 		scene = scene,
-		shouldNux = shouldNux,
+		demonstrateSwipe = demonstrateSwipe,
 		onSceneAltClick = onSceneDeleteRequest,
 		onSceneRenameClick = onSceneRenameRequest,
 		onSceneMoveClick = onSceneMoveRequest,
 		onCreateSceneClick = onCreateSceneClick,
 		onCreateGroupClick = onCreateGroupClick,
+		modifier = modifier,
 	) {
 		Box(modifier = groupModifier) {
 			Column(modifier = Modifier.fillMaxWidth()) {

@@ -15,6 +15,8 @@ import com.darkrockstudios.apps.hammer.scene_list_item_action_delete
 import com.darkrockstudios.apps.hammer.scene_list_item_action_move
 import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 
+actual val sceneRowSwipeOpensMenu: Boolean = false
+
 @Composable
 actual fun SceneItemActionContainer(
 	scene: SceneItem,
@@ -22,7 +24,8 @@ actual fun SceneItemActionContainer(
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onSceneArchiveClick: (scene: SceneItem) -> Unit,
 	onSceneMoveClick: (scene: SceneItem) -> Unit,
-	shouldNux: Boolean,
+	demonstrateSwipe: Boolean,
+	modifier: Modifier,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 ) {
 	LongPressMenuContainer(
@@ -48,6 +51,7 @@ actual fun SceneItemActionContainer(
 				onClick = { onSceneDeleteClick(scene) },
 			),
 		),
+		modifier = modifier,
 		itemContent = itemContent,
 	)
 }

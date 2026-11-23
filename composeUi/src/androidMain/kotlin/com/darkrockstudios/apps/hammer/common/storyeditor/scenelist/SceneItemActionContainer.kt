@@ -41,6 +41,8 @@ import com.darkrockstudios.apps.hammer.scene_list_item_action_move
 import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 import kotlin.math.roundToInt
 
+actual val sceneRowSwipeOpensMenu: Boolean = true
+
 @Composable
 actual fun SceneItemActionContainer(
 	scene: SceneItem,
@@ -48,7 +50,8 @@ actual fun SceneItemActionContainer(
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onSceneArchiveClick: (scene: SceneItem) -> Unit,
 	onSceneMoveClick: (scene: SceneItem) -> Unit,
-	shouldNux: Boolean,
+	demonstrateSwipe: Boolean,
+	modifier: Modifier,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 ) {
 	val hapticFeedback = LocalHapticFeedback.current
@@ -63,10 +66,11 @@ actual fun SceneItemActionContainer(
 	val sizePx = with(LocalDensity.current) { 50.dp.toPx() }
 	val anchors = mapOf(0f to SwipeState.Initial, sizePx to SwipeState.Swiped)
 
-	SwipeNux(swipeableState, shouldNux)
+	val demoModifier = swipeMenuDemo(swipeableState, demonstrateSwipe)
 
 	Box(
-		modifier = Modifier
+		modifier = modifier
+			.then(demoModifier)
 			.swipeable(
 				state = swipeableState,
 				anchors = anchors,
