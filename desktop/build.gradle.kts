@@ -127,6 +127,35 @@ val classDataArchiveArgs = listOf(
 	"-Dhammer.cds.dir=$classDataArchiveDir",
 )
 
+// ProGuard, unlike R8, ignores the rules libraries ship in META-INF/proguard and keeps no ServiceLoader
+// providers. This collects both from the runtime classpath for the release ProGuard pass.
+val proguardLibraryRules = tasks.register("proguardLibraryRules") {
+	val runtime = configurations.named("jvmRuntimeClasspath")
+	inputs.files(runtime).withPropertyName("jvmRuntimeClasspath").withNormalizer(ClasspathNormalizer::class)
+	val outFile = layout.buildDirectory.file("proguard/library-rules.pro")
+	outputs.file(outFile)
+	doLast {
+		val rules = StringBuilder()
+		val providers = sortedSetOf<String>()
+		runtime.get().files.filter { it.isFile && it.name.endsWith(".jar") }.forEach { jar ->
+			ZipFile(jar).use { zip ->
+				zip.entries().asSequence().filterNot { it.isDirectory }.forEach { entry ->
+					val text = { zip.getInputStream(entry).bufferedReader().readText() }
+					when {
+						entry.name.startsWith("META-INF/proguard/") && entry.name.endsWith(".pro") ->
+							rules.append("# ${jar.name}: ${entry.name}\n").append(text()).append("\n")
+						entry.name.startsWith("META-INF/services/") ->
+							text().lines().map { it.substringBefore('#').trim() }.filter { it.isNotEmpty() }.forEach { providers += it }
+					}
+				}
+			}
+		}
+		rules.append("# ServiceLoader providers\n")
+		providers.forEach { rules.append("-keep class $it { <init>(); }\n") }
+		outFile.get().asFile.apply { parentFile.mkdirs() }.writeText(rules.toString())
+	}
+}
+
 compose.desktop {
 	application {
 		javaHome = packagingJavaHome
@@ -220,7 +249,7 @@ compose.desktop {
 			obfuscate.set(true)
 			optimize.set(true)
 			//joinOutputJars.set(true)
-			configurationFiles.from("proguard-rules.pro")
+			configurationFiles.from(proguardLibraryRules, "proguard-rules.pro")
 		}
 	}
 }
