@@ -78,6 +78,8 @@ import com.darkrockstudios.apps.hammer.notes_search_button
 import com.darkrockstudios.apps.hammer.notes_search_close
 import kotlinx.coroutines.CoroutineScope
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
+import com.darkrockstudios.apps.hammer.common.help.HelpButton
+import com.darkrockstudios.apps.hammer.common.help.HelpScreen
 
 const val ENCYCLOPEDIA_CREATE_FAB_TAG = "encyclopedia-create-fab"
 
@@ -182,6 +184,7 @@ fun BrowseEntriesUi(
 							)
 						}
 					}
+					HelpButton(screen = HelpScreen.Encyclopedia)
 				}
 			}
 		}

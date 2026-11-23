@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="about_help_button">Help and tutorials</string>
+	<string name="help_title">Help</string>
+	<string name="help_button">Help</string>
+	<string name="help_close">Close help</string>
+	<string name="help_watch_video">Watch the video</string>
+	<string name="help_watch_all">Watch all tutorials</string>
+	<string name="help_all_topics">All help topics</string>
+
+	<string name="help_section_getting_started">Getting started</string>
+	<string name="help_section_writing">Writing</string>
+	<string name="help_section_worldbuilding">Worldbuilding</string>
+	<string name="help_section_your_project">Your project</string>
+	<string name="help_section_syncing">Syncing</string>
+	<string name="help_section_sharing">Sharing</string>
+	<string name="help_section_extending">Extending Hammer</string>
+
+	<string name="help_topic_what_is_hammer_title">What is Hammer</string>
+	<string name="help_topic_what_is_hammer_blurb">Hammer is a tool for writing stories and the worlds they live in. There are many like it, but this one is yours. Open source, local first. All data is simple text files you can open and look at your self.</string>
+	<string name="help_topic_first_project_title">Your first project</string>
+	<string name="help_topic_first_project_blurb">You can start by exploring the example Alice in Wonderland project. When you're ready to start your own, click the "New Project" button on the Projects List screen. Here you can create a new empty project, or import an existing manuscript.</string>
+	<string name="help_topic_project_groups_title">Project groups</string>
+	<string name="help_topic_project_groups_blurb">Groups are folders for organising your projects. Maybe group the three books of your next trilogy, or the stories for your writing class. Click the down arrow beside "New project" to make one.</string>
+	<string name="help_topic_story_ideas_title">Story ideas</string>
+	<string name="help_topic_story_ideas_blurb">A place outside any project to jot down ideas. Find it in the main navigation. When you're ready, you can turn an existing idea into a new project with one click.</string>
+
+	<string name="help_topic_writing_scenes_title">Writing a scene</string>
+	<string name="help_topic_writing_scenes_blurb">Scenes are the building blocks of your story, and they live in chapters on the Scenes screen. Add one with the + at the bottom of the list, and just start writing. You can group scenes together, and re-order them at any time.</string>
+	<string name="help_topic_outlining_title">Outlining your book</string>
+	<string name="help_topic_outlining_blurb">Every scene can have a short outline in its scene info. Click "Outline" at the bottom of the scene list to read them all in order. It's a great way to see the shape of your book at a glance.</string>
+	<string name="help_topic_scene_drafts_title">Scene drafts</string>
+	<string name="help_topic_scene_drafts_blurb">About to tear a scene apart? Save a draft from the scene's menu first. You can always go back to it, or put it side by side with the current text and copy back the bits you miss.</string>
+	<string name="help_topic_focus_reader_title">Focus and reader mode</string>
+	<string name="help_topic_focus_reader_blurb">Focus mode hides everything but the scene you're working on. Reader mode, from "Read" on the scene list, lets you read your whole book in an e-reader style.</string>
+
+	<string name="help_topic_encyclopedia_title">Encyclopedia</string>
+	<string name="help_topic_encyclopedia_blurb">Your story bible. Keep an entry for every character, place and thing in your world, with a picture and a description. Scenes know when you mention an encylopedia entry and keep track.</string>
+	<string name="help_topic_rename_everywhere_title">Rename everywhere</string>
+	<string name="help_topic_rename_everywhere_blurb">Decided your villain needs a better name? Rename everywhere changes it across your whole story in one go. Find it in the entry's menu. Hammer saves a draft of every scene it touches, just in case.</string>
+	<string name="help_topic_notes_title">Notes</string>
+	<string name="help_topic_notes_blurb">For everything that isn't the story itself: research, reminders, half-baked plans. Tag them so you can find them again later.</string>
+	<string name="help_topic_timelines_title">Timelines</string>
+	<string name="help_topic_timelines_blurb">Lay out the events of your story in the order they happen. A project can have as many timelines as you need, so different threads can each get their own.</string>
+
+	<string name="help_topic_tracking_progress_title">Tracking your progress</string>
+	<string name="help_topic_tracking_progress_blurb">The project home keeps track of your word counts and writing streak. Want a little push? Set a daily or weekly word goal in project settings.</string>
+	<string name="help_topic_import_export_title">Importing and exporting</string>
+	<string name="help_topic_import_export_blurb">Already have a manuscript? Import it when you create a new project. When it's time to send your book out into the world, export it from the project home menu as EPub, PDF, a Word manuscript and more.</string>
+	<string name="help_topic_global_search_title">Global search</string>
+	<string name="help_topic_global_search_blurb">Can't remember where you wrote that thing? Global search looks through your scenes, notes, encyclopedia and timelines all at once. Open it from the project home menu, or press Ctrl+Shift+F on desktop.</string>
+
+	<string name="help_topic_syncing_title">Syncing your projects</string>
+	<string name="help_topic_syncing_blurb">Want your projects on your laptop and your phone? Connect to a sync server in Settings, on the Sync tab. Use hammer.ink or run your own. Syncing is completely optional.</string>
+	<string name="help_topic_sync_conflicts_title">Sync conflicts</string>
+	<string name="help_topic_sync_conflicts_blurb">If you change the same thing on two devices, Hammer won't guess which one you meant. It shows you both versions and lets you pick one, or edit it first. Nothing is lost until you decide.</string>
+
+	<string name="help_topic_sharing_stories_title">Sharing your stories</string>
+	<string name="help_topic_sharing_stories_blurb">Once a project syncs, you can share it from its page on the sync server's website. Send a private link to a few readers, or publish it for everyone.</string>
+	<string name="help_topic_requesting_editor_title">Requesting an editor</string>
+	<string name="help_topic_requesting_editor_blurb">Want a second pair of eyes? Invite an editor by email from the story's page on the sync server. They mark up your scenes right in their browser, no account needed, and you accept or reject each suggestion.</string>
+	<string name="help_topic_coauthoring_title">Co-authoring</string>
+	<string name="help_topic_coauthoring_blurb">Writing with a partner? Invite them from the story's page on the sync server, as long as they have an account on the same server. Once they accept, the project syncs to their devices as well.</string>
+
+	<string name="help_topic_plugins_title">Plugins</string>
+	<string name="help_topic_plugins_blurb">Plugins add extra tools to Hammer, like grammar checks and new export formats. Find and install them in Settings, on the Plugins tab.</string>
+</resources>

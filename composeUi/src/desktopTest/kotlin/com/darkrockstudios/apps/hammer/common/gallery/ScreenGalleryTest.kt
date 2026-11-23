@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
+import com.darkrockstudios.apps.hammer.common.preview.HelpDialogAllTopicsPreview
+import com.darkrockstudios.apps.hammer.common.preview.HelpDialogScenesPreview
 import com.darkrockstudios.apps.hammer.common.preview.MergeProjectsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.plugin.PluginActionDialogsScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.ReauthenticationScrimPreview
@@ -245,6 +247,8 @@ class ScreenGalleryTest {
 		surfaced("Search project, too short") { GlobalSearchEmptyScrimPreview() },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
 		screen("About, update available") { ScreenAboutAppUiUpdateAvailableTabletPreview() },
+		surfaced("Help, scenes") { HelpDialogScenesPreview() },
+		surfaced("Help, all topics") { HelpDialogAllTopicsPreview() },
 		screen("Account settings") { ScreenAccountSettingsUiTabletPreview() },
 		screen("Account settings, writing") { ScreenAccountSettingsUiWritingTabletPreview() },
 		screen("Account settings, sync") { ScreenAccountSettingsUiSyncTabletPreview() },
