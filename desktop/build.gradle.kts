@@ -119,7 +119,7 @@ compose.desktop {
 				TargetFormat.Deb,
 				TargetFormat.Rpm
 			)
-			modules(*runtimeModules.toTypedArray())
+			modules = ArrayList(runtimeModules)
 			packageName = "hammer"
 			packageVersion = libs.versions.app.get()
 			description = "A simple tool for building stories."
