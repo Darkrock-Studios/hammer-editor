@@ -15,6 +15,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
 import com.darkrockstudios.apps.hammer.android.ProjectSelectActivity
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.intro.IntroSkipButtonTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.CreateProjectButtonTestTag
 import org.junit.After
 import org.junit.Assert.assertNotNull
@@ -43,6 +44,17 @@ class ProjectLifecycleTest {
 
 	@Test
 	fun createProjectThenOpenIt() {
+		// A fresh install opens on the first-run intro; skip it to reach the project list.
+		composeRule.waitUntil(timeoutMillis = 10_000) {
+			composeRule.onAllNodes(hasTestTag(IntroSkipButtonTestTag)).fetchSemanticsNodes().isNotEmpty() ||
+				composeRule.onAllNodes(hasTestTag(CreateProjectButtonTestTag)).fetchSemanticsNodes().isNotEmpty()
+		}
+		if (composeRule.onAllNodes(hasTestTag(IntroSkipButtonTestTag)).fetchSemanticsNodes().isNotEmpty()) {
+			composeRule.clickUntil(hasTestTag(IntroSkipButtonTestTag)) {
+				composeRule.onAllNodes(hasTestTag(IntroSkipButtonTestTag)).fetchSemanticsNodes().isEmpty()
+			}
+		}
+
 		// 1. Open the create dialog (masthead button when wide, bottom bar when narrow).
 		composeRule.clickUntil(hasTestTag(CreateProjectButtonTestTag)) {
 			composeRule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
