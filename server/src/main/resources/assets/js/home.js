@@ -55,3 +55,63 @@
 	const fromHash = location.hash.length > 1 && document.getElementById('tab-' + location.hash.slice(1));
 	if (fromHash && tabs.indexOf(fromHash) !== -1) select(fromHash, false);
 })();
+
+// Screenshot slideshows. Only the open tab's advances, and not while the pointer or focus is on it.
+(function () {
+	const INTERVAL = 5000;
+	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	document.querySelectorAll('.slides').forEach(function (slides) {
+		const images = Array.from(slides.querySelectorAll('.slides__img'));
+		if (images.length < 2) return;
+		let index = 0;
+		let held = false;
+		const label = slides.dataset.label;
+
+		const dots = document.createElement('div');
+		dots.className = 'slides__dots';
+		const buttons = images.map(function (_, i) {
+			const dot = document.createElement('button');
+			dot.type = 'button';
+			dot.className = 'slides__dot';
+			dot.setAttribute('aria-label', label.replace('{0}', i + 1).replace('{1}', images.length));
+			dot.addEventListener('click', function () {
+				show(i);
+				restartTimer();
+			});
+			dots.appendChild(dot);
+			return dot;
+		});
+		slides.appendChild(dots);
+
+		function show(i) {
+			index = i;
+			images.forEach(function (img, n) {
+				const on = n === i;
+				img.classList.toggle('is-active', on);
+				if (on) img.loading = 'eager';
+			});
+			buttons.forEach(function (b, n) { b.setAttribute('aria-current', n === i ? 'true' : 'false'); });
+		}
+		show(0);
+
+		slides.addEventListener('mouseenter', function () { held = true; });
+		slides.addEventListener('mouseleave', function () { held = false; });
+		slides.addEventListener('focusin', function () { held = true; });
+		slides.addEventListener('focusout', function () { held = false; });
+
+		let timer = null;
+
+		// A manual pick gets the full interval before the next automatic switch.
+		function restartTimer() {
+			if (reducedMotion) return;
+			clearInterval(timer);
+			timer = setInterval(function () {
+				if (held || document.hidden || slides.closest('[hidden]')) return;
+				show((index + 1) % images.length);
+			}, INTERVAL);
+		}
+		restartTimer();
+	});
+})();
+

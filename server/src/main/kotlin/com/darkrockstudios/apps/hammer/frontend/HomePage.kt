@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
+import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
 import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
@@ -54,6 +55,28 @@ private val LINKED_PRINCIPLE_URLS = setOf(
 private const val BLOG_PRINCIPLES_CATEGORY = "principles"
 
 private const val LATEST_POST_COUNT = 4
+
+/** A screenshot in a feature tab's slideshow; [name] is the file stem under assets/images/screenshots. */
+private class Shot(val name: String, val height: Int, val altKey: String)
+
+/** Each feature tab's slideshow, first slide first. */
+private val TAB_SHOTS = mapOf(
+	"write" to listOf(
+		Shot("editor", 480, "home_feature_editor_alt"),
+		Shot("notes", 479, "home_feature_notes_alt"),
+		Shot("activity", 479, "home_feature_activity_alt"),
+	),
+	"world" to listOf(
+		Shot("encyclopedia", 479, "home_feature_encyclopedia_alt"),
+		Shot("timeline", 479, "home_feature_timeline_alt"),
+	),
+	"share" to listOf(
+		Shot("review", 488, "home_feature_review_alt"),
+		Shot("sharing-public", 554, "home_feature_publish_alt"),
+		Shot("sharing-private", 539, "home_feature_private_alt"),
+		Shot("export", 474, "home_feature_export_alt"),
+	),
+)
 private val POST_DATE_FORMAT = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 fun Route.homePage(
@@ -86,7 +109,18 @@ fun Route.homePage(
 			model["principleSafetyUrl"] = HammerLinks.PRINCIPLE_DATA_SAFETY
 			model["originStoryUrl"] = HammerLinks.ORIGIN_STORY
 			model["tutorialsUrl"] = HammerLinks.TUTORIALS_PLAYLIST
-			model.putAll(blogModel(blogFeedRepository.current(), call.getLocale()))
+			val locale = call.getLocale()
+			model.putAll(blogModel(blogFeedRepository.current(), locale))
+			TAB_SHOTS.forEach { (tab, shots) ->
+				model["shots_$tab"] = shots.mapIndexed { i, shot ->
+					mapOf(
+						"name" to shot.name,
+						"height" to shot.height,
+						"alt" to localizedMsg(locale, shot.altKey),
+						"first" to (i == 0),
+					)
+				}
+			}
 			model["jsonLd"] = webSiteJsonLd(
 				name = "Hammer",
 				url = call.canonicalUrl("/"),

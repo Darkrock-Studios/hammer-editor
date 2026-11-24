@@ -220,12 +220,19 @@
 			</div>
 
 			<div class="tabpanel" role="tabpanel" id="panel-write" aria-labelledby="tab-write">
-				<img class="shot" src="/assets/images/screenshots/editor-760.webp?v={{version}}"
-					 srcset="/assets/images/screenshots/editor-760.webp?v={{version}} 760w,
-							 /assets/images/screenshots/editor-1520.webp?v={{version}} 1520w"
-					 sizes="(max-width: 56rem) 92vw, 48vw"
-					 width="760" height="475" loading="lazy" decoding="async"
-					 alt="{{msg.home_feature_editor_alt}}">
+				<div class="slides" data-label="{{msg.home_slide_label}}">
+					<div class="slides__frame">
+						{{#shots_write}}
+							<img class="slides__img{{#first}} is-active{{/first}}"
+								 src="/assets/images/screenshots/{{name}}-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/{{name}}-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/{{name}}-1520.webp?v={{version}} 1520w"
+								 sizes="(max-width: 56rem) 92vw, 48vw"
+								 width="760" height="{{height}}" loading="lazy" decoding="async"
+								 alt="{{alt}}">
+						{{/shots_write}}
+					</div>
+				</div>
 				<div>
 					<h3 class="tabpanel__title">{{msg.home_tab_write}}</h3>
 					<p>{{msg.home_tab_write_intro}}</p>
@@ -240,12 +247,19 @@
 			</div>
 
 			<div class="tabpanel" role="tabpanel" id="panel-world" aria-labelledby="tab-world" hidden>
-				<img class="shot" src="/assets/images/screenshots/encyclopedia-760.webp?v={{version}}"
-					 srcset="/assets/images/screenshots/encyclopedia-760.webp?v={{version}} 760w,
-							 /assets/images/screenshots/encyclopedia-1520.webp?v={{version}} 1520w"
-					 sizes="(max-width: 56rem) 92vw, 48vw"
-					 width="760" height="475" loading="lazy" decoding="async"
-					 alt="{{msg.home_feature_encyclopedia_alt}}">
+				<div class="slides" data-label="{{msg.home_slide_label}}">
+					<div class="slides__frame">
+						{{#shots_world}}
+							<img class="slides__img{{#first}} is-active{{/first}}"
+								 src="/assets/images/screenshots/{{name}}-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/{{name}}-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/{{name}}-1520.webp?v={{version}} 1520w"
+								 sizes="(max-width: 56rem) 92vw, 48vw"
+								 width="760" height="{{height}}" loading="lazy" decoding="async"
+								 alt="{{alt}}">
+						{{/shots_world}}
+					</div>
+				</div>
 				<div>
 					<h3 class="tabpanel__title">{{msg.home_tab_world}}</h3>
 					<p>{{msg.home_tab_world_intro}}</p>
@@ -259,12 +273,19 @@
 			</div>
 
 			<div class="tabpanel" role="tabpanel" id="panel-share" aria-labelledby="tab-share" hidden>
-				<img class="shot" src="/assets/images/screenshots/review-760.webp?v={{version}}"
-					 srcset="/assets/images/screenshots/review-760.webp?v={{version}} 760w,
-							 /assets/images/screenshots/review-1520.webp?v={{version}} 1520w"
-					 sizes="(max-width: 56rem) 92vw, 48vw"
-					 width="760" height="494" loading="lazy" decoding="async"
-					 alt="{{msg.home_feature_review_alt}}">
+				<div class="slides" data-label="{{msg.home_slide_label}}">
+					<div class="slides__frame">
+						{{#shots_share}}
+							<img class="slides__img{{#first}} is-active{{/first}}"
+								 src="/assets/images/screenshots/{{name}}-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/{{name}}-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/{{name}}-1520.webp?v={{version}} 1520w"
+								 sizes="(max-width: 56rem) 92vw, 48vw"
+								 width="760" height="{{height}}" loading="lazy" decoding="async"
+								 alt="{{alt}}">
+						{{/shots_share}}
+					</div>
+				</div>
 				<div>
 					<h3 class="tabpanel__title">{{msg.home_tab_share}}</h3>
 					<p>{{msg.home_tab_share_intro}}</p>

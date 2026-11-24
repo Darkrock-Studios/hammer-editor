@@ -413,6 +413,60 @@
 	display: none;
 }
 
+/* Screenshots stack in one frame and cross-fade; taller ones are cropped from the bottom. */
+.slides__frame {
+	display: grid;
+	aspect-ratio: 760 / 479;
+	overflow: hidden;
+	border-radius: 0.5rem;
+	border: 1px solid var(--neutral-300);
+	box-shadow: var(--shadow-xl);
+	background: var(--neutral-900);
+}
+
+.slides__img {
+	grid-area: 1 / 1;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: top;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.5s ease, visibility 0.5s;
+}
+
+.slides__img.is-active {
+	opacity: 1;
+	visibility: visible;
+}
+
+.slides__dots {
+	display: flex;
+	justify-content: center;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+}
+
+.slides__dot {
+	width: 0.6rem;
+	height: 0.6rem;
+	padding: 0;
+	border: 1px solid var(--neutral-400);
+	border-radius: 50%;
+	background: transparent;
+	cursor: pointer;
+}
+
+.slides__dot[aria-current="true"] {
+	background: var(--accent);
+	border-color: var(--accent);
+}
+
+.slides__dot:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
 /* Only shown when the tabs that would otherwise label each panel are absent. */
 .tabpanel__title {
 	display: none;
@@ -732,6 +786,10 @@
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
+	.slides__img {
+		transition: none;
+	}
+
 	/* The tagline starts at opacity 0 and is revealed by its animation, so the
 	   animation cannot simply be dropped without leaving it invisible. */
 	.masthead-content,
