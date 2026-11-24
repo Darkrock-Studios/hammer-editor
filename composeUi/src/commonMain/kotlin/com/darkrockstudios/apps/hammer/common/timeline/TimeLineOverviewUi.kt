@@ -83,6 +83,8 @@ import com.darkrockstudios.apps.hammer.common.compose.truncateWithEllipsis
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.eventId
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
+import com.darkrockstudios.apps.hammer.common.help.HelpButton
+import com.darkrockstudios.apps.hammer.common.help.HelpScreen
 import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
 import com.darkrockstudios.apps.hammer.timeline_filter_filtered
@@ -284,6 +286,7 @@ fun TimeLineOverviewUi(
 							)
 						}
 					}
+					HelpButton(screen = HelpScreen.Timeline)
 				}
 			}
 		}

@@ -16,9 +16,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -57,11 +59,15 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.data.changelog.supportsInAppChangelog
+import com.darkrockstudios.apps.hammer.common.help.HelpAllTopicsDialog
+import com.darkrockstudios.apps.hammer.about_help_button
 import com.darkrockstudios.apps.hammer.hammer_icon
 import com.darkrockstudios.apps.hammer.project_select_nav_about_app
 import org.jetbrains.compose.resources.painterResource
 
 private val MaxColumnWidth = 720.dp
+
+const val ABOUT_HELP_BUTTON_TAG = "about-help"
 
 /**
  * The app and its version, who made it, community links, where it stands on updates and, where
@@ -74,7 +80,10 @@ fun AboutAppUi(
 	modifier: Modifier = Modifier,
 ) {
 	var showLibraries by remember { mutableStateOf(false) }
+	var showHelp by rememberSaveable { mutableStateOf(false) }
 	val state by component.state.subscribeAsState()
+	// One primary per surface: a pending update install or retry outranks help.
+	val updateIsPrimary = state.appUpdate.hasPrimaryAction
 
 	HdPage(
 		title = Res.string.project_select_nav_about_app.get(),
@@ -82,7 +91,15 @@ fun AboutAppUi(
 		modifier = modifier,
 		folio = listOf(Res.string.project_select_nav_about_app.get(), "§§ $AboutSectionCount"),
 	) {
-		Hero(version = state.currentVersion)
+		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL)) {
+			Hero(version = state.currentVersion)
+			HdHairlineButton(
+				label = Res.string.about_help_button.get(),
+				onClick = { showHelp = true },
+				emphasised = !updateIsPrimary,
+				modifier = Modifier.testTag(ABOUT_HELP_BUTTON_TAG),
+			)
+		}
 
 		HdSettingGroup(title = Res.string.about_group_credits.get()) {
 			HdSettingRow(
@@ -148,6 +165,7 @@ fun AboutAppUi(
 	}
 
 	LibrariesUi(showLibraries) { showLibraries = false }
+	if (showHelp) HelpAllTopicsDialog(onDismiss = { showHelp = false })
 }
 
 /** The name and version, and the line under it. */

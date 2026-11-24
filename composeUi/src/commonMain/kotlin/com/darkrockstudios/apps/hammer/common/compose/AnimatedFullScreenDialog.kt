@@ -6,8 +6,6 @@ import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.backhandler.PredictiveBackHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -166,29 +166,7 @@ fun AnimatedDialog(
 		},
 	) {
 		if (dismissOnTapOutside) {
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.clickable(
-						interactionSource = remember { MutableInteractionSource() },
-						indication = null,
-						onClick = { requestDismiss() },
-					),
-				contentAlignment = contentAlignment,
-			) {
-				Box(
-					modifier = modifier
-						.predictiveBackTransform()
-						.clickable(
-							interactionSource = remember { MutableInteractionSource() },
-							indication = null,
-							onClick = {},
-						),
-					contentAlignment = contentAlignment,
-				) {
-					content()
-				}
-			}
+			DismissOnTapOutside(modifier.predictiveBackTransform(), contentAlignment) { content() }
 		} else {
 			Box(
 				modifier = modifier.predictiveBackTransform(),
@@ -249,6 +227,30 @@ internal fun SelfOwnedDialog(
 		isOpen = isOpen,
 		onDismissRequest = { isOpen = false },
 		onClosed = onClosed,
-		content = content,
-	)
+	) {
+		DismissOnTapOutside(Modifier, Alignment.Center) { content() }
+	}
+}
+
+/** Fills the dialog window so a tap around [content] dismisses it; taps on [content] itself do not. */
+@Composable
+private fun AnimatedDialogScope.DismissOnTapOutside(
+	modifier: Modifier,
+	contentAlignment: Alignment,
+	content: @Composable () -> Unit,
+) {
+	// Gesture detectors rather than clickable, so the dialog's contents don't merge into one button.
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.pointerInput(Unit) { detectTapGestures { requestDismiss() } },
+		contentAlignment = contentAlignment,
+	) {
+		Box(
+			modifier = modifier.pointerInput(Unit) { detectTapGestures { } },
+			contentAlignment = contentAlignment,
+		) {
+			content()
+		}
+	}
 }
