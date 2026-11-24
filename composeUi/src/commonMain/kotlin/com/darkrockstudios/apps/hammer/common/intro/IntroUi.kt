@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -58,6 +59,8 @@ import com.darkrockstudios.apps.hammer.intro_get_started
 import com.darkrockstudios.apps.hammer.intro_next
 import com.darkrockstudios.apps.hammer.intro_skip
 import com.darkrockstudios.apps.hammer.intro_slide_position
+
+const val IntroSkipButtonTestTag = "intro-skip-button"
 
 private val CompactHeightThreshold = 600.dp
 private val WideThreshold = 720.dp
@@ -119,7 +122,11 @@ fun IntroUi(component: Intro, modifier: Modifier = Modifier) {
 			horizontalArrangement = Arrangement.End,
 		) {
 			if (!state.isLast) {
-				HdQuietButton(onClick = component::leave, label = Res.string.intro_skip.get())
+				HdQuietButton(
+					onClick = component::leave,
+					modifier = Modifier.testTag(IntroSkipButtonTestTag),
+					label = Res.string.intro_skip.get(),
+				)
 			}
 		}
 
