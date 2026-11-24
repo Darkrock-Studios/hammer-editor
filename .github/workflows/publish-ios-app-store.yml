@@ -29,7 +29,10 @@ concurrency:
 
 jobs:
   publish-ios-app-store:
-    runs-on: macos-latest
+    # Xcode 27 is only on the xcode-27 image (GitHub keeps one Xcode major per
+    # macOS image), still a preview as of 2026-11. Move to the macos-27 label
+    # once it exists.
+    runs-on: xcode-27
     # Backstop against a hung publish holding an expensive macOS runner for the
     # 6h default. A healthy release fits well within this; the fastlane build
     # processing wait is bounded tighter still.
@@ -39,16 +42,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Select Xcode 26
-        # macos-latest still defaults to Xcode 16.4 (iOS 18.5 SDK). App Store
-        # Connect now rejects uploads not built with the iOS 26 SDK, so pick the
-        # newest Xcode 26.x installed on the runner. Glob keeps us off a pinned
-        # patch version that could vanish on a future image.
-        run: |
-          XCODE_APP="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
-          echo "Using $XCODE_APP"
-          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
-          xcodebuild -version
+      - name: Select Xcode 27
+        # From April 2027 App Store Connect rejects iOS uploads not built with the
+        # iOS 27 SDK (ITMS-90725).
+        run: bash .github/scripts/select-xcode.sh 27
 
       - uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
         with:

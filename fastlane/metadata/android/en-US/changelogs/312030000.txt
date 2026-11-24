@@ -1,0 +1,8 @@
+- Projects with files sharing an id open again; a new dialog lets you pick which copies to keep
+- Writing stats no longer count autosaves, typo fixes, undone deletions or synced text as new words
+- Sync fixes: unsaved edits are kept, fewer false conflicts, and items sharing an id all upload
+- Fixed crashes renaming a scene twice and reading a bad encyclopedia entry
+- Updated translations
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.12.2

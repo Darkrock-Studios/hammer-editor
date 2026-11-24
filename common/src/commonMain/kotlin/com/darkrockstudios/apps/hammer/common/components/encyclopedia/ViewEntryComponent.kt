@@ -226,7 +226,15 @@ class ViewEntryComponent(
 	}
 
 	private fun reload() {
-		scope.launch { loadEntryState() }
+		scope.launch {
+			try {
+				loadEntryState()
+			} catch (e: EntryLoadError) {
+				Napier.w("Failed to load entry ${state.value.entryDef.id}", e)
+			} catch (e: IOException) {
+				Napier.w("Failed to load entry ${state.value.entryDef.id}", e)
+			}
+		}
 	}
 
 	/**

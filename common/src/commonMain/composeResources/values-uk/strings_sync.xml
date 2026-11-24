@@ -119,6 +119,7 @@
 	<string name="sync_log_entity_download_failed_general">Не вдалося завантажити сутність %1$d</string>
 	<string name="sync_log_entity_download_failed_not_found">Сутність %1$d не знайдено на сервері</string>
 	<string name="sync_log_entity_download_not_modified">Сутність %1$d не змінено</string>
+	<string name="sync_log_entity_download_skipped_unsaved">Skipped downloading entity %1$d: it has unsaved edits. Open the project to save or discard them.</string>
 	<string name="sync_log_entity_download_rejected_mismatch">Завантаження сутності %1$d відхилено: сервер повернув невідповідний id або тип</string>
 	<string name="sync_log_entity_upload_entity_not_owned">Не вдалося вивантажити сутність %1$d: тип ні до чого не належить, імовірно видалено</string>
 	<string name="sync_log_entity_delete_failed">Не вдалося видалити ID %1$d на сервері: %2$s</string>

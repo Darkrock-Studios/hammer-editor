@@ -21,9 +21,10 @@
 	<string name="project_home_stat_pages">%1$d páginas</string>
 	<string name="project_home_stat_daily_goal">Meta diaria</string>
 	<string name="project_home_stat_weekly_goal">Meta semanal</string>
-	<string name="project_home_stat_this_week">Esta semana</string>
-	<string name="project_home_stat_week_change_flat">sin cambios vs semana pasada</string>
-	<string name="project_home_stat_week_change_new">sin datos la semana pasada</string>
+	<string name="project_home_stat_this_week">Last 7 days</string>
+	<string name="project_home_stat_week_change_flat">no change vs the 7 days before</string>
+	<string name="project_home_stat_week_change_new">no data for the 7 days before</string>
+	<string name="project_home_stat_week_change_suffix">vs the 7 days before</string>
 	<string name="project_home_stat_today">Hoy</string>
 	<string name="project_home_stat_daily_avg">Med. diaria</string>
 	<string name="project_home_stat_streak">Racha</string>

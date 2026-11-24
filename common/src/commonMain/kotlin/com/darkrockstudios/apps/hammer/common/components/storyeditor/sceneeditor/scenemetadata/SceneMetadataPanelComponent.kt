@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectGet
@@ -160,8 +161,13 @@ class SceneMetadataPanelComponent(
 	}
 
 	private suspend fun rebuildSearchableEntries(defs: List<EntryDef>) {
-		searchableEntries.value = defs.map { def ->
-			val container = encyclopediaService.loadEntry(def)
+		searchableEntries.value = defs.mapNotNull { def ->
+			val container = try {
+				encyclopediaService.loadEntry(def)
+			} catch (e: EntryLoadError) {
+				Napier.w("Skipping unreadable encyclopedia entry ${def.id} in reference search", e)
+				return@mapNotNull null
+			}
 			val terms = (listOf(def.name) + container.entry.aliases)
 				.filter { it.isNotBlank() }
 				.map { it.lowercase() }

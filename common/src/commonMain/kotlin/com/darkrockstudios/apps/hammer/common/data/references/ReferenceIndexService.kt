@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -226,13 +227,18 @@ class ReferenceIndexService(
 		val rebuilt = coroutineScope {
 			entries.map { entryDef ->
 				async {
-					val container = encyclopediaRepository.loadEntry(entryDef)
-					MatchableEntry(
-						entryId = entryDef.id,
-						names = listOf(entryDef.name) + container.entry.aliases,
-					)
+					try {
+						val container = encyclopediaRepository.loadEntry(entryDef)
+						MatchableEntry(
+							entryId = entryDef.id,
+							names = listOf(entryDef.name) + container.entry.aliases,
+						)
+					} catch (e: EntryLoadError) {
+						Napier.w("Skipping unreadable encyclopedia entry ${entryDef.id} in reference matching", e)
+						null
+					}
 				}
-			}.awaitAll()
+			}.awaitAll().filterNotNull()
 		}
 		matchableCacheLock.withLock { matchableCache = rebuilt }
 		return rebuilt

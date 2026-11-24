@@ -119,6 +119,7 @@
 	<string name="sync_log_entity_download_failed_general">Entität %1$d konnte nicht heruntergeladen werden</string>
 	<string name="sync_log_entity_download_failed_not_found">Entität %1$d nicht auf dem Server gefunden</string>
 	<string name="sync_log_entity_download_not_modified">Entität %1$d nicht geändert</string>
+	<string name="sync_log_entity_download_skipped_unsaved">Skipped downloading entity %1$d: it has unsaved edits. Open the project to save or discard them.</string>
 	<string name="sync_log_entity_download_rejected_mismatch">Download für Entität %1$d abgelehnt: Server lieferte eine nicht übereinstimmende ID oder Typ</string>
 	<string name="sync_log_entity_upload_entity_not_owned">Entität %1$d konnte nicht hochgeladen werden: Typ gehört zu nichts, wahrscheinlich gelöscht</string>
 	<string name="sync_log_entity_delete_failed">ID %1$d konnte auf dem Server nicht gelöscht werden: %2$s</string>

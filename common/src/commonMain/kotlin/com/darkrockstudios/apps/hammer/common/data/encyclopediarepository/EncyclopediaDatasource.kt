@@ -38,8 +38,9 @@ class EncyclopediaDatasource(
 
 	/**
 	 * Where this entry lives on disk: the current `~`-delimited filename, or the pre-v3
-	 * `-`-delimited one when that is what is actually there. Falls back to the current format so
-	 * callers writing a new file always produce it.
+	 * `-`-delimited one when that is what is actually there, in this type's directory or, failing
+	 * that, in another type's. Falls back to the current format so callers writing a new file
+	 * always produce it.
 	 */
 	private fun resolveEntryPath(id: Int, type: EntryType, name: String): Path {
 		val dir = getTypeDirectory(type).toOkioPath()
@@ -47,7 +48,14 @@ class EncyclopediaDatasource(
 		if (fileSystem.exists(current)) return current
 
 		val legacy = dir / getLegacyEntryFilename(id, type, name)
-		return if (fileSystem.exists(legacy)) legacy else current
+		if (fileSystem.exists(legacy)) return legacy
+
+		val misplaced = listEntryPaths().firstOrNull { it.name == current.name || it.name == legacy.name }
+		if (misplaced != null) {
+			Napier.w("Entry $id lives at $misplaced, not in its ${type.text} directory")
+			return misplaced
+		}
+		return current
 	}
 
 	fun getEntryPath(id: Int): HPath {

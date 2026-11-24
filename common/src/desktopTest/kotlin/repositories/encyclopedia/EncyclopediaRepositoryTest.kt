@@ -306,6 +306,19 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Load Entry whose file sits in another type's directory`() = runTest {
+		val repo = createRepository()
+		val def = entry1().toDef(projDef)
+		val typedPath = datasource.getEntryPath(def).toOkioPath()
+		val misplacedPath = typedPath.parent!!.parent!! / EntryType.PLACE.text / typedPath.name
+		fileSystem.atomicMove(typedPath, misplacedPath)
+
+		val container = repo.loadEntry(def)
+
+		assertEquals(entry1(), container.entry)
+	}
+
+	@Test
 	fun `Load corrupt entry wraps tomlkt coercion failure as EntryLoadError`() = runTest {
 		val repo = createRepository()
 		val def = entry1().toDef(projDef)

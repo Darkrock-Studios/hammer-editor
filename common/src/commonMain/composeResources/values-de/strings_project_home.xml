@@ -21,9 +21,10 @@
 	<string name="project_home_stat_pages">%1$d Seiten</string>
 	<string name="project_home_stat_daily_goal">Tagesziel</string>
 	<string name="project_home_stat_weekly_goal">Wochenziel</string>
-	<string name="project_home_stat_this_week">Diese Woche</string>
-	<string name="project_home_stat_week_change_flat">keine Änderung ggü. Vorwoche</string>
-	<string name="project_home_stat_week_change_new">keine Daten für Vorwoche</string>
+	<string name="project_home_stat_this_week">Last 7 days</string>
+	<string name="project_home_stat_week_change_flat">no change vs the 7 days before</string>
+	<string name="project_home_stat_week_change_new">no data for the 7 days before</string>
+	<string name="project_home_stat_week_change_suffix">vs the 7 days before</string>
 	<string name="project_home_stat_today">Heute</string>
 	<string name="project_home_stat_daily_avg">Ø pro Tag</string>
 	<string name="project_home_stat_streak">Serie</string>

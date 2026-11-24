@@ -2,6 +2,7 @@ package repositories.references
 
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -23,6 +24,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
+import okio.IOException
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -201,6 +203,24 @@ class ReferenceIndexServiceTest : BaseTest() {
 			assertEquals(1, suggestions[0].entryId)
 			assertEquals("Bob", suggestions[0].matchedAlias)
 		}
+
+	@Test
+	fun `computeAutoReferencesForScene skips an entry that fails to load`() = runTest(mainTestDispatcher) {
+		val bob = person(1, "Bob")
+		val carol = person(2, "Carol")
+		stubEntries(listOf(bob, carol))
+		every { encyclopedia.loadEntry(carol.toDef(projectDef)) } throws
+			EntryLoadError(HPath("/carol.toml", "carol.toml", true), IOException("missing"))
+		val service = makeService()
+
+		val suggestions = service.computeAutoReferencesForScene(
+			sceneId = 10,
+			sceneText = "Bob met Carol.",
+			metadata = SceneMetadata(),
+		)
+
+		assertEquals(listOf(1), suggestions.map { it.entryId })
+	}
 
 	@Test
 	fun `computeAutoReferencesForScene excludes confirmed entries`() = runTest(mainTestDispatcher) {
