@@ -1,6 +1,11 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.HammerLinks
+import com.darkrockstudios.apps.hammer.HomeMode
+import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
@@ -13,12 +18,16 @@ import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
 import com.darkrockstudios.apps.hammer.plugin.putAllowedUsersNotice
 import com.darkrockstudios.apps.hammer.services.blogfeed.BlogFeed
 import com.darkrockstudios.apps.hammer.services.blogfeed.BlogFeedRepository
+import io.ktor.server.application.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.net.URI
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import kotlin.time.toJavaInstant
 
 /**
  * The masthead is the home page's LCP element but is painted as a CSS background, so the browser
@@ -41,7 +50,7 @@ private val MASTHEAD_PRELOADS = listOf(
 	),
 )
 
-/** Must match the App Store links in home.mustache. Drives the iOS Safari smart app banner. */
+/** Must match the App Store links in partials/home-download.mustache. Drives the iOS Safari smart app banner. */
 private const val IOS_APP_STORE_ID = "6770841038"
 
 /** Already linked from their own cards, so the feed's principles list leaves them out. */
@@ -77,68 +86,162 @@ private val TAB_SHOTS = mapOf(
 		Shot("export", 474, "home_feature_export_alt"),
 	),
 )
+private const val COMMUNITY_STORY_COUNT = 5
+private const val COMMUNITY_AUTHOR_COUNT = 6
+private const val BIO_PREVIEW_LENGTH = 80
+
 private val POST_DATE_FORMAT = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 fun Route.homePage(
+	serverConfig: ServerConfig,
 	configRepository: ConfigRepository,
 	markdownRenderer: MarkdownRenderer,
 	blogFeedRepository: BlogFeedRepository,
+	accountsRepository: AccountsRepository,
+	projectAccessRepository: ProjectAccessRepository,
 ) {
 	route("/") {
 		get {
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/home.css"
-			model["preloadImages"] = MASTHEAD_PRELOADS
-			model["mastheadCredit"] = true
-			val serverMessageHtml = markdownRenderer.markdownToSafeHtml(
-				configRepository.get(AdminServerConfig.SERVER_MESSAGE)
-			)
-			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
-			val bannerNotice = call.putAllowedUsersNotice(
-				model, NoticeSlot.HOME_BANNER,
-				htmlKey = "allowedUsersBannerHtml", providedKey = "allowedUsersBannerProvided",
-			)
-
-			model["serverMessageHtml"] = serverMessageHtml
 			model["page_script"] = "/assets/js/home.js"
-			model["title"] = "Hammer — ${call.msg("home_meta_tagline")}"
-			model["metaDescription"] = call.msg("home_meta_description")
 			model["iosAppStoreId"] = IOS_APP_STORE_ID
+			model["hammerUrl"] = HammerLinks.HOME
 			model["principleLocalUrl"] = HammerLinks.PRINCIPLE_LOCAL_FIRST
 			model["principleTelemetryUrl"] = HammerLinks.PRINCIPLE_NO_TELEMETRY
 			model["principleSafetyUrl"] = HammerLinks.PRINCIPLE_DATA_SAFETY
-			model["originStoryUrl"] = HammerLinks.ORIGIN_STORY
-			model["tutorialsUrl"] = HammerLinks.TUTORIALS_PLAYLIST
-			val locale = call.getLocale()
-			model.putAll(blogModel(blogFeedRepository.current(), locale))
-			TAB_SHOTS.forEach { (tab, shots) ->
-				model["shots_$tab"] = shots.mapIndexed { i, shot ->
-					mapOf(
-						"name" to shot.name,
-						"height" to shot.height,
-						"alt" to localizedMsg(locale, shot.altKey),
-						"first" to (i == 0),
-					)
+			call.putInstanceNotice(model, configRepository, markdownRenderer)
+
+			when (serverConfig.home.mode) {
+				HomeMode.PROMO -> {
+					call.putPromoModel(model, blogFeedRepository)
+					call.respond(MustacheContent("home.mustache", model))
+				}
+
+				HomeMode.COMMUNITY -> {
+					call.putServerIdentity(model, configRepository)
+					call.putCommunityModel(model, configRepository, markdownRenderer, accountsRepository, projectAccessRepository)
+					call.respond(MustacheContent("home-community.mustache", model))
+				}
+
+				HomeMode.MINIMAL -> {
+					call.putServerIdentity(model, configRepository)
+					call.applyRobotsTag(indexable = false)
+					call.respond(MustacheContent("home-minimal.mustache", model))
 				}
 			}
-			model["jsonLd"] = webSiteJsonLd(
-				name = "Hammer",
-				url = call.canonicalUrl("/"),
-				description = call.msg("home_meta_description"),
-			)
-
-			val showAllowedUsersNotice = contactEmail.isNotBlank() && bannerNotice == null
-			if (showAllowedUsersNotice) {
-				model["allowedUsersNotice"] = true
-				call.msg(model, "home_servermessage_allowedusers", contactEmail)
-			}
-			model["hasInstanceNotice"] =
-				serverMessageHtml.isNotBlank() || showAllowedUsersNotice || !bannerNotice.isNullOrBlank()
-
-			call.respond(MustacheContent("home.mustache", model))
 		}
 	}
 }
+
+private suspend fun ApplicationCall.putInstanceNotice(
+	model: MutableMap<String, Any>,
+	configRepository: ConfigRepository,
+	markdownRenderer: MarkdownRenderer,
+) {
+	val serverMessageHtml = markdownRenderer.markdownToSafeHtml(
+		configRepository.get(AdminServerConfig.SERVER_MESSAGE)
+	)
+	val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
+	val bannerNotice = putAllowedUsersNotice(
+		model, NoticeSlot.HOME_BANNER,
+		htmlKey = "allowedUsersBannerHtml", providedKey = "allowedUsersBannerProvided",
+	)
+	model["serverMessageHtml"] = serverMessageHtml
+
+	val showAllowedUsersNotice = contactEmail.isNotBlank() && bannerNotice == null
+	if (showAllowedUsersNotice) {
+		model["allowedUsersNotice"] = true
+		msg(model, "home_servermessage_allowedusers", contactEmail)
+	}
+	model["hasInstanceNotice"] =
+		serverMessageHtml.isNotBlank() || showAllowedUsersNotice || !bannerNotice.isNullOrBlank()
+}
+
+private suspend fun ApplicationCall.putPromoModel(model: MutableMap<String, Any>, blogFeedRepository: BlogFeedRepository) {
+	model["preloadImages"] = MASTHEAD_PRELOADS
+	model["mastheadCredit"] = true
+	model["title"] = "Hammer — ${msg("home_meta_tagline")}"
+	model["metaDescription"] = msg("home_meta_description")
+	model["originStoryUrl"] = HammerLinks.ORIGIN_STORY
+	model["tutorialsUrl"] = HammerLinks.TUTORIALS_PLAYLIST
+	val locale = getLocale()
+	model.putAll(blogModel(blogFeedRepository.current(), locale))
+	TAB_SHOTS.forEach { (tab, shots) ->
+		model["shots_$tab"] = shots.mapIndexed { i, shot ->
+			mapOf(
+				"name" to shot.name,
+				"height" to shot.height,
+				"alt" to localizedMsg(locale, shot.altKey),
+				"first" to (i == 0),
+			)
+		}
+	}
+	model["jsonLd"] = webSiteJsonLd(
+		name = "Hammer",
+		url = canonicalUrl("/"),
+		description = msg("home_meta_description"),
+	)
+}
+
+/** The admin's server name, or the host name when none is set, used as the page title. */
+private suspend fun ApplicationCall.putServerIdentity(model: MutableMap<String, Any>, configRepository: ConfigRepository) {
+	val name = configRepository.get(AdminServerConfig.SERVER_NAME).ifBlank { URI(canonicalUrl("/")).host.orEmpty() }
+	val tagline = configRepository.get(AdminServerConfig.SERVER_TAGLINE)
+	model["serverName"] = name
+	model["title"] = name
+	if (tagline.isNotBlank()) {
+		model["serverTagline"] = tagline
+		model["metaDescription"] = tagline
+	}
+}
+
+private suspend fun ApplicationCall.putCommunityModel(
+	model: MutableMap<String, Any>,
+	configRepository: ConfigRepository,
+	markdownRenderer: MarkdownRenderer,
+	accountsRepository: AccountsRepository,
+	projectAccessRepository: ProjectAccessRepository,
+) {
+	model["preloadImages"] = MASTHEAD_PRELOADS
+	model["mastheadCredit"] = true
+	val locale = getLocale()
+	val dateFormat = POST_DATE_FORMAT.withLocale(locale)
+
+	val stories = projectAccessRepository.getCommunityFeedStories(0, COMMUNITY_STORY_COUNT).map { story ->
+		val published = story.publishedAt.toJavaInstant().atZone(ZoneId.systemDefault())
+		mapOf(
+			"projectName" to story.projectName,
+			"projectNameUrl" to ProjectName.projectSegment(story.projectName, story.projectUuid),
+			"penName" to story.penName,
+			"penNameUrl" to ProjectName.penNameForUrl(story.penName),
+			"date" to published.format(dateFormat),
+			"isoDate" to published.toLocalDate().toString(),
+		)
+	}
+	val authorCount = accountsRepository.countCommunityAuthors()
+	val authors = accountsRepository.getCommunityAuthors(0, COMMUNITY_AUTHOR_COUNT).map { author ->
+		mapOf(
+			"penName" to author.penName,
+			"penInitial" to ProjectName.penInitial(author.penName),
+			"penNameUrl" to ProjectName.penNameForUrl(author.penName),
+			"bio" to author.bio?.lineSequence()?.firstOrNull()?.trim()?.let(::truncateBio).orEmpty(),
+		)
+	}
+	model["stories"] = stories
+	model["hasStories"] = stories.isNotEmpty()
+	model["authors"] = authors
+	model["hasAuthors"] = authors.isNotEmpty()
+	model["hasCommunityContent"] = stories.isNotEmpty() || authors.isNotEmpty()
+	model["hasBothLists"] = stories.isNotEmpty() && authors.isNotEmpty()
+	model["authorsAllLabel"] = localizedMsg(locale, "home_community_authors_all", authorCount)
+
+	val aboutHtml = markdownRenderer.markdownToSafeHtml(configRepository.get(AdminServerConfig.ABOUT_SERVER))
+	if (aboutHtml.isNotBlank()) model["aboutHtml"] = aboutHtml
+}
+
+private fun truncateBio(bio: String): String =
+	if (bio.length <= BIO_PREVIEW_LENGTH) bio else bio.take(BIO_PREVIEW_LENGTH).trimEnd() + "…"
 
 private fun blogModel(feed: BlogFeed?, locale: Locale): Map<String, Any> {
 	val (featured, news) = feed?.posts.orEmpty().partition { it.inCategory(BLOG_PRINCIPLES_CATEGORY) }

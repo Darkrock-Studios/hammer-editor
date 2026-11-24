@@ -752,9 +752,26 @@ This will enable several new pages on the website found at: `/community`
 
 Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
 
-## Home page blog feed
+## Home page
 
-The home page lists the latest posts from the [Hammer blog](https://hammer.ink/blog/). To fill it,
+The `[home]` block picks which home page your server shows:
+
+```toml
+[home]
+mode = "community"
+```
+
+- `promo` (the default): the full Hammer page, as on hammer.ink.
+- `community`: a page for your writing group, with its latest stories, authors, the About text and how
+  to join. Requires `communityEnabled = true`.
+- `minimal`: a login button and the app download, hidden from search engines. Suits a private server.
+
+The community and minimal pages are titled with the **Server Name** from the admin Settings page, with
+the **Tagline** under it. Without a name they use the host name.
+
+### Home page blog feed
+
+The promo home page lists the latest posts from the [Hammer blog](https://hammer.ink/blog/). To fill it,
 the server fetches `https://hammer.ink/blog/feed.xml` at startup and once an hour, which means
 hammer.ink sees your server's address. To switch it off, add this to your server config:
 

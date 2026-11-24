@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.HomeMode
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
@@ -69,6 +70,7 @@ fun Route.sitemapRoutes(
 
 		val entries = buildContentEntries(
 			baseUrl = base,
+			includeHome = serverConfig.home.mode != HomeMode.MINIMAL,
 			includeAbout = configRepository.get(AdminServerConfig.ABOUT_SERVER).isNotBlank(),
 			includeTerms = serverConfig.termsOfService != null,
 			includePrivacy = serverConfig.privacyPolicy != null,
@@ -82,6 +84,7 @@ fun Route.sitemapRoutes(
 
 internal fun buildContentEntries(
 	baseUrl: String,
+	includeHome: Boolean = true,
 	includeAbout: Boolean,
 	includeTerms: Boolean,
 	includePrivacy: Boolean,
@@ -91,7 +94,7 @@ internal fun buildContentEntries(
 ): List<SitemapEntry> {
 	val base = baseUrl.trimEnd('/')
 	val entries = mutableListOf<SitemapEntry>()
-	entries += SitemapEntry("$base/")
+	if (includeHome) entries += SitemapEntry("$base/")
 	if (includeAbout) entries += SitemapEntry("$base/about")
 	if (includeTerms) entries += SitemapEntry("$base/terms")
 	if (includePrivacy) entries += SitemapEntry("$base/privacy")

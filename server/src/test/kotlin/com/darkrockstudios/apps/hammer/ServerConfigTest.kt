@@ -163,6 +163,28 @@ class ServerConfigTest {
 	}
 
 	@Test
+	fun `resolve aborts when the community home mode has no community`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(fs, explicit, "[home]\nmode = \"community\"")
+
+		val error = assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+		assertTrue(error.message.orEmpty().contains("communityEnabled"))
+	}
+
+	@Test
+	fun `resolve accepts the community home mode with community enabled`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(fs, explicit, "communityEnabled = true\n\n[home]\nmode = \"community\"")
+
+		val config = resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		assertEquals(HomeMode.COMMUNITY, config.home.mode)
+	}
+
+	@Test
 	fun `resolve aborts when privacyPolicy points at a missing file`() {
 		val fs = FakeFileSystem()
 		val explicit = getRootDataDirectory(fs) / "custom.toml"

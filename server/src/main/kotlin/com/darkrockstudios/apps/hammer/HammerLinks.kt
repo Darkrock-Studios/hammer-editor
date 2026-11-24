@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer
 
 /** Hammer's own addresses that the server's pages point at. */
 object HammerLinks {
+	const val HOME = "https://hammer.ink/"
+
 	const val BLOG_FEED = "https://hammer.ink/blog/feed.xml"
 
 	const val PRINCIPLE_LOCAL_FIRST = "https://hammer.ink/blog/principles/local-first"

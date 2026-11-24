@@ -181,6 +181,9 @@ internal fun resolveServerConfig(
 	validateCacheDirectory(resolved.cache, fileSystem)
 	resolved.extraLinks.forEach { it.validate() }
 	resolved.accountDeletion.validate()
+	require(resolved.home.mode != HomeMode.COMMUNITY || resolved.communityEnabled) {
+		"home.mode = \"community\" requires communityEnabled = true"
+	}
 	return resolved
 }
 

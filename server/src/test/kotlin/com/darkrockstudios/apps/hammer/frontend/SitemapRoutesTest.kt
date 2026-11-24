@@ -29,6 +29,16 @@ class SitemapRoutesTest {
 	}
 
 	@Test
+	fun `the minimal home page is left out`() {
+		val locs = buildContentEntries(
+			baseUrl = "https://hammer.example.com", includeHome = false,
+			includeAbout = true, includeTerms = false, includePrivacy = false,
+			communityEnabled = false, authors = emptyList(), stories = emptyList(),
+		).map { it.loc }
+		assertEquals(listOf("https://hammer.example.com/about"), locs)
+	}
+
+	@Test
 	fun `static pages appear only when enabled and a trailing slash is trimmed`() {
 		val locs = buildContentEntries(
 			baseUrl = "https://x.test/",

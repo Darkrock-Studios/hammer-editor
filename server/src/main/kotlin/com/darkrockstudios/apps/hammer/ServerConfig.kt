@@ -109,9 +109,27 @@ enum class LinkPlacement(val serial: String) {
 /** Home page settings. */
 @Serializable
 data class HomeConfig(
+	val mode: HomeMode = HomeMode.PROMO,
 	/** List the latest hammer.ink blog posts. The server fetches the feed from hammer.ink hourly while on. */
 	val blogFeed: Boolean = true,
 )
+
+/** Which home page the server shows. */
+@Serializable(with = HomeMode.Serializer::class)
+enum class HomeMode(val serial: String) {
+	/** The full Hammer promo page, as on hammer.ink. */
+	PROMO("promo"),
+
+	/** A writing group's page: its stories, authors and About text. Requires `communityEnabled`. */
+	COMMUNITY("community"),
+
+	/** A login and download card, kept out of search engines. */
+	MINIMAL("minimal");
+
+	object Serializer : CaseInsensitiveEnumSerializer<HomeMode>(
+		"HomeMode", entries.toTypedArray(), { it.serial }
+	)
+}
 
 /**
  * An operator-defined nav link appended to the header and/or footer, for pointing a deployment at

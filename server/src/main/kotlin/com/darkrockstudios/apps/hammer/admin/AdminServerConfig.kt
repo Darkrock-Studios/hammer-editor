@@ -29,6 +29,8 @@ data class ServerConfigKey<T>(
 object AdminServerConfig {
 	val SERVER_MESSAGE = ServerConfigKey.string("server_message", "Welcome to this instance of Hammer! Happy syncing!")
 	val ABOUT_SERVER = ServerConfigKey.string("about_server", "")
+	val SERVER_NAME = ServerConfigKey.string("server_name", "")
+	val SERVER_TAGLINE = ServerConfigKey.string("server_tagline", "")
 	val CONTACT_EMAIL = ServerConfigKey.string("contact_email", "")
 	val DEFAULT_LOCALE = ServerConfigKey.string("default_locale", "en")
 	val SMTP_CONFIG = ServerConfigKey(

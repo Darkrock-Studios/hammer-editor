@@ -1,0 +1,18 @@
+{{> header}}
+
+<main class="page-main mini">
+	<div class="mini__card">
+		<p class="eyebrow">{{msg.home_minimal_label}}</p>
+		<h1 class="mini__title">{{serverName}}</h1>
+		{{#serverTagline}}
+			<p class="mini__tagline">{{serverTagline}}</p>
+		{{/serverTagline}}
+		<div class="mini__divider" aria-hidden="true"><i class="fa-solid fa-feather-pointed"></i></div>
+		{{> partials/server-notice}}
+		<p class="mini__lede">{{msg.home_minimal_lede}}</p>
+		{{> partials/home-download}}
+		<p class="mini__runs">{{msg.home_minimal_about_hammer}} <a href="{{hammerUrl}}">hammer.ink <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></p>
+	</div>
+</main>
+
+{{> footer}}
