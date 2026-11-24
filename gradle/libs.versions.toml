@@ -6,6 +6,8 @@ data_version = "1.0"
 # Kotlin
 flatlaf = "3.8"
 jvm = "21"
+# The JDK bundled into desktop packages; its AOT cache needs 25+.
+desktopRuntimeJvm = "25"
 kache = "2.1.1"
 kotlin = "2.4.21"
 serialization = "1.12.0"
@@ -110,13 +112,13 @@ multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
 bouncycastle = "1.86"
 
-compose-texteditor = "3.4.0"
+compose-texteditor = "3.5.1"
 kotlin-multiplatform-diff = "1.4.0"
 platform-spellcheckerkt = "1.4.0"
 nucleus = "2.5.18"
 colorpicker-compose = "1.3.0"
 material-kolor = "5.0.1"
-cairn = "0.4.0"
+cairn = "0.5.0"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }

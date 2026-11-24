@@ -80,14 +80,14 @@ kotlin {
 	}
 }
 
-// Pin jpackage's bundled runtime to the project's toolchain JDK rather than
+// Pin jpackage's bundled runtime to a Temurin desktopRuntimeJvm rather than
 // whichever JVM happens to be running Gradle. Temurin is built against an old
 // glibc; a distro's own JDK (Ubuntu 24.04's needs 2.38) would keep the Linux
 // packages off Debian 12 and the Raspberry Pi OS built on it. This resolves at
 // configuration, so a machine that can neither find nor download Temurin falls
 // back to any JDK rather than failing every build that touches :desktop.
 val packagingJavaHome: String = run {
-	val jvm = JavaLanguageVersion.of(libs.versions.jvm.get().toInt())
+	val jvm = JavaLanguageVersion.of(libs.versions.desktopRuntimeJvm.get().toInt())
 	val temurin = javaToolchains.launcherFor {
 		languageVersion.set(jvm)
 		vendor.set(JvmVendorSpec.ADOPTIUM)
@@ -97,6 +97,42 @@ val packagingJavaHome: String = run {
 		javaToolchains.launcherFor { languageVersion.set(jvm) }.get()
 	}
 	launcher.metadata.installationPath.asFile.absolutePath
+}
+
+// Temurin 25 ships no jmods (JEP 493), and such a JDK cannot link jdk.jlink, or jdk.jpackage on top of it.
+val runtimeModules: List<String> = providers.exec {
+	commandLine(File(packagingJavaHome, "bin/java").absolutePath, "--list-modules")
+}.standardOutput.asText.get().lines()
+	.map { it.substringBefore('@').trim() }
+	.filter { it.isNotEmpty() && it != "jdk.jlink" && it != "jdk.jpackage" }
+
+// ProGuard, unlike R8, ignores the rules libraries ship in META-INF/proguard and keeps no ServiceLoader
+// providers. This collects both from the runtime classpath for the release ProGuard pass.
+val proguardLibraryRules = tasks.register("proguardLibraryRules") {
+	val runtime = configurations.named("jvmRuntimeClasspath")
+	inputs.files(runtime).withPropertyName("jvmRuntimeClasspath").withNormalizer(ClasspathNormalizer::class)
+	val outFile = layout.buildDirectory.file("proguard/library-rules.pro")
+	outputs.file(outFile)
+	doLast {
+		val rules = StringBuilder()
+		val providers = sortedSetOf<String>()
+		runtime.get().files.filter { it.isFile && it.name.endsWith(".jar") }.forEach { jar ->
+			ZipFile(jar).use { zip ->
+				zip.entries().asSequence().filterNot { it.isDirectory }.forEach { entry ->
+					val text = { zip.getInputStream(entry).bufferedReader().readText() }
+					when {
+						entry.name.startsWith("META-INF/proguard/") && entry.name.endsWith(".pro") ->
+							rules.append("# ${jar.name}: ${entry.name}\n").append(text()).append("\n")
+						entry.name.startsWith("META-INF/services/") ->
+							text().lines().map { it.substringBefore('#').trim() }.filter { it.isNotEmpty() }.forEach { providers += it }
+					}
+				}
+			}
+		}
+		rules.append("# ServiceLoader providers\n")
+		providers.forEach { rules.append("-keep class $it { <init>(); }\n") }
+		outFile.get().asFile.apply { parentFile.mkdirs() }.writeText(rules.toString())
+	}
 }
 
 compose.desktop {
@@ -112,8 +148,7 @@ compose.desktop {
 				TargetFormat.Deb,
 				TargetFormat.Rpm
 			)
-			modules = arrayListOf(":base", ":common", ":composeUi", ":desktop")
-			includeAllModules = true
+			modules = ArrayList(runtimeModules)
 			packageName = "hammer"
 			packageVersion = libs.versions.app.get()
 			description = "A simple tool for building stories."
@@ -173,6 +208,8 @@ compose.desktop {
 			}
 		}
 		jvmArgs("-Dcompose.application.configure.swing.globals=false")
+		// JNA, Skiko, and Nucleus load natives; JDK 24+ warns on every restricted call otherwise.
+		jvmArgs("--enable-native-access=ALL-UNNAMED")
 		if (isAppStoreRelease) {
 			// Load libjnidispatch.jnilib from Contents/app/resources/, never extract.
 			jvmArgs("-Djna.nounpack=true", "-Djna.nosys=true")
@@ -182,12 +219,12 @@ compose.desktop {
 		}
 
 		buildTypes.release.proguard {
-			version.set("7.6.0")
+			version.set("7.10.0")
 			isEnabled.set(true)
-			obfuscate.set(false)
-			optimize.set(false)
+			obfuscate.set(true)
+			optimize.set(true)
 			//joinOutputJars.set(true)
-			configurationFiles.from("proguard-rules.pro")
+			configurationFiles.from(proguardLibraryRules, "proguard-rules.pro")
 		}
 	}
 }
@@ -294,6 +331,18 @@ val compileMacosBookmarksLib = tasks.register("compileMacosBookmarksLib") {
 // existing build would keep bundling the old runtime.
 tasks.matching { it.name == "checkRuntime" || it.name == "createRuntimeImage" }.configureEach {
 	inputs.property("packagingJavaHome", packagingJavaHome)
+}
+// ProGuard reads JDK classes from jmods, which Temurin 25 lacks; the code targets the toolchain's API anyway.
+// Set late because Compose sets javaHome in its own afterEvaluate.
+afterEvaluate {
+	val jvm = JavaLanguageVersion.of(libs.versions.jvm.get().toInt())
+	val proguardJavaHome = runCatching {
+		javaToolchains.launcherFor { languageVersion.set(jvm); vendor.set(JvmVendorSpec.ADOPTIUM) }.get()
+	}.getOrElse { javaToolchains.launcherFor { languageVersion.set(jvm) }.get() }
+		.metadata.installationPath.asFile.absolutePath
+	tasks.withType<org.jetbrains.compose.desktop.application.tasks.AbstractProguardTask>().configureEach {
+		javaHome.set(proguardJavaHome)
+	}
 }
 tasks.matching { it.name == "prepareAppResources" }.configureEach {
 	dependsOn(extractMacosNativeLibs, compileMacosBookmarksLib)

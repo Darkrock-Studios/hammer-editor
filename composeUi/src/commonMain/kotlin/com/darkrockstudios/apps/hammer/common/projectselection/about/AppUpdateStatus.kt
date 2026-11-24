@@ -17,6 +17,10 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.projectselection.appUpdateDescription
 
+/** Whether [AppUpdateStatus] shows an emphasised install or retry button for this state. */
+internal val AppUpdateState.hasPrimaryAction: Boolean
+	get() = this is AppUpdateState.Failed || (this is AppUpdateState.Available && installable)
+
 /**
  * Where this install stands on updates, as one setting row with the action that state needs.
  * Hidden on builds that cannot update, so store builds show no trace of it. A release this

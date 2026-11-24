@@ -1,111 +1,99 @@
 ################################################################################
-# GLOBAL SETTINGS (Minification Only - Stable for 2025)
+# GLOBAL SETTINGS
+# Library rules from META-INF/proguard and ServiceLoader providers come from the
+# proguardLibraryRules task; Compose's default rules cover Kotlin, Skiko,
+# coroutines, and kotlinx.serialization.
 ################################################################################
--dontobfuscate
--dontoptimize
 -ignorewarnings
 
-# Essential for stack traces, reflection, and DI (Koin/Serialization)
--keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,Exceptions,*Annotation*
+# The obfuscation pass is what strips attributes outside -keepattributes, and the
+# optimizer leaves LocalVariableTables it cannot load. Nothing is renamed.
+-keepnames class ** { *; }
+-keeppackagenames **
 
-# Preserve the ServiceLoader directory (Essential for Ktor and Coil)
+# -ignorewarnings leaves unresolved references, so type narrowing is unsound
+# (okio's buffer() fails verification) and merged classes break reflection.
+-optimizations !method/specialization/**,!field/specialization/type,!class/merging/**
+
+-keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,Exceptions,*Annotation*,NestHost,NestMembers,PermittedSubclasses,Record,MethodParameters
+
 -keepdirectories META-INF/services
 -adaptresourcefilenames META-INF/services/**
 -adaptresourcefilecontents META-INF/services/**
 
-################################################################################
-# ENTRY POINT & PROJECT
-################################################################################
 -keepclasseswithmembers public class com.darkrockstudios.apps.hammer.desktop.MainKt {
     public static void main(java.lang.String[]);
 }
--keep class com.darkrockstudios.** { *; }
 
-################################################################################
-# COIL 3 (Fixes Images Not Loading)
-################################################################################
--keep class coil3.** { *; }
--keep class * implements coil3.util.DecoderServiceLoaderTarget
--keep class * implements coil3.util.FetcherServiceLoaderTarget
-# Keep Ktor network fetcher if used by Coil
--keep class coil3.network.ktor.** { *; }
-
-################################################################################
-# KTOR & SERIALIZATION
-################################################################################
--keep class io.ktor.** { *; }
--keep class io.ktor.serialization.kotlinx.json.KotlinxSerializationJsonExtensionProvider { *; }
--keep class * implements io.ktor.serialization.kotlinx.KotlinxSerializationExtensionProvider
-
-################################################################################
-# SYSTEM & NATIVE (OSHI / JNA)
-################################################################################
-# Fix for the NullPointerException inside EnumMap
 -keepclassmembers enum * {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
--keep class com.sun.jna.** { *; }
--keep class * implements com.sun.jna.** { *; }
--keep class oshi.** { *; }
--keep class sun.** { *; }
--keep class com.sun.** { *; }
 -keepclasseswithmembernames class * {
     native <methods>;
 }
 
 ################################################################################
-# NUCLEUS LAUNCHER (JNI bridge classes — JNI invokes static on*(...) callbacks)
-# Windows launcher ships its own keep rules via the Nucleus Gradle plugin.
+# JNA AND NUCLEUS
+# From Nucleus' own defaults (plugin-build/.../nucleus-default-compose-desktop-rules.pro):
+# JNA proxies resolve interface methods and Structure fields by name, and the
+# Nucleus natives call back into these classes over JNI.
 ################################################################################
--keep class dev.nucleusframework.launcher.linux.NativeLinuxLauncherBridge {
+-keep class com.sun.jna.* { *; }
+-keep class com.sun.jna.ptr.* { *; }
+-keep class com.sun.jna.internal.* { *; }
+-keep class * implements com.sun.jna.Callback { *; }
+-keep class * implements com.sun.jna.Library { *; }
+-keep class * extends com.sun.jna.Structure { *; }
+-keep class * extends com.sun.jna.NativeLong { *; }
+-dontnote com.sun.jna.**
+
+-keepclasseswithmembernames,includedescriptorclasses class dev.nucleusframework.** {
     native <methods>;
-    static ** on*(...);
 }
--keep class dev.nucleusframework.launcher.macos.NativeMacOsDockMenuBridge {
-    native <methods>;
-    static ** on*(...);
+-keep class dev.nucleusframework.**Bridge { *; }
+-keep class dev.nucleusframework.**Jni { *; }
+-keep interface dev.nucleusframework.launcher.windows.ThumbBarClickListener {
+    void onThumbButtonClick(int);
 }
+-keep class * implements dev.nucleusframework.launcher.windows.ThumbBarClickListener {
+    void onThumbButtonClick(int);
+}
+-keep class dev.nucleusframework.window.** { *; }
+-keep class dev.nucleusframework.darkmodedetector.** { *; }
+-keep class dev.nucleusframework.energymanager.** { *; }
+-keep class com.jetbrains.** { *; }
 
 ################################################################################
-# NUCLEUS TAO BACKEND (native window layer: JNI bridges call back into these,
-# and the Tao main dispatcher is discovered reflectively via ServiceLoader)
+# DBUS-JAVA (Linux portals and launcher quicklist)
+# Calls, signals, and structs are bound by reflection over interface methods,
+# constructors, and annotated fields.
 ################################################################################
--keep class dev.nucleusframework.window.tao.** { *; }
--keep class kotlinx.coroutines.internal.MainDispatcherFactory
+-keep class org.freedesktop.dbus.** { *; }
+-keep interface * extends org.freedesktop.dbus.interfaces.DBusInterface { *; }
+-keep class * implements org.freedesktop.dbus.interfaces.DBusInterface { *; }
+-keep class * extends org.freedesktop.dbus.Struct { *; }
+-keep class * extends org.freedesktop.dbus.Tuple { *; }
+-keep class * extends org.freedesktop.dbus.messages.DBusSignal { *; }
+-keep class * extends org.freedesktop.dbus.exceptions.DBusExecutionException { *; }
 
 ################################################################################
-# LIBRARIES (Broad Keeps for Stability)
-################################################################################
--keep class androidx.compose.** { *; }
--keep class androidx.collection.** { *; }
--keep class kotlinx.coroutines.** { *; }
--keep class org.jetbrains.compose.** { *; }
--keep class org.jetbrains.skia.** { *; }
--keep class org.jetbrains.skiko.** { *; }
--keep class com.arkivanov.** { *; }
--keep class org.koin.** { *; }
-
-################################################################################
-# SLF4J (provider is wired via META-INF/services only, so the shrinker drops it)
-################################################################################
--keep class * implements org.slf4j.spi.SLF4JServiceProvider { *; }
-
-################################################################################
-# COMMONS-LOGGING (PDFBox, used by PDF export)
-# LogFactory resolves its implementation by name, so the shrinker sees no
-# reference to LogFactoryImpl and drops it. PDDocument's static init then dies.
+# LOGGING
+# commons-logging (PDFBox) picks its implementation by name, so the shrinker sees
+# no reference to LogFactoryImpl and PDDocument's static init dies without it.
 ################################################################################
 -keep class org.apache.commons.logging.** { *; }
 -dontwarn org.apache.commons.logging.**
 
+# Napier's DebugAntilog reads its caller at a fixed stack depth, so inlining
+# inside Napier leaves the index past the end of the trace.
+-keep,includecode class io.github.aakira.napier.** { *; }
+
 ################################################################################
-# CLEANUP & WARNING SUPPRESSION
+# WARNING SUPPRESSION
 ################################################################################
 -dontwarn okio.**
 -dontwarn org.slf4j.**
 -dontwarn javax.annotation.**
--dontwarn oshi.**
-
--keep class com.arkivanov.decompose.extensions.compose.mainthread.SwingMainThreadChecker { *; }
-
+-dontwarn dev.nucleusframework.**
+-dontnote dev.nucleusframework.**

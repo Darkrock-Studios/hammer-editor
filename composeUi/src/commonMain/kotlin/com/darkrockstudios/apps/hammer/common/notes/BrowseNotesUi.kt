@@ -96,6 +96,8 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
+import com.darkrockstudios.apps.hammer.common.help.HelpButton
+import com.darkrockstudios.apps.hammer.common.help.HelpScreen
 
 const val NOTES_CREATE_FAB_TAG = "notes-create-fab"
 fun noteCardTag(id: Int) = "note-card-$id"
@@ -237,6 +239,7 @@ fun BrowseNotesUi(
 							)
 						}
 					}
+					HelpButton(screen = HelpScreen.Notes)
 				}
 			}
 		}

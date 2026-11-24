@@ -45,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -53,6 +55,8 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.archived_scenes_restored_snackbar
 import com.darkrockstudios.apps.hammer.collapse
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
+import com.darkrockstudios.apps.hammer.help_button
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCoachMarkAnchors
@@ -80,6 +84,9 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.Sc
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTreeState
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.rememberReorderableLazyListState
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.common.help.HELP_BUTTON_TAG
+import com.darkrockstudios.apps.hammer.common.help.HelpDialog
+import com.darkrockstudios.apps.hammer.common.help.HelpScreen
 import com.darkrockstudios.apps.hammer.expand
 import com.darkrockstudios.apps.hammer.more_menu_button
 import com.darkrockstudios.apps.hammer.scene_archived_snackbar
@@ -116,6 +123,8 @@ const val SCENE_LIST_ADD_GROUP_TAG = "scene-list-add-group"
 const val CREATE_ITEM_NAME_FIELD_TAG = "create-item-name-field"
 const val SCENE_LIST_TREE_TAG = "scene-list-tree"
 const val SCENE_LIST_READER_BUTTON_TAG = "scene-list-reader"
+const val SCENE_LIST_TITLE_TAG = "scene-list-title"
+const val SCENE_LIST_MENU_TAG = "scene-list-menu"
 
 @OptIn(
 	ExperimentalMaterialApi::class,
@@ -216,17 +225,25 @@ fun SceneListUi(
 						.fillMaxWidth()
 						.height(Ui.TOP_BAR_HEIGHT)
 						.padding(horizontal = Ui.Padding.XL),
-					horizontalArrangement = Arrangement.SpaceBetween,
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
 					verticalAlignment = Alignment.CenterVertically,
 				) {
-					HdMonoLabel(text = Res.string.scene_list_header.get())
-					Row(
-						verticalAlignment = Alignment.CenterVertically,
-						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
-					) {
-						HdMonoLabel(text = Res.string.scene_list_count_format.get(chapterCount, sceneCount))
-						OverflowMenu(component, treeState)
-					}
+					HdMonoLabel(
+						text = Res.string.scene_list_header.get(),
+						maxLines = 1,
+						softWrap = false,
+						modifier = Modifier.testTag(SCENE_LIST_TITLE_TAG),
+					)
+					// Weighted, so in a narrow pane the count gives way before the menu does.
+					HdMonoLabel(
+						text = Res.string.scene_list_count_format.get(chapterCount, sceneCount),
+						maxLines = 1,
+						softWrap = false,
+						overflow = TextOverflow.Ellipsis,
+						textAlign = TextAlign.End,
+						modifier = Modifier.weight(1f),
+					)
+					OverflowMenu(component, treeState)
 				}
 
 				HorizontalDivider(
@@ -516,8 +533,9 @@ private fun ArchiveSceneDialog(
 private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 	var expandOrCollapse by rememberSaveable { mutableStateOf(false) }
 	var menuOpen by rememberSaveable { mutableStateOf(false) }
+	var helpOpen by rememberSaveable { mutableStateOf(false) }
 	Box {
-		IconButton(onClick = { menuOpen = true }) {
+		IconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(SCENE_LIST_MENU_TAG)) {
 			Icon(
 				Icons.Filled.MoreVert,
 				contentDescription = Res.string.more_menu_button.get(),
@@ -559,8 +577,19 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 					component.showArchivedScenes()
 				}
 			)
+
+			DropdownMenuItem(
+				modifier = Modifier.testTag(HELP_BUTTON_TAG),
+				text = { Text(Res.string.help_button.get()) },
+				leadingIcon = { Icon(Icons.AutoMirrored.Outlined.HelpOutline, null) },
+				onClick = {
+					menuOpen = false
+					helpOpen = true
+				}
+			)
 		}
 	}
+	if (helpOpen) HelpDialog(screen = HelpScreen.Scenes, onDismiss = { helpOpen = false })
 }
 
 @ExperimentalFoundationApi

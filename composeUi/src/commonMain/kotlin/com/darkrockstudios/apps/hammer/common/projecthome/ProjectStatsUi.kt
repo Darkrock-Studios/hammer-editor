@@ -51,6 +51,9 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
+import com.darkrockstudios.apps.hammer.common.help.HELP_BUTTON_TAG
+import com.darkrockstudios.apps.hammer.common.help.HelpDialog
+import com.darkrockstudios.apps.hammer.common.help.HelpScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
@@ -58,9 +61,11 @@ import kotlin.random.Random
 import kotlin.time.Clock
 import com.darkrockstudios.apps.hammer.project_home_stat_scene_median_format
 import org.jetbrains.compose.resources.pluralStringResource
+import com.darkrockstudios.apps.hammer.help_button
 
 const val PROJECT_STATS_TAG = "project-stats"
 const val PROJECT_HOME_IMAGES_TAG = "project-home-images"
+const val PROJECT_HOME_MENU_TAG = "project-home-menu"
 const val PROJECT_HOME_COVER_TAG = "project-home-cover"
 
 @Composable
@@ -1349,9 +1354,10 @@ private fun ProjectHomeMenu(
 	isLoadingStats: Boolean,
 ) {
 	var expanded by remember { mutableStateOf(false) }
+	var helpOpen by rememberSaveable { mutableStateOf(false) }
 
 	Box {
-		IconButton(onClick = { expanded = true }) {
+		IconButton(onClick = { expanded = true }, modifier = Modifier.testTag(PROJECT_HOME_MENU_TAG)) {
 			Icon(
 				Icons.Default.MoreVert,
 				tint = MaterialTheme.colorScheme.onBackground,
@@ -1419,6 +1425,15 @@ private fun ProjectHomeMenu(
 
 			PluginActionMenuItems(ActionPlace.Project, itemId = null, onChosen = { expanded = false })
 
+			DropdownMenuItem(
+				text = { Text(Res.string.help_button.get()) },
+				modifier = Modifier.testTag(HELP_BUTTON_TAG),
+				onClick = {
+					expanded = false
+					helpOpen = true
+				},
+			)
+
 			HorizontalDivider()
 			DropdownMenuItem(
 				text = { Text(Res.string.project_window_menu_item_close.get()) },
@@ -1429,4 +1444,5 @@ private fun ProjectHomeMenu(
 			)
 		}
 	}
+	if (helpOpen) HelpDialog(screen = HelpScreen.ProjectHome, onDismiss = { helpOpen = false })
 }
