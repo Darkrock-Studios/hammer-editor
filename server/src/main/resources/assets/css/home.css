@@ -103,6 +103,13 @@
 	padding: 1.25rem 2rem;
 }
 
+/* Inside another section, the band drops its own background and rule. */
+.download-band--plain {
+	background: none;
+	border: 0;
+	padding-top: 0;
+}
+
 .dl-yours,
 .dl-others {
 	max-width: 44rem;
@@ -321,7 +328,8 @@
 	margin-bottom: 0.4rem;
 }
 
-.eyebrow::before {
+.eyebrow::before,
+.mini__card .eyebrow::after {
 	content: '';
 	flex: none;
 	width: 1.5rem;
@@ -837,14 +845,8 @@
 	gap: clamp(2rem, 5vw, 4rem);
 }
 
-.club-grid--single {
-	grid-template-columns: 1fr;
-}
-
-@media (max-width: 52rem) {
-	.club-grid {
-		grid-template-columns: 1fr;
-	}
+.club-grid > :only-child {
+	grid-column: 1 / -1;
 }
 
 .club-stories,
@@ -944,6 +946,7 @@
 }
 
 @media (max-width: 52rem) {
+	.club-grid,
 	.club-about {
 		grid-template-columns: 1fr;
 	}
@@ -971,11 +974,6 @@
 	max-width: 62ch;
 }
 
-.club-join + .download-band {
-	background: none;
-	border: 0;
-	padding-top: 0;
-}
 
 /* ========================================
    Minimal home
@@ -1003,14 +1001,6 @@
 	justify-content: center;
 }
 
-.mini__card .eyebrow::after {
-	content: '';
-	flex: none;
-	width: 1.5rem;
-	height: 2px;
-	background: var(--accent);
-}
-
 .mini__title {
 	font-size: clamp(1.8rem, 4vw, 2.6rem);
 	margin: 0.2rem 0 0.6rem;
@@ -1024,28 +1014,15 @@
 	margin-bottom: 1rem;
 }
 
-.mini .instance-band {
-	border: 0;
-	border-left: 3px solid var(--accent);
-	border-radius: 6px;
-	text-align: left;
-	margin: 0.4rem auto 1.25rem;
-	max-width: 34rem;
-}
-
-.mini .instance-band__inner {
-	padding: 0.75rem 1rem;
-}
 
 .mini__lede {
 	color: var(--text-secondary);
 	margin-bottom: 0.5rem;
 }
 
-.mini .download-band {
-	background: none;
-	border: 0;
-	padding: 0.5rem 0 0;
+.mini .download-band--plain {
+	padding-left: 0;
+	padding-right: 0;
 }
 
 .mini__runs {

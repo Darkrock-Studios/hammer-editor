@@ -633,6 +633,20 @@ a:focus-visible {
 	border-bottom: 2px solid var(--accent);
 }
 
+/* The notice as a box inside a card rather than a full-width band. */
+.instance-band--inline {
+	border: 0;
+	border-left: 3px solid var(--accent);
+	border-radius: 6px;
+	text-align: left;
+	margin: 0.4rem auto 1.25rem;
+	max-width: 34rem;
+}
+
+.instance-band--inline .instance-band__inner {
+	padding: 0.75rem 1rem;
+}
+
 .instance-band__inner {
 	max-width: 1200px;
 	margin: 0 auto;

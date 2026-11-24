@@ -45,8 +45,16 @@ class HomePageTest : BaseTest() {
 	private val accountsRepository: AccountsRepository = mockk()
 	private val projectAccessRepository: ProjectAccessRepository = mockk()
 
-	private fun ApplicationTestBuilder.configureApp(feed: BlogFeed? = null, mode: HomeMode = HomeMode.PROMO) {
-		val serverConfig = ServerConfig(communityEnabled = mode == HomeMode.COMMUNITY, home = HomeConfig(mode = mode))
+	private fun ApplicationTestBuilder.configureApp(
+		feed: BlogFeed? = null,
+		mode: HomeMode = HomeMode.PROMO,
+		publicUrl: String? = null,
+	) {
+		val serverConfig = ServerConfig(
+			communityEnabled = mode == HomeMode.COMMUNITY,
+			home = HomeConfig(mode = mode),
+			publicUrl = publicUrl,
+		)
 		val blogFeedRepository: BlogFeedRepository = mockk()
 		every { blogFeedRepository.current() } returns feed
 		application {
@@ -82,9 +90,7 @@ class HomePageTest : BaseTest() {
 
 	private fun mockCommunity(stories: List<CommunityFeedStory>, authors: List<CommunityAuthor>) {
 		coEvery { projectAccessRepository.getCommunityFeedStories(any(), any()) } returns stories
-		coEvery { projectAccessRepository.countCommunityFeedStories() } returns stories.size.toLong()
-		coEvery { accountsRepository.getCommunityAuthors(any(), any()) } returns authors
-		coEvery { accountsRepository.countCommunityAuthors() } returns authors.size.toLong()
+		coEvery { accountsRepository.getNewestCommunityAuthors(any()) } returns authors
 	}
 
 	private val published = Instant.parse("2026-11-16T12:00:00Z")
@@ -291,7 +297,7 @@ class HomePageTest : BaseTest() {
 		assertContains(body, "href=\"/a/Mara-Quill\"")
 		assertContains(body, "Maps and footnotes.")
 		assertFalse(body.contains("More."))
-		assertContains(body, ">1 author <i")
+		assertContains(body, "All authors")
 		assertContains(body, "<strong>friendly</strong>")
 		assertFalse(body.contains("id=\"features\""))
 		assertContains(body, "data-platform=\"linux\"")
@@ -311,13 +317,35 @@ class HomePageTest : BaseTest() {
 	}
 
 	@Test
-	fun `a blank server name falls back to the host name`() = testApplication {
+	fun `a blank server name falls back to the public host`() = testApplication {
+		mockPageModelDependencies("")
+		configureApp(mode = HomeMode.MINIMAL, publicUrl = "https://sync.example.net")
+
+		val body = getHome().bodyAsText()
+
+		assertContains(body, "<title>sync.example.net</title>")
+	}
+
+	@Test
+	fun `without a server name or public URL the title is Hammer, not the request host`() = testApplication {
 		mockPageModelDependencies("")
 		configureApp(mode = HomeMode.MINIMAL)
 
 		val body = getHome().bodyAsText()
 
-		assertContains(body, "<title>localhost</title>")
+		assertContains(body, "<title>Hammer</title>")
+		assertContains(body, "<meta name=\"description\" content=\"Hammer sync server\">")
+	}
+
+	@Test
+	fun `community home invites anonymous visitors to join`() = testApplication {
+		mockPageModelDependencies("")
+		mockCommunity(stories = emptyList(), authors = emptyList())
+		configureApp(mode = HomeMode.COMMUNITY)
+
+		val body = getHome().bodyAsText()
+
+		assertContains(body, "href=\"#join\"")
 	}
 
 	@Test

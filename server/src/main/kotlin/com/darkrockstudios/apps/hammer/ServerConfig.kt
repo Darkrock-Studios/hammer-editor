@@ -82,6 +82,9 @@ data class ServerConfig(
 	val encryption: EncryptionConfig = EncryptionConfig(),
 	val secret: SecretConfig = SecretConfig(),
 ) {
+	/** The host of [publicUrl], or null when it is unset or malformed. */
+	fun publicHost(): String? = publicUrl?.let { runCatching { URI(it).host }.getOrNull() }
+
 	@Transient
 	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
 		EmailProvider.entries.find { it.name.equals(provider, ignoreCase = true) }
@@ -112,19 +115,28 @@ data class HomeConfig(
 	val mode: HomeMode = HomeMode.PROMO,
 	/** List the latest hammer.ink blog posts. The server fetches the feed from hammer.ink hourly while on. */
 	val blogFeed: Boolean = true,
-)
+) {
+	/** Only the promo page lists the feed, so no other mode contacts hammer.ink for it. */
+	val fetchesBlogFeed: Boolean get() = mode == HomeMode.PROMO && blogFeed
+
+	fun validate(communityEnabled: Boolean) {
+		require(!mode.requiresCommunity || communityEnabled) {
+			"home.mode = \"${mode.serial}\" requires communityEnabled = true"
+		}
+	}
+}
 
 /** Which home page the server shows. */
 @Serializable(with = HomeMode.Serializer::class)
-enum class HomeMode(val serial: String) {
+enum class HomeMode(val serial: String, val indexable: Boolean = true, val requiresCommunity: Boolean = false) {
 	/** The full Hammer promo page, as on hammer.ink. */
 	PROMO("promo"),
 
-	/** A writing group's page: its stories, authors and About text. Requires `communityEnabled`. */
-	COMMUNITY("community"),
+	/** A writing group's page: its stories, authors and About text. */
+	COMMUNITY("community", requiresCommunity = true),
 
-	/** A login and download card, kept out of search engines. */
-	MINIMAL("minimal");
+	/** A card with the server's name and the app download, kept out of search engines. */
+	MINIMAL("minimal", indexable = false);
 
 	object Serializer : CaseInsensitiveEnumSerializer<HomeMode>(
 		"HomeMode", entries.toTypedArray(), { it.serial }

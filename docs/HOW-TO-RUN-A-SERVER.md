@@ -764,10 +764,11 @@ mode = "community"
 - `promo` (the default): the full Hammer page, as on hammer.ink.
 - `community`: a page for your writing group, with its latest stories, authors, the About text and how
   to join. Requires `communityEnabled = true`.
-- `minimal`: a login button and the app download, hidden from search engines. Suits a private server.
+- `minimal`: a card with the server's name and the app download, hidden from search engines. Suits a
+  private server.
 
 The community and minimal pages are titled with the **Server Name** from the admin Settings page, with
-the **Tagline** under it. Without a name they use the host name.
+the **Tagline** under it. Without a name they use the host from `publicUrl`, or "Hammer" if that isn't set.
 
 ### Home page blog feed
 

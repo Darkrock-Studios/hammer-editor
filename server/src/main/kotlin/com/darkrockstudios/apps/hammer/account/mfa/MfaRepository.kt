@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.database.MfaLoginChallengeDao
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
-import java.net.URI
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.math.ceil
@@ -199,9 +198,7 @@ class MfaRepository(
 		code.lowercase().filterNot { it == '-' || it.isWhitespace() }
 
 	private fun issuer(): String {
-		val host = serverConfig.publicUrl
-			?.let { runCatching { URI(it).host }.getOrNull() }
-			?: serverConfig.host
+		val host = serverConfig.publicHost() ?: serverConfig.host
 		return "Hammer ($host)"
 	}
 

@@ -21,7 +21,7 @@ class SitemapRoutesTest {
 	@Test
 	fun `the home page is always present`() {
 		val locs = buildContentEntries(
-			baseUrl = "https://hammer.example.com",
+			baseUrl = "https://hammer.example.com", includeHome = true,
 			includeAbout = false, includeTerms = false, includePrivacy = false,
 			communityEnabled = false, authors = emptyList(), stories = emptyList(),
 		).map { it.loc }
@@ -41,7 +41,7 @@ class SitemapRoutesTest {
 	@Test
 	fun `static pages appear only when enabled and a trailing slash is trimmed`() {
 		val locs = buildContentEntries(
-			baseUrl = "https://x.test/",
+			baseUrl = "https://x.test/", includeHome = true,
 			includeAbout = true, includeTerms = true, includePrivacy = true,
 			communityEnabled = false, authors = emptyList(), stories = emptyList(),
 		).map { it.loc }
@@ -58,7 +58,7 @@ class SitemapRoutesTest {
 			projectUuid = "abc-123", projectName = "My Story", penName = "Jane Doe", publishedAt = published,
 		)
 		val entries = buildContentEntries(
-			baseUrl = "https://x.test",
+			baseUrl = "https://x.test", includeHome = true,
 			includeAbout = false, includeTerms = false, includePrivacy = false,
 			communityEnabled = true, authors = listOf(author), stories = listOf(story),
 		)
@@ -78,7 +78,7 @@ class SitemapRoutesTest {
 	@Test
 	fun `community pages are omitted when community is disabled`() {
 		val locs = buildContentEntries(
-			baseUrl = "https://x.test",
+			baseUrl = "https://x.test", includeHome = true,
 			includeAbout = false, includeTerms = false, includePrivacy = false,
 			communityEnabled = false, authors = emptyList(), stories = emptyList(),
 		).map { it.loc }

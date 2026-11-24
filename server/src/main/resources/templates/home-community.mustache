@@ -8,7 +8,9 @@
 			<p class="masthead-tagline">{{serverTagline}}</p>
 		{{/serverTagline}}
 		<p class="club-cta">
-			<a class="btn btn--accent" href="#join"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> {{msg.home_community_join_cta}}</a>
+			{{^isLoggedIn}}
+				<a class="btn btn--accent" href="#join"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> {{msg.home_community_join_cta}}</a>
+			{{/isLoggedIn}}
 			{{#hasStories}}
 				<a class="btn btn--ghost club-cta__ghost" href="/community/feed">{{msg.home_community_read_cta}}</a>
 			{{/hasStories}}
@@ -22,7 +24,7 @@
 
 	{{#hasCommunityContent}}
 		<section class="showcase">
-			<div class="showcase__inner club-grid{{^hasBothLists}} club-grid--single{{/hasBothLists}}">
+			<div class="showcase__inner club-grid">
 				{{#hasStories}}
 					<div>
 						<p class="eyebrow">{{msg.home_community_stories_label}}</p>
@@ -56,7 +58,7 @@
 							</li>
 						{{/authors}}
 					</ul>
-					<p class="posts__all"><a class="more" href="/community/authors">{{authorsAllLabel}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></p>
+					<p class="posts__all"><a class="more" href="/community/authors">{{msg.home_community_authors_all}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></p>
 				</div>
 				{{/hasAuthors}}
 			</div>

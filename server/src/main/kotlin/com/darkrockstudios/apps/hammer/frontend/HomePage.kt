@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
+import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
 import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
@@ -22,12 +24,9 @@ import io.ktor.server.application.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import java.net.URI
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
-import kotlin.time.toJavaInstant
 
 /**
  * The masthead is the home page's LCP element but is painted as a CSS background, so the browser
@@ -111,22 +110,28 @@ fun Route.homePage(
 			model["principleTelemetryUrl"] = HammerLinks.PRINCIPLE_NO_TELEMETRY
 			model["principleSafetyUrl"] = HammerLinks.PRINCIPLE_DATA_SAFETY
 			call.putInstanceNotice(model, configRepository, markdownRenderer)
+			val mode = serverConfig.home.mode
+			call.applyRobotsTag(mode.indexable)
+			if (mode != HomeMode.MINIMAL) {
+				model["preloadImages"] = MASTHEAD_PRELOADS
+				model["mastheadCredit"] = true
+			}
 
-			when (serverConfig.home.mode) {
+			when (mode) {
 				HomeMode.PROMO -> {
 					call.putPromoModel(model, blogFeedRepository)
 					call.respond(MustacheContent("home.mustache", model))
 				}
 
 				HomeMode.COMMUNITY -> {
-					call.putServerIdentity(model, configRepository)
+					call.putServerIdentity(model, serverConfig, configRepository, "home_community_kicker")
 					call.putCommunityModel(model, configRepository, markdownRenderer, accountsRepository, projectAccessRepository)
 					call.respond(MustacheContent("home-community.mustache", model))
 				}
 
 				HomeMode.MINIMAL -> {
-					call.putServerIdentity(model, configRepository)
-					call.applyRobotsTag(indexable = false)
+					call.putServerIdentity(model, serverConfig, configRepository, "home_minimal_label")
+					model["inlineNotice"] = true
 					call.respond(MustacheContent("home-minimal.mustache", model))
 				}
 			}
@@ -159,8 +164,6 @@ private suspend fun ApplicationCall.putInstanceNotice(
 }
 
 private suspend fun ApplicationCall.putPromoModel(model: MutableMap<String, Any>, blogFeedRepository: BlogFeedRepository) {
-	model["preloadImages"] = MASTHEAD_PRELOADS
-	model["mastheadCredit"] = true
 	model["title"] = "Hammer — ${msg("home_meta_tagline")}"
 	model["metaDescription"] = msg("home_meta_description")
 	model["originStoryUrl"] = HammerLinks.ORIGIN_STORY
@@ -184,16 +187,27 @@ private suspend fun ApplicationCall.putPromoModel(model: MutableMap<String, Any>
 	)
 }
 
-/** The admin's server name, or the host name when none is set, used as the page title. */
-private suspend fun ApplicationCall.putServerIdentity(model: MutableMap<String, Any>, configRepository: ConfigRepository) {
-	val name = configRepository.get(AdminServerConfig.SERVER_NAME).ifBlank { URI(canonicalUrl("/")).host.orEmpty() }
+/**
+ * Titles the page with the admin's server name. Without one it falls back to the configured public host,
+ * never the request's, which behind a proxy is often an internal address.
+ */
+private suspend fun ApplicationCall.putServerIdentity(
+	model: MutableMap<String, Any>,
+	serverConfig: ServerConfig,
+	configRepository: ConfigRepository,
+	fallbackDescriptionKey: String,
+) {
+	val name = configRepository.get(AdminServerConfig.SERVER_NAME).ifBlank {
+		serverConfig.publicHost() ?: "Hammer"
+	}
 	val tagline = configRepository.get(AdminServerConfig.SERVER_TAGLINE)
+	val description = tagline.ifBlank { msg(fallbackDescriptionKey) }
+	model["plainDownload"] = true
 	model["serverName"] = name
 	model["title"] = name
-	if (tagline.isNotBlank()) {
-		model["serverTagline"] = tagline
-		model["metaDescription"] = tagline
-	}
+	model["metaDescription"] = description
+	if (tagline.isNotBlank()) model["serverTagline"] = tagline
+	model["jsonLd"] = webSiteJsonLd(name = name, url = canonicalUrl("/"), description = description)
 }
 
 private suspend fun ApplicationCall.putCommunityModel(
@@ -203,29 +217,24 @@ private suspend fun ApplicationCall.putCommunityModel(
 	accountsRepository: AccountsRepository,
 	projectAccessRepository: ProjectAccessRepository,
 ) {
-	model["preloadImages"] = MASTHEAD_PRELOADS
-	model["mastheadCredit"] = true
-	val locale = getLocale()
-	val dateFormat = POST_DATE_FORMAT.withLocale(locale)
+	val dateFormat = POST_DATE_FORMAT.withLocale(getLocale())
 
 	val stories = projectAccessRepository.getCommunityFeedStories(0, COMMUNITY_STORY_COUNT).map { story ->
-		val published = story.publishedAt.toJavaInstant().atZone(ZoneId.systemDefault())
 		mapOf(
 			"projectName" to story.projectName,
 			"projectNameUrl" to ProjectName.projectSegment(story.projectName, story.projectUuid),
 			"penName" to story.penName,
 			"penNameUrl" to ProjectName.penNameForUrl(story.penName),
-			"date" to published.format(dateFormat),
-			"isoDate" to published.toLocalDate().toString(),
+			"date" to formatInstant(story.publishedAt, dateFormat),
+			"isoDate" to formatInstant(story.publishedAt, DateTimeFormatter.ISO_LOCAL_DATE),
 		)
 	}
-	val authorCount = accountsRepository.countCommunityAuthors()
-	val authors = accountsRepository.getCommunityAuthors(0, COMMUNITY_AUTHOR_COUNT).map { author ->
+	val authors = accountsRepository.getNewestCommunityAuthors(COMMUNITY_AUTHOR_COUNT).map { author ->
 		mapOf(
 			"penName" to author.penName,
 			"penInitial" to ProjectName.penInitial(author.penName),
 			"penNameUrl" to ProjectName.penNameForUrl(author.penName),
-			"bio" to author.bio?.lineSequence()?.firstOrNull()?.trim()?.let(::truncateBio).orEmpty(),
+			"bio" to metaDescription(author.bio?.lineSequence()?.firstOrNull(), BIO_PREVIEW_LENGTH).orEmpty(),
 		)
 	}
 	model["stories"] = stories
@@ -233,15 +242,13 @@ private suspend fun ApplicationCall.putCommunityModel(
 	model["authors"] = authors
 	model["hasAuthors"] = authors.isNotEmpty()
 	model["hasCommunityContent"] = stories.isNotEmpty() || authors.isNotEmpty()
-	model["hasBothLists"] = stories.isNotEmpty() && authors.isNotEmpty()
-	model["authorsAllLabel"] = localizedMsg(locale, "home_community_authors_all", authorCount)
 
-	val aboutHtml = markdownRenderer.markdownToSafeHtml(configRepository.get(AdminServerConfig.ABOUT_SERVER))
-	if (aboutHtml.isNotBlank()) model["aboutHtml"] = aboutHtml
+	// withDefaults already read the About text to decide whether the page exists.
+	if (model["hasAboutPage"] == true) {
+		val aboutHtml = markdownRenderer.markdownToSafeHtml(configRepository.get(AdminServerConfig.ABOUT_SERVER))
+		if (aboutHtml.isNotBlank()) model["aboutHtml"] = aboutHtml
+	}
 }
-
-private fun truncateBio(bio: String): String =
-	if (bio.length <= BIO_PREVIEW_LENGTH) bio else bio.take(BIO_PREVIEW_LENGTH).trimEnd() + "…"
 
 private fun blogModel(feed: BlogFeed?, locale: Locale): Map<String, Any> {
 	val (featured, news) = feed?.posts.orEmpty().partition { it.inCategory(BLOG_PRINCIPLES_CATEGORY) }

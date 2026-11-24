@@ -353,6 +353,10 @@ class AccountsRepository(
 		return accountDao.getCommunityAuthors(page, pageSize)
 	}
 
+	suspend fun getNewestCommunityAuthors(limit: Int): List<CommunityAuthor> {
+		return accountDao.getNewestCommunityAuthors(limit)
+	}
+
 	suspend fun countCommunityAuthors(): Long {
 		return accountDao.countCommunityAuthors()
 	}

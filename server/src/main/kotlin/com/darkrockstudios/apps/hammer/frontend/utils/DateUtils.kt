@@ -16,8 +16,13 @@ fun formatInstant(
 	instant: kotlin.time.Instant,
 	pattern: String,
 	zone: ZoneId = ZoneId.systemDefault(),
+): String = formatInstant(instant, DateTimeFormatter.ofPattern(pattern), zone)
+
+fun formatInstant(
+	instant: kotlin.time.Instant,
+	formatter: DateTimeFormatter,
+	zone: ZoneId = ZoneId.systemDefault(),
 ): String {
-	val formatter = DateTimeFormatter.ofPattern(pattern)
 	// pgjdbc surfaces a Postgres `±infinity` TIMESTAMPTZ as OffsetDateTime.MIN/MAX,
 	// which falls outside the range java.time can resolve into a zoned date.
 	val zoned = try {

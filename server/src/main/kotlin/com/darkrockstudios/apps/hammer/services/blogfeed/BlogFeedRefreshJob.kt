@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.services.blogfeed
 
-import com.darkrockstudios.apps.hammer.HomeMode
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTask
 import com.darkrockstudios.apps.hammer.scheduling.launchRecurringTask
@@ -35,7 +34,7 @@ class BlogFeedRefreshJob(
 /** Starts the refresh job when the promo home page shows the feed. */
 fun Application.configureBlogFeedJob() {
 	val serverConfig: ServerConfig by inject()
-	if (serverConfig.home.mode != HomeMode.PROMO || !serverConfig.home.blogFeed) return
+	if (!serverConfig.home.fetchesBlogFeed) return
 	val job: BlogFeedRefreshJob by inject()
 	launchRecurringTask(job)
 	log.info("Blog feed refresh job started")
