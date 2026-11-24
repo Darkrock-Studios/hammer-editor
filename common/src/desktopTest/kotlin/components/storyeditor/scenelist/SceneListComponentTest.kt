@@ -7,8 +7,18 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxState
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxPlatform
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -17,12 +27,27 @@ import io.mockk.slot
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okio.FileSystem
+import okio.ForwardingFileSystem
+import okio.IOException
+import okio.Path
+import okio.Source
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
+import utils.FixedRandom
+import utils.TestComponentContext
+import utils.inMemoryGlobalSettingsStore
+import kotlin.coroutines.CoroutineContext
+import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -32,6 +57,9 @@ import kotlin.test.assertTrue
 class SceneListComponentTest : ComponentTest() {
 
 	private lateinit var sceneEditor: SceneEditorService
+	private lateinit var globalSettingsStore: GlobalSettingsStore
+	private lateinit var nuxFileSystem: FakeFileSystem
+	private lateinit var nuxRepository: NuxRepository
 	private lateinit var selectedSceneFlow: MutableSharedFlow<SceneItem?>
 	private val bufferCallback = slot<suspend (SceneBuffer) -> Unit>()
 	private val sceneListCallback = slot<(SceneSummary) -> Unit>()
@@ -60,15 +88,38 @@ class SceneListComponentTest : ComponentTest() {
 			sceneEditor.subscribeToSceneUpdates(any(), capture(sceneListCallback))
 		} returns mockk(relaxed = true)
 
-		setupComponentKoin(module {
-			scope<ProjectDefScope> {
-				scoped { sceneEditor }
-			}
-		})
+		globalSettingsStore = inMemoryGlobalSettingsStore()
+		nuxFileSystem = FakeFileSystem()
+		useNuxRepository()
 	}
 
-	private fun newComponent() = SceneListComponent(
-		componentContext = context,
+	/** Android by default so the menu tip is [NuxHint.SceneListSwipeMenu]; later visits lose their roll unless told otherwise. */
+	private fun useNuxRepository(
+		random: Random = FixedRandom.losing(),
+		platform: NuxPlatform = NuxPlatform.Android,
+		fileSystem: FileSystem = nuxFileSystem,
+	) {
+		nuxRepository = NuxRepository(
+			NuxFilesystemDatasource(fileSystem, createTomlSerializer()),
+			globalSettingsStore,
+			platform = platform,
+			random = random,
+		)
+		setupComponentKoin(componentModule())
+	}
+
+	private fun componentModule(defaultDispatcher: CoroutineContext? = null) = module {
+		single { nuxRepository }
+		scope<ProjectDefScope> {
+			scoped { sceneEditor }
+		}
+		if (defaultDispatcher != null) single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { defaultDispatcher }
+	}
+
+	private fun storedNuxState() = NuxFilesystemDatasource(nuxFileSystem, createTomlSerializer()).load()
+
+	private fun newComponent(componentContext: TestComponentContext = context) = SceneListComponent(
+		componentContext = componentContext,
 		projectDef = projectDef,
 		selectedSceneItem = selectedSceneFlow,
 		sceneSelected = { selectedScenes.add(it) },
@@ -311,5 +362,380 @@ class SceneListComponentTest : ComponentTest() {
 
 		assertTrue(comp.renameScene(scene, "Renamed"))
 		coVerify { sceneEditor.renameScene(scene, "Renamed") }
+	}
+
+	/** A chapter group holding one scene, so both tips have a row to point at. */
+	private fun populatedSummary(): SceneSummary {
+		val root = TreeNode(sceneItem(0, SceneItem.Type.Root))
+		val chapter = TreeNode(sceneItem(1, SceneItem.Type.Group))
+		chapter.addChild(TreeNode(sceneItem(2)))
+		root.addChild(chapter)
+		val tree = Tree<SceneItem>().apply { setRoot(root) }
+		return SceneSummary(tree.toImmutableTree(), persistentSetOf())
+	}
+
+	private val bothTips = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListReorder)
+
+	private suspend fun unseen() = nuxRepository.unseen(bothTips).first()
+
+	/** Every hint list the component publishes, from construction on. */
+	private fun SceneListComponent.recordOffers(): List<List<NuxHint>> =
+		mutableListOf<List<NuxHint>>().also { offers -> state.subscribe { offers += it.offeredHints } }
+
+	@Test
+	fun `A list with rows offers every unseen tip, swipe first`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(bothTips, comp.state.value.offeredHints)
+	}
+
+	@Test
+	fun `An empty list offers no tip until it gains a row`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		val whileEmpty = comp.state.value.offeredHints
+
+		sceneListCallback.captured(populatedSummary())
+		advanceUntilIdle()
+
+		assertTrue(whileEmpty.isEmpty())
+		assertEquals(bothTips, comp.state.value.offeredHints)
+	}
+
+	@Test
+	fun `Dismissing a tip marks it seen and offers nothing more on this visit`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.dismissHint(NuxHint.SceneListSwipeMenu)
+		advanceUntilIdle()
+
+		assertTrue(comp.state.value.offeredHints.isEmpty())
+		assertEquals(listOf(NuxHint.SceneListReorder), unseen())
+	}
+
+	@Test
+	fun `Dismissing the reorder tip leaves the swipe tip unseen`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.dismissHint(NuxHint.SceneListReorder)
+		advanceUntilIdle()
+
+		assertTrue(comp.state.value.offeredHints.isEmpty())
+		assertEquals(listOf(NuxHint.SceneListSwipeMenu), unseen())
+	}
+
+	/** Dismisses the swipe tip on a first visit, then opens the list again; returns the later visit. */
+	private fun TestScope.visitAgainAfterDismissing(): Pair<SceneListComponent, TestComponentContext> {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val first = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		first.dismissHint(NuxHint.SceneListSwipeMenu)
+		advanceUntilIdle()
+		context.destroy()
+
+		val laterContext = TestComponentContext.create()
+		val later = newComponent(laterContext)
+		laterContext.resume()
+		advanceUntilIdle()
+		return later to laterContext
+	}
+
+	@Test
+	fun `A later visit offers the next tip when its roll wins`() = runTest(mainTestDispatcher) {
+		useNuxRepository(random = FixedRandom.winning())
+
+		val (later, laterContext) = visitAgainAfterDismissing()
+
+		assertEquals(listOf(NuxHint.SceneListReorder), later.state.value.offeredHints)
+		laterContext.destroy()
+	}
+
+	@Test
+	fun `A later visit offers no tip when its roll loses`() = runTest(mainTestDispatcher) {
+		useNuxRepository(random = FixedRandom.losing())
+
+		val (later, laterContext) = visitAgainAfterDismissing()
+
+		assertTrue(later.state.value.offeredHints.isEmpty())
+		laterContext.destroy()
+	}
+
+	@Test
+	fun `A later visit that lost its roll stays quiet when tips are turned off and on`() = runTest(mainTestDispatcher) {
+		// One roll per visit: the first visit's, the later visit's losing one, then a win a re-roll would get.
+		useNuxRepository(random = FixedRandom(FixedRandom.LOSE, FixedRandom.LOSE, FixedRandom.WIN))
+		val (later, laterContext) = visitAgainAfterDismissing()
+
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = false) }
+		advanceUntilIdle()
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = true) }
+		advanceUntilIdle()
+
+		assertTrue(later.state.value.offeredHints.isEmpty())
+		laterContext.destroy()
+	}
+
+	@Test
+	fun `A reset during a later visit that lost its roll offers the tips again`() = runTest(mainTestDispatcher) {
+		useNuxRepository(random = FixedRandom.losing())
+		val (later, laterContext) = visitAgainAfterDismissing()
+
+		nuxRepository.resetHints()
+		advanceUntilIdle()
+
+		assertEquals(bothTips, later.state.value.offeredHints)
+		laterContext.destroy()
+	}
+
+	@Test
+	fun `On desktop the list offers the right-click tip and never the swipe tip`() =
+		runTest(mainTestDispatcher) {
+			useNuxRepository(platform = NuxPlatform.Desktop)
+			every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+
+			val comp = newComponent()
+			context.resume()
+			advanceUntilIdle()
+
+			assertEquals(listOf(NuxHint.SceneListContextMenu, NuxHint.SceneListReorder), comp.state.value.offeredHints)
+		}
+
+	@Test
+	fun `On iOS the list offers no menu tip, only reorder`() = runTest(mainTestDispatcher) {
+		useNuxRepository(platform = NuxPlatform.Ios)
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(listOf(NuxHint.SceneListReorder), comp.state.value.offeredHints)
+	}
+
+	@Test
+	fun `A configuration change keeps the visit's losing roll`() = runTest(mainTestDispatcher) {
+		val random = FixedRandom(FixedRandom.LOSE, FixedRandom.WIN)
+		useNuxRepository(random = random)
+		nuxRepository.markSeen(NuxHint.SceneListSwipeMenu)
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val rotated = context.recreateForConfigurationChange()
+		val afterRotation = newComponent(rotated)
+		rotated.resume()
+		advanceUntilIdle()
+
+		assertTrue(afterRotation.state.value.offeredHints.isEmpty())
+		assertEquals(1, random.rolls)
+	}
+
+	@Test
+	fun `A configuration change keeps the visit's dismissal`() = runTest(mainTestDispatcher) {
+		useNuxRepository(random = FixedRandom.winning())
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.dismissHint(NuxHint.SceneListSwipeMenu)
+		advanceUntilIdle()
+
+		val rotated = context.recreateForConfigurationChange()
+		val afterRotation = newComponent(rotated)
+		rotated.resume()
+		advanceUntilIdle()
+
+		assertTrue(afterRotation.state.value.offeredHints.isEmpty())
+	}
+
+	@Test
+	fun `A dismissal survives the list closing straight after`() = runTest(mainTestDispatcher) {
+		useNuxRepository(random = FixedRandom.winning())
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val first = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		first.dismissHint(NuxHint.SceneListSwipeMenu)
+		context.destroy()
+		val laterContext = TestComponentContext.create()
+		val later = newComponent(laterContext)
+		laterContext.resume()
+		advanceUntilIdle()
+
+		assertEquals(listOf(NuxHint.SceneListReorder), later.state.value.offeredHints)
+		assertEquals(setOf(NuxHint.SceneListSwipeMenu.id), storedNuxState().seenHints)
+		laterContext.destroy()
+	}
+
+	@Test
+	fun `Once every tip is seen none is offered`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		nuxRepository.markSeen(NuxHint.SceneListSwipeMenu)
+		nuxRepository.markSeen(NuxHint.SceneListReorder)
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertTrue(comp.state.value.offeredHints.isEmpty())
+	}
+
+	@Test
+	fun `A tip already seen is never offered while the seen list loads`() = runTest(mainTestDispatcher) {
+		useNuxRepository(random = FixedRandom.winning())
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		NuxFilesystemDatasource(nuxFileSystem, createTomlSerializer())
+			.store(NuxState(seenHints = setOf(NuxHint.SceneListSwipeMenu.id)))
+
+		val comp = newComponent()
+		val offers = comp.recordOffers()
+		context.resume()
+		advanceUntilIdle()
+
+		assertTrue(offers.none { NuxHint.SceneListSwipeMenu in it })
+		assertEquals(listOf(NuxHint.SceneListReorder), comp.state.value.offeredHints)
+	}
+
+	@Test
+	fun `An unreadable tips file still lets the list open and offer tips`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		NuxFilesystemDatasource(nuxFileSystem, createTomlSerializer())
+			.store(NuxState(seenHints = setOf(NuxHint.SceneListSwipeMenu.id)))
+		val unreadable = object : ForwardingFileSystem(nuxFileSystem) {
+			override fun source(file: Path): Source = throw IOException("read failed")
+		}
+		useNuxRepository(fileSystem = unreadable)
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(bothTips, comp.state.value.offeredHints)
+	}
+
+	@Test
+	fun `A dismissed tip does not flash back from an update already under way`() = runTest(mainTestDispatcher) {
+		// Recomputes run eagerly, so one can be waiting on the main thread when the dismissal lands.
+		setupComponentKoin(componentModule(defaultDispatcher = UnconfinedTestDispatcher(testScheduler)))
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		val offers = comp.recordOffers()
+
+		nuxRepository.markSeen(NuxHint.SceneListReorder)
+		comp.dismissHint(NuxHint.SceneListSwipeMenu)
+		val dismissedAt = offers.size
+		advanceUntilIdle()
+
+		assertTrue(offers.drop(dismissedAt).all { it.isEmpty() }, "offers after dismissal: ${offers.drop(dismissedAt)}")
+	}
+
+	@Test
+	fun `Turning tips off withdraws them without marking them seen`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = false) }
+		advanceUntilIdle()
+		val whileOff = comp.state.value.offeredHints
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = true) }
+		advanceUntilIdle()
+
+		assertTrue(whileOff.isEmpty())
+		assertEquals(bothTips, comp.state.value.offeredHints)
+	}
+
+	@Test
+	fun `Turning tips off from a tip switches the setting off and leaves the tips unseen`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.turnOffTips()
+		advanceUntilIdle()
+
+		assertTrue(comp.state.value.offeredHints.isEmpty())
+		assertFalse(globalSettingsStore.globalSettings.tipsEnabled)
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = true) }
+		assertEquals(bothTips, unseen())
+	}
+
+	@Test
+	fun `Tips turned off from a tip come back to the same list when turned on again`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.turnOffTips()
+		advanceUntilIdle()
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = true) }
+		advanceUntilIdle()
+
+		assertEquals(bothTips, comp.state.value.offeredHints)
+	}
+
+	@Test
+	fun `A reset brings a dismissed tip back to the same list`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.dismissHint(NuxHint.SceneListSwipeMenu)
+		advanceUntilIdle()
+
+		nuxRepository.resetHints()
+		advanceUntilIdle()
+
+		assertEquals(bothTips, comp.state.value.offeredHints)
+	}
+
+	@Test
+	fun `Tips turned back on do not bring a second tip after a dismissal`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.dismissHint(NuxHint.SceneListSwipeMenu)
+		advanceUntilIdle()
+
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = false) }
+		advanceUntilIdle()
+		globalSettingsStore.updateSettings { it.copy(tipsEnabled = true) }
+		advanceUntilIdle()
+
+		assertTrue(comp.state.value.offeredHints.isEmpty())
+	}
+
+	@Test
+	fun `Dismissing a tip that is not offered marks nothing seen`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.dismissHint(NuxHint.SceneListSwipeMenu)
+		sceneListCallback.captured(populatedSummary())
+		advanceUntilIdle()
+
+		assertEquals(bothTips, unseen())
+		assertEquals(bothTips, comp.state.value.offeredHints)
 	}
 }

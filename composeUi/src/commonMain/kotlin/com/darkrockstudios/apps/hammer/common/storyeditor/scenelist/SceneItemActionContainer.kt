@@ -11,6 +11,8 @@ expect fun SceneItemActionContainer(
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onSceneArchiveClick: (scene: SceneItem) -> Unit,
 	onSceneMoveClick: (scene: SceneItem) -> Unit,
-	shouldNux: Boolean = false,
+	demonstrateSwipe: Boolean = false,
+	/** Applied to the container itself, which holds still while the row slides. */
+	modifier: Modifier = Modifier,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 )

@@ -36,7 +36,7 @@ internal fun SceneItem(
 	depth: Int,
 	hasDirtyBuffer: Boolean,
 	isSelected: Boolean,
-	shouldNux: Boolean,
+	demonstrateSwipe: Boolean,
 	/** A top-level scene stands alone as a chapter and is styled like a chapter group. */
 	isChapter: Boolean,
 	onSceneSelected: (SceneItem) -> Unit,
@@ -44,6 +44,7 @@ internal fun SceneItem(
 	onSceneRenameRequest: (SceneItem) -> Unit,
 	onSceneArchiveRequest: (SceneItem) -> Unit,
 	onSceneMoveRequest: (SceneItem) -> Unit,
+	modifier: Modifier = Modifier,
 ) {
 	val bg = if (isSelected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
 	val accent = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
@@ -55,7 +56,8 @@ internal fun SceneItem(
 		onSceneRenameRequest,
 		onSceneArchiveRequest,
 		onSceneMoveRequest,
-		shouldNux,
+		demonstrateSwipe,
+		modifier,
 	) {
 		Box(
 			modifier = draggable

@@ -360,6 +360,21 @@ The handwriting of the system. Reach for these instead of styling
   user should see before acting on it, where an error dialog would be
   too much and silence too little. Non-blocking by design — the action
   it warns about stays available.
+- **[`HdCoachMarkHost`](HdCoachMark.kt)**: a one-time tip pointing at
+  one element. Dims the screen around the element marked with
+  `Modifier.hdCoachMarkAnchor`, outlines it in `primary`, and sets a
+  hairline callout (title, body, and an emphasised dismiss button,
+  with an optional quieter secondary action beside it through
+  `secondaryLabel`/`onSecondary`, such as "Turn off tips")
+  below it, or above when there is no room. When it fits on neither
+  side it takes the roomier one and scrolls, never covering the
+  element. Tapping the dimmed area dismisses it; taps on the callout
+  do not. The element itself stays interactive, so the user can try
+  the gesture the tip describes while it is up. What has been seen belongs to
+  `NuxRepository`, which also paces them (`visitHints`: a first visit
+  always offers, later visits only now and then); the screen's component
+  offers those tips in order, and the screen shows the first it can
+  point at, one per visit.
 
 ### Buttons & inputs
 

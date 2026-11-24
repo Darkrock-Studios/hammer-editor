@@ -64,8 +64,8 @@ class GlobalSettingsStore(
 	}
 
 	suspend fun updateSettings(action: (GlobalSettings) -> GlobalSettings) {
-		val settings = globalSettingsUpdates.first()
 		lock.withLock {
+			val settings = globalSettings
 			val updated = action(settings)
 			globalSettingsDatasource.storeSettings(updated)
 			dispatchSettingsUpdate(updated)

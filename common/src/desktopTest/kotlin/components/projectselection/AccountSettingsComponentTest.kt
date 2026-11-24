@@ -21,6 +21,11 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.NewUserExperie
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxProgress
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxPlatform
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
@@ -41,6 +46,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import listedProjectId
@@ -75,6 +81,7 @@ class AccountSettingsComponentTest : BaseTest() {
 	private lateinit var accountUseCase: AccountUseCase
 	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var accountSynchronizer: ClientAccountSynchronizer
+	private lateinit var nuxRepository: NuxRepository
 
 	/** Set by a test to interleave an action with the post-success wipe. */
 	private var onFirstDelete: (() -> Unit)? = null
@@ -118,6 +125,11 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		accountUseCase = mockk(relaxed = true)
 		accountSynchronizer = mockk(relaxed = true)
+		nuxRepository = NuxRepository(
+			NuxFilesystemDatasource(ffs, toml),
+			globalSettingsStore,
+			platform = NuxPlatform.Desktop,
+		)
 
 		val testModule = module {
 			single<FileSystem> { hookedFs }
@@ -140,6 +152,7 @@ class AccountSettingsComponentTest : BaseTest() {
 			} bind ExampleProjectRepository::class
 			single { accountUseCase } bind AccountUseCase::class
 			single { accountSynchronizer } bind ClientAccountSynchronizer::class
+			single { nuxRepository }
 			single { mockk<StrRes>(relaxed = true) } bind StrRes::class
 			single { spellCheckerFactory }
 			factory { mockk<PlatformSettings>(relaxed = true) } bind PlatformSettings::class
@@ -243,6 +256,93 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertFalse(component.state.value.syncAutoCloseDialog)
+	}
+
+	@Test
+	fun `Tips setting update is reflected in state`() = runTest {
+		val component = newComponent()
+		advanceUntilIdle()
+		assertTrue(component.state.value.tipsEnabled)
+
+		globalSettingsUpdates.emit(globalSettings.copy(tipsEnabled = false))
+		advanceUntilIdle()
+
+		assertFalse(component.state.value.tipsEnabled)
+	}
+
+	@Test
+	fun `Turning tips off saves the setting`() = runTest {
+		coEvery { globalSettingsStore.updateSettings(any()) } answers {
+			globalSettings = firstArg<(GlobalSettings) -> GlobalSettings>()(globalSettings)
+		}
+		val component = newComponent()
+		advanceUntilIdle()
+
+		component.setTipsEnabled(false)
+		advanceUntilIdle()
+
+		assertFalse(globalSettings.tipsEnabled)
+	}
+
+	@Test
+	fun `Resetting tips brings back the ones already dismissed`() = runTest {
+		globalSettingsUpdates.emit(globalSettings)
+		nuxRepository.markSeen(NuxHint.SceneListSwipeMenu)
+		nuxRepository.markSeen(NuxHint.SceneListReorder)
+		val component = newComponent()
+		advanceUntilIdle()
+
+		component.resetTips()
+		advanceUntilIdle()
+
+		assertEquals(NuxHint.entries, nuxRepository.unseen(NuxHint.entries).first())
+	}
+
+	@Test
+	fun `Resetting tips while they are off turns them back on`() = runTest {
+		globalSettings = globalSettings.copy(tipsEnabled = false)
+		globalSettingsUpdates.emit(globalSettings)
+		coEvery { globalSettingsStore.updateSettings(any()) } coAnswers {
+			globalSettings = firstArg<(GlobalSettings) -> GlobalSettings>()(globalSettings)
+			globalSettingsUpdates.emit(globalSettings)
+		}
+		nuxRepository.markSeen(NuxHint.SceneListSwipeMenu)
+		val component = newComponent()
+		advanceUntilIdle()
+
+		component.resetTips()
+		advanceUntilIdle()
+
+		assertTrue(component.state.value.tipsEnabled)
+		assertEquals(NuxHint.entries, nuxRepository.unseen(NuxHint.entries).first())
+	}
+
+	@Test
+	fun `Tips progress counts only the tips this platform can show`() = runTest {
+		globalSettingsUpdates.emit(globalSettings)
+		nuxRepository.markSeen(NuxHint.SceneListSwipeMenu)
+		nuxRepository.markSeen(NuxHint.SceneListReorder)
+
+		val component = newComponent()
+		advanceUntilIdle()
+
+		assertEquals(NuxProgress(seen = 1, total = 2), component.state.value.tipsProgress)
+	}
+
+	@Test
+	fun `Tips progress follows a tip dismissed elsewhere and a reset`() = runTest {
+		globalSettingsUpdates.emit(globalSettings)
+		val component = newComponent()
+		advanceUntilIdle()
+
+		nuxRepository.markSeen(NuxHint.SceneListContextMenu)
+		advanceUntilIdle()
+		val afterDismissal = component.state.value.tipsProgress
+		component.resetTips()
+		advanceUntilIdle()
+
+		assertEquals(NuxProgress(seen = 1, total = 2), afterDismissal)
+		assertEquals(NuxProgress(seen = 0, total = 2), component.state.value.tipsProgress)
 	}
 
 	private val syncedAt = Instant.fromEpochSeconds(1_000_000)

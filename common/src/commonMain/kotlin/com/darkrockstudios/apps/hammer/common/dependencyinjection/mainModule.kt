@@ -23,6 +23,9 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxDatasource
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
@@ -246,6 +249,8 @@ val mainModule = module {
 	single<ServerSettingsFilesystemDatasource>() bind ServerSettingsDatasource::class
 	single<GlobalSettingsFilesystemDatasource>()
 	single<GlobalSettingsStore>()
+	single<NuxFilesystemDatasource>() bind NuxDatasource::class
+	single { NuxRepository(get(), get()) }
 	single<ProjectPluginsDatasource>()
 	single<ProjectPluginsRepository>()
 

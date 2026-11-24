@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxProgress
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,7 @@ val defaultAccountSettingsComponentState = AccountSettings.State(
 	syncAutomaticBackups = true,
 	syncAutoCloseDialog = true,
 	maxBackups = 50,
+	tipsProgress = NuxProgress(seen = 1, total = 2),
 )
 
 internal fun accountSettingsComponent(state: AccountSettings.State = defaultAccountSettingsComponentState) =
@@ -54,6 +56,8 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 
 		override fun setUiTheme(theme: UiTheme) {}
 		override fun setInitialProjectScreen(value: InitialProjectScreen) {}
+		override fun setTipsEnabled(enabled: Boolean) {}
+		override fun resetTips() {}
 		override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {}
 		override fun beginSetupServer() {}
 		override fun cancelServerSetup() {}

@@ -59,6 +59,21 @@ class TestComponentContext private constructor(
 	fun saveAndRecreate(): TestComponentContext =
 		create(stateKeeper.save()).also { recreated.add(it) }
 
+	/**
+	 * Simulate a configuration change: destroy this lifecycle and return a fresh context that keeps
+	 * the same retained instances, with saved state carried over.
+	 */
+	fun recreateForConfigurationChange(): TestComponentContext {
+		val saved = stateKeeper.save()
+		lifecycle.destroy()
+		return TestComponentContext(
+			lifecycle = LifecycleRegistry(),
+			stateKeeper = StateKeeperDispatcher(saved),
+			backDispatcher = BackDispatcher(),
+			instanceKeeper = instanceKeeper,
+		).also { recreated.add(it) }
+	}
+
 	/** Destroy this lifecycle and any contexts recreated from it, cancelling their component scopes. */
 	fun destroyAll() {
 		recreated.forEach { it.destroyAll() }

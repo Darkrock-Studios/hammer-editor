@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabbedPage
@@ -36,6 +37,7 @@ import com.darkrockstudios.apps.hammer.settings_example_project_success_message
 import com.darkrockstudios.apps.hammer.settings_group_appearance
 import com.darkrockstudios.apps.hammer.settings_group_device
 import com.darkrockstudios.apps.hammer.settings_group_spellcheck
+import com.darkrockstudios.apps.hammer.settings_group_tips
 import com.darkrockstudios.apps.hammer.settings_initial_screen_editor
 import com.darkrockstudios.apps.hammer.settings_initial_screen_home
 import com.darkrockstudios.apps.hammer.settings_row_example_project
@@ -50,6 +52,13 @@ import com.darkrockstudios.apps.hammer.settings_theme_dark
 import com.darkrockstudios.apps.hammer.settings_theme_followsystem
 import com.darkrockstudios.apps.hammer.settings_theme_light
 import com.darkrockstudios.apps.hammer.settings_theme_oled_black
+import com.darkrockstudios.apps.hammer.settings_tips_progress
+import com.darkrockstudios.apps.hammer.settings_tips_reset_button
+import com.darkrockstudios.apps.hammer.settings_tips_reset_description
+import com.darkrockstudios.apps.hammer.settings_tips_reset_title
+import com.darkrockstudios.apps.hammer.settings_tips_show
+import com.darkrockstudios.apps.hammer.settings_tips_show_hint
+import org.jetbrains.compose.resources.pluralStringResource
 import org.koin.compose.koinInject
 
 private val MaxColumnWidth = 720.dp
@@ -136,6 +145,25 @@ private fun ColumnScope.GeneralTab(component: AccountSettings, rootSnackbar: Roo
 			HdHairlineButton(
 				label = Res.string.settings_example_project_button.get(),
 				onClick = { component.reinstallExampleProject { rootSnackbar.showSnackbar(successMessage) } },
+			)
+		}
+	}
+
+	HdSettingGroup(title = Res.string.settings_group_tips.get()) {
+		HdHairlineToggleRow(
+			checked = state.tipsEnabled,
+			onCheckedChange = { component.setTipsEnabled(it) },
+			label = Res.string.settings_tips_show.get(),
+			hint = Res.string.settings_tips_show_hint.get(),
+		)
+		HdSettingRow(
+			title = Res.string.settings_tips_reset_title.get(),
+			description = Res.string.settings_tips_reset_description.get(),
+			meta = state.tipsProgress?.let { pluralStringResource(Res.plurals.settings_tips_progress, it.total, it.seen, it.total) },
+		) {
+			HdHairlineButton(
+				label = Res.string.settings_tips_reset_button.get(),
+				onClick = { component.resetTips() },
 			)
 		}
 	}

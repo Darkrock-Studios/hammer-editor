@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -157,4 +158,6 @@ private fun fakeComponent() = object : SceneList {
 	override suspend fun unarchiveScene(scene: SceneItem) {}
 	override fun showArchivedScenes() {}
 	override fun dismissArchivedDialog() {}
+	override fun dismissHint(hint: NuxHint) {}
+	override fun turnOffTips() {}
 }

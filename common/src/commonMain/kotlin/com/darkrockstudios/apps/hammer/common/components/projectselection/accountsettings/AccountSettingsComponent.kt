@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProject
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.isInsecureServerUrl
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.parseServerUrl
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -44,6 +45,7 @@ import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure_unkno
 import com.darkrockstudios.apps.hammer.settings_server_change_project_open
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
 import com.darkrockstudios.apps.hammer.settings_server_tos_declined
+import com.darkrockstudios.apps.hammer.settings_tips_reset_toast
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -67,6 +69,7 @@ class AccountSettingsComponent(
 	private val accountUseCase: AccountUseCase by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val accountSynchronizer: ClientAccountSynchronizer by inject()
+	private val nuxRepository: NuxRepository by inject()
 
 	private val backupManagerNavigation = SlotNavigation<BackupManagerConfig>()
 
@@ -95,6 +98,7 @@ class AccountSettingsComponent(
 			syncAutomaticBackups = globalSettingsStore.globalSettings.automaticBackups,
 			maxBackups = globalSettingsStore.globalSettings.maxBackups,
 			initialProjectScreen = globalSettingsStore.globalSettings.initialProjectScreen,
+			tipsEnabled = globalSettingsStore.globalSettings.tipsEnabled,
 		)
 	}
 	override val state: Value<AccountSettings.State> = _state
@@ -102,6 +106,17 @@ class AccountSettingsComponent(
 
 	init {
 		watchSettingsUpdates()
+		watchTipsProgress()
+	}
+
+	private fun watchTipsProgress() {
+		scope.launch {
+			nuxRepository.progress().collect { progress ->
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(tipsProgress = progress) }
+				}
+			}
+		}
 	}
 
 	private fun cancelSetupJob() {
@@ -121,6 +136,7 @@ class AccountSettingsComponent(
 							syncAutomaticBackups = settings.automaticBackups,
 							maxBackups = settings.maxBackups,
 							initialProjectScreen = settings.initialProjectScreen,
+							tipsEnabled = settings.tipsEnabled,
 						)
 					}
 				}
@@ -161,6 +177,17 @@ class AccountSettingsComponent(
 					initialProjectScreen = value
 				)
 			}
+		}
+	}
+
+	override fun setTipsEnabled(enabled: Boolean) {
+		nuxRepository.setTipsEnabled(enabled)
+	}
+
+	override fun resetTips() {
+		scope.launch {
+			nuxRepository.resetHints()
+			showToast(Res.string.settings_tips_reset_toast)
 		}
 	}
 

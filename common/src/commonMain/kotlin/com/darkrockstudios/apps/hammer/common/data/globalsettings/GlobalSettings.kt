@@ -24,6 +24,8 @@ data class GlobalSettings(
 	val maxBackups: Int = DEFAULT_BACKUPS,
 	val automaticSyncing: Boolean = true,
 	val nux: NewUserExperience = NewUserExperience(),
+	/** Whether first-visit coach marks are shown. What has been seen lives in the NUX state file. */
+	val tipsEnabled: Boolean = true,
 	val editorFontSize: Float = DEFAULT_FONT_SIZE,
 	/**
 	 * The scene editor's maximum column width in dp; rendered width is

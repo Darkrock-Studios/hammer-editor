@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.nux.NuxProgress
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -19,6 +20,9 @@ interface AccountSettings : ComponentToaster {
 
 	fun setUiTheme(theme: UiTheme)
 	fun setInitialProjectScreen(value: InitialProjectScreen)
+	fun setTipsEnabled(enabled: Boolean)
+	/** Shows every tip again, as if on a fresh install. */
+	fun resetTips()
 	fun reinstallExampleProject(onComplete: (Boolean) -> Unit)
 	fun beginSetupServer()
 	fun cancelServerSetup()
@@ -91,5 +95,8 @@ interface AccountSettings : ComponentToaster {
 		val syncAutoCloseDialog: Boolean,
 		val maxBackups: Int,
 		val initialProjectScreen: InitialProjectScreen = InitialProjectScreen.Home,
+		val tipsEnabled: Boolean = true,
+		/** Null until the seen tips have been read. */
+		@Transient val tipsProgress: NuxProgress? = null,
 	)
 }

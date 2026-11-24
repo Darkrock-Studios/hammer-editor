@@ -18,6 +18,9 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -25,6 +28,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
+import utils.inMemoryGlobalSettingsStore
+import java.util.concurrent.CountDownLatch
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -144,6 +149,26 @@ class GlobalSettingsStoreTest : BaseTest() {
 			assertEquals(updated, awaitItem())
 			cancelAndConsumeRemainingEvents()
 		}
+	}
+
+	@Test
+	fun `An update made while another is being applied keeps both changes`() = runBlocking {
+		val store = inMemoryGlobalSettingsStore()
+		val firstApplying = CountDownLatch(1)
+
+		val first = launch(Dispatchers.Default) {
+			store.updateSettings {
+				firstApplying.countDown()
+				Thread.sleep(200)
+				it.copy(automaticBackups = false)
+			}
+		}
+		firstApplying.await()
+		store.updateSettings { it.copy(automaticSyncing = false) }
+		first.join()
+
+		assertFalse(store.globalSettings.automaticBackups)
+		assertFalse(store.globalSettings.automaticSyncing)
 	}
 
 	@Test

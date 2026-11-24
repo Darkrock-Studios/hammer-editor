@@ -22,7 +22,8 @@ actual fun SceneItemActionContainer(
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onSceneArchiveClick: (scene: SceneItem) -> Unit,
 	onSceneMoveClick: (scene: SceneItem) -> Unit,
-	shouldNux: Boolean,
+	demonstrateSwipe: Boolean,
+	modifier: Modifier,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 ) {
 	LongPressMenuContainer(
@@ -48,6 +49,7 @@ actual fun SceneItemActionContainer(
 				onClick = { onSceneDeleteClick(scene) },
 			),
 		),
+		modifier = modifier,
 		itemContent = itemContent,
 	)
 }

@@ -20,12 +20,13 @@ import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 @Composable
 actual fun SceneGroupActionContainer(
 	scene: SceneItem,
-	shouldNux: Boolean,
+	demonstrateSwipe: Boolean,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onSceneMoveClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
+	modifier: Modifier,
 	itemContent: @Composable (modifier: Modifier) -> Unit
 ) {
 	LongPressMenuContainer(
@@ -56,6 +57,7 @@ actual fun SceneGroupActionContainer(
 				onClick = { onCreateGroupClick(scene) },
 			),
 		),
+		modifier = modifier,
 		itemContent = itemContent,
 	)
 }
