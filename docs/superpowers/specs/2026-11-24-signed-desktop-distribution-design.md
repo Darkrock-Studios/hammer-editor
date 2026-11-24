@@ -1,67 +1,78 @@
-# Signed desktop installers and Linux package repositories (4.0)
+# Signed Mac installers and Linux package repositories (4.0)
 
 Status: draft for approval · 2026-11-24
 
 ## Intent
 
-Hammer's GitHub-release desktop installers (DMG, PKG, MSI, EXE, DEB, RPM) ship unsigned today.
-Users hit Gatekeeper's "cannot be opened" on macOS and SmartScreen's "Unknown publisher" on
-Windows, and Linux users have no way to get updates through their system package manager.
+Hammer's GitHub-release desktop installers ship unsigned today. On macOS users hit Gatekeeper's
+"cannot be opened", the DMG and PKG cannot update themselves, and Linux users have no way to get
+updates through their system package manager.
 
 For 4.0 we want:
 
 1. **macOS:** the DMG and PKG signed with Developer ID and notarized, so they open cleanly, and
-   so they can finally **update themselves in-app** (today they are only told about releases,
-   see `UpdaterSupport.kt`: "only a signed, notarized zip could swap" the bundle).
-2. **Windows:** the MSI and EXE signed, so SmartScreen names a publisher and reputation can
-   build across releases.
-3. **Linux:** an **apt** and a **dnf** repository, so users add Hammer once and it updates with
+   so the DMG can finally **update itself in-app** (today Mac installs are only told about
+   releases, see `UpdaterSupport.kt`: "only a signed, notarized zip could swap" the bundle).
+   The PKG gets in-app updates too if, and only if, the updater can replace what it installed
+   (see §2).
+2. **Linux:** an **apt** and a **dnf** repository, so users add Hammer once and it updates with
    the rest of their system. Packages served by the repos are a **new distribution channel**
    with in-app updates **off**; the package manager is their only update path.
-4. A **Linux install page** on hammer.ink, linked from the home page's download section, giving
+3. A **Linux install page** on hammer.ink, linked from the home page's download section, giving
    the commands to add the repository and then install.
 
 ## Goals
 
-- Every desktop installer attached to a GitHub release is signed, except the `.deb` (see
-  non-goals) and the AppImage (unchanged).
-- DMG and PKG installs update in-app the way MSI/EXE/DEB/RPM/AppImage already do.
+- The GitHub-release DMG, PKG and RPM are signed (the DMG and PKG also notarized).
+- DMG installs update in-app the way MSI/EXE/DEB/RPM/AppImage already do; PKG installs too
+  where technically possible.
 - apt and dnf repos on Cloudsmith, reachable at an address on **our** domain, updated only when
   a release is **published** (never from a draft).
 - The repo builds report their own channel; the existing `DistributionChannel`/`PackageFormat`
   infrastructure decides update behaviour, with no new special-casing.
 - Moving off Cloudsmith later must not require users to change their repo configuration.
+- No manual steps in a normal release, and no meaningful new running cost.
 
 ## Non-goals
 
+- **Windows signing (MSI/EXE). Shelved for 4.0.** We looked at Azure Artifact Signing
+  (individuals only in the US/Canada), SignPath Foundation (free, but every release signing
+  request must be approved by hand, which breaks unattended releases) and paid OV
+  certificates (a few hundred dollars a year). None fits "no manual steps, low cost" today.
 - Signing the standalone GitHub `.deb`. dpkg ignores embedded `.deb` signatures; the trust
   comes from the signed apt repo metadata.
 - A Chrome/VS Code-style package that adds the repo on install. Users add the repo from the
   install page; the GitHub `.deb`/`.rpm` stay as they are and keep updating themselves.
+- Guaranteeing that a GitHub-`.deb`/`.rpm` user who later adds the repo moves onto the repo
+  build. Repo and GitHub packages carry the **same** version (owner's decision): if such a user
+  takes the in-app update first, apt/dnf sees the version already installed and they stay on
+  the GitHub build with in-app updates. Accepted as harmless.
 - Intel macOS builds, AppImage/Flatpak/Snap changes, Microsoft Store (MSIX) changes.
-- Instant SmartScreen trust. No certificate gives it any more; reputation builds over releases.
 
 ## Anti-goals (would make this a failure even if it technically works)
 
 - A draft or unpublished release reaching apt/dnf users.
 - A repo-installed Hammer updating itself in-app, fighting the package manager.
-- The signing private keys ending up anywhere but GitHub secrets (and, unavoidably, SignPath /
-  Cloudsmith for what those services sign).
+- The signing private keys ending up anywhere but GitHub secrets (and, unavoidably, Cloudsmith
+  for what it signs).
 - Update metadata (`latest*.yml`) whose sha512 does not match the signed file actually attached
   (digests must be taken **after** signing/notarizing/stapling).
 - Breaking the Mac App Store build, whose signing path shares `desktop/build.gradle.kts`.
+- Blocking 3.x releases while the 4.0 prerequisites are still being set up (see §0).
 
 ## Decisions made with the owner
 
 | Area | Decision |
 |---|---|
-| macOS | Developer ID Application + Developer ID Installer certs, notarized; DMG **and** PKG get in-app updates via a signed, notarized `hammer.zip` |
-| Windows | **SignPath Foundation** (free OSS signing). Publisher will read "SignPath Foundation" |
+| macOS | Developer ID Application + Developer ID Installer certs, notarized; DMG gets in-app updates via a signed, notarized `hammer.zip` |
+| PKG updates | In-app if the updater can replace the installed app; otherwise the PKG keeps "notify only" |
+| Windows | Shelved (no manual steps, no high cost) |
 | Linux hosting | **Cloudsmith** open-source tier (≥50 GB storage, 200 GB delivery, attribution required) |
 | Linux domain | Our own domain in front of Cloudsmith, so the host can be swapped later |
 | Repo onboarding | An install page with "add repo" commands, then the install command |
 | Repo channel | New channel; in-app updates off |
-| Artifact hand-off to repos | **Approach B** (below): repo packages are workflow artifacts, not release assets |
+| Repo package version | Same as the GitHub packages (no revision bump, no epoch) |
+| Artifact hand-off to repos | **Approach B** (below), with a **manual emergency rebuild** fallback |
 
 ## Approaches considered for getting repo packages to Cloudsmith
 
@@ -71,9 +82,25 @@ For 4.0 we want:
   release page, and what reaches the repo is exactly what was built and reviewed in the draft.
   Cost: the publish job has to find the right earlier run, and artifacts expire. **Chosen.**
 - **C. Rebuild at publish time from the tag.** No hand-off, but the repo gets a build nobody
-  reviewed, and every release pays for a second Linux build. Rejected.
+  reviewed, and every release pays for a second Linux build. Rejected as the normal path;
+  **kept as a manual, opt-in emergency path** for when B's artifact is gone (§5).
 
 ## Design
+
+### 0. Rolling out while prerequisites are missing (builder's call, confirmed with owner)
+
+The work lands on `develop` piece by piece while 3.x releases continue. Each new signing or
+repo step checks for its secret:
+
+- **Secret not set:** the step is skipped with a visible `::warning::` in the run summary, and
+  everything behaves as today (e.g. `hammer.zip` stays optional in `updateMetadata.kt`, the
+  `linux-repo` publish is a no-op).
+- **Secret set but the step fails:** the release fails. Never silently ship an unsigned build
+  once signing is configured.
+
+`hammer.zip` becomes **required** in `updateMetadata.kt` only when the macOS signing secrets
+are present (or in the final PR, once they are). 4.0 is not tagged until every prerequisite
+below is in place; add a short pre-4.0 checklist to `docs/HOW-TO-RELEASE.md`.
 
 ### 1. Distribution channel and platform token
 
@@ -88,8 +115,7 @@ For 4.0 we want:
 - Add `LINUX_REPO("linux-repo", "Linux repos")` to `Platform` in `buildSrc/.../platforms.kt`
   (a client store, so it is offered in "Targeted" releases), and to the token catalog used by
   `.github/scripts/discord-release-message.sh`.
-- Repo packages keep the package name `hammer`, so a GitHub-`.deb` user who adds the repo is
-  moved onto the repo build (and off in-app updates) at the next release.
+- Repo packages keep the package name `hammer` and the same version as the GitHub packages.
 
 ### 2. macOS: Developer ID signing, notarization, in-app updates
 
@@ -116,71 +142,62 @@ In the `macos` job of `prepare-release.yml`:
   DMG, the PKG, and the app that goes into `hammer.zip`.
 - `hammer.zip`: the signed, notarized, stapled `Hammer.app`, zipped with
   `ditto -c -k --keepParent`. Attached to the release. `latest-mac.yml` already lists
-  `hammer.zip` first and treats it as optional (`updateMetadata.kt`); make it **required**
-  so a release that lacks it fails instead of silently leaving Macs without updates.
+  `hammer.zip` first and treats it as optional (`updateMetadata.kt`); it becomes required per §0.
 - Digests (`writeAssetDigests`) are computed after stapling.
-- Updater (`UpdaterSupport.kt`): DMG and PKG resolve to the Nucleus executable type that
-  downloads `hammer.zip`, and `canInstallInPlace` returns true for both. Update the KDoc and
+- Updater (`UpdaterSupport.kt`): DMG resolves to the Nucleus executable type that downloads
+  `hammer.zip`, and `canInstallInPlace` returns true for it. Update the KDoc and
   `UpdaterSupportTest`.
-
-**Risk the builder must verify early:** the PKG installs `/Applications/Hammer.app` as root.
-If Nucleus cannot replace a root-owned bundle (or prompt for admin rights), PKG in-place
-updates are not possible as designed; stop and raise it with the owner rather than ship PKG
-as "notify only" silently.
+- **PKG (owner's decision):** the PKG installs `/Applications/Hammer.app` as root. Verify early
+  whether Nucleus can replace that bundle from a user process (including via an admin prompt).
+  If it can, the PKG behaves like the DMG. If it cannot, the PKG keeps today's behaviour:
+  told about releases and sent to the release page, `canInstallInPlace` false, with the
+  KDoc saying why. No other workaround (no `.pkg` hand-off to Installer).
 
 Users on today's unsigned DMG/PKG builds cannot self-update into the signed build; they need
 one manual download. Call this out in the 4.0 release notes.
 
-### 3. Windows: SignPath
+### 3. Linux: GPG key and RPM signing
 
-In the `windows` job of `prepare-release.yml`, after packaging and renaming and **before**
-`writeAssetDigests` and the release upload:
-
-- Upload the unsigned `hammer.msi` and `hammer.exe` with `actions/upload-artifact`, submit them
-  with SignPath's GitHub Action (`signpath/github-action-submit-signing-request`,
-  `wait-for-completion: true`), and replace the unsigned files with the signed output.
-- The SignPath artifact configuration should deep-sign where SignPath supports it: the MSI,
-  and the `hammer.exe` launcher inside it (helps with antivirus false positives). If SignPath
-  cannot sign inside the jpackage EXE wrapper, sign the outer EXE only.
-- New secrets: SignPath API token and organisation id; project and signing-policy slugs can
-  live in the workflow.
-
-SignPath Foundation conditions that the owner must satisfy (outside the code): apply and be
-approved; MFA for every team member on GitHub and SignPath; no proprietary components (the
-builder should list the desktop app's dependency licences for the application); publish a
-code-signing policy page; credit "Free code signing provided by SignPath.io, certificate by
-SignPath Foundation" (README and the Windows download area). The policy page goes in the repo
-as `docs/CODE_SIGNING_POLICY.md`, linked from the README.
-
-### 4. Linux: GPG key and RPM signing
-
-- One new project GPG key (RSA 4096 or ed25519 — builder's call, but it must be accepted by
-  `rpm` on RHEL 9 and current Fedora; RSA 4096 is the safe choice), private key and passphrase
-  in GitHub secrets. The public key is published on our domain.
+- One new project GPG key, RSA 4096 (accepted by `rpm` on RHEL 9 and current Fedora), private
+  key and passphrase in GitHub secrets. The public key is published on our domain.
 - `rpmsign --addsign` both the GitHub-release `hammer.rpm` and the repo `.rpm`, before digests.
 - `.deb` files are not signed (see non-goals).
 
-### 5. Linux: repo builds (approach B)
+### 4. (Removed: Windows signing is shelved, see non-goals.)
 
-- New `linux-repo` job in `prepare-release.yml` (parallel to `linux`): builds
-  `:desktop:packageReleaseDeb -Pchannel=linux-repo -Pformat=deb` and the RPM equivalent, one
-  Gradle invocation per format (see DEVELOPMENT.md: two packaging tasks in one invocation share
-  the first format), signs the RPM, and uploads both as the workflow artifact
-  `linux-repo-packages` with the maximum retention the repo allows (90 days on a public repo).
-  It does **not** attach anything to the release. It joins `set-release-body`'s `needs`, so a
-  failed repo build blocks the release like any other platform.
-- New reusable `publish-linux-repo.yml` (`workflow_call` + `workflow_dispatch`, input
-  `release_tag`), called from `publish-release.yml` and gated on no `+` suffix or
-  `+linux-repo`, like the store jobs; added to `notify`'s `needs`.
-  - Finds the **successful** `prepare-release.yml` run for that tag (tag-push runs carry the tag
-    as their head branch: `gh run list --workflow prepare-release.yml --branch "$TAG"
-    --status success`), downloads `linux-repo-packages` from it.
-  - Verifies the package versions match the tag's version.
-  - Uploads to Cloudsmith with the Cloudsmith CLI/action (`deb` to the apt repo for
-    distribution `any-distro/any-version`, `rpm` to the rpm repo `any-distro/any-version`).
-  - If the artifact has expired or no successful run exists, fails with a message saying how
-    to recover: re-run the `linux-repo` job of that release run, then re-run this publish via
-    `workflow_dispatch`.
+### 5. Linux: repo builds (approach B) and publishing
+
+**Build (prepare-release.yml).** New `linux-repo` job, parallel to `linux`: builds
+`:desktop:packageReleaseDeb -Pchannel=linux-repo -Pformat=deb` and the RPM equivalent, one
+Gradle invocation per format (DEVELOPMENT.md: two packaging tasks in one invocation share the
+first format), signs the RPM, and uploads both as the workflow artifact `linux-repo-packages`
+with the maximum retention the repo allows (90 days on a public repo). It does **not** attach
+anything to the release. It joins `set-release-body`'s `needs`, so a failed repo build blocks
+the release like any other platform.
+
+**Publish.** New reusable `publish-linux-repo.yml` (`workflow_call` + `workflow_dispatch`),
+called from `publish-release.yml`, gated on no `+` suffix or `+linux-repo` like the store jobs,
+and added to `notify`'s `needs`.
+
+- Locate the `prepare-release.yml` run for the tag (tag-push runs carry the tag as their head
+  branch). **Do not filter on the run's overall status:** with auto-publish, the
+  `Publish release` step inside that same run fires `publish-release.yml` before the run has
+  finished. Instead require that the run's **`linux-repo` job** concluded successfully
+  (it always has by then, because `set-release-body` needs it).
+- Download `linux-repo-packages` from that run, check the package versions match the tag's
+  version, and upload to Cloudsmith (`deb` → apt repo, `rpm` → rpm repo, distribution
+  `any-distro/any-version`).
+- **Normal-path failure** (no such run, the job did not succeed, or the artifact has expired):
+  fail with a message pointing at the emergency path below. Do not suggest re-running the old
+  release run: GitHub only allows re-runs within 30 days, and re-running would also re-run
+  `set-release-body` (re-uploading `latest*.yml` and, with auto-publish, re-marking that
+  release as latest).
+
+**Manual emergency rebuild (owner's decision).** `publish-linux-repo.yml`'s
+`workflow_dispatch` takes `release_tag` plus a boolean `rebuild_from_tag` (default false). When
+true, it checks out the tag, builds the repo `.deb` and `.rpm` exactly as the `linux-repo` job
+does, signs the RPM, and uploads them. It is never used automatically.
+
 - New secret: Cloudsmith API key.
 - Cloudsmith retention: keep the last few versions (e.g. 5) to stay well inside 50 GB.
 
@@ -241,28 +258,27 @@ Rather not add a repository? Download hammer.deb / hammer.rpm (these update them
 
 ### 8. Docs
 
-- `docs/HOW-TO-RELEASE.md`: the `linux-repo` token, what to do if the repo publish fails or the
-  artifact expired.
+- `docs/HOW-TO-RELEASE.md`: the `linux-repo` token, the emergency rebuild, the pre-4.0
+  checklist (§0).
 - `DEVELOPMENT.md`: the new channel and token.
 - `SUPPORT.md`: log location for repo installs (same as `.deb`/`.rpm`).
-- README: Linux repo link, SignPath and Cloudsmith attribution, code-signing policy link.
+- README: Linux repo / install page link, Cloudsmith attribution.
 
 ## Prerequisites the owner provides (not code)
 
 1. Apple: Developer ID Application and Developer ID Installer certificates (`.p12`).
-2. SignPath Foundation application approved; API token; MFA on.
-3. Cloudsmith open-source account + two public repos (deb, rpm); API key; answer on own-key
+2. Cloudsmith open-source account + two public repos (deb, rpm); API key; answer on own-key
    support.
-4. A GPG key generated for the project (or the builder generates it and hands it over).
-5. DNS/Cloudflare control of the chosen subdomain.
+3. A GPG key generated for the project (or the builder generates it and hands it over).
+4. DNS/Cloudflare control of the chosen subdomain.
 
 ## Left to the builder
 
-- Exact Nucleus executable type / asset for macOS zip updates.
-- SignPath artifact-configuration XML and deep-signing coverage.
-- Key algorithm (within the constraint above), Cloudsmith repo layout and retention numbers.
+- Exact Nucleus executable type / asset for macOS zip updates, and the PKG feasibility check.
+- Cloudsmith repo layout and retention numbers.
 - Whether keychain set-up becomes a shared script.
+- How the publish job queries the `linux-repo` job's conclusion (e.g. `gh api` on the run's
+  jobs).
 - Page styling (follow `docs/WEB-DESIGN-SYSTEM.md`) and the exact route.
 - Order of work. Suggested: channel/platform plumbing → Linux repo build + publish → install
-  page → macOS → Windows (SignPath approval may take a while, so the application should be
-  sent first).
+  page → macOS.
