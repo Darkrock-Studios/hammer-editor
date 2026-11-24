@@ -61,6 +61,7 @@ fun ProvideRichTextStyles(
 	CompositionLocalProvider(
 		LocalRichTextStyles provides if (isDark) HammerRichTextStylesDark else HammerRichTextStyles,
 		LocalEditorTextStyle provides TextStyle(fontSize = settings.editorFontSize.sp),
+		LocalSmartPunctuation provides settings.smartPunctuation,
 		content = content
 	)
 }

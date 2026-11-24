@@ -33,6 +33,8 @@ data class GlobalSettings(
 	 * to exceed it.
 	 */
 	val editorMaxWidth: Float = DEFAULT_EDITOR_WIDTH,
+	/** Editable text turns quotes, `--` and `...` into typographic punctuation as it is typed. */
+	val smartPunctuation: Boolean = false,
 	val enableDndInFocusMode: Boolean = false,
 	val readerFontSize: Float = DEFAULT_FONT_SIZE,
 	val readerShowSceneHeadings: Boolean = false,

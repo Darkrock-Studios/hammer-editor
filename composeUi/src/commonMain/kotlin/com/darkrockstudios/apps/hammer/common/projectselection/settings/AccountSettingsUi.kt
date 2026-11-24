@@ -36,6 +36,7 @@ import com.darkrockstudios.apps.hammer.settings_example_project_button
 import com.darkrockstudios.apps.hammer.settings_example_project_success_message
 import com.darkrockstudios.apps.hammer.settings_group_appearance
 import com.darkrockstudios.apps.hammer.settings_group_device
+import com.darkrockstudios.apps.hammer.settings_group_punctuation
 import com.darkrockstudios.apps.hammer.settings_group_spellcheck
 import com.darkrockstudios.apps.hammer.settings_group_tips
 import com.darkrockstudios.apps.hammer.settings_initial_screen_editor
@@ -44,6 +45,8 @@ import com.darkrockstudios.apps.hammer.settings_row_example_project
 import com.darkrockstudios.apps.hammer.settings_row_example_project_desc
 import com.darkrockstudios.apps.hammer.settings_row_initial_screen
 import com.darkrockstudios.apps.hammer.settings_row_theme
+import com.darkrockstudios.apps.hammer.settings_smart_punctuation_enable
+import com.darkrockstudios.apps.hammer.settings_smart_punctuation_hint
 import com.darkrockstudios.apps.hammer.settings_tab_general
 import com.darkrockstudios.apps.hammer.settings_tab_plugins
 import com.darkrockstudios.apps.hammer.settings_tab_sync
@@ -171,8 +174,17 @@ private fun ColumnScope.GeneralTab(component: AccountSettings, rootSnackbar: Roo
 
 @Composable
 private fun ColumnScope.WritingTab(component: AccountSettings) {
+	val state by component.state.subscribeAsState()
 	HdSettingGroup(title = Res.string.settings_group_spellcheck.get()) {
 		SpellCheckSettingsContent(component.spellCheckSettings)
+	}
+	HdSettingGroup(title = Res.string.settings_group_punctuation.get()) {
+		HdHairlineToggleRow(
+			checked = state.smartPunctuation,
+			onCheckedChange = component::setSmartPunctuation,
+			label = Res.string.settings_smart_punctuation_enable.get(),
+			hint = Res.string.settings_smart_punctuation_hint.get(),
+		)
 	}
 }
 

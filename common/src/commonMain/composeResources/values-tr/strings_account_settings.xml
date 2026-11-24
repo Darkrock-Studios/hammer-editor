@@ -53,6 +53,9 @@
 	<string name="settings_spellcheck_in_focus_enable">Enable in focus mode</string>
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
+	<string name="settings_group_punctuation">Noktalama</string>
+	<string name="settings_smart_punctuation_enable">Akıllı noktalama</string>
+	<string name="settings_smart_punctuation_hint">Yazarken düz tırnaklar kıvrık tırnağa, -- uzun tireye, boşluklar arasındaki kısa çizgi orta tireye, ... üç noktaya dönüşür.</string>
 	<string name="settings_spellcheck_dictionary">Dictionary</string>
 	<string name="settings_server_enable_sync_backup_desc">Set up a server to sync your projects across devices and create secure backups.
 	</string>

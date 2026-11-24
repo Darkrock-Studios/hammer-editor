@@ -50,6 +50,9 @@
 	<string name="settings_spellcheck_in_focus_enable">Увімкнути в режимі зосередження</string>
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
+	<string name="settings_group_punctuation">Пунктуація</string>
+	<string name="settings_smart_punctuation_enable">Розумна пунктуація</string>
+	<string name="settings_smart_punctuation_hint">Під час набору прямі лапки стають типографськими, -- перетворюється на тире, дефіс між пробілами на коротке тире, а ... на три крапки.</string>
 	<string name="settings_spellcheck_dictionary">Словник</string>
 	<string name="settings_server_enable_sync_backup_desc">Налаштуйте сервер, щоб синхронізувати проєкти між пристроями та створювати безпечні резервні копії.</string>
 	<!-- Backup Manager Dialog -->

@@ -345,6 +345,32 @@ class AccountSettingsComponentTest : BaseTest() {
 		assertEquals(NuxProgress(seen = 0, total = 2), component.state.value.tipsProgress)
 	}
 
+	@Test
+	fun `Smart punctuation is off until the setting turns it on`() = runTest {
+		val component = newComponent()
+		advanceUntilIdle()
+		assertFalse(component.state.value.smartPunctuation)
+
+		globalSettingsUpdates.emit(globalSettings.copy(smartPunctuation = true))
+		advanceUntilIdle()
+
+		assertTrue(component.state.value.smartPunctuation)
+	}
+
+	@Test
+	fun `Turning on smart punctuation saves the setting`() = runTest {
+		coEvery { globalSettingsStore.updateSettings(any()) } answers {
+			globalSettings = firstArg<(GlobalSettings) -> GlobalSettings>()(globalSettings)
+		}
+		val component = newComponent()
+		advanceUntilIdle()
+
+		component.setSmartPunctuation(true)
+		advanceUntilIdle()
+
+		assertTrue(globalSettings.smartPunctuation)
+	}
+
 	private val syncedAt = Instant.fromEpochSeconds(1_000_000)
 
 	private fun writeJournal(projectName: String) {
