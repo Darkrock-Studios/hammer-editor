@@ -4,10 +4,10 @@
 	<string name="intro_welcome_body">Free, open source, local first, and always respects your privacy.</string>
 
 	<string name="intro_structure_title">Write it in scenes</string>
-	<string name="intro_structure_body">Break your story into scenes and gather them into chapters. Changed your mind about the order? Drag them around until it clicks.</string>
+	<string name="intro_structure_body">Break your story into scenes and gather them into chapters. Resequencing plot points? Drag scenes around to reorder them.</string>
 
 	<string name="intro_world_title">Build your world</string>
-	<string name="intro_world_body">Keep an encyclopedia of your people, places and things, with notes and timelines alongside. Your scenes will detect references to entries in your encyclopedia so you will always know who turns up where.</string>
+	<string name="intro_world_body">Keep an encyclopedia of your people, places and things, with notes and timelines alongside. Your scenes will detect references to entries in your encyclopedia so you always know who turns up where.</string>
 
 	<string name="intro_files_title">Your files, your story</string>
 	<string name="intro_files_body">Projects are plain text files in ordinary folders on your own disk. Hammer works offline, and you can open, copy or back them up however you like. No lock-in.</string>
