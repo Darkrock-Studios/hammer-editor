@@ -1,10 +1,8 @@
 package com.darkrockstudios.apps.hammer.services.blogfeed
 
+import com.darkrockstudios.apps.hammer.isHttpUrl
 import org.w3c.dom.Element
-import org.xml.sax.InputSource
-import java.io.StringReader
-import java.net.URI
-import java.net.URISyntaxException
+import java.io.ByteArrayInputStream
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -29,8 +27,11 @@ data class BlogFeed(
 object BlogFeedParser {
 	const val MAX_POSTS = 50
 
-	/** Parses an RSS 2.0 document. Items without a title or an http(s) link are skipped. */
-	fun parse(xml: String): BlogFeed {
+	/**
+	 * Parses an RSS 2.0 document. Items without a title or an http(s) link are skipped. Takes bytes
+	 * so the parser can honour the encoding the document declares.
+	 */
+	fun parse(xml: ByteArray): BlogFeed {
 		val factory = DocumentBuilderFactory.newInstance().apply {
 			// The feed is remote content: no DTDs, so no entity expansion or external fetches.
 			setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
@@ -38,7 +39,7 @@ object BlogFeedParser {
 			isXIncludeAware = false
 			isExpandEntityReferences = false
 		}
-		val document = factory.newDocumentBuilder().parse(InputSource(StringReader(xml)))
+		val document = factory.newDocumentBuilder().parse(ByteArrayInputStream(xml))
 		val channel = document.documentElement.child("channel")
 			?: throw IllegalArgumentException("Not an RSS feed: no <channel>")
 
@@ -60,13 +61,6 @@ object BlogFeedParser {
 		OffsetDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME)
 	} catch (_: DateTimeParseException) {
 		null
-	}
-
-	private fun isHttpUrl(value: String): Boolean = try {
-		val uri = URI(value)
-		uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null
-	} catch (_: URISyntaxException) {
-		false
 	}
 
 	private fun Element.children(name: String): List<Element> =

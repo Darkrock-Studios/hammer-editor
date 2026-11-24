@@ -19,7 +19,7 @@ class BlogFeedParserTest {
 				$items
 			</channel>
 		</rss>
-	""".trimIndent()
+	""".trimIndent().encodeToByteArray()
 
 	@Test
 	fun `parses title, link, date and categories`() {
@@ -85,11 +85,21 @@ class BlogFeedParserTest {
 		val xml = """<?xml version="1.0"?><!DOCTYPE rss [<!ENTITY x SYSTEM "file:///etc/passwd">]>""" +
 			"<rss><channel><item><title>&x;</title><link>https://example.com/a</link></item></channel></rss>"
 
-		assertFailsWith<Exception> { BlogFeedParser.parse(xml) }
+		assertFailsWith<Exception> { BlogFeedParser.parse(xml.encodeToByteArray()) }
 	}
 
 	@Test
 	fun `refuses a document that is not RSS`() {
-		assertFailsWith<IllegalArgumentException> { BlogFeedParser.parse("<html><body>Not found</body></html>") }
+		assertFailsWith<IllegalArgumentException> { BlogFeedParser.parse("<html><body>Not found</body></html>".encodeToByteArray()) }
+	}
+
+	@Test
+	fun `honours the encoding the document declares`() {
+		val xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>" +
+			"<rss><channel><item><title>Caf\u00e9 notes</title><link>https://example.com/a</link></item></channel></rss>"
+
+		val parsed = BlogFeedParser.parse(xml.toByteArray(Charsets.ISO_8859_1))
+
+		assertEquals("Caf\u00e9 notes", parsed.posts.single().title)
 	}
 }

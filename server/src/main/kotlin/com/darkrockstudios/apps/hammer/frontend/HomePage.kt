@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.HomeConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
 import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
@@ -15,6 +16,8 @@ import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * The masthead is the home page's LCP element but is painted as a CSS background, so the browser
@@ -48,7 +51,7 @@ private const val PRINCIPLE_SAFETY_URL = "https://hammer.ink/blog/principles/dat
 private val LINKED_PRINCIPLE_URLS = setOf(PRINCIPLE_LOCAL_URL, PRINCIPLE_TELEMETRY_URL, PRINCIPLE_SAFETY_URL)
 
 private const val LATEST_POST_COUNT = 3
-private val POST_DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy")
+private val POST_DATE_FORMAT = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 fun Route.homePage(
 	configRepository: ConfigRepository,
@@ -79,7 +82,7 @@ fun Route.homePage(
 			model["principleLocalUrl"] = PRINCIPLE_LOCAL_URL
 			model["principleTelemetryUrl"] = PRINCIPLE_TELEMETRY_URL
 			model["principleSafetyUrl"] = PRINCIPLE_SAFETY_URL
-			model.putAll(externalContentModel(homeConfig, blogFeedRepository.current()))
+			model.putAll(externalContentModel(homeConfig, blogFeedRepository.current(), call.getLocale()))
 			model["jsonLd"] = webSiteJsonLd(
 				name = "Hammer",
 				url = call.canonicalUrl("/"),
@@ -99,7 +102,7 @@ fun Route.homePage(
 	}
 }
 
-private fun externalContentModel(config: HomeConfig, feed: BlogFeed?): Map<String, Any> {
+private fun externalContentModel(config: HomeConfig, feed: BlogFeed?, locale: Locale): Map<String, Any> {
 	val (featured, news) = feed?.posts.orEmpty().partition { it.inCategory(config.blogFeaturedCategory) }
 	val morePrinciples = featured
 		.filter { it.url.trimEnd('/') !in LINKED_PRINCIPLE_URLS }
@@ -108,7 +111,7 @@ private fun externalContentModel(config: HomeConfig, feed: BlogFeed?): Map<Strin
 		mapOf(
 			"title" to post.title,
 			"url" to post.url,
-			"date" to post.published?.format(POST_DATE_FORMAT).orEmpty(),
+			"date" to post.published?.format(POST_DATE_FORMAT.withLocale(locale)).orEmpty(),
 			"isoDate" to post.published?.toLocalDate()?.toString().orEmpty(),
 		)
 	}

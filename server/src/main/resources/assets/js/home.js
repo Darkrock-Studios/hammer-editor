@@ -47,6 +47,8 @@
 		tab.addEventListener('keydown', function (e) {
 			if (e.key === 'ArrowRight') select(tabs[(i + 1) % tabs.length], true);
 			if (e.key === 'ArrowLeft') select(tabs[(i + tabs.length - 1) % tabs.length], true);
+			if (e.key === 'Home') { e.preventDefault(); select(tabs[0], true); }
+			if (e.key === 'End') { e.preventDefault(); select(tabs[tabs.length - 1], true); }
 		});
 	});
 

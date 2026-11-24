@@ -34,7 +34,7 @@ class BlogFeedRepository(
 		if (!response.status.isSuccess()) throw IOException("Blog feed returned ${response.status}")
 		val body = response.bodyAsChannel().readBuffer(MAX_FEED_BYTES + 1).readByteArray()
 		if (body.size > MAX_FEED_BYTES) throw IOException("Blog feed is over $MAX_FEED_BYTES bytes")
-		feed = BlogFeedParser.parse(body.decodeToString())
+		feed = BlogFeedParser.parse(body)
 	}
 
 	companion object {

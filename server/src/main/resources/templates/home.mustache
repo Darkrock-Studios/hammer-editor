@@ -24,7 +24,7 @@
 			<div class="dl-grid">
 				<div class="dl" data-platform="windows">
 					<span class="dl__icon" aria-hidden="true">🪟</span>
-					<h3 class="dl__name">{{msg.home_download_windows}}</h3>
+					<span class="dl__name">{{msg.home_download_windows}}</span>
 					<div class="dl__controls">
 						<select id="windows-format-select" class="dl__format"
 								aria-label="{{msg.home_download_format_windows}}">
@@ -54,7 +54,7 @@
 
 				<div class="dl" data-platform="macos">
 					<span class="dl__icon" aria-hidden="true">🍎</span>
-					<h3 class="dl__name">{{msg.home_download_macos}}</h3>
+					<span class="dl__name">{{msg.home_download_macos}}</span>
 					<div class="dl__controls">
 						<select id="macos-format-select" class="dl__format"
 								aria-label="{{msg.home_download_format_macos}}">
@@ -80,7 +80,7 @@
 
 				<div class="dl" data-platform="linux">
 					<span class="dl__icon" aria-hidden="true">🐧</span>
-					<h3 class="dl__name">{{msg.home_download_linux}}</h3>
+					<span class="dl__name">{{msg.home_download_linux}}</span>
 					<div class="dl__controls">
 						<select id="linux-format-select" class="dl__format"
 								aria-label="{{msg.home_download_format_linux}}">
@@ -134,7 +134,7 @@
 
 				<div class="dl" data-platform="android">
 					<span class="dl__icon" aria-hidden="true">🤖</span>
-					<h3 class="dl__name">{{msg.home_download_android}}</h3>
+					<span class="dl__name">{{msg.home_download_android}}</span>
 					<div class="dl__controls">
 						<select id="android-format-select" class="dl__format"
 								aria-label="{{msg.home_download_format_android}}">
@@ -164,7 +164,7 @@
 
 				<div class="dl" data-platform="ios">
 					<span class="dl__icon" aria-hidden="true">🍎</span>
-					<h3 class="dl__name">iOS</h3>
+					<span class="dl__name">iOS</span>
 					<div class="dl__controls">
 						<span class="dl__format dl__format--static">App Store</span>
 						<a href="https://apps.apple.com/us/app/hammer-editor/id6770841038"
@@ -184,10 +184,10 @@
 		(function () {
 			var ua = navigator.userAgent;
 			var platform = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ios'
-				: /Android/.test(ua) ? 'android'
+				: /Android|CrOS/.test(ua) ? 'android'
 				: /Windows/.test(ua) ? 'windows'
 				: /Macintosh|Mac OS X/.test(ua) ? 'macos'
-				: /Linux|X11|CrOS/.test(ua) ? 'linux' : null;
+				: /Linux|X11/.test(ua) ? 'linux' : null;
 			var card = platform && document.querySelector('.dl[data-platform="' + platform + '"]');
 			if (!card) return;
 			var yours = document.getElementById('dl-yours');

@@ -214,9 +214,7 @@ private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = f
 	} catch (e: URISyntaxException) {
 		throw IllegalArgumentException("$label is not a valid URL: $value", e)
 	}
-	require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
-		"$label must be an absolute http(s) URL: $value"
-	}
+	require(uri.isHttpUrl()) { "$label must be an absolute http(s) URL: $value" }
 	if (bareOrigin) {
 		require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
 			"$label must be a bare origin (scheme://host[:port], no path): $value"
@@ -475,4 +473,13 @@ data class SslCertConfig(
 	fun usePem(): Boolean {
 		return certChainPath != null && privateKeyPath != null
 	}
+}
+
+private fun URI.isHttpUrl(): Boolean = scheme?.lowercase() in setOf("http", "https") && host != null
+
+/** True for an absolute http(s) URL with a host. */
+fun isHttpUrl(value: String): Boolean = try {
+	URI(value).isHttpUrl()
+} catch (_: URISyntaxException) {
+	false
 }

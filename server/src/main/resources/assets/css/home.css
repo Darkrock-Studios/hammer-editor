@@ -183,8 +183,10 @@
 }
 
 .dl__name {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
 	font-size: 1.1rem;
-	margin: 0;
+	line-height: 1.2;
+	color: var(--text-primary);
 }
 
 .dl__controls {
