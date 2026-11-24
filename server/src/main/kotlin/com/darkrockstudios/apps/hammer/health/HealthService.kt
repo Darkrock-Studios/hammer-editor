@@ -85,8 +85,9 @@ class HealthService(
 
 	private suspend fun buildReport(now: Instant): HealthReport {
 		val database = checkDatabase()
-		val jobs = jobsBySlug(registry.statuses()).mapValues { (_, status) -> status.health(now) }
-		val ok = database.ok && jobs.values.all { it.ok }
+		val statuses = jobsBySlug(registry.statuses())
+		val jobs = statuses.mapValues { (_, status) -> status.health(now) }
+		val ok = database.ok && statuses.all { (slug, status) -> !status.affectsHealth || jobs.getValue(slug).ok }
 		return HealthReport(
 			status = if (ok) OverallState.OK else OverallState.FAILING,
 			checkedAt = now.toString(),

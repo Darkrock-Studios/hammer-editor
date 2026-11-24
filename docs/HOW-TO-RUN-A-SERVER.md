@@ -752,6 +752,17 @@ This will enable several new pages on the website found at: `/community`
 
 Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
 
+## Home page blog feed
+
+The home page lists the latest posts from the [Hammer blog](https://hammer.ink/blog/). To fill it,
+the server fetches `https://hammer.ink/blog/feed.xml` at startup and once an hour, which means
+hammer.ink sees your server's address. To switch it off, add this to your server config:
+
+```toml
+[home]
+blogFeed = false
+```
+
 ## Enable Grammar Checking (_Optional_)
 
 The server can forward grammar checks from signed-in users' LanguageTool plugin to a

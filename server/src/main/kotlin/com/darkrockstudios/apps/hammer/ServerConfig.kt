@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.analytics.AnalyticsProvider
 import com.darkrockstudios.apps.hammer.analytics.AnalyticsProviderFactory
 import com.darkrockstudios.apps.hammer.email.EmailProvider
+import com.darkrockstudios.apps.hammer.utilities.isHttpUrl
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import java.net.URI
@@ -73,6 +74,7 @@ data class ServerConfig(
 	 */
 	val languageToolEnabled: Boolean = false,
 	val extraLinks: List<ExtraLink> = emptyList(),
+	val home: HomeConfig = HomeConfig(),
 	val accountDeletion: AccountDeletionConfig = AccountDeletionConfig(),
 	val storage: StorageConfig = StorageConfig(),
 	val cache: CacheConfig = CacheConfig(),
@@ -103,6 +105,13 @@ enum class LinkPlacement(val serial: String) {
 		"LinkPlacement", entries.toTypedArray(), { it.serial }
 	)
 }
+
+/** Home page settings. */
+@Serializable
+data class HomeConfig(
+	/** List the latest hammer.ink blog posts. The server fetches the feed from hammer.ink hourly while on. */
+	val blogFeed: Boolean = true,
+)
 
 /**
  * An operator-defined nav link appended to the header and/or footer, for pointing a deployment at
@@ -189,9 +198,7 @@ private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = f
 	} catch (e: URISyntaxException) {
 		throw IllegalArgumentException("$label is not a valid URL: $value", e)
 	}
-	require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
-		"$label must be an absolute http(s) URL: $value"
-	}
+	require(isHttpUrl(uri)) { "$label must be an absolute http(s) URL: $value" }
 	if (bareOrigin) {
 		require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
 			"$label must be a bare origin (scheme://host[:port], no path): $value"

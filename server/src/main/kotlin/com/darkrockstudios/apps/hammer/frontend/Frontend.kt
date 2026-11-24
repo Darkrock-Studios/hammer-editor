@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ExtraLink
+import com.darkrockstudios.apps.hammer.HammerLinks
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
@@ -122,6 +123,7 @@ fun Route.frontend() {
 	val recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry by inject()
 	val healthService: com.darkrockstudios.apps.hammer.health.HealthService by inject()
 	val clock: kotlin.time.Clock by inject()
+	val blogFeedRepository: com.darkrockstudios.apps.hammer.services.blogfeed.BlogFeedRepository by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
 	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
 
@@ -140,7 +142,7 @@ fun Route.frontend() {
 	robotsRoutes()
 	sitemapRoutes(serverConfig, accountsRepository, projectAccessRepository, configRepository)
 	setupPage(serverConfig)
-	homePage(configRepository, markdownRenderer)
+	homePage(configRepository, markdownRenderer, blogFeedRepository)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownRenderer)
 	termsOfServicePage()
 	privacyPolicyPage()
@@ -455,7 +457,8 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	val footerExtraLinks = serverConfig.extraLinks.filter { it.placement.inFooter }.map { it.toModel(locale) }
 	model["headerExtraLinks"] = serverConfig.extraLinks.filter { it.placement.inHeader }.map { it.toModel(locale) }
 	model["footerExtraLinks"] = footerExtraLinks
-	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage || footerExtraLinks.isNotEmpty()
+	model["pluginsUrl"] = HammerLinks.PLUGINS
+	model["developersUrl"] = HammerLinks.DEVELOPERS
 
 	putAllowedUsersNotice(model, NoticeSlot.FOOTER, htmlKey = "footerNoticeHtml", providedKey = "footerNoticeProvided")
 
