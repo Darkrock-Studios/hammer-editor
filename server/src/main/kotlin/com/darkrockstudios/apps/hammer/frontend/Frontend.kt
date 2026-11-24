@@ -141,7 +141,7 @@ fun Route.frontend() {
 	robotsRoutes()
 	sitemapRoutes(serverConfig, accountsRepository, projectAccessRepository, configRepository)
 	setupPage(serverConfig)
-	homePage(configRepository, markdownRenderer, serverConfig.home, blogFeedRepository)
+	homePage(configRepository, markdownRenderer, blogFeedRepository)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownRenderer)
 	termsOfServicePage()
 	privacyPolicyPage()

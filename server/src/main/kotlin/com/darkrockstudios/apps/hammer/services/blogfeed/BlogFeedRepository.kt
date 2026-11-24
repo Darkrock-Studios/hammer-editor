@@ -11,8 +11,8 @@ import kotlinx.io.IOException
 import kotlinx.io.readByteArray
 
 /**
- * Holds the last successfully fetched copy of the operator's blog feed, so the home page never
- * waits on, or fails with, another site. Null [feedUrl] means no blog is configured.
+ * Holds the last successfully fetched copy of the blog feed, so the home page never waits on, or
+ * fails with, another site. Null [feedUrl] means the feed is switched off.
  */
 class BlogFeedRepository(
 	private val feedUrl: String?,

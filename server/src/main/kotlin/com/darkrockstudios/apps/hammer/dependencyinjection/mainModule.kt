@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.HammerLinks
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.StorageMode
 import com.darkrockstudios.apps.hammer.account.AccountDeletionJob
@@ -289,7 +290,7 @@ fun mainModule(
 	}
 	single<TouchableFileSystem> { SystemTouchableFileSystem() }
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
-	single { BlogFeedRepository(get<ServerConfig>().home.blogFeedUrl) }
+	single { BlogFeedRepository(HammerLinks.BLOG_FEED.takeIf { get<ServerConfig>().home.blogFeed }) }
 	single { BlogFeedRefreshJob(get(), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
 	single { StoryRendererService(get(), get(), get()) }

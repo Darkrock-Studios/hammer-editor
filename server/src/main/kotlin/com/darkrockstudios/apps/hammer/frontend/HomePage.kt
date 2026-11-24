@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
-import com.darkrockstudios.apps.hammer.HomeConfig
+import com.darkrockstudios.apps.hammer.HammerLinks
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
@@ -43,12 +43,15 @@ private val MASTHEAD_PRELOADS = listOf(
 /** Must match the App Store links in home.mustache. Drives the iOS Safari smart app banner. */
 private const val IOS_APP_STORE_ID = "6770841038"
 
-private const val PRINCIPLE_LOCAL_URL = "https://hammer.ink/blog/principles/local-first"
-private const val PRINCIPLE_TELEMETRY_URL = "https://hammer.ink/blog/principles/no-telemetry"
-private const val PRINCIPLE_SAFETY_URL = "https://hammer.ink/blog/principles/data-safety"
+/** Already linked from their own cards, so the feed's principles list leaves them out. */
+private val LINKED_PRINCIPLE_URLS = setOf(
+	HammerLinks.PRINCIPLE_LOCAL_FIRST,
+	HammerLinks.PRINCIPLE_NO_TELEMETRY,
+	HammerLinks.PRINCIPLE_DATA_SAFETY,
+)
 
-/** Already linked from their own cards, so the feed's featured list leaves them out. */
-private val LINKED_PRINCIPLE_URLS = setOf(PRINCIPLE_LOCAL_URL, PRINCIPLE_TELEMETRY_URL, PRINCIPLE_SAFETY_URL)
+/** Blog posts in this category are linked under the principles instead of listed as news. */
+private const val BLOG_PRINCIPLES_CATEGORY = "principles"
 
 private const val LATEST_POST_COUNT = 3
 private val POST_DATE_FORMAT = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
@@ -56,7 +59,6 @@ private val POST_DATE_FORMAT = DateTimeFormatter.ofLocalizedDate(FormatStyle.MED
 fun Route.homePage(
 	configRepository: ConfigRepository,
 	markdownRenderer: MarkdownRenderer,
-	homeConfig: HomeConfig,
 	blogFeedRepository: BlogFeedRepository,
 ) {
 	route("/") {
@@ -79,10 +81,12 @@ fun Route.homePage(
 			model["title"] = "Hammer — ${call.msg("home_meta_tagline")}"
 			model["metaDescription"] = call.msg("home_meta_description")
 			model["iosAppStoreId"] = IOS_APP_STORE_ID
-			model["principleLocalUrl"] = PRINCIPLE_LOCAL_URL
-			model["principleTelemetryUrl"] = PRINCIPLE_TELEMETRY_URL
-			model["principleSafetyUrl"] = PRINCIPLE_SAFETY_URL
-			model.putAll(externalContentModel(homeConfig, blogFeedRepository.current(), call.getLocale()))
+			model["principleLocalUrl"] = HammerLinks.PRINCIPLE_LOCAL_FIRST
+			model["principleTelemetryUrl"] = HammerLinks.PRINCIPLE_NO_TELEMETRY
+			model["principleSafetyUrl"] = HammerLinks.PRINCIPLE_DATA_SAFETY
+			model["originStoryUrl"] = HammerLinks.ORIGIN_STORY
+			model["tutorialsUrl"] = HammerLinks.TUTORIALS_PLAYLIST
+			model.putAll(blogModel(blogFeedRepository.current(), call.getLocale()))
 			model["jsonLd"] = webSiteJsonLd(
 				name = "Hammer",
 				url = call.canonicalUrl("/"),
@@ -102,8 +106,8 @@ fun Route.homePage(
 	}
 }
 
-private fun externalContentModel(config: HomeConfig, feed: BlogFeed?, locale: Locale): Map<String, Any> {
-	val (featured, news) = feed?.posts.orEmpty().partition { it.inCategory(config.blogFeaturedCategory) }
+private fun blogModel(feed: BlogFeed?, locale: Locale): Map<String, Any> {
+	val (featured, news) = feed?.posts.orEmpty().partition { it.inCategory(BLOG_PRINCIPLES_CATEGORY) }
 	val morePrinciples = featured
 		.filter { it.url.trimEnd('/') !in LINKED_PRINCIPLE_URLS }
 		.map { mapOf("title" to it.title, "url" to it.url) }
@@ -121,9 +125,7 @@ private fun externalContentModel(config: HomeConfig, feed: BlogFeed?, locale: Lo
 		"hasMorePrinciples" to morePrinciples.isNotEmpty(),
 		"blogPosts" to blogPosts,
 		"hasBlogPosts" to blogPosts.isNotEmpty(),
-		"hasLearn" to (blogPosts.isNotEmpty() || config.tutorialsUrl != null),
 	)
 	feed?.siteUrl?.let { model["blogUrl"] = it }
-	config.tutorialsUrl?.let { model["tutorialsUrl"] = it }
 	return model
 }

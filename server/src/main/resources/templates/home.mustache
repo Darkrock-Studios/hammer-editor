@@ -342,44 +342,45 @@
 		</div>
 	</section>
 
-	{{#hasLearn}}
-		<section class="showcase">
-			<div class="showcase__inner learn">
-				{{#tutorialsUrl}}
-					<div>
-						<p class="eyebrow">{{msg.home_tutorials_label}}</p>
-						<h2>{{msg.home_tutorials_heading}}</h2>
-						<a class="video-card" href="{{tutorialsUrl}}" target="_blank" rel="noopener noreferrer">
-							<span class="video-card__thumb">
-								<span class="video-card__play"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
-							</span>
-							<span class="video-card__body">
-								<span>{{msg.home_tutorials_body}}</span>
-								<span class="more">{{msg.home_tutorials_link}} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
-							</span>
-						</a>
-					</div>
-				{{/tutorialsUrl}}
-				{{#hasBlogPosts}}
-					<div>
-						<p class="eyebrow">{{msg.home_blog_label}}</p>
-						<h2>{{msg.home_blog_heading}}</h2>
-						<ul class="posts">
-							{{#blogPosts}}
-								<li>
-									{{#date}}<time datetime="{{isoDate}}">{{date}}</time>{{/date}}
-									<a href="{{url}}">{{title}}</a>
-								</li>
-							{{/blogPosts}}
-						</ul>
-						{{#blogUrl}}
-							<p class="posts__all"><a class="more" href="{{blogUrl}}">{{msg.home_blog_all}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></p>
-						{{/blogUrl}}
-					</div>
-				{{/hasBlogPosts}}
+	<section class="showcase">
+		<div class="showcase__inner learn">
+			<div>
+				<p class="eyebrow">{{msg.home_tutorials_label}}</p>
+				<h2>{{msg.home_tutorials_heading}}</h2>
+				<a class="video-card" href="{{tutorialsUrl}}" target="_blank" rel="noopener noreferrer">
+					<span class="video-card__thumb">
+						<img src="/assets/images/tutorials-760.webp?v={{version}}"
+							 srcset="/assets/images/tutorials-760.webp?v={{version}} 760w,
+									 /assets/images/tutorials-1520.webp?v={{version}} 1520w"
+							 sizes="(max-width: 56rem) 92vw, 48vw"
+							 width="760" height="428" loading="lazy" decoding="async" alt="">
+						<span class="video-card__play"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
+					</span>
+					<span class="video-card__body">
+						<span>{{msg.home_tutorials_body}}</span>
+						<span class="more">{{msg.home_tutorials_link}} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+					</span>
+				</a>
 			</div>
-		</section>
-	{{/hasLearn}}
+			{{#hasBlogPosts}}
+				<div>
+					<p class="eyebrow">{{msg.home_blog_label}}</p>
+					<h2>{{msg.home_blog_heading}}</h2>
+					<ul class="posts">
+						{{#blogPosts}}
+							<li>
+								{{#date}}<time datetime="{{isoDate}}">{{date}}</time>{{/date}}
+								<a href="{{url}}">{{title}}</a>
+							</li>
+						{{/blogPosts}}
+					</ul>
+					{{#blogUrl}}
+						<p class="posts__all"><a class="more" href="{{blogUrl}}">{{msg.home_blog_all}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></p>
+					{{/blogUrl}}
+				</div>
+			{{/hasBlogPosts}}
+		</div>
+	</section>
 
 	<section class="showcase showcase--sunk">
 		<div class="showcase__inner">
@@ -400,7 +401,7 @@
 					<p>{{msg.home_origin_body2}}</p>
 					<p>{{msg.home_origin_body3}}</p>
 					<p class="origin__link">
-						<a href="https://hammer.ink/blog/news/what-is-hammer">{{msg.home_origin_link}} <i class="fa-solid fa-arrow-right"></i></a>
+						<a href="{{originStoryUrl}}">{{msg.home_origin_link}} <i class="fa-solid fa-arrow-right"></i></a>
 					</p>
 				</div>
 			</div>

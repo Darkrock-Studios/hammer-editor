@@ -180,7 +180,6 @@ internal fun resolveServerConfig(
 	validateConfigFiles(resolved, fileSystem)
 	validateCacheDirectory(resolved.cache, fileSystem)
 	resolved.extraLinks.forEach { it.validate() }
-	resolved.home.validate()
 	resolved.accountDeletion.validate()
 	return resolved
 }

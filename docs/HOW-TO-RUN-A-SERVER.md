@@ -752,20 +752,16 @@ This will enable several new pages on the website found at: `/community`
 
 Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
 
-## Home page blog and tutorials (_Optional_)
+## Home page blog feed
 
-The home page can list your blog's latest posts and link to a set of tutorials. Both are off
-until you add them to your server config:
+The home page lists the latest posts from the [Hammer blog](https://hammer.ink/blog/). To fill it,
+the server fetches `https://hammer.ink/blog/feed.xml` at startup and once an hour, which means
+hammer.ink sees your server's address. To switch it off, add this to your server config:
 
 ```toml
 [home]
-blogFeedUrl = "https://example.com/blog/feed.xml"
-tutorialsUrl = "https://www.youtube.com/playlist?list=..."
+blogFeed = false
 ```
-
-`blogFeedUrl` is an RSS 2.0 feed. The server fetches it at startup and once an hour, and shows the
-three newest posts. Posts in the `principles` category are linked under the home page's principles
-instead; set `blogFeaturedCategory` to use a different category.
 
 ## Enable Grammar Checking (_Optional_)
 

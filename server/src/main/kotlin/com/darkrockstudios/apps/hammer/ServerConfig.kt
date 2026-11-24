@@ -105,29 +105,12 @@ enum class LinkPlacement(val serial: String) {
 	)
 }
 
-/**
- * Home page content that lives outside Hammer. Each part is left off the page when unset.
- *
- * ```toml
- * [home]
- * blogFeedUrl = "https://example.com/blog/feed.xml"
- * tutorialsUrl = "https://www.youtube.com/playlist?list=..."
- * ```
- */
+/** Home page settings. */
 @Serializable
 data class HomeConfig(
-	/** RSS 2.0 feed whose newest posts are listed on the home page. */
-	val blogFeedUrl: String? = null,
-	/** Posts in this feed category are linked beside the principles instead of listed as news. */
-	val blogFeaturedCategory: String = "principles",
-	/** Where the tutorials card links to, e.g. a video playlist. */
-	val tutorialsUrl: String? = null,
-) {
-	fun validate() {
-		blogFeedUrl?.let { requireHttpUrl(it, "home.blogFeedUrl") }
-		tutorialsUrl?.let { requireHttpUrl(it, "home.tutorialsUrl") }
-	}
-}
+	/** List the latest hammer.ink blog posts. The server fetches the feed from hammer.ink hourly while on. */
+	val blogFeed: Boolean = true,
+)
 
 /**
  * An operator-defined nav link appended to the header and/or footer, for pointing a deployment at

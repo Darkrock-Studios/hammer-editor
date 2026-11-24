@@ -39,7 +39,7 @@ class BlogFeedRefreshJob(
 	}
 }
 
-/** Starts the refresh job, unless no blog feed is configured. */
+/** Starts the refresh job, unless the blog feed is switched off. */
 fun Application.configureBlogFeedJob() {
 	val repository: BlogFeedRepository by inject()
 	if (!repository.isConfigured) return

@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
-import com.darkrockstudios.apps.hammer.HomeConfig
+import com.darkrockstudios.apps.hammer.HammerLinks
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -36,10 +36,7 @@ class HomePageTest : BaseTest() {
 
 	private val configRepository: ConfigRepository = mockk()
 
-	private fun ApplicationTestBuilder.configureApp(
-		homeConfig: HomeConfig = HomeConfig(),
-		feed: BlogFeed? = null,
-	) {
+	private fun ApplicationTestBuilder.configureApp(feed: BlogFeed? = null) {
 		val blogFeedRepository: BlogFeedRepository = mockk()
 		every { blogFeedRepository.current() } returns feed
 		application {
@@ -55,7 +52,7 @@ class HomePageTest : BaseTest() {
 				cookie<UserSession>(COOKIE_USER_SESSION)
 			}
 			routing {
-				homePage(configRepository, MarkdownRenderer(), homeConfig, blogFeedRepository)
+				homePage(configRepository, MarkdownRenderer(), blogFeedRepository)
 			}
 		}
 	}
@@ -189,7 +186,7 @@ class HomePageTest : BaseTest() {
 				siteUrl = null,
 				posts = listOf(
 					post("On AI", "on-ai", "Principles"),
-					BlogPost("Local First", "https://hammer.ink/blog/principles/local-first", null, setOf("principles")),
+					BlogPost("Local First", HammerLinks.PRINCIPLE_LOCAL_FIRST, null, setOf("principles")),
 				),
 			)
 		)
@@ -212,26 +209,15 @@ class HomePageTest : BaseTest() {
 	}
 
 	@Test
-	fun `GET without a feed or tutorials link renders neither section`() = testApplication {
+	fun `GET without a feed lists no posts but still links the tutorials`() = testApplication {
 		mockPageModelDependencies("")
 		configureApp()
 
 		val body = getHome().bodyAsText()
 
 		assertFalse(body.contains("class=\"posts\""))
-		assertFalse(body.contains("video-card"))
 		assertFalse(body.contains("principles-more"))
-	}
-
-	@Test
-	fun `GET links the tutorials card to the configured address`() = testApplication {
-		mockPageModelDependencies("")
-		configureApp(homeConfig = HomeConfig(tutorialsUrl = "https://videos.example.com/tutorials"))
-
-		val body = getHome().bodyAsText()
-
-		assertContains(body, "class=\"video-card\" href=\"https://videos.example.com/tutorials\"")
-		assertFalse(body.contains("class=\"posts\""))
+		assertContains(body, "class=\"video-card\" href=\"${HammerLinks.TUTORIALS_PLAYLIST.replace("=", "&#61;")}\"")
 	}
 
 	@Test

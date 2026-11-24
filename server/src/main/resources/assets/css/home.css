@@ -537,11 +537,25 @@
 .video-card__thumb {
 	display: grid;
 	place-items: center;
-	aspect-ratio: 16 / 7;
-	background: linear-gradient(135deg, var(--neutral-800), var(--neutral-700));
+	aspect-ratio: 16 / 9;
+	overflow: hidden;
+	background: var(--neutral-800);
+}
+
+/* Image and play button share the one grid cell, so the button sits centred on the picture. */
+.video-card__thumb > * {
+	grid-area: 1 / 1;
+}
+
+.video-card__thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
 }
 
 .video-card__play {
+	position: relative;
+	box-shadow: var(--shadow-lg);
 	display: grid;
 	place-items: center;
 	width: 3.5rem;
