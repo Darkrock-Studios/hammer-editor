@@ -1,324 +1,32 @@
 {{> header}}
 
-<!-- Masthead/Hero Section -->
 <section class="masthead">
 	<div class="masthead-content">
 		<h1>
 			<span class="masthead-line">{{msg.home_masthead_title_first}}</span>
 			<span class="masthead-line">{{msg.home_masthead_title_second}}</span>
 		</h1>
-		<p class="masthead-tagline">{{msg.home_masthead_subtitle}}</p>
-		<div class="hero-actions">
-			<a href="#download" class="hero-btn hero-btn--primary">
-				<i class="fa-solid fa-download"></i>
-				<span>{{msg.home_hero_download}}</span>
-			</a>
-		</div>
-		<p class="hero-platforms">{{msg.home_hero_platforms}}</p>
+		<p class="masthead-tagline">{{msg.home_masthead_lede}}</p>
 	</div>
-
 </section>
 
 {{> partials/server-notice}}
 
 <main class="page-main">
 
-		<!-- Writing features, each shown rather than described -->
-		<section class="showcase showcase--surface">
-			<div class="showcase__inner">
-				<p class="eyebrow">{{msg.home_features_eyebrow}}</p>
-				<h2>{{msg.home_features_title}}</h2>
-				<p class="lede">{{msg.home_features_lede}}</p>
-
-				<div class="feature-rows">
-					<div class="feature-row">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_editor_title}}</h3>
-							<p>{{msg.home_feature_editor_body1}}</p>
-							<p>{{msg.home_feature_editor_body2}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/editor-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/editor-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/editor-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="475" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_editor_alt}}">
-						</div>
-					</div>
-
-					<div class="feature-row feature-row--flip">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_encyclopedia_title}}</h3>
-							<p>{{msg.home_feature_encyclopedia_body1}}</p>
-							<p>{{msg.home_feature_encyclopedia_body2}}</p>
-							<p>{{msg.home_feature_encyclopedia_body3}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/encyclopedia-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/encyclopedia-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/encyclopedia-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="475" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_encyclopedia_alt}}">
-						</div>
-					</div>
-
-					<div class="feature-row">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_timeline_title}}</h3>
-							<p>{{msg.home_feature_timeline_body1}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/timeline-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/timeline-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/timeline-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="475" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_timeline_alt}}">
-						</div>
-					</div>
-
-					<div class="feature-row feature-row--flip">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_notes_title}}</h3>
-							<p>{{msg.home_feature_notes_body1}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/notes-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/notes-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/notes-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="475" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_notes_alt}}">
-						</div>
-					</div>
-
-					<div class="feature-row">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_activity_title}}</h3>
-							<p>{{msg.home_feature_activity_body1}}</p>
-							<p>{{msg.home_feature_activity_body2}}</p>
-							<p>{{msg.home_feature_activity_body3}}</p>
-							<p>{{msg.home_feature_activity_body4}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/activity-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/activity-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/activity-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="481" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_activity_alt}}">
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<!-- The finishing half: what happens when the draft has to meet other people -->
-		<section class="showcase">
-			<div class="showcase__inner">
-				<p class="eyebrow">{{msg.home_afterdraft_eyebrow}}</p>
-				<h2>{{msg.home_afterdraft_title}}</h2>
-				<p class="lede">{{msg.home_afterdraft_lede}}</p>
-
-				<div class="feature-rows">
-					<div class="feature-row">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_review_title}}</h3>
-							<p>{{msg.home_feature_review_body1}}</p>
-							<p>{{msg.home_feature_review_body2}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/review-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/review-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/review-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="494" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_review_alt}}">
-						</div>
-					</div>
-
-					<div class="feature-row feature-row--flip">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_private_title}}</h3>
-							<p>{{msg.home_feature_private_body1}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/sharing-private-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/sharing-private-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/sharing-private-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="539" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_private_alt}}">
-						</div>
-					</div>
-
-					<div class="feature-row">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_publish_title}}</h3>
-							<p>{{msg.home_feature_publish_body1}}</p>
-							<p>{{msg.home_feature_publish_body2}}</p>
-							<p>{{msg.home_feature_publish_body3}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/sharing-public-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/sharing-public-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/sharing-public-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="554" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_publish_alt}}">
-						</div>
-					</div>
-
-					<div class="feature-row feature-row--flip">
-						<div class="feature-row__copy">
-							<h3>{{msg.home_feature_export_title}}</h3>
-							<dl class="format-list">
-								<dt>{{msg.home_feature_export_markdown_name}}</dt>
-								<dd>{{msg.home_feature_export_markdown_body}}</dd>
-								<dt>{{msg.home_feature_export_epub_name}}</dt>
-								<dd>{{msg.home_feature_export_epub_body}}</dd>
-								<dt>{{msg.home_feature_export_pdf_name}}</dt>
-								<dd>{{msg.home_feature_export_pdf_body}}</dd>
-								<dt>{{msg.home_feature_export_word_name}}</dt>
-								<dd>{{msg.home_feature_export_word_body}}</dd>
-								<dt>{{msg.home_feature_export_rtf_name}}</dt>
-								<dd>{{msg.home_feature_export_rtf_body}}</dd>
-							</dl>
-							<p>{{msg.home_feature_export_body1}}</p>
-						</div>
-						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/export-760.webp?v={{version}}"
-								 srcset="/assets/images/screenshots/export-760.webp?v={{version}} 760w,
-										 /assets/images/screenshots/export-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="474" loading="lazy" decoding="async"
-								 alt="{{msg.home_feature_export_alt}}">
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<!-- The ownership argument, made once, after the reader has seen the app work -->
-		<section class="showcase showcase--sunk">
-			<div class="showcase__inner">
-				<p class="eyebrow">{{msg.home_rules_eyebrow}}</p>
-				<h2>{{msg.home_rules_title}}</h2>
-				<p class="lede">{{msg.home_rules_lede}}</p>
-				<div class="rules">
-					<div class="rule">
-						<p class="eyebrow"><i class="fa-solid fa-link-slash rule__icon" aria-hidden="true"></i>{{msg.home_rule_offline_name}}</p>
-						<h3>{{msg.home_rule_offline_title}}</h3>
-						<p>{{msg.home_rule_offline_body}}</p>
-					</div>
-					<div class="rule">
-						<p class="eyebrow"><i class="fa-solid fa-folder-open rule__icon" aria-hidden="true"></i>{{msg.home_rule_files_name}}</p>
-						<h3>{{msg.home_rule_files_title}}</h3>
-						<p>{{msg.home_rule_files_body}}</p>
-					</div>
-					<div class="rule">
-						<p class="eyebrow"><i class="fa-solid fa-shield-halved rule__icon" aria-hidden="true"></i>{{msg.home_rule_safety_name}}</p>
-						<h3>{{msg.home_rule_safety_title}}</h3>
-						<p>{{msg.home_rule_safety_body}}</p>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<!-- Origin story: credibility for the rules above, once the reader cares -->
-		<section class="showcase">
-			<div class="showcase__inner">
-				<p class="eyebrow">{{msg.home_origin_eyebrow}}</p>
-				<h2>{{msg.home_origin_title}}</h2>
-				<div class="origin">
-					<figure class="origin__media">
-							<img class="shot" src="/assets/images/origin-van-760.webp?v={{version}}"
-								 srcset="/assets/images/origin-van-760.webp?v={{version}} 760w,
-										 /assets/images/origin-van-1520.webp?v={{version}} 1520w"
-								 sizes="(max-width: 52rem) 92vw, 44vw"
-								 width="760" height="950" loading="lazy" decoding="async"
-								 alt="{{msg.home_origin_alt}}">
-							<figcaption class="origin__caption">{{msg.home_origin_caption}}</figcaption>
-						</figure>
-					<div class="origin__copy">
-						<p>{{msg.home_origin_body1}}</p>
-						<p>{{msg.home_origin_body2}}</p>
-						<p>{{msg.home_origin_body3}}</p>
-						<p class="origin__link">
-							<a href="https://hammer.ink/blog/news/what-is-hammer">{{msg.home_origin_link}} <i class="fa-solid fa-arrow-right"></i></a>
-						</p>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<!-- Price, stated plainly -->
-		<section class="showcase showcase--sunk">
-			<div class="showcase__inner price">
-				<p class="eyebrow">{{msg.home_price_eyebrow}}</p>
-				<h2 class="price__amount">{{msg.home_price_amount}}</h2>
-				<p class="price__body">{{msg.home_price_body}}</p>
-			</div>
-		</section>
-
-		<!-- FAQ -->
-		<section class="showcase">
-			<div class="showcase__inner">
-				<h2 class="faq__heading">{{msg.home_faq_title}}</h2>
-				<div class="faq">
-					<div class="faq__item">
-						<p class="faq__q">{{msg.home_faq_account_q}}</p>
-						<p class="faq__a">{{msg.home_faq_account_a}}</p>
-					</div>
-					<div class="faq__item">
-						<p class="faq__q">{{msg.home_faq_where_q}}</p>
-						<p class="faq__a">{{msg.home_faq_where_a}}</p>
-					</div>
-					<div class="faq__item">
-						<p class="faq__q">{{msg.home_faq_export_q}}</p>
-						<p class="faq__a">{{msg.home_faq_export_a}}</p>
-					</div>
-					<div class="faq__item">
-						<p class="faq__q">{{msg.home_faq_editor_q}}</p>
-						<p class="faq__a">{{msg.home_faq_editor_a}}</p>
-					</div>
-					<div class="faq__item">
-						<p class="faq__q">{{msg.home_faq_goesaway_q}}</p>
-						<p class="faq__a">{{msg.home_faq_goesaway_a}}</p>
-					</div>
-					<div class="faq__item">
-						<p class="faq__q">{{msg.home_faq_privacy_q}}</p>
-						<p class="faq__a">{{msg.home_faq_privacy_a}}</p>
-					</div>
-					<div class="faq__item">
-						<p class="faq__q">{{msg.home_faq_platforms_q}}</p>
-						<p class="faq__a">{{msg.home_faq_platforms_a}}</p>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<div class="main-content">
-
-		<!-- Decorative Divider -->
-		<div class="divider"></div>
-
-		<!-- Download Section -->
-		<section class="paper-section download-section" id="download">
-			<div class="text-container">
-				<h2>{{msg.home_download_header}}</h2>
-				<p>{{msg.home_download_lede}}</p>
-			</div>
-
-			<div class="download-grid">
-				<!-- Desktop Platforms - Row 1: Windows & macOS -->
-				<div class="download-card">
-					<span class="download-icon">🪟</span>
-					<h3>{{msg.home_download_windows}}</h3>
-					<div class="download-buttons download-selector">
-						<select id="windows-format-select" class="format-dropdown"
+	<section class="download-band" id="download" aria-label="{{msg.home_download_link}}">
+		<div class="dl-yours" id="dl-yours" hidden></div>
+		<details class="dl-others" id="dl-others" open>
+			<summary>
+				<span class="dl-others__all">{{msg.home_download_all}}</span>
+				<span class="dl-others__other">{{msg.home_download_other}}</span>
+			</summary>
+			<div class="dl-grid">
+				<div class="dl" data-platform="windows">
+					<span class="dl__icon" aria-hidden="true">🪟</span>
+					<h3 class="dl__name">{{msg.home_download_windows}}</h3>
+					<div class="dl__controls">
+						<select id="windows-format-select" class="dl__format"
 								aria-label="{{msg.home_download_format_windows}}">
 							<option value="store" data-icon="fa-brands fa-windows"
 									data-url="https://apps.microsoft.com/detail/9p84lm8qv5x6">
@@ -336,7 +44,7 @@
 						<a id="windows-download-btn"
 						   href="https://apps.microsoft.com/detail/9p84lm8qv5x6"
 						   aria-label="{{msg.home_download_link_windows}}"
-						   class="download-link download-btn"{{#analyticsEnabled}}
+						   class="dl__btn"{{#analyticsEnabled}}
 						   data-track-event="download" data-track-platform="windows" data-track-format="store"{{/analyticsEnabled}}>
 							<i id="windows-download-icon" class="fa-brands fa-windows"></i>
 							<span>{{msg.home_download_link}}</span>
@@ -344,11 +52,11 @@
 					</div>
 				</div>
 
-				<div class="download-card">
-					<span class="download-icon">🍎</span>
-					<h3>{{msg.home_download_macos}}</h3>
-					<div class="download-buttons download-selector">
-						<select id="macos-format-select" class="format-dropdown"
+				<div class="dl" data-platform="macos">
+					<span class="dl__icon" aria-hidden="true">🍎</span>
+					<h3 class="dl__name">{{msg.home_download_macos}}</h3>
+					<div class="dl__controls">
+						<select id="macos-format-select" class="dl__format"
 								aria-label="{{msg.home_download_format_macos}}">
 							<option value="store" data-icon="fa-brands fa-app-store-ios"
 							        data-url="https://apps.apple.com/us/app/hammer-editor/id6770841038">
@@ -362,7 +70,7 @@
 						<a id="macos-download-btn"
 						   href="https://apps.apple.com/us/app/hammer-editor/id6770841038"
 						   aria-label="{{msg.home_download_link_macos}}"
-						   class="download-link download-btn"{{#analyticsEnabled}}
+						   class="dl__btn"{{#analyticsEnabled}}
 						   data-track-event="download" data-track-platform="macos" data-track-format="store"{{/analyticsEnabled}}>
 							<i id="macos-download-icon" class="fa-brands fa-app-store-ios"></i>
 							<span>{{msg.home_download_link}}</span>
@@ -370,12 +78,11 @@
 					</div>
 				</div>
 
-				<!-- Desktop Platforms - Row 2: Linux -->
-				<div class="download-card">
-					<span class="download-icon">🐧</span>
-					<h3>{{msg.home_download_linux}}</h3>
-					<div class="download-buttons download-selector">
-						<select id="linux-format-select" class="format-dropdown"
+				<div class="dl" data-platform="linux">
+					<span class="dl__icon" aria-hidden="true">🐧</span>
+					<h3 class="dl__name">{{msg.home_download_linux}}</h3>
+					<div class="dl__controls">
+						<select id="linux-format-select" class="dl__format"
 								aria-label="{{msg.home_download_format_linux}}">
 							<option value="deb" data-icon="fa-brands fa-debian"
 									data-url="https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/hammer.deb">
@@ -417,7 +124,7 @@
 						<a id="linux-download-btn"
 						   href="https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/hammer.deb"
 						   aria-label="{{msg.home_download_link_linux}}"
-						   class="download-link download-btn"{{#analyticsEnabled}}
+						   class="dl__btn"{{#analyticsEnabled}}
 						   data-track-event="download" data-track-platform="linux" data-track-format="deb"{{/analyticsEnabled}}>
 							<i id="linux-download-icon" class="fa-brands fa-debian"></i>
 							<span>{{msg.home_download_link}}</span>
@@ -425,12 +132,11 @@
 					</div>
 				</div>
 
-				<!-- Mobile Platforms - Row 2: Android & iOS -->
-				<div class="download-card">
-					<span class="download-icon">🤖</span>
-					<h3>{{msg.home_download_android}}</h3>
-					<div class="download-buttons download-selector">
-						<select id="android-format-select" class="format-dropdown"
+				<div class="dl" data-platform="android">
+					<span class="dl__icon" aria-hidden="true">🤖</span>
+					<h3 class="dl__name">{{msg.home_download_android}}</h3>
+					<div class="dl__controls">
+						<select id="android-format-select" class="dl__format"
 								aria-label="{{msg.home_download_format_android}}">
 							<option value="playstore" data-icon="fa-brands fa-google-play"
 									data-url="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android">
@@ -448,7 +154,7 @@
 						<a id="android-download-btn"
 						   href="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
 						   aria-label="{{msg.home_download_link_android}}"
-						   class="download-link download-btn"{{#analyticsEnabled}}
+						   class="dl__btn"{{#analyticsEnabled}}
 						   data-track-event="download" data-track-platform="android" data-track-format="playstore"{{/analyticsEnabled}}>
 							<i id="android-download-icon" class="fa-brands fa-google-play"></i>
 							<span>{{msg.home_download_link}}</span>
@@ -456,47 +162,275 @@
 					</div>
 				</div>
 
-				<div class="download-card">
-					<span class="download-icon">🍎</span>
-					<h3>iOS</h3>
-					<span class="download-source"><i class="fa-brands fa-app-store-ios"></i> App Store</span>
-					<a href="https://apps.apple.com/us/app/hammer-editor/id6770841038"
-					   aria-label="{{msg.home_download_link_ios}}"
-					   class="download-link download-btn"{{#analyticsEnabled}}
-					   data-track-event="download" data-track-platform="ios" data-track-format="appstore"{{/analyticsEnabled}}>
-						<i class="fa-brands fa-app-store-ios"></i>
-						<span>{{msg.home_download_link}}</span>
-					</a>
+				<div class="dl" data-platform="ios">
+					<span class="dl__icon" aria-hidden="true">🍎</span>
+					<h3 class="dl__name">iOS</h3>
+					<div class="dl__controls">
+						<span class="dl__format dl__format--static">App Store</span>
+						<a href="https://apps.apple.com/us/app/hammer-editor/id6770841038"
+						   aria-label="{{msg.home_download_link_ios}}"
+						   class="dl__btn"{{#analyticsEnabled}}
+						   data-track-event="download" data-track-platform="ios" data-track-format="appstore"{{/analyticsEnabled}}>
+							<i class="fa-brands fa-app-store-ios"></i>
+							<span>{{msg.home_download_link}}</span>
+						</a>
+					</div>
 				</div>
 			</div>
-		</section>
+		</details>
+	</section>
+	<!-- Inline so the visitor's own platform is promoted before first paint. -->
+	<script>
+		(function () {
+			var ua = navigator.userAgent;
+			var platform = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ios'
+				: /Android/.test(ua) ? 'android'
+				: /Windows/.test(ua) ? 'windows'
+				: /Macintosh|Mac OS X/.test(ua) ? 'macos'
+				: /Linux|X11|CrOS/.test(ua) ? 'linux' : null;
+			var card = platform && document.querySelector('.dl[data-platform="' + platform + '"]');
+			if (!card) return;
+			var yours = document.getElementById('dl-yours');
+			var others = document.getElementById('dl-others');
+			yours.appendChild(card);
+			yours.hidden = false;
+			others.open = false;
+			others.classList.add('dl-others--partial');
+		})();
+	</script>
 
-		</div>
-
-</main>
-
-	<!-- The old technical cards, kept but demoted to the bottom of the page -->
-	<section class="showcase hood">
+	<section class="showcase showcase--surface" id="features">
 		<div class="showcase__inner">
-			<p class="eyebrow">{{msg.home_hood_eyebrow}}</p>
-			<h2>{{msg.home_hood_title}}</h2>
-			<div class="feature-grid">
-				<div class="feature-card">
-					<h3>{{msg.home_hood_native_header}}</h3>
-					<p>{{msg.home_hood_native_body}}</p>
-				</div>
+			<p class="eyebrow">{{msg.home_features_label}}</p>
+			<h2>{{msg.home_features_heading}}</h2>
 
-				<div class="feature-card">
-					<h3>{{msg.home_hood_screens_header}}</h3>
-					<p>{{msg.home_hood_screens_body}}</p>
-				</div>
+			<div class="tablist" role="tablist" aria-label="{{msg.home_features_label}}">
+				<button class="tab" type="button" role="tab" id="tab-write" aria-controls="panel-write" aria-selected="true">
+					<i class="fa-solid fa-pen-nib" aria-hidden="true"></i>{{msg.home_tab_write}}
+				</button>
+				<button class="tab" type="button" role="tab" id="tab-world" aria-controls="panel-world" aria-selected="false" tabindex="-1">
+					<i class="fa-solid fa-earth-europe" aria-hidden="true"></i>{{msg.home_tab_world}}
+				</button>
+				<button class="tab" type="button" role="tab" id="tab-share" aria-controls="panel-share" aria-selected="false" tabindex="-1">
+					<i class="fa-solid fa-paper-plane" aria-hidden="true"></i>{{msg.home_tab_share}}
+				</button>
+				<button class="tab" type="button" role="tab" id="tab-sync" aria-controls="panel-sync" aria-selected="false" tabindex="-1">
+					<i class="fa-solid fa-rotate" aria-hidden="true"></i>{{msg.home_tab_sync}}
+				</button>
+			</div>
 
-				<div class="feature-card">
-					<h3>{{msg.home_hood_license_header}}</h3>
-					<p>{{msg.home_hood_license_body}}</p>
+			<div class="tabpanel" role="tabpanel" id="panel-write" aria-labelledby="tab-write">
+				<img class="shot" src="/assets/images/screenshots/editor-760.webp?v={{version}}"
+					 srcset="/assets/images/screenshots/editor-760.webp?v={{version}} 760w,
+							 /assets/images/screenshots/editor-1520.webp?v={{version}} 1520w"
+					 sizes="(max-width: 56rem) 92vw, 48vw"
+					 width="760" height="475" loading="lazy" decoding="async"
+					 alt="{{msg.home_feature_editor_alt}}">
+				<div>
+					<h3 class="tabpanel__title">{{msg.home_tab_write}}</h3>
+					<p>{{msg.home_tab_write_intro}}</p>
+					<ul class="feat-list">
+						<li><strong>{{msg.home_feat_editor_name}}</strong>{{msg.home_feat_editor_body}}</li>
+						<li><strong>{{msg.home_feat_chapters_name}}</strong>{{msg.home_feat_chapters_body}}</li>
+						<li><strong>{{msg.home_feat_formatting_name}}</strong>{{msg.home_feat_formatting_body}}</li>
+						<li><strong>{{msg.home_feat_notes_name}}</strong>{{msg.home_feat_notes_body}}</li>
+						<li><strong>{{msg.home_feat_activity_name}}</strong>{{msg.home_feat_activity_body}}</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="tabpanel" role="tabpanel" id="panel-world" aria-labelledby="tab-world" hidden>
+				<img class="shot" src="/assets/images/screenshots/encyclopedia-760.webp?v={{version}}"
+					 srcset="/assets/images/screenshots/encyclopedia-760.webp?v={{version}} 760w,
+							 /assets/images/screenshots/encyclopedia-1520.webp?v={{version}} 1520w"
+					 sizes="(max-width: 56rem) 92vw, 48vw"
+					 width="760" height="475" loading="lazy" decoding="async"
+					 alt="{{msg.home_feature_encyclopedia_alt}}">
+				<div>
+					<h3 class="tabpanel__title">{{msg.home_tab_world}}</h3>
+					<p>{{msg.home_tab_world_intro}}</p>
+					<ul class="feat-list">
+						<li><strong>{{msg.home_feat_encyclopedia_name}}</strong>{{msg.home_feat_encyclopedia_body}}</li>
+						<li><strong>{{msg.home_feat_images_name}}</strong>{{msg.home_feat_images_body}}</li>
+						<li><strong>{{msg.home_feat_timelines_name}}</strong>{{msg.home_feat_timelines_body}}</li>
+						<li><strong>{{msg.home_feat_rename_name}}</strong>{{msg.home_feat_rename_body}}</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="tabpanel" role="tabpanel" id="panel-share" aria-labelledby="tab-share" hidden>
+				<img class="shot" src="/assets/images/screenshots/review-760.webp?v={{version}}"
+					 srcset="/assets/images/screenshots/review-760.webp?v={{version}} 760w,
+							 /assets/images/screenshots/review-1520.webp?v={{version}} 1520w"
+					 sizes="(max-width: 56rem) 92vw, 48vw"
+					 width="760" height="494" loading="lazy" decoding="async"
+					 alt="{{msg.home_feature_review_alt}}">
+				<div>
+					<h3 class="tabpanel__title">{{msg.home_tab_share}}</h3>
+					<p>{{msg.home_tab_share_intro}}</p>
+					<ul class="feat-list">
+						<li><strong>{{msg.home_feat_review_name}}</strong>{{msg.home_feat_review_body}}</li>
+						<li><strong>{{msg.home_feat_coauthoring_name}}</strong>{{msg.home_feat_coauthoring_body}}</li>
+						<li><strong>{{msg.home_feat_private_name}}</strong>{{msg.home_feat_private_body}}</li>
+						<li><strong>{{msg.home_feat_publish_name}}</strong>{{msg.home_feat_publish_body}}</li>
+						<li><strong>{{msg.home_feat_export_name}}</strong>{{msg.home_feat_export_body}}</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="tabpanel" role="tabpanel" id="panel-sync" aria-labelledby="tab-sync" hidden>
+				<div>
+					<h3 class="feat-group">{{msg.home_sync_title}}</h3>
+					<p>{{msg.home_sync_intro}}</p>
+					<ul class="feat-list">
+						<li><strong>{{msg.home_feat_sync_name}}</strong>{{msg.home_feat_sync_body}}</li>
+						<li><strong>{{msg.home_feat_conflicts_name}}</strong>{{msg.home_feat_conflicts_body}}</li>
+						<li><strong>{{msg.home_feat_security_name}}</strong>{{msg.home_feat_security_body}}</li>
+					</ul>
+				</div>
+				<div>
+					<h3 class="feat-group">{{msg.home_plugins_title}}</h3>
+					<p>{{msg.home_plugins_intro}}</p>
+					<ul class="feat-list">
+						<li><strong>{{msg.home_feat_grammar_name}}</strong>{{msg.home_feat_grammar_body}}</li>
+						<li><strong>{{msg.home_feat_names_name}}</strong>{{msg.home_feat_names_body}}</li>
+						<li><strong>{{msg.home_feat_mcp_name}}</strong>{{msg.home_feat_mcp_body}}</li>
+					</ul>
+				</div>
+			</div>
+			<!-- Without scripting the tabs can't switch, so every panel is laid out in turn. -->
+			<noscript>
+				<style>
+					.tablist { display: none; }
+					.tabpanel[hidden] { display: grid; }
+					.tabpanel { margin-bottom: 1.5rem; }
+					.tabpanel__title { display: block; }
+				</style>
+			</noscript>
+		</div>
+	</section>
+
+	<section class="showcase showcase--sunk">
+		<div class="showcase__inner">
+			<p class="eyebrow">{{msg.home_principles_label}}</p>
+			<h2>{{msg.home_principles_heading}}</h2>
+			<div class="principles">
+			<article class="principle">
+				<h3><i class="fa-solid fa-hard-drive" aria-hidden="true"></i>{{msg.home_principle_local_name}}</h3>
+				<p>{{msg.home_principle_local_body}}</p>
+				<a class="more" href="{{principleLocalUrl}}">{{msg.home_principle_more}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+			</article>
+			<article class="principle">
+				<h3><i class="fa-solid fa-eye-slash" aria-hidden="true"></i>{{msg.home_principle_telemetry_name}}</h3>
+				<p>{{msg.home_principle_telemetry_body}}</p>
+				<a class="more" href="{{principleTelemetryUrl}}">{{msg.home_principle_more}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+			</article>
+			<article class="principle">
+				<h3><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>{{msg.home_principle_safety_name}}</h3>
+				<p>{{msg.home_principle_safety_body}}</p>
+				<a class="more" href="{{principleSafetyUrl}}">{{msg.home_principle_more}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+			</article>
+			</div>
+			{{#hasMorePrinciples}}
+				<p class="principles-more">
+					<span>{{msg.home_principles_more}}</span>
+					{{#morePrinciples}}
+						<a href="{{url}}">{{title}}</a>
+					{{/morePrinciples}}
+				</p>
+			{{/hasMorePrinciples}}
+		</div>
+	</section>
+
+	{{#hasLearn}}
+		<section class="showcase">
+			<div class="showcase__inner learn">
+				{{#tutorialsUrl}}
+					<div>
+						<p class="eyebrow">{{msg.home_tutorials_label}}</p>
+						<h2>{{msg.home_tutorials_heading}}</h2>
+						<a class="video-card" href="{{tutorialsUrl}}" target="_blank" rel="noopener noreferrer">
+							<span class="video-card__thumb">
+								<span class="video-card__play"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
+							</span>
+							<span class="video-card__body">
+								<span>{{msg.home_tutorials_body}}</span>
+								<span class="more">{{msg.home_tutorials_link}} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+							</span>
+						</a>
+					</div>
+				{{/tutorialsUrl}}
+				{{#hasBlogPosts}}
+					<div>
+						<p class="eyebrow">{{msg.home_blog_label}}</p>
+						<h2>{{msg.home_blog_heading}}</h2>
+						<ul class="posts">
+							{{#blogPosts}}
+								<li>
+									{{#date}}<time datetime="{{isoDate}}">{{date}}</time>{{/date}}
+									<a href="{{url}}">{{title}}</a>
+								</li>
+							{{/blogPosts}}
+						</ul>
+						{{#blogUrl}}
+							<p class="posts__all"><a class="more" href="{{blogUrl}}">{{msg.home_blog_all}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></p>
+						{{/blogUrl}}
+					</div>
+				{{/hasBlogPosts}}
+			</div>
+		</section>
+	{{/hasLearn}}
+
+	<section class="showcase showcase--sunk">
+		<div class="showcase__inner">
+			<p class="eyebrow">{{msg.home_origin_eyebrow}}</p>
+			<h2>{{msg.home_origin_title}}</h2>
+			<div class="origin">
+				<figure class="origin__media">
+						<img class="shot" src="/assets/images/origin-van-760.webp?v={{version}}"
+							 srcset="/assets/images/origin-van-760.webp?v={{version}} 760w,
+									 /assets/images/origin-van-1520.webp?v={{version}} 1520w"
+							 sizes="(max-width: 52rem) 92vw, 44vw"
+							 width="760" height="950" loading="lazy" decoding="async"
+							 alt="{{msg.home_origin_alt}}">
+						<figcaption class="origin__caption">{{msg.home_origin_caption}}</figcaption>
+					</figure>
+				<div class="origin__copy">
+					<p>{{msg.home_origin_body1}}</p>
+					<p>{{msg.home_origin_body2}}</p>
+					<p>{{msg.home_origin_body3}}</p>
+					<p class="origin__link">
+						<a href="https://hammer.ink/blog/news/what-is-hammer">{{msg.home_origin_link}} <i class="fa-solid fa-arrow-right"></i></a>
+					</p>
 				</div>
 			</div>
 		</div>
 	</section>
+
+	<section class="showcase">
+		<div class="showcase__inner">
+			<h2>{{msg.home_faq_title}}</h2>
+			<div class="faq">
+				<details open>
+					<summary>{{msg.home_faq_account_q}}</summary>
+					<p>{{msg.home_faq_account_answer}}</p>
+				</details>
+				<details>
+					<summary>{{msg.home_faq_where_q}}</summary>
+					<p>{{msg.home_faq_where_answer}}</p>
+				</details>
+				<details>
+					<summary>{{msg.home_faq_privacy_q}}</summary>
+					<p>{{msg.home_faq_privacy_answer}}</p>
+				</details>
+				<details>
+					<summary>{{msg.home_faq_goesaway_q}}</summary>
+					<p>{{msg.home_faq_goesaway_answer}}</p>
+				</details>
+			</div>
+		</div>
+	</section>
+
+</main>
 
 {{> footer}}

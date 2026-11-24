@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.DeleteProjectUseCase
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
+import com.darkrockstudios.apps.hammer.services.blogfeed.BlogFeedRepository
 import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -173,6 +174,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single<DeleteProjectUseCase> { mockk(relaxed = true) }
 				single { RecurringTaskRegistry() }
 				single<HealthService> { mockk(relaxed = true) }
+				single { BlogFeedRepository(null) }
 				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 					mockk(relaxed = true)
 				}

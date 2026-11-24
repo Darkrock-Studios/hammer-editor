@@ -22,3 +22,34 @@
 	setupDownloadSelector('linux-format-select', 'linux-download-btn', 'linux-download-icon');
 	setupDownloadSelector('android-format-select', 'android-download-btn', 'android-download-icon');
 })();
+
+// Feature tabs. Each tab's hash (#world, #share, ...) opens it directly.
+(function () {
+	const tabs = Array.from(document.querySelectorAll('.tab'));
+	if (!tabs.length) return;
+
+	function select(tab, focus) {
+		tabs.forEach(function (t) {
+			const on = t === tab;
+			t.setAttribute('aria-selected', on ? 'true' : 'false');
+			t.tabIndex = on ? 0 : -1;
+			document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+		});
+		if (focus) tab.focus();
+		tab.scrollIntoView({block: 'nearest', inline: 'nearest'});
+	}
+
+	tabs.forEach(function (tab, i) {
+		tab.addEventListener('click', function () {
+			select(tab, false);
+			history.replaceState(null, '', '#' + tab.id.replace('tab-', ''));
+		});
+		tab.addEventListener('keydown', function (e) {
+			if (e.key === 'ArrowRight') select(tabs[(i + 1) % tabs.length], true);
+			if (e.key === 'ArrowLeft') select(tabs[(i + tabs.length - 1) % tabs.length], true);
+		});
+	});
+
+	const fromHash = location.hash.length > 1 && document.getElementById('tab-' + location.hash.slice(1));
+	if (fromHash && tabs.indexOf(fromHash) !== -1) select(fromHash, false);
+})();

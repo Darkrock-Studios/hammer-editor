@@ -73,6 +73,7 @@ data class ServerConfig(
 	 */
 	val languageToolEnabled: Boolean = false,
 	val extraLinks: List<ExtraLink> = emptyList(),
+	val home: HomeConfig = HomeConfig(),
 	val accountDeletion: AccountDeletionConfig = AccountDeletionConfig(),
 	val storage: StorageConfig = StorageConfig(),
 	val cache: CacheConfig = CacheConfig(),
@@ -102,6 +103,30 @@ enum class LinkPlacement(val serial: String) {
 	object Serializer : CaseInsensitiveEnumSerializer<LinkPlacement>(
 		"LinkPlacement", entries.toTypedArray(), { it.serial }
 	)
+}
+
+/**
+ * Home page content that lives outside Hammer. Each part is left off the page when unset.
+ *
+ * ```toml
+ * [home]
+ * blogFeedUrl = "https://example.com/blog/feed.xml"
+ * tutorialsUrl = "https://www.youtube.com/playlist?list=..."
+ * ```
+ */
+@Serializable
+data class HomeConfig(
+	/** RSS 2.0 feed whose newest posts are listed on the home page. */
+	val blogFeedUrl: String? = null,
+	/** Posts in this feed category are linked beside the principles instead of listed as news. */
+	val blogFeaturedCategory: String = "principles",
+	/** Where the tutorials card links to, e.g. a video playlist. */
+	val tutorialsUrl: String? = null,
+) {
+	fun validate() {
+		blogFeedUrl?.let { requireHttpUrl(it, "home.blogFeedUrl") }
+		tutorialsUrl?.let { requireHttpUrl(it, "home.tutorialsUrl") }
+	}
 }
 
 /**

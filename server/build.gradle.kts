@@ -133,6 +133,7 @@ dependencies {
 
 	testImplementation(libs.ktor.server.test.host)
 	testImplementation(libs.coroutines.test)
+	testImplementation(libs.ktor.client.mock)
 	testImplementation(libs.mockk)
 	testImplementation(libs.koin.test)
 	testImplementation(libs.okio.fakefilesystem)

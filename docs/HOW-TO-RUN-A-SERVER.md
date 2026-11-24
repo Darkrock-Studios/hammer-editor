@@ -752,6 +752,21 @@ This will enable several new pages on the website found at: `/community`
 
 Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
 
+## Home page blog and tutorials (_Optional_)
+
+The home page can list your blog's latest posts and link to a set of tutorials. Both are off
+until you add them to your server config:
+
+```toml
+[home]
+blogFeedUrl = "https://example.com/blog/feed.xml"
+tutorialsUrl = "https://www.youtube.com/playlist?list=..."
+```
+
+`blogFeedUrl` is an RSS 2.0 feed. The server fetches it at startup and once an hour, and shows the
+three newest posts. Posts in the `principles` category are linked under the home page's principles
+instead; set `blogFeaturedCategory` to use a different category.
+
 ## Enable Grammar Checking (_Optional_)
 
 The server can forward grammar checks from signed-in users' LanguageTool plugin to a

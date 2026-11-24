@@ -122,6 +122,7 @@ fun Route.frontend() {
 	val recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry by inject()
 	val healthService: com.darkrockstudios.apps.hammer.health.HealthService by inject()
 	val clock: kotlin.time.Clock by inject()
+	val blogFeedRepository: com.darkrockstudios.apps.hammer.services.blogfeed.BlogFeedRepository by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
 	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
 
@@ -140,7 +141,7 @@ fun Route.frontend() {
 	robotsRoutes()
 	sitemapRoutes(serverConfig, accountsRepository, projectAccessRepository, configRepository)
 	setupPage(serverConfig)
-	homePage(configRepository, markdownRenderer)
+	homePage(configRepository, markdownRenderer, serverConfig.home, blogFeedRepository)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownRenderer)
 	termsOfServicePage()
 	privacyPolicyPage()

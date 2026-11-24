@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.applyServerTimeZone
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
+import com.darkrockstudios.apps.hammer.services.blogfeed.configureBlogFeedJob
 import com.darkrockstudios.apps.hammer.utilities.configureDiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
@@ -179,6 +180,7 @@ internal fun resolveServerConfig(
 	validateConfigFiles(resolved, fileSystem)
 	validateCacheDirectory(resolved.cache, fileSystem)
 	resolved.extraLinks.forEach { it.validate() }
+	resolved.home.validate()
 	resolved.accountDeletion.validate()
 	return resolved
 }
@@ -428,6 +430,7 @@ fun Application.appMain(
 	configureWhitelistExpiryJob()
 	configureAccountDeletionJob()
 	configureDiskCachePruneJob()
+	configureBlogFeedJob()
 }
 
 fun cliKeyringCodec(): KeyringCodec =

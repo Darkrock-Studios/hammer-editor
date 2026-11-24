@@ -18,6 +18,8 @@ import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.services.PerUserRateLimiter
+import com.darkrockstudios.apps.hammer.services.blogfeed.BlogFeedRefreshJob
+import com.darkrockstudios.apps.hammer.services.blogfeed.BlogFeedRepository
 import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolDefaults
 import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolProxy
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -287,6 +289,8 @@ fun mainModule(
 	}
 	single<TouchableFileSystem> { SystemTouchableFileSystem() }
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
+	single { BlogFeedRepository(get<ServerConfig>().home.blogFeedUrl) }
+	single { BlogFeedRefreshJob(get(), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
 	single { StoryRendererService(get(), get(), get()) }
 	single<StoryImageService>()
