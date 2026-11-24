@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.analytics.AnalyticsProvider
 import com.darkrockstudios.apps.hammer.analytics.AnalyticsProviderFactory
 import com.darkrockstudios.apps.hammer.email.EmailProvider
+import com.darkrockstudios.apps.hammer.utilities.isHttpUrl
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import java.net.URI
@@ -197,7 +198,7 @@ private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = f
 	} catch (e: URISyntaxException) {
 		throw IllegalArgumentException("$label is not a valid URL: $value", e)
 	}
-	require(uri.isHttpUrl()) { "$label must be an absolute http(s) URL: $value" }
+	require(isHttpUrl(uri)) { "$label must be an absolute http(s) URL: $value" }
 	if (bareOrigin) {
 		require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
 			"$label must be a bare origin (scheme://host[:port], no path): $value"
@@ -456,13 +457,4 @@ data class SslCertConfig(
 	fun usePem(): Boolean {
 		return certChainPath != null && privateKeyPath != null
 	}
-}
-
-private fun URI.isHttpUrl(): Boolean = scheme?.lowercase() in setOf("http", "https") && host != null
-
-/** True for an absolute http(s) URL with a host. */
-fun isHttpUrl(value: String): Boolean = try {
-	URI(value).isHttpUrl()
-} catch (_: URISyntaxException) {
-	false
 }

@@ -1,33 +1,43 @@
 <footer class="site-footer">
 	<div class="footer-content">
-		{{#hasFooterNav}}
-			<nav class="footer-nav">
-				{{#hasAboutPage}}
-					<a href="/about">
-						<i class="fa-solid fa-info-circle"></i>
-						<span>{{msg.footer_about}}</span>
-					</a>
-				{{/hasAboutPage}}
-				{{#hasTermsPage}}
-					<a href="/terms">
-						<i class="fa-solid fa-file-contract"></i>
-						<span>{{msg.footer_terms}}</span>
-					</a>
-				{{/hasTermsPage}}
-				{{#hasPrivacyPage}}
-					<a href="/privacy">
-						<i class="fa-solid fa-user-shield"></i>
-						<span>{{msg.footer_privacy}}</span>
-					</a>
-				{{/hasPrivacyPage}}
-				{{#footerExtraLinks}}
-					<a href="{{url}}"{{#external}} target="_blank" rel="noopener noreferrer"{{/external}}>
-						<i class="{{icon}}"></i>
-						<span>{{title}}</span>
-					</a>
-				{{/footerExtraLinks}}
-			</nav>
-		{{/hasFooterNav}}
+		<nav class="footer-nav">
+			{{#hasAboutPage}}
+				<a href="/about">
+					<i class="fa-solid fa-info-circle"></i>
+					<span>{{msg.footer_about}}</span>
+				</a>
+			{{/hasAboutPage}}
+			{{#hasTermsPage}}
+				<a href="/terms">
+					<i class="fa-solid fa-file-contract"></i>
+					<span>{{msg.footer_terms}}</span>
+				</a>
+			{{/hasTermsPage}}
+			{{#hasPrivacyPage}}
+				<a href="/privacy">
+					<i class="fa-solid fa-user-shield"></i>
+					<span>{{msg.footer_privacy}}</span>
+				</a>
+			{{/hasPrivacyPage}}
+			{{#footerExtraLinks}}
+				<a href="{{url}}"{{#external}} target="_blank" rel="noopener noreferrer"{{/external}}>
+					<i class="{{icon}}"></i>
+					<span>{{title}}</span>
+				</a>
+			{{/footerExtraLinks}}
+			{{#pluginsUrl}}
+				<a href="{{pluginsUrl}}" target="_blank" rel="noopener noreferrer">
+					<i class="fa-solid fa-puzzle-piece"></i>
+					<span>{{msg.footer_plugins}}</span>
+				</a>
+			{{/pluginsUrl}}
+			{{#developersUrl}}
+				<a href="{{developersUrl}}" target="_blank" rel="noopener noreferrer">
+					<i class="fa-solid fa-code"></i>
+					<span>{{msg.footer_developers}}</span>
+				</a>
+			{{/developersUrl}}
+		</nav>
 		<div class="footer-social">
 			<a href="https://github.com/Darkrock-Studios/hammer-editor" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_github}}">
 				<i class="fa-brands fa-github"></i>

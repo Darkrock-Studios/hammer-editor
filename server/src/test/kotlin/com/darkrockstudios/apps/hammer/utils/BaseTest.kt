@@ -174,7 +174,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single<DeleteProjectUseCase> { mockk(relaxed = true) }
 				single { RecurringTaskRegistry() }
 				single<HealthService> { mockk(relaxed = true) }
-				single { BlogFeedRepository(null) }
+				single { BlogFeedRepository() }
 				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 					mockk(relaxed = true)
 				}

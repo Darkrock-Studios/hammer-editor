@@ -11,6 +11,7 @@ import kotlin.time.Instant
  * @param nextRun scheduled start time of the next tick (null while stopped).
  * @param lastTickFailed whether the most recent tick threw.
  * @param lastError message from the most recent failure, if any.
+ * @param affectsHealth whether a failure of this task fails the server's health report.
  */
 data class RecurringTaskStatus(
 	val name: String,
@@ -19,4 +20,5 @@ data class RecurringTaskStatus(
 	val nextRun: Instant?,
 	val lastTickFailed: Boolean,
 	val lastError: String?,
+	val affectsHealth: Boolean = true,
 )

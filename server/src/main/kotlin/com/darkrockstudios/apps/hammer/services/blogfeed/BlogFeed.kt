@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.services.blogfeed
 
-import com.darkrockstudios.apps.hammer.isHttpUrl
+import com.darkrockstudios.apps.hammer.utilities.isHttpUrl
 import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
 import java.time.OffsetDateTime

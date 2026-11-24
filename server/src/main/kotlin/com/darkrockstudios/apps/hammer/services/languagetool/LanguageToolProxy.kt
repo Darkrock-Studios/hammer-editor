@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.services.languagetool
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.services.PerUserRateLimiter
+import com.darkrockstudios.apps.hammer.utilities.outboundHttpClient
+import com.darkrockstudios.apps.hammer.utilities.readCapped
 import io.ktor.client.*
 import io.ktor.client.engine.java.*
 import io.ktor.client.plugins.*
@@ -13,7 +15,6 @@ import io.ktor.http.*
 import io.ktor.utils.io.*
 import java.io.IOException
 import java.nio.channels.UnresolvedAddressException
-import kotlinx.io.readByteArray
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration
 
@@ -59,8 +60,8 @@ class LanguageToolProxy(
 
 	private suspend fun upstream(what: String, send: suspend () -> HttpResponse): Result = try {
 		val response = send()
-		val body = response.bodyAsChannel().readBuffer(MAX_REPLY_BYTES + 1).readByteArray()
-		if (body.size > MAX_REPLY_BYTES) {
+		val body = response.readCapped(MAX_REPLY_BYTES)
+		if (body == null) {
 			log.warn("LanguageTool $what reply over $MAX_REPLY_BYTES bytes")
 			Result.Failed("reply too large")
 		} else {
@@ -93,13 +94,6 @@ class LanguageToolProxy(
 				.forEach { (name, values) -> appendAll(name, values) }
 		}
 
-		private fun createUpstreamClient() = HttpClient(Java) {
-			expectSuccess = false
-			followRedirects = false
-			install(HttpTimeout) {
-				connectTimeoutMillis = 5_000
-				requestTimeoutMillis = 30_000
-			}
-		}
+		private fun createUpstreamClient() = outboundHttpClient(requestTimeoutMillis = 30_000)
 	}
 }

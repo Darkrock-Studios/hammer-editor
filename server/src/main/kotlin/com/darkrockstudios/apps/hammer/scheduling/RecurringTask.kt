@@ -63,6 +63,12 @@ abstract class RecurringTask(
 	 */
 	protected open suspend fun errorBackoff(): Duration = DEFAULT_ERROR_BACKOFF
 
+	/**
+	 * False for a job whose failures don't mean the server is unhealthy, such as one that depends
+	 * on another site. Its failures still show in [status], and are logged as warnings.
+	 */
+	protected open val affectsHealth: Boolean = true
+
 	fun isRunning(): Boolean = job?.isActive == true
 
 	/** A point-in-time snapshot of this task's liveness and schedule, for the admin dashboard. */
@@ -73,6 +79,7 @@ abstract class RecurringTask(
 		nextRun = nextRun,
 		lastTickFailed = lastTickFailed,
 		lastError = lastError,
+		affectsHealth = affectsHealth,
 	)
 
 	fun start(scope: CoroutineScope) {
@@ -106,7 +113,11 @@ abstract class RecurringTask(
 				throw e
 				// Background loop must survive any tick failure.
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				logger.error("Error in $name loop", e)
+				if (affectsHealth) {
+					logger.error("Error in $name loop", e)
+				} else {
+					logger.warn("$name failed: ${e::class.simpleName}: ${e.message}")
+				}
 				lastTickFailed = true
 				lastError = e.message ?: e::class.simpleName
 				errorBackoff()

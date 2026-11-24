@@ -114,6 +114,22 @@ class HealthServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `a failed job that does not affect health is reported but keeps the server ok`() = runTest {
+		val optional = object : RecurringTask("Blog feed refresh job", logger, clock) {
+			override val affectsHealth = false
+			override suspend fun tick() = error("feed down")
+			override suspend fun nextDelay() = 1.hours
+		}
+		launch(optional)
+
+		val report = service().report()
+
+		assertEquals(JobState.FAILED, report.jobs.getValue("blog-feed-refresh").status)
+		assertEquals("feed down", report.jobs.getValue("blog-feed-refresh").error)
+		assertTrue(report.ok)
+	}
+
+	@Test
 	fun `a registered job that is not running is stopped`() = runTest {
 		registry.register(task("Whitelist expiry job"))
 

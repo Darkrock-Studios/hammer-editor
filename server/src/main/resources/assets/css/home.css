@@ -449,6 +449,13 @@
 	color: var(--ink);
 }
 
+.feat-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem 1.5rem;
+	margin: 1rem 0 0;
+}
+
 /* ========================================
    Principles
    ======================================== */
@@ -542,9 +549,15 @@
 	background: var(--neutral-800);
 }
 
-/* Image and play button share the one grid cell, so the button sits centred on the picture. */
+/* Image and play button share the one grid cell; the button sits in the corner, clear of the artwork. */
 .video-card__thumb > * {
 	grid-area: 1 / 1;
+}
+
+.video-card__thumb .video-card__play {
+	align-self: end;
+	justify-self: end;
+	margin: 0.9rem;
 }
 
 .video-card__thumb img {

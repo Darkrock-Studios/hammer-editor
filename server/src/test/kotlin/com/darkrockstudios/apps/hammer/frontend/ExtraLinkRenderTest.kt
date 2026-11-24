@@ -42,7 +42,7 @@ class ExtraLinkRenderTest {
 	fun `footer renders a configured extra link`() {
 		val html = render(
 			"footer.mustache",
-			mapOf("hasFooterNav" to true, "footerExtraLinks" to listOf(link())),
+			mapOf("footerExtraLinks" to listOf(link())),
 		)
 
 		assertTrue(html.contains("""href="/blog""""), html)
@@ -54,7 +54,6 @@ class ExtraLinkRenderTest {
 		val html = render(
 			"footer.mustache",
 			mapOf(
-				"hasFooterNav" to true,
 				"footerExtraLinks" to listOf(link(url = "https://blog.example.com", external = true)),
 			),
 		)
@@ -67,7 +66,7 @@ class ExtraLinkRenderTest {
 	fun `a site-relative link stays in the tab`() {
 		val html = render(
 			"footer.mustache",
-			mapOf("hasFooterNav" to true, "footerExtraLinks" to listOf(link())),
+			mapOf("footerExtraLinks" to listOf(link())),
 		)
 
 		assertFalse(html.substringBefore("footer-social").contains("""target="_blank""""), html)
@@ -81,7 +80,7 @@ class ExtraLinkRenderTest {
 	fun `no extra links leaves the footer nav with only its built-in entries`() {
 		val html = render(
 			"footer.mustache",
-			mapOf("hasFooterNav" to true, "hasAboutPage" to true, "footerExtraLinks" to emptyList<Any>()),
+			mapOf("hasAboutPage" to true, "footerExtraLinks" to emptyList<Any>()),
 		)
 
 		val nav = nav(html, "footer-nav")
@@ -93,7 +92,7 @@ class ExtraLinkRenderTest {
 	fun `an extra link adds exactly one footer nav entry`() {
 		val html = render(
 			"footer.mustache",
-			mapOf("hasFooterNav" to true, "hasAboutPage" to true, "footerExtraLinks" to listOf(link())),
+			mapOf("hasAboutPage" to true, "footerExtraLinks" to listOf(link())),
 		)
 
 		val nav = nav(html, "footer-nav")
@@ -114,7 +113,6 @@ class ExtraLinkRenderTest {
 		val html = render(
 			"footer.mustache",
 			mapOf(
-				"hasFooterNav" to true,
 				"footerExtraLinks" to listOf(link(title = """<script>alert(1)</script>""")),
 			),
 		)

@@ -152,7 +152,7 @@ class HomePageTest : BaseTest() {
 	)
 
 	@Test
-	fun `GET lists the three newest posts outside the featured category`() = testApplication {
+	fun `GET lists the four newest posts outside the featured category`() = testApplication {
 		mockPageModelDependencies("")
 		configureApp(
 			feed = BlogFeed(
@@ -163,6 +163,7 @@ class HomePageTest : BaseTest() {
 					post("Second", "second"),
 					post("Third", "third", "news"),
 					post("Fourth", "fourth", "news"),
+					post("Fifth", "fifth", "news"),
 				),
 			)
 		)
@@ -171,9 +172,9 @@ class HomePageTest : BaseTest() {
 		val latest = body.substringAfter("class=\"posts\"").substringBefore("</ul>")
 
 		assertContains(latest, "href=\"https://blog.example.com/first\"")
-		assertContains(latest, "Third")
+		assertContains(latest, "Fourth")
 		assertContains(latest, "Nov 16, 2026")
-		assertFalse(latest.contains("Fourth"))
+		assertFalse(latest.contains("Fifth"))
 		assertFalse(latest.contains("A Principle"))
 		assertContains(body, "href=\"https://blog.example.com/\"")
 	}

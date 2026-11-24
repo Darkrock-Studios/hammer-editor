@@ -53,7 +53,7 @@ private val LINKED_PRINCIPLE_URLS = setOf(
 /** Blog posts in this category are linked under the principles instead of listed as news. */
 private const val BLOG_PRINCIPLES_CATEGORY = "principles"
 
-private const val LATEST_POST_COUNT = 3
+private const val LATEST_POST_COUNT = 4
 private val POST_DATE_FORMAT = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 fun Route.homePage(

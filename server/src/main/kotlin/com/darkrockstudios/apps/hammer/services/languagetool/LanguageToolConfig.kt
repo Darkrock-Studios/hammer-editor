@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.services.languagetool
 
+import com.darkrockstudios.apps.hammer.utilities.isHttpUrl
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -23,10 +24,7 @@ data class LanguageToolConfig(
 
 	companion object {
 		/** An absolute http(s) address, or null when [url] isn't one. */
-		fun validUrl(url: String): String? = url.trim().takeIf {
-			runCatching { java.net.URI(it) }.getOrNull()
-				?.let { uri -> uri.scheme in setOf("http", "https") && !uri.host.isNullOrBlank() } == true
-		}
+		fun validUrl(url: String): String? = url.trim().takeIf(::isHttpUrl)
 
 		const val DEFAULT_REQUESTS_PER_MINUTE = 60
 		const val DEFAULT_MAX_REQUEST_BYTES = 100_000

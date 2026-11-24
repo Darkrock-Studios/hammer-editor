@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ExtraLink
+import com.darkrockstudios.apps.hammer.HammerLinks
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
@@ -456,7 +457,8 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	val footerExtraLinks = serverConfig.extraLinks.filter { it.placement.inFooter }.map { it.toModel(locale) }
 	model["headerExtraLinks"] = serverConfig.extraLinks.filter { it.placement.inHeader }.map { it.toModel(locale) }
 	model["footerExtraLinks"] = footerExtraLinks
-	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage || footerExtraLinks.isNotEmpty()
+	model["pluginsUrl"] = HammerLinks.PLUGINS
+	model["developersUrl"] = HammerLinks.DEVELOPERS
 
 	putAllowedUsersNotice(model, NoticeSlot.FOOTER, htmlKey = "footerNoticeHtml", providedKey = "footerNoticeProvided")
 

@@ -53,13 +53,4 @@ class BlogFeedRepositoryTest {
 
 		assertEquals(listOf("Hello"), repository.current()?.posts?.map { it.title })
 	}
-
-	@Test
-	fun `refresh does nothing when no feed is configured`() = runTest {
-		val repository = BlogFeedRepository(null) { error("no client expected") }
-
-		repository.refresh()
-
-		assertNull(repository.current())
-	}
 }
