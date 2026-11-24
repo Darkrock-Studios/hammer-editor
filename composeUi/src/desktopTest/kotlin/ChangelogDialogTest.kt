@@ -30,6 +30,7 @@ class ChangelogDialogTest {
 
 		override val changelog: Value<ProjectSelection.ChangelogState> = MutableValue(state)
 		override val appUpdate: Value<AppUpdateState> = MutableValue(AppUpdateState.Unsupported)
+		override val introStage: Value<ProjectSelection.IntroStage> = MutableValue(ProjectSelection.IntroStage.Done)
 
 		override fun dismissChangelog() {
 			dismissCount++

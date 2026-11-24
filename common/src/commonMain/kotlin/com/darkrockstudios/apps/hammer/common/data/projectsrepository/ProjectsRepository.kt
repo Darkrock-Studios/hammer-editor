@@ -367,6 +367,15 @@ class ProjectsRepository(
 			.mapNotNull { loadProjectDef(it.name, it.dir) }
 			.firstOrNull { it.id == projectId }
 
+	/**
+	 * Whether [name] is a project and nothing else is, counting folders of project files that lack
+	 * a [ProjectMetadata.FILENAME]. Reads directory listings only, never project files.
+	 */
+	fun isOnlyProject(name: String): Boolean {
+		val scan = scan(stopAt = { it.name != name })
+		return scan.projects.any { it.name == name } && (scan.projects + scan.unmarked).all { it.name == name }
+	}
+
 	fun findProject(projectName: String): ProjectDef? =
 		scan().projects.asSequence()
 			.filter { it.name == projectName }
@@ -468,14 +477,21 @@ class ProjectsRepository(
 	 * Groups end at [MAX_GROUP_NESTING_DEPTH]. Each directory is listed once, and a marker is only
 	 * looked at when that listing holds its name.
 	 */
-	private fun scan(dir: Path = getProjectsDirectory().toOkioPath(), depth: Int = 1): Scan {
+	/** With [stopAt], the walk ends at the first project or unmarked folder it matches, leaving the rest unread. */
+	private fun scan(
+		dir: Path = getProjectsDirectory().toOkioPath(),
+		depth: Int = 1,
+		stopAt: ((ScannedDir) -> Boolean)? = null,
+	): Scan {
 		val groups = mutableListOf<ScannedDir>()
 		val projects = mutableListOf<ScannedDir>()
 		val unmarked = mutableListOf<ScannedDir>()
+		var stopped = false
 
 		fun visit(entries: List<Path>, parentGroup: Path?, entryDepth: Int): Boolean {
 			var found = false
 			for (entry in entries) {
+				if (stopped) break
 				if (entry.name.startsWith('.')) continue
 				if (fileSystem.metadataOrNull(entry)?.isDirectory != true) continue
 				val name = decodeFromFilename(entry.name)
@@ -493,6 +509,7 @@ class ProjectsRepository(
 					marker?.isRegularFile == true -> {
 						projects += scanned
 						found = true
+						if (stopAt?.invoke(scanned) == true) stopped = true
 					}
 					// A project.toml in another form is the metadata datasource's to recover.
 					marker != null -> Unit
@@ -506,6 +523,7 @@ class ProjectsRepository(
 					hasProjectContent(entry, listing) -> {
 						unmarked += scanned
 						found = true
+						if (stopAt?.invoke(scanned) == true) stopped = true
 					}
 					entryDepth <= MAX_GROUP_NESTING_DEPTH -> {
 						val index = groups.size

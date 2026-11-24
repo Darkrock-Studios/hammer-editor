@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxDatasource
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
+import com.darkrockstudios.apps.hammer.common.data.nux.ResolveIntroUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
@@ -251,6 +252,7 @@ val mainModule = module {
 	single<GlobalSettingsStore>()
 	single<NuxFilesystemDatasource>() bind NuxDatasource::class
 	single { NuxRepository(get(), get()) }
+	factory<ResolveIntroUseCase>()
 	single<ProjectPluginsDatasource>()
 	single<ProjectPluginsRepository>()
 

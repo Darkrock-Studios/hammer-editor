@@ -57,6 +57,12 @@ import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiPlu
 import com.darkrockstudios.apps.hammer.common.preview.storyideas.StoryIdeaConfirmsPreview
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.LocalSystemTheme
@@ -94,6 +100,8 @@ import com.darkrockstudios.apps.hammer.common.preview.ScreenCreateEntryPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTipPreview
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
+import com.darkrockstudios.apps.hammer.common.components.intro.Intro
+import com.darkrockstudios.apps.hammer.common.preview.intro.ScreenIntroUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.CreateSceneDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneRenameDialogScrimPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneDeleteConfirmScrimPreview
@@ -239,6 +247,20 @@ class ScreenGalleryTest {
 		surfaced("Story idea conflict") { ProjectsSyncDialogPreview(ideaConflict = true) },
 		surfaced("Out of date dialog, app") { ProtocolMismatchDialogPreview() },
 		surfaced("Out of date dialog, server") { ProtocolMismatchDialogPreview(clientIsBehind = false) },
+		*Intro.Slide.entries.map { slide ->
+			val name = if (slide == Intro.Slide.Example) "example project" else slide.name.lowercase()
+			screen("Intro, $name") { ScreenIntroUiTabletPreview(slide) }
+		}.toTypedArray(),
+		screen("Intro, welcome, 840x670 window", note = "Drawn top-left at that size; phone canvases crop it.") {
+			Box(Modifier.wrapContentSize(Alignment.TopStart, unbounded = true).requiredSize(840.dp, 670.dp)) {
+				ScreenIntroUiTabletPreview(Intro.Slide.Welcome)
+			}
+		},
+		screen("Intro, welcome, 1024x640 window", note = "Drawn top-left at that size; phone canvases crop it.") {
+			Box(Modifier.wrapContentSize(Alignment.TopStart, unbounded = true).requiredSize(1024.dp, 640.dp)) {
+				ScreenIntroUiTabletPreview(Intro.Slide.Welcome)
+			}
+		},
 		screen("Project selection shell") { ScreenProjectSelectShellTabletPreview() },
 		screen("Project selection shell, rail expanded") { ScreenProjectSelectShellTabletPreview(railExpanded = true) },
 		screen("Project shell") { ScreenProjectShellTabletPreview() },

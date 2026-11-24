@@ -4,6 +4,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.components.intro.Intro
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
@@ -18,6 +19,9 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 	val navRailState: Value<NavRailState>
 	val changelog: Value<ChangelogState>
 	val appUpdate: Value<AppUpdateState>
+
+	/** The first-run intro, shown in place of the whole screen while [IntroStage.Showing]. */
+	val introStage: Value<IntroStage>
 
 	fun isAtRoot(): Boolean
 	fun onBack()
@@ -73,6 +77,16 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 
 		@Serializable
 		data object AboutApp : Config(Locations.AboutApp)
+	}
+
+	@Serializable
+	data object IntroConfig
+
+	sealed interface IntroStage {
+		/** Startup is working out whether to show the intro; the screen waits rather than flash the project list. */
+		data object Deciding : IntroStage
+		data class Showing(val intro: Intro) : IntroStage
+		data object Done : IntroStage
 	}
 
 	sealed class Destination {

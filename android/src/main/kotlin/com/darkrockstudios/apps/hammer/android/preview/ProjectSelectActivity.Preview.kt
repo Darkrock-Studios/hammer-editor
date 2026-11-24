@@ -117,6 +117,8 @@ val component = object : ProjectSelection {
 
 	override val appUpdate: Value<AppUpdateState> = MutableValue(AppUpdateState.Unsupported)
 
+	override val introStage: Value<ProjectSelection.IntroStage> = MutableValue(ProjectSelection.IntroStage.Done)
+
 	override fun isAtRoot() = false
 	override fun onBack() {}
 	override fun showLocation(location: ProjectSelection.Locations) {}
