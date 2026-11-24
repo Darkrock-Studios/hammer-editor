@@ -82,7 +82,15 @@ class NuxRepository(
 
 	fun markSeen(hint: NuxHint) = edit { it.copy(seenHints = it.seenHints + hint.id) }
 
-	/** Brings back every hint, turning tips on so they can show. */
+	/** Whether the first-run intro has been dealt with. Reads the file on first use, off the calling thread. */
+	suspend fun isIntroShown(): Boolean {
+		ensureLoaded()
+		return state.value?.introShown ?: false
+	}
+
+	fun markIntroShown() = edit { it.copy(introShown = true) }
+
+	/** Brings back every hint, turning tips on so they can show. The intro stays done. */
 	fun resetHints() {
 		edit { it.copy(seenHints = emptySet()) }
 		setTipsEnabled(true)

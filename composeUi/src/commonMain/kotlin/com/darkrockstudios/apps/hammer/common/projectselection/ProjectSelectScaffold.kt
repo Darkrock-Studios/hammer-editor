@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.rootElement
+import com.darkrockstudios.apps.hammer.common.intro.IntroGate
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.darkrockstudios.cairn.CairnAboutOverlay
 import com.darkrockstudios.cairn.CairnAppId
@@ -35,6 +36,17 @@ import com.darkrockstudios.cairn.CairnConfig
 )
 @Composable
 fun ProjectSelectScaffold(component: ProjectSelection) {
+	IntroGate(component) {
+		ProjectSelectShell(component)
+	}
+}
+
+@OptIn(
+	ExperimentalMaterialApi::class,
+	ExperimentalComposeApi::class,
+)
+@Composable
+private fun ProjectSelectShell(component: ProjectSelection) {
 	var showStudio by remember { mutableStateOf(false) }
 
 	// The overlay is hoisted above the nav rail/bottom bar so its ceremony

@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.intro.IntroGate
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
@@ -100,7 +101,9 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 			// Tao windows are their own ComposeScene: locals provided outside the
 			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
-				Content(component)
+				IntroGate(component) {
+					Content(component)
+				}
 			}
 		}
 	}

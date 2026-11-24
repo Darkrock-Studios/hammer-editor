@@ -331,6 +331,24 @@ class NuxRepositoryTest : BaseTest() {
 
 		assertEquals(0, recording.accesses)
 	}
+
+	@Test
+	fun `Resetting tips leaves the intro done`() = runTest(mainTestDispatcher) {
+		val repository = createRepository()
+		repository.markIntroShown()
+		advanceUntilIdle()
+
+		repository.resetHints()
+		advanceUntilIdle()
+
+		assertTrue(createRepository().isIntroShown())
+		assertTrue(storedState().introShown)
+	}
+
+	@Test
+	fun `A fresh install has not shown the intro`() = runTest(mainTestDispatcher) {
+		assertFalse(createRepository().isIntroShown())
+	}
 }
 
 /** Counts every file access, and fails reads or writes on request, as a full or locked disk would. */
