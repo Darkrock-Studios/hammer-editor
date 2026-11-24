@@ -17,6 +17,9 @@ import XCTest
 /// Compose `testTag` values, mirrored from the Kotlin sources so the tests read like their
 /// Android counterparts. Keep these in sync with the `const val ..._TAG` declarations.
 enum Tag {
+    // First-run intro (composeUi .../intro)
+    static let introSkip = "intro-skip-button"                  // IntroUi.kt
+
     // Project selection (composeUi .../projectselection)
     static let createProjectButton = "create-project-button"   // ProjectListUi.kt
     static let createProjectName = "create-project-name"        // ProjectCreateDialog.kt
@@ -58,6 +61,7 @@ class HammerUITest: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--uitesting"]
         app.launch()
+        skipIntroIfShown()
     }
 
     override func tearDownWithError() throws {
@@ -264,6 +268,14 @@ class HammerUITest: XCTestCase {
     }
 
     // MARK: - Shared flows
+
+    /// A fresh install opens on the first-run intro; skip it to reach project selection.
+    private func skipIntroIfShown() {
+        let skip = element(Tag.introSkip)
+        let create = element(Tag.createProjectButton)
+        guard poll({ skip.exists || create.exists }, timeout: HammerUITest.defaultTimeout), skip.exists else { return }
+        tapUntil(skip, until: { !skip.exists })
+    }
 
     /// A unique project name so re-runs (and a persistent simulator) don't collide — mirrors
     /// `EditorTestHarness.seedProject` on Android using a uniquely-suffixed name.
