@@ -1,5 +1,6 @@
 package synchronizer.operations
 
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncStatisticsRefresher
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -36,6 +37,9 @@ class IdConflictResolutionOperationTest : BaseTest() {
 
 	private lateinit var strRes: TestStrRes
 
+	@MockK(relaxed = true)
+	private lateinit var syncStatisticsRefresher: SyncStatisticsRefresher
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -61,6 +65,7 @@ class IdConflictResolutionOperationTest : BaseTest() {
 			projectDef = projectDef,
 			idAllocator = idAllocator,
 			entitySynchronizers = EntitySynchronizers(projectDef),
+			syncStatisticsRefresher = syncStatisticsRefresher,
 		)
 	}
 
@@ -113,6 +118,8 @@ class IdConflictResolutionOperationTest : BaseTest() {
 		)
 
 		coVerify { mockSynchronizers.sceneSynchronizer.deleteEntityLocal(11, any()) }
+		// The server deleted 11: the counts included it.
+		coVerify(exactly = 1) { syncStatisticsRefresher.contentChanged() }
 		coVerify { mockSynchronizers.sceneSynchronizer.reIdEntity(11, 12) }
 		assertEquals(listOf(projectDef to listOf(EntityIdChange(EntityType.Scene, 11, 12))), told)
 	}

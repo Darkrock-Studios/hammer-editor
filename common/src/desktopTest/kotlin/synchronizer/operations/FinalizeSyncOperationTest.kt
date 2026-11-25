@@ -1,5 +1,6 @@
 package synchronizer.operations
 
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncStatisticsRefresher
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
@@ -59,6 +60,9 @@ class FinalizeSyncOperationTest : BaseTest() {
 
 	private lateinit var clock: TestClock
 
+	@MockK(relaxed = true)
+	private lateinit var syncStatisticsRefresher: SyncStatisticsRefresher
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -91,6 +95,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 			syncJournalDatasource = syncJournalDatasource,
 			projectDataDatasource = projectDataDatasource,
 			idAllocator = idAllocator,
+			syncStatisticsRefresher = syncStatisticsRefresher,
 		)
 	}
 
@@ -151,6 +156,8 @@ class FinalizeSyncOperationTest : BaseTest() {
 			coVerify { synchronizer.finalizeSync() }
 		}
 		coVerify { serverProjectApi.endProjectSync(1L, projId, beganResponse.syncId, 12, clock.now()) }
+		// Whatever the sync changed is recounted once, at the end.
+		coVerify(exactly = 1) { syncStatisticsRefresher.refreshIfStale() }
 		// Downloaded ids may sit above the allocator's sync-start snapshot; it must re-derive.
 		coVerify { idAllocator.findNextId() }
 		coVerify { onComplete(true) }

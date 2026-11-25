@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.SlotAuthor
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
@@ -41,7 +40,7 @@ class WritingActivitySyncOperation(
 	private val tracker: WritingSessionTracker,
 	private val api: WritingActivityApi,
 	private val globalSettingsStore: GlobalSettingsStore,
-	private val statisticsRepository: StatisticsRepository,
+	private val syncStatisticsRefresher: SyncStatisticsRefresher,
 ) : SyncOperation(projectDef) {
 
 	// Auxiliary sync; must-not-crash boundary, failure logged and passed through.
@@ -88,7 +87,8 @@ class WritingActivitySyncOperation(
 			for (slot in response.slots) {
 				if (!isOwnSlot(slot) && repository.replaceRemoteSlot(slot)) changed = true
 			}
-			if (changed) statisticsRepository.markDirty()
+			// Written at once (a sync's scope can cancel a background write); the last step recounts.
+			if (changed) syncStatisticsRefresher.activityChanged()
 
 			val payload = DeviceLog(
 				deviceLabel = globalSettingsStore.deviceLabelOrDefault(),

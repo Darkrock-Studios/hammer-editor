@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivity
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncStatisticsRefresher
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransferState
@@ -46,7 +46,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK(relaxed = true)
-	private lateinit var statisticsRepository: StatisticsRepository
+	private lateinit var syncStatisticsRefresher: SyncStatisticsRefresher
 
 	private val projectDef = ProjectDef(
 		id = testProjectId("Test Project"),
@@ -84,7 +84,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		tracker = WritingSessionTracker(repository, Clock.System, projectDef),
 		api = api,
 		globalSettingsStore = globalSettingsStore,
-		statisticsRepository = statisticsRepository,
+		syncStatisticsRefresher = syncStatisticsRefresher,
 	)
 
 	private fun startState() = EntityTransferState(

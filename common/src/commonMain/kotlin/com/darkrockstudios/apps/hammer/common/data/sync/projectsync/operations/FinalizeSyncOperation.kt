@@ -28,6 +28,7 @@ class FinalizeSyncOperation(
 	private val syncJournalDatasource: SyncJournalDatasource,
 	private val projectDataDatasource: ProjectDataDatasource,
 	private val idAllocator: IdAllocator,
+	private val syncStatisticsRefresher: SyncStatisticsRefresher,
 ) : SyncOperation(projectDef) {
 
 	override suspend fun execute(
@@ -123,6 +124,9 @@ class FinalizeSyncOperation(
 				onLog(syncLogE(strRes.get(Res.string.sync_log_data_save_failed), projectDef))
 			}
 		}
+
+		// Recount once if the sync changed content or activity, so the project list is current.
+		syncStatisticsRefresher.refreshIfStale()
 
 		onProgress(1f, null)
 

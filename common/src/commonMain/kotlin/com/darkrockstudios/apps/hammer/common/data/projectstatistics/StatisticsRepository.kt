@@ -75,12 +75,23 @@ class StatisticsRepository(
 		if (_isDirty.value) return // Already dirty, no need to update
 
 		_isDirty.value = true
-		repositoryScope.launch {
-			val currentStats = statisticsDatasource.loadStatistics()
-			if (currentStats != null && !currentStats.isDirty) {
-				statisticsDatasource.saveStatistics(currentStats.copy(isDirty = true))
-				Napier.d("Statistics marked as dirty")
-			}
+		repositoryScope.launch { persistDirty() }
+	}
+
+	/**
+	 * As [markDirty], but written before returning. For a caller in a short-lived scope, such as a
+	 * sync, whose end could cancel [markDirty]'s background write and leave the cache looking current.
+	 */
+	suspend fun markDirtyNow() {
+		_isDirty.value = true
+		persistDirty()
+	}
+
+	private suspend fun persistDirty() {
+		val currentStats = statisticsDatasource.loadStatistics()
+		if (currentStats != null && !currentStats.isDirty) {
+			statisticsDatasource.saveStatistics(currentStats.copy(isDirty = true))
+			Napier.d("Statistics marked as dirty")
 		}
 	}
 

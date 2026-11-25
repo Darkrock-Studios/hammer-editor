@@ -13,6 +13,7 @@ class IdConflictResolutionOperation(
 	projectDef: ProjectDef,
 	private val idAllocator: IdAllocator,
 	private val entitySynchronizers: EntitySynchronizers,
+	private val syncStatisticsRefresher: SyncStatisticsRefresher,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
 		state: SyncOperationState,
@@ -160,6 +161,9 @@ class IdConflictResolutionOperation(
 	}
 
 	private suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
-		entitySynchronizers.findById(id)?.deleteEntityLocal(id, onLog)
+		val synchronizer = entitySynchronizers.findById(id) ?: return
+		synchronizer.deleteEntityLocal(id, onLog)
+		// The counts and appearances included what was just removed.
+		syncStatisticsRefresher.contentChanged()
 	}
 }

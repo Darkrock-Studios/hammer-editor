@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncStatisticsRefresher
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransferState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.verify
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
@@ -58,7 +59,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 	private lateinit var tracker: WritingSessionTracker
 	private val globalSettingsStore: GlobalSettingsStore = mockk(relaxed = true)
 	private val api: WritingActivityApi = mockk()
-	private val statisticsRepository: StatisticsRepository = mockk(relaxed = true)
+	private val syncStatisticsRefresher: SyncStatisticsRefresher = mockk(relaxed = true)
 	private val uploaded = slot<DeviceLog>()
 
 	private val projectDef = ProjectDef(
@@ -101,7 +102,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 			tracker = tracker,
 			api = api,
 			globalSettingsStore = globalSettingsStore,
-			statisticsRepository = statisticsRepository,
+			syncStatisticsRefresher = syncStatisticsRefresher,
 		)
 		val onProgress: suspend (Float, SyncLogMessage?) -> Unit = { _, _ -> }
 		val onLog: OnSyncLog = { }
@@ -189,7 +190,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 		assertTrue(uploaded.captured.sessions.isEmpty())
 		val theirs = repository.loadAllLogs().single { it.log.authorId == other }
 		assertEquals(listOf(session(9, 10)), theirs.log.sessions)
-		verify(exactly = 1) { statisticsRepository.markDirty() }
+		coVerify(exactly = 1) { syncStatisticsRefresher.activityChanged() }
 	}
 
 	@Test
@@ -211,10 +212,10 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 		val theirs = WritingActivitySlot("device-x", DeviceLog("Phone", listOf(session(8, 40)), other, "Their Pen"))
 
 		sync(theirs)
-		verify(exactly = 1) { statisticsRepository.markDirty() }
+		coVerify(exactly = 1) { syncStatisticsRefresher.activityChanged() }
 
 		sync(theirs)
-		verify(exactly = 1) { statisticsRepository.markDirty() }
+		coVerify(exactly = 1) { syncStatisticsRefresher.activityChanged() }
 	}
 
 	@Test
@@ -240,7 +241,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 		coEvery { api.getWritingActivity(any(), any()) } returns Result.success(
 			WritingActivityResponse(listOf(WritingActivitySlot(ownDeviceId, DeviceLog("Desktop", listOf(session(9, 40))))))
 		)
-		val operation = WritingActivitySyncOperation(projectDef, gated, tracker, api, globalSettingsStore, statisticsRepository)
+		val operation = WritingActivitySyncOperation(projectDef, gated, tracker, api, globalSettingsStore, syncStatisticsRefresher)
 		val syncing = launch { operation.execute(state(), { _, _ -> }, { }, mockk(relaxed = true)) { } }
 		saving.await()
 

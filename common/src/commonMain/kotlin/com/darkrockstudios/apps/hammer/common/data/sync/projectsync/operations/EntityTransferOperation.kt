@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransf
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncStatisticsRefresher
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
@@ -48,6 +49,7 @@ class EntityTransferOperation(
 	private val entitySynchronizers: EntitySynchronizers,
 	private val serverProjectApi: ServerProjectApi,
 	private val syncJournal: SyncJournal,
+	private val syncStatisticsRefresher: SyncStatisticsRefresher,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
 		state: SyncOperationState,
@@ -80,12 +82,15 @@ class EntityTransferOperation(
 				onLog
 			)
 		} else {
+			// Settling a conflict writes the chosen version here, which may be the server's text.
 			fullEntityTransfer(
 				transferState,
 				onProgress,
 				onLog,
-				onConflict
-			)
+			) { entity ->
+				if (entity.countsInStatistics()) syncStatisticsRefresher.contentChanged()
+				onConflict(entity)
+			}
 		}
 
 		onProgress(
@@ -333,6 +338,7 @@ class EntityTransferOperation(
 				// Lock the downloaded entity's hash in as the conflict baseline: it's exactly
 				// what the server holds, so a later local edit won't forge a phantom conflict.
 				syncJournal.recordSyncedHash(id, serverEntity.hash())
+				if (serverEntity.countsInStatistics()) syncStatisticsRefresher.contentChanged()
 				healServerIfEnriched(id, serverEntity, syncId, onLog)
 				onLog(
 					syncLogI(
@@ -470,3 +476,7 @@ class EntityTransferOperation(
 		val rewrittenIds: Set<Int>,
 	)
 }
+
+/** Scenes and encyclopedia entries feed the project's statistics and its reference index. */
+private fun ApiProjectEntity.countsInStatistics(): Boolean =
+	this is ApiProjectEntity.SceneEntity || this is ApiProjectEntity.EncyclopediaEntryEntity

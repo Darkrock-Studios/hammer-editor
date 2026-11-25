@@ -1,5 +1,6 @@
 package synchronizer.operations
 
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncStatisticsRefresher
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
@@ -47,6 +48,9 @@ class EntityTransferOperationTest : BaseTest() {
 
 	private lateinit var clock: TestClock
 
+	@MockK(relaxed = true)
+	private lateinit var syncStatisticsRefresher: SyncStatisticsRefresher
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -75,6 +79,7 @@ class EntityTransferOperationTest : BaseTest() {
 			strRes = strRes,
 			entitySynchronizers = EntitySynchronizers(projectDef),
 			syncJournal = syncJournal,
+			syncStatisticsRefresher = syncStatisticsRefresher,
 		)
 	}
 
@@ -506,6 +511,86 @@ class EntityTransferOperationTest : BaseTest() {
 		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
 		coVerify(exactly = 1) { mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any()) }
 		coVerify(exactly = 1) { syncJournal.recordSyncedHash(4, "matching-hash-4") }
+	}
+
+	@Test
+	fun `download - a stored scene marks the statistics stale`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { serverProjectApi.downloadEntity(any(), 4, any(), any()) } returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.SCENE
+				every { hash() } returns "hash-4"
+			})
+		)
+		coEvery { mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any()) } returns true
+
+		op.run(singleDownloadState(4))
+
+		coVerify(exactly = 1) { syncStatisticsRefresher.contentChanged() }
+	}
+
+	@Test
+	fun `download - a stored note leaves the statistics alone`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { serverProjectApi.downloadEntity(any(), 4, any(), any()) } returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.NoteEntity> {
+				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.NOTE
+				every { hash() } returns "hash-4"
+			})
+		)
+		coEvery { mockSynchronizers.noteSynchronizer.storeEntity(any(), any(), any()) } returns true
+
+		op.run(singleDownloadState(4))
+
+		coVerify(exactly = 0) { syncStatisticsRefresher.contentChanged() }
+	}
+
+	@Test
+	fun `download - a scene that fails to store leaves the statistics alone`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { serverProjectApi.downloadEntity(any(), 4, any(), any()) } returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.SCENE
+				every { hash() } returns "hash-4"
+			})
+		)
+		coEvery { mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any()) } returns false
+
+		op.run(singleDownloadState(4))
+
+		coVerify(exactly = 0) { syncStatisticsRefresher.contentChanged() }
+	}
+
+	@Test
+	fun `upload - a scene conflict marks the statistics stale and still reaches the user`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		val serverCopy = mockk<ApiProjectEntity.SceneEntity> {
+			every { id } returns 4
+			every { type } returns ApiProjectEntity.Type.SCENE
+		}
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		// The upload meets a conflict: the synchronizer hands the server's copy to the handler.
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), any(), any(), any(), any(), any())
+		} coAnswers {
+			arg<EntityConflictHandler<ApiProjectEntity.SceneEntity>>(3).invoke(serverCopy)
+			true
+		}
+		val shownToUser = mutableListOf<ApiProjectEntity>()
+
+		op.execute(
+			state = singleDownloadState(4, newClientIds = listOf(4)),
+			onProgress = { _, _ -> },
+			onLog = {},
+			onConflict = { shownToUser += it },
+			onComplete = {},
+		)
+
+		coVerify(exactly = 1) { syncStatisticsRefresher.contentChanged() }
+		assertEquals(listOf<ApiProjectEntity>(serverCopy), shownToUser)
 	}
 
 	@Test

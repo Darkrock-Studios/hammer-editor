@@ -69,15 +69,23 @@ class ReferenceIndexRepository(
 	fun markDirty() {
 		if (_isDirty.value) return
 		_isDirty.value = true
-		repositoryScope.launch {
-			val cached = datasource.loadIndex()
-			if (cached != null && !cached.isDirty) {
-				val updated = cached.copy(isDirty = true)
-				datasource.saveIndex(updated)
-				mutex.withLock { current = updated }
-				_indexFlow.emit(updated)
-				Napier.d("Reference index marked as dirty")
-			}
+		repositoryScope.launch { persistDirty() }
+	}
+
+	/** As [markDirty], but written before returning; see [com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository.markDirtyNow]. */
+	suspend fun markDirtyNow() {
+		_isDirty.value = true
+		persistDirty()
+	}
+
+	private suspend fun persistDirty() {
+		val cached = datasource.loadIndex()
+		if (cached != null && !cached.isDirty) {
+			val updated = cached.copy(isDirty = true)
+			datasource.saveIndex(updated)
+			mutex.withLock { current = updated }
+			_indexFlow.emit(updated)
+			Napier.d("Reference index marked as dirty")
 		}
 	}
 
