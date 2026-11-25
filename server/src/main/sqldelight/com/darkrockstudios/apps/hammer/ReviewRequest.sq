@@ -70,3 +70,23 @@ WHERE id = :id AND status = :expected;
 
 deleteAllForUser:
 DELETE FROM review_request WHERE user_id = :userId;
+
+-- Admin monitoring: where every request stands. "Expired" mirrors
+-- ReviewRepository's lazy expiry check: still open, but past its deadline.
+statusCounts:
+SELECT
+    COUNT(*) AS total,
+    COUNT(CASE WHEN status = 'sent' AND (expires IS NULL OR expires >= :now) THEN 1 END) AS waiting,
+    COUNT(CASE WHEN status IN ('opened', 'in_progress') AND (expires IS NULL OR expires >= :now) THEN 1 END) AS editing,
+    COUNT(CASE WHEN status IN ('sent', 'opened', 'in_progress') AND expires < :now THEN 1 END) AS expired,
+    COUNT(CASE WHEN status = 'submitted' THEN 1 END) AS awaiting_author,
+    COUNT(CASE WHEN status = 'resolved' THEN 1 END) AS resolved,
+    COUNT(CASE WHEN status = 'canceled' THEN 1 END) AS canceled,
+    COUNT(opened_at) AS opened,
+    COUNT(submitted_at) AS returned
+FROM review_request;
+
+-- Admin monitoring: lifecycle timestamps of requests with any milestone since :since.
+lifecycleSince:
+SELECT created, submitted_at, resolved_at FROM review_request
+WHERE created >= :since OR submitted_at >= :since OR resolved_at >= :since;

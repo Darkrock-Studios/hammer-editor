@@ -194,6 +194,149 @@
 				{{/hasReaders}}
 			</section>
 
+			<!-- Editor reviews: "request an editor" requests, from sent to resolved -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_reviews_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_mon_reviews_subtitle}}</p>
+				{{#hasReviews}}
+					<div class="mon-au-grid">
+						<article class="mon-au-card">
+							<header class="mon-au-card__window">{{msg.admin_mon_window_24h}}</header>
+							<div class="mon-au-card__stats mon-au-card__stats--triple">
+								<div class="mon-au-stat mon-au-stat--review-requested">
+									<span class="mon-au-stat__value">{{reviewsRequested24h}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-paper-plane"></i> {{msg.admin_mon_reviews_requested}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--review-returned">
+									<span class="mon-au-stat__value">{{reviewsReturned24h}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-envelope-open-text"></i> {{msg.admin_mon_reviews_returned}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--review-resolved">
+									<span class="mon-au-stat__value">{{reviewsResolved24h}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-check-double"></i> {{msg.admin_mon_reviews_resolved}}</span>
+								</div>
+							</div>
+						</article>
+						<article class="mon-au-card">
+							<header class="mon-au-card__window">{{msg.admin_mon_window_7d}}</header>
+							<div class="mon-au-card__stats mon-au-card__stats--triple">
+								<div class="mon-au-stat mon-au-stat--review-requested">
+									<span class="mon-au-stat__value">{{reviewsRequested7d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-paper-plane"></i> {{msg.admin_mon_reviews_requested}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--review-returned">
+									<span class="mon-au-stat__value">{{reviewsReturned7d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-envelope-open-text"></i> {{msg.admin_mon_reviews_returned}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--review-resolved">
+									<span class="mon-au-stat__value">{{reviewsResolved7d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-check-double"></i> {{msg.admin_mon_reviews_resolved}}</span>
+								</div>
+							</div>
+						</article>
+						<article class="mon-au-card">
+							<header class="mon-au-card__window">{{msg.admin_mon_window_30d}}</header>
+							<div class="mon-au-card__stats mon-au-card__stats--triple">
+								<div class="mon-au-stat mon-au-stat--review-requested">
+									<span class="mon-au-stat__value">{{reviewsRequested30d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-paper-plane"></i> {{msg.admin_mon_reviews_requested}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--review-returned">
+									<span class="mon-au-stat__value">{{reviewsReturned30d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-envelope-open-text"></i> {{msg.admin_mon_reviews_returned}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--review-resolved">
+									<span class="mon-au-stat__value">{{reviewsResolved30d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-check-double"></i> {{msg.admin_mon_reviews_resolved}}</span>
+								</div>
+							</div>
+						</article>
+					</div>
+
+					<h3 class="mon-users-trend-title">{{msg.admin_mon_reviews_standing}}</h3>
+					<div class="mon-review-bar" role="img" aria-label="{{msg.admin_mon_reviews_standing}}">
+						{{#reviewWaitingShown}}<span class="mon-review-bar__seg mon-review-seg--waiting" style="flex-grow: {{reviewWaitingShare}}"></span>{{/reviewWaitingShown}}
+						{{#reviewEditingShown}}<span class="mon-review-bar__seg mon-review-seg--editing" style="flex-grow: {{reviewEditingShare}}"></span>{{/reviewEditingShown}}
+						{{#reviewAwaitingShown}}<span class="mon-review-bar__seg mon-review-seg--awaiting" style="flex-grow: {{reviewAwaitingShare}}"></span>{{/reviewAwaitingShown}}
+						{{#reviewResolvedShown}}<span class="mon-review-bar__seg mon-review-seg--resolved" style="flex-grow: {{reviewResolvedShare}}"></span>{{/reviewResolvedShown}}
+						{{#reviewCanceledShown}}<span class="mon-review-bar__seg mon-review-seg--canceled" style="flex-grow: {{reviewCanceledShare}}"></span>{{/reviewCanceledShown}}
+						{{#reviewExpiredShown}}<span class="mon-review-bar__seg mon-review-seg--expired" style="flex-grow: {{reviewExpiredShare}}"></span>{{/reviewExpiredShown}}
+					</div>
+					<ul class="mon-review-legend">
+						<li class="mon-review-legend__item mon-review-seg--waiting">
+							<span class="mon-review-legend__swatch"></span>
+							<span class="mon-review-legend__name">{{msg.admin_mon_reviews_waiting}}</span>
+							<span class="mon-review-legend__count">{{reviewWaitingCount}}</span>
+						</li>
+						<li class="mon-review-legend__item mon-review-seg--editing">
+							<span class="mon-review-legend__swatch"></span>
+							<span class="mon-review-legend__name">{{msg.admin_mon_reviews_editing}}</span>
+							<span class="mon-review-legend__count">{{reviewEditingCount}}</span>
+						</li>
+						<li class="mon-review-legend__item mon-review-seg--awaiting">
+							<span class="mon-review-legend__swatch"></span>
+							<span class="mon-review-legend__name">{{msg.admin_mon_reviews_awaiting}}</span>
+							<span class="mon-review-legend__count">{{reviewAwaitingCount}}</span>
+						</li>
+						<li class="mon-review-legend__item mon-review-seg--resolved">
+							<span class="mon-review-legend__swatch"></span>
+							<span class="mon-review-legend__name">{{msg.admin_mon_reviews_resolved}}</span>
+							<span class="mon-review-legend__count">{{reviewResolvedCount}}</span>
+						</li>
+						<li class="mon-review-legend__item mon-review-seg--canceled">
+							<span class="mon-review-legend__swatch"></span>
+							<span class="mon-review-legend__name">{{msg.admin_mon_reviews_canceled}}</span>
+							<span class="mon-review-legend__count">{{reviewCanceledCount}}</span>
+						</li>
+						<li class="mon-review-legend__item mon-review-seg--expired">
+							<span class="mon-review-legend__swatch"></span>
+							<span class="mon-review-legend__name">{{msg.admin_mon_reviews_expired}}</span>
+							<span class="mon-review-legend__count">{{reviewExpiredCount}}</span>
+						</li>
+					</ul>
+
+					<dl class="mon-review-facts">
+						<div class="mon-review-fact">
+							<dt>{{msg.admin_mon_reviews_total}}</dt>
+							<dd>{{reviewsTotal}}</dd>
+						</div>
+						<div class="mon-review-fact">
+							<dt>{{msg.admin_mon_reviews_opened_rate}}</dt>
+							<dd>{{reviewsOpenedRate}}</dd>
+						</div>
+						<div class="mon-review-fact">
+							<dt>{{msg.admin_mon_reviews_returned_rate}}</dt>
+							<dd>{{reviewsReturnedRate}}</dd>
+						</div>
+						<div class="mon-review-fact">
+							<dt>{{msg.admin_mon_reviews_turnaround}}</dt>
+							<dd>{{reviewsTurnaround}}</dd>
+							<p class="mon-review-fact__note">{{msg.admin_mon_reviews_turnaround_note}}</p>
+						</div>
+					</dl>
+
+					<h3 class="mon-users-trend-title">{{msg.admin_mon_reviews_trend}}</h3>
+					<div class="mon-chart" id="mon-reviews-chart"></div>
+				{{/hasReviews}}
+				{{^hasReviews}}
+					<div class="empty-state">
+						<div class="empty-state__icon">✍️</div>
+						<p>{{msg.admin_mon_no_data}}</p>
+					</div>
+				{{/hasReviews}}
+			</section>
+
 			<!-- Traffic chart -->
 			<section class="paper-section">
 				<div class="section-header">
@@ -296,6 +439,29 @@
 			type: "line",
 			height: 240,
 			colors: ["#d97706"],
+			axisOptions: { xAxisMode: "tick", xIsSeries: true },
+			lineOptions: { hideDots: 0, regionFill: 0 }
+		});
+	})();
+	(function () {
+		var el = document.getElementById("mon-reviews-chart");
+		if (!el) return;
+		var data = {{{reviewsChartJson}}};
+		if (!data.labels || !data.labels.length) return;
+		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
+		if (!ChartCtor) return;
+		new ChartCtor(el, {
+			data: {
+				labels: data.labels,
+				datasets: [
+					{ name: "{{msg.admin_mon_reviews_requested}}", values: data.requested },
+					{ name: "{{msg.admin_mon_reviews_returned}}", values: data.returned },
+					{ name: "{{msg.admin_mon_reviews_resolved}}", values: data.resolved }
+				]
+			},
+			type: "line",
+			height: 240,
+			colors: ["#d97706", "#2563eb", "#10b981"],
 			axisOptions: { xAxisMode: "tick", xIsSeries: true },
 			lineOptions: { hideDots: 0, regionFill: 0 }
 		});

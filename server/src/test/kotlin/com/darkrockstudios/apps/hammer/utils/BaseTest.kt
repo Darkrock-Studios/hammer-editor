@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
+import com.darkrockstudios.apps.hammer.monitoring.ReviewStatsRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
@@ -162,6 +163,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single<UserActivityRepository> { mockk(relaxed = true) }
 				single<UserActivityCollector> { mockk(relaxed = true) }
 				single<StoryReaderRepository> { mockk(relaxed = true) }
+				single<ReviewStatsRepository> { mockk(relaxed = true) }
 				single<StoryReaderCollector> { mockk(relaxed = true) }
 				single<StoryKudosRepository> { mockk(relaxed = true) }
 				// The story image routes inject these; a test module that defines its own overrides them.
