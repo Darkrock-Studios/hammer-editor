@@ -1960,9 +1960,9 @@ cannot load, the command exits with an error rather than reading input.
   fuel, interrupts, the stack, memory and table caps, and the guest heap. A
   module chasm-jit cannot compile, such as one using SIMD, is interpreted
   instead, with a warning logged. Compiling costs load time and wins it back on
-  heavy calls: `harper-grammar` on a Pixel release build with chasm 2.4.0 loaded
-  in 1.96 s rather than 367 ms, and a 300-paragraph check took 0.39 s rather
-  than 3.1 s. Its tests are `androidDeviceTest`s, since only ART runs DEX:
+  heavy calls: `harper-grammar` on a Pixel release build loads in 0.57 s rather
+  than 0.37 s, its first 300-paragraph check, which builds the linter, takes
+  5.7 s rather than 33 s, and later ones 0.37 s rather than 3.1 s. Its tests are `androidDeviceTest`s, since only ART runs DEX:
   `./gradlew :plugins:wasmhost:connectedAndroidDeviceTest`.
 - **Stopping a runaway module.** Each module runs in a chasm store that meters
   fuel: a check at every function entry and loop iteration takes a unit, and
