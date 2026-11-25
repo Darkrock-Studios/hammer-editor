@@ -814,6 +814,30 @@ class SceneListComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `a scene create that throws still clears the request`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.createScene(any(), any()) } throws IllegalStateException("write failed")
+		val comp = startedWithPopulatedSummary()
+		comp.beginCreate(SceneList.CreateRequest.Kind.Scene, group)
+
+		assertFailsWith<IllegalStateException> { comp.createScene(group, "New Scene") }
+		advanceUntilIdle()
+
+		assertNull(comp.state.value.createRequest)
+	}
+
+	@Test
+	fun `a group create that throws still clears the request`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.createGroup(any(), any()) } throws IllegalStateException("write failed")
+		val comp = startedWithPopulatedSummary()
+		comp.beginCreate(SceneList.CreateRequest.Kind.Group, group)
+
+		assertFailsWith<IllegalStateException> { comp.createGroup(group, "Part Two") }
+		advanceUntilIdle()
+
+		assertNull(comp.state.value.createRequest)
+	}
+
+	@Test
 	fun `dismissing clears the request`() = runTest(mainTestDispatcher) {
 		val comp = startedWithPopulatedSummary()
 		comp.beginCreate(SceneList.CreateRequest.Kind.Group, group)

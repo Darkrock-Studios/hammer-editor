@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import io.github.aakira.napier.Napier
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.combine
@@ -170,8 +171,11 @@ class SceneListComponent(
 			parent
 		}
 
-		val newSceneItem = projectEditor.createScene(foundParent, sceneName)
-		withContext(dispatcherMain) { dismissCreate() }
+		val newSceneItem = try {
+			projectEditor.createScene(foundParent, sceneName)
+		} finally {
+			withContext(NonCancellable + dispatcherMain) { dismissCreate() }
+		}
 		if (newSceneItem != null) {
 			Napier.i("Scene created: $sceneName")
 			openSceneEditor(newSceneItem)
@@ -187,8 +191,11 @@ class SceneListComponent(
 			parent
 		}
 
-		val newSceneItem = projectEditor.createGroup(foundParent, groupName)
-		withContext(dispatcherMain) { dismissCreate() }
+		val newSceneItem = try {
+			projectEditor.createGroup(foundParent, groupName)
+		} finally {
+			withContext(NonCancellable + dispatcherMain) { dismissCreate() }
+		}
 		if (newSceneItem != null) {
 			Napier.i("Group created: $groupName")
 		} else {

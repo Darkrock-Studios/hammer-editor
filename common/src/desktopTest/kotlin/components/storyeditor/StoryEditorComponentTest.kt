@@ -599,6 +599,34 @@ class StoryEditorComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `Mod+Shift+R while reading goes back to editing the scene being read`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		comp.showReader(sceneItem(2))
+		advanceUntilIdle()
+		comp.reader().scrollHandled()
+
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.R, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertEquals(2, comp.openSceneId())
+	}
+
+	@Test
+	fun `Mod+Shift+R while reading a story with no scenes closes the reader`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneTree() } returns treeOf()
+		val comp = newComponent()
+		context.resume()
+		comp.showReader(null)
+		advanceUntilIdle()
+
+		registry.dispatch(KeyChord.mod(ChordKey.R, shift = true))
+		advanceUntilIdle()
+
+		assertFalse(comp.isDetailShown())
+	}
+
+	@Test
 	fun `next and previous are not live without an open scene`() = runTest(mainTestDispatcher) {
 		startedStoryEditor()
 		advanceUntilIdle()

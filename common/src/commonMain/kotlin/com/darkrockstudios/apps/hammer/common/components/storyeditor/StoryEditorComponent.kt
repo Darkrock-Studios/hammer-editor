@@ -121,7 +121,7 @@ class StoryEditorComponent(
 				HammerActions.StoryNextGroup.id to sceneStep { firstSceneOfNextGroup(it) },
 				HammerActions.StoryPrevGroup.id to sceneStep { firstSceneOfPreviousGroup(it) },
 				HammerActions.StoryToggleOutline.id to ActionHandler { toggleOutlineOverview() },
-				HammerActions.StoryReadingMode.id to ActionHandler { showReader(null) },
+				HammerActions.StoryReadingMode.id to ActionHandler { toggleReadingMode() },
 			),
 		)
 	}
@@ -141,6 +141,17 @@ class StoryEditorComponent(
 		} else {
 			showOutlineOverview()
 		}
+	}
+
+	/** Leaves an open reader for the scene it is showing, or closes it when there is none to edit. */
+	private fun toggleReadingMode() {
+		val reader = detailsRouter.activeReader()
+		if (reader == null) {
+			showReader(null)
+			return
+		}
+		reader.editScene()
+		if (detailsRouter.activeReader() === reader) reader.close()
 	}
 
 	override fun closeDetails(): Boolean {

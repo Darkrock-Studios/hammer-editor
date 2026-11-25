@@ -373,8 +373,9 @@ fun SceneListUi(
 		parentName = lastCreateParent?.takeUnless { creatingChapter }?.name,
 	) { groupName ->
 		Napier.d { "Create dialog close" }
-		if (groupName != null) {
-			scope.launch { component.createGroup(createParent, groupName) }
+		val parent = component.state.value.createRequest?.parent
+		if (groupName != null && parent != null) {
+			scope.launch { component.createGroup(parent, groupName) }
 		} else {
 			component.dismissCreate()
 		}
@@ -390,8 +391,9 @@ fun SceneListUi(
 		parentName = lastCreateParent?.takeUnless { creatingChapter }?.name,
 	) { sceneName ->
 		Napier.d { "Create dialog close" }
-		if (sceneName != null) {
-			scope.launch { component.createScene(createParent, sceneName) }
+		val parent = component.state.value.createRequest?.parent
+		if (sceneName != null && parent != null) {
+			scope.launch { component.createScene(parent, sceneName) }
 		} else {
 			component.dismissCreate()
 		}
