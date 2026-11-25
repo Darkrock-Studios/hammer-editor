@@ -50,6 +50,15 @@
 - The editor treats PageUp/PageDown as page motions whatever modifier is held; Mod+PageUp/PageDown in the table pre-empt that inside the editor, which is intended.
 - `ProjectEditorWindow.kt:59` creates `BackDispatcher()` without `remember`, so after any recomposition the window's Esc talks to a dispatcher the component never saw. Fixed in Task 1.5.
 
+## Product decisions (settled after the plan was drafted; these override any task text)
+
+1. AZERTY: Mod+1..5 from the NumPad only is accepted. No symbol aliasing.
+2. The image gallery and "new timeline" return as palette-only actions with no default chord: `project.gallery` ("Image gallery", category Project, Root layer in `ProjectRootComponent`, opens the gallery to browse as the deleted images menu did) and `timeline.new` ("New timeline", category Items, Module layer in `TimeLineOverviewComponent`, does what the deleted "new timeline" menu did). Add both to `HammerActions` and `strings_actions.xml` in Task 1.1; register `project.gallery` in Task 1.4 and `timeline.new` in Task 4.3. Their deleted menu tests are rewritten as action tests rather than dropped.
+3. Chord labels render with `HdMetaText`, not `HdMonoLabel` (Task 4.4 `ChordLabel`, Task 6.3 palette and cheat sheet rows, Task 8.2 tooltips).
+4. Mod+N in single-pane Story while a scene is open is not live; the user Escs to the list first. Accepted.
+5. iOS `project.close` must go through the same unsaved-changes confirm as the other platforms, not straight to `closeProject`. Task 2.2 adds that and a test that `project.close` with a dirty buffer raises the confirm.
+6. iOS Swift is built by Adam in Xcode; the Linux host only runs the Kotlin tests.
+
 ---
 
 ## Checkpoint 1: Core and desktop host
