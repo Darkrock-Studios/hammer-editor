@@ -66,7 +66,8 @@ kotlin {
 			}
 		}
 		getByName("androidDeviceTest") {
-			// The same WAT fixtures the desktop tests load.
+			// The same WAT fixtures and loaders the desktop tests use.
+			kotlin.srcDir("src/jvmSharedTest/kotlin")
 			resources.srcDir("src/desktopTest/resources")
 			dependencies {
 				implementation(kotlin("test"))
@@ -80,6 +81,7 @@ kotlin {
 			}
 		}
 		getByName("desktopTest") {
+			kotlin.srcDir("src/jvmSharedTest/kotlin")
 			dependencies {
 				implementation(libs.bundles.junit.jupiter)
 				implementation(libs.coroutines.test)

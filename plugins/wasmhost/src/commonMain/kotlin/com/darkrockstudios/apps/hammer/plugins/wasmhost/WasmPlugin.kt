@@ -44,7 +44,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -116,11 +115,12 @@ class WasmPlugin(
 	// Only touched while holding the lock.
 	private var loaded: ExtismPlugin? = null
 
-	// False once compiled code failed to load in a call, so later loads interpret; only touched while holding the lock.
+	// False once a load ran interpreted or compiled code failed in a call, so a module chasm-jit cannot run
+	// is not compiled again on every reload; only touched while holding the lock.
 	private var compileModule = true
 
-	/** The loaded module, loading it if need be; cancelling [cancellation] stops it compiling. Hold the lock. */
-	private fun module(cancellation: Job? = null): ExtismPlugin = loaded ?: ExtismPlugin(
+	/** The loaded module, loading it if need be. Hold the lock. */
+	private fun module(): ExtismPlugin = loaded ?: ExtismPlugin(
 		loadModule,
 		listOf(dispatchFunction(), progressFunction(), resourceFunction(), serverRequestFunction()) + cacheFunctions(),
 		log = ::log,
@@ -128,8 +128,10 @@ class WasmPlugin(
 		http = pluginHttp(),
 		maxKernelBytes = maxKernelBytes,
 		compile = compileModule,
-		compileCancellation = cancellation,
-	).also { loaded = it }
+	).also {
+		loaded = it
+		compileModule = it.compiled
+	}
 
 	// The call [interruptibly] is running, if any, which cancelling its caller interrupts. Only touched
 	// while holding interruptLock, which a call clears before the lock can pass to the next.
@@ -267,7 +269,7 @@ class WasmPlugin(
 			lock.withLock {
 				ensureActive()
 				// Loaded before taking interruptLock, which a cancelled caller waits on.
-				val module = module(coroutineContext[Job])
+				val module = module()
 				val outer = interruptLock.withLock { running.also { running = Running(module).also { mine = it } } }
 				try {
 					// A cancel while the module was loading found no call to interrupt.

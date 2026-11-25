@@ -30,7 +30,6 @@ import io.github.charlietap.chasm.host.withMemory
 import io.github.charlietap.chasm.host.writeI32
 import io.github.charlietap.chasm.runtime.value.NumberValue
 import io.github.charlietap.chasm.type.FunctionType
-import kotlinx.coroutines.Job
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
@@ -50,8 +49,7 @@ import kotlin.time.TimeSource
  * variables and log output at fixed sizes.
  *
  * With [compile], the module is compiled to the platform's own code where chasm can, which is Android
- * alone, and interpreted elsewhere or when it cannot be compiled; [compiled] says which. Cancelling
- * [compileCancellation] stops compiling, failing the load.
+ * alone, and interpreted elsewhere or when it cannot be compiled; [compiled] says which.
  */
 class ExtismPlugin(
 	/**
@@ -70,7 +68,6 @@ class ExtismPlugin(
 	maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 	maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
 	compile: Boolean = true,
-	compileCancellation: Job? = null,
 ) {
 	constructor(
 		wasm: ByteArray,
@@ -84,10 +81,9 @@ class ExtismPlugin(
 		maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 		maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
 		compile: Boolean = true,
-		compileCancellation: Job? = null,
 	) : this(
 		{ wasm }, userFunctions, config, log, maxMemoryPages, maxTableElements, maxGuestHeapBytes, http, maxKernelBytes,
-		maxStackBytes, compile, compileCancellation,
+		maxStackBytes, compile,
 	)
 
 	private val kernel = ExtismKernel(maxKernelBytes)
@@ -114,11 +110,8 @@ class ExtismPlugin(
 	var stoppedPartway = false
 		private set
 
-	/**
-	 * Whether the module's compiled code failed to load partway through a call, after which this instance
-	 * refuses calls. The module must be loaded again, interpreted.
-	 */
-	var compiledCodeFailed = false
+	/** Whether the module's compiled code failed to load in a call, which stops it partway; load it again interpreted. */
+	internal var compiledCodeFailed = false
 		private set
 
 	private val storeConfig = STORE_CONFIG.copy(
@@ -130,67 +123,52 @@ class ExtismPlugin(
 	private var store = guestHeap.store
 
 	/** Whether the module's code was compiled rather than interpreted. */
-	var compiled = false
+	internal var compiled = false
 		private set
 	private val instance: Instance = failingOutOfMemory("Plugin ran out of memory starting up") {
-		start(loadWasm, userFunctions, compile, compileCancellation)
+		start(loadWasm, userFunctions, compile)
 	}
 	private var calling = false
 
-	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>, compile: Boolean, cancellation: Job?): Instance {
+	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>, compile: Boolean): Instance {
 		val module = module(loadWasm()).orThrow("Invalid plugin module")
-		if (compile && platformCompiles) {
-			startCompiled(module, userFunctions, cancellation)?.let { instance ->
-				compiled = true
-				return instance
-			}
-			// The failed attempt may have allocated the module in the store and run some of it.
-			guestHeap = GuestHeap(maxGuestHeapBytes, storeConfig)
-			store = guestHeap.store
-			kernel.reset()
-			vars.clear()
-			varBytes = 0
-		}
-		val imports = imports(module, userFunctions)
-		setFuel(INSTANTIATION_FUEL)
-		return initialized(module, instance(store, module, imports))
+		if (compile && platformCompiles) startCompiled(module, userFunctions)?.let { return it }
+		return initialized(module, instantiated(module, userFunctions) { imports -> instance(store, module, imports) })
 	}
 
-	/**
-	 * The module started with compiled code, or null when chasm-jit could not compile or load it or ran the
-	 * host out of memory trying, so that it runs interpreted.
-	 */
+	/** The module started with compiled code, or null when chasm-jit refused it, leaving a fresh store to interpret it in. */
 	@Suppress("TooGenericExceptionCaught")
-	private fun startCompiled(module: Module, userFunctions: List<UserFunction>, cancellation: Job?): Instance? {
-		val reason = try {
-			val imports = imports(module, userFunctions)
-			setFuel(INSTANTIATION_FUEL)
-			val result = compiledInstance(store, module, imports, cancellation)
-			if (result is ChasmResult.Error && result.error.error.startsWith(JIT_FAILURE)) {
-				result.error.error
-			} else {
-				return initialized(module, result)
+	private fun startCompiled(module: Module, userFunctions: List<UserFunction>): Instance? {
+		val refusal = when (val start = instantiated(module, userFunctions) { imports -> compiledInstance(store, module, imports) }) {
+			is CompiledStart.Refused -> start.reason
+			is CompiledStart.Started -> try {
+				return initialized(module, start.result).also { compiled = true }
+			} catch (e: Throwable) {
+				if (!e.isCodeLoadFailure() && !e.isOutOfMemory()) throw e
+				e.toString()
 			}
-		} catch (e: Throwable) {
-			if (!e.isOutOfMemory() && !e.isCodeLoadFailure()) throw e
-			e.toString()
 		}
-		log(LogLevel.Warn, "Running interpreted, as its code could not be compiled: $reason")
+		log(LogLevel.Warn, "Running interpreted, as its code could not be compiled: $refusal")
+		// The refused attempt may have allocated the module in the store and run some of it.
+		releaseGuestState()
+		guestHeap = GuestHeap(maxGuestHeapBytes, storeConfig)
+		store = guestHeap.store
 		return null
 	}
 
-	private fun imports(module: Module, userFunctions: List<UserFunction>): List<Import> {
+	// The start function, data initialization, and the initializer share this fuel, as Extism hosts do for reactor modules.
+	private inline fun <T> instantiated(module: Module, userFunctions: List<UserFunction>, instantiate: (List<Import>) -> T): T {
 		val provided = (envFunctions() + userFunctions.map { it.toHost(kernel) } + RandomGet + ClockTimeGet)
 			.associateBy { it.module to it.name }
-		return module.imports.map { import ->
+		val imports = module.imports.map { import ->
 			val host = provided[import.moduleName to import.entityName]
 				?: throw PluginException("Plugin imports ${import.moduleName} ${import.entityName}, which the host does not provide")
 			Import(import.moduleName, import.entityName, function(store, host.type, host))
 		}
+		setFuel(INSTANTIATION_FUEL)
+		return instantiate(imports)
 	}
 
-	// The start function, data initialization, and the initializer share the fuel set before instantiating,
-	// as Extism hosts do for reactor modules.
 	private fun initialized(module: Module, started: ChasmResult<Instance, ChasmError.ExecutionError>): Instance {
 		val instance = started.orThrowStarting("Plugin failed to start")
 		INITIALIZERS.firstOrNull { name -> module.exports.any { it.name == name } }?.let { initializer ->
@@ -206,7 +184,6 @@ class ExtismPlugin(
 	fun call(function: String, input: ByteArray, fuel: Long): ByteArray {
 		require(fuel >= 0) { "Fuel must not be negative" }
 		if (outOfMemory) throw PluginException("Plugin ran out of memory earlier and must be loaded again")
-		if (compiledCodeFailed) throw PluginException("Plugin's compiled code failed earlier and must be loaded again")
 		// A host function re-entering the module would reset the memory and fuel of the call in progress.
 		if (calling) throw PluginException("Plugin was called again while running $function")
 		calling = true
@@ -245,10 +222,15 @@ class ExtismPlugin(
 		if (!e.isOutOfMemory()) throw e
 		outOfMemory = true
 		// Released before building the exception, which itself needs memory.
+		releaseGuestState()
+		throw PluginException(message)
+	}
+
+	/** Lets go of what the module made the host hold outside its store. */
+	private fun releaseGuestState() {
 		kernel.reset()
 		vars.clear()
 		varBytes = 0
-		throw PluginException(message)
 	}
 
 	private fun callOnce(function: String, input: ByteArray, fuel: Long): ByteArray {

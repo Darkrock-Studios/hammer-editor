@@ -3,6 +3,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.DEFAULT_MAX_MEMORY_PAGES
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.ExtismPlugin
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PAGES_PER_MIB
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -14,13 +15,13 @@ import kotlin.time.Duration
 import kotlin.time.measureTime
 
 /**
- * Interpreted against compiled timings for real plugin builds, pushed to [ROOT] by `adb push`. Runs only
- * with the instrumentation argument `bench=1`.
+ * Interpreted against compiled timings for the test fixtures and for real plugin builds, pushed to [ROOT]
+ * by `adb push`. Runs only with the instrumentation argument `bench=1`.
  */
 @RunWith(AndroidJUnit4::class)
 class CompiledPluginBenchmark {
 
-	private val novel = buildNovel()
+	private val novel by lazy { buildNovel() }
 
 	@Before
 	fun enabled() {
@@ -32,7 +33,7 @@ class CompiledPluginBenchmark {
 		val scenes = novel.chunked(novel.length / SCENES).joinToString(",") { "\"${it.replace("\n", "\\n")}\"" }
 		val request = """{"format":"x","projectName":"Novel","language":"en","chapters":[{"name":"One","scenes":[$scenes]}],""" +
 			""""settings":{"perScene":true,"heading":"Word count"}}"""
-		compare("wordcount", request.encodeToByteArray(), "export", listOf(noDispatch, noCacheGet, noCacheSet))
+		compare("wordcount", request.encodeToByteArray(), "export", stubs)
 	}
 
 	@Test
@@ -61,10 +62,8 @@ class CompiledPluginBenchmark {
 
 	@Test
 	fun grammarCheckOfAChapter() {
-		// Harper's manifest asks for 256 MiB of linear memory.
 		compare(
-			"grammar", grammarRequest(), "diagnose", listOf(noDispatch, noCacheGet, noCacheSet, noResource, noProgress),
-			maxMemoryPages = 256 * PAGES_PER_MIB,
+			"grammar", grammarRequest(), "diagnose", stubs, maxMemoryPages = HARPER_MEMORY_PAGES,
 		)
 	}
 
@@ -81,55 +80,36 @@ class CompiledPluginBenchmark {
 		val request = grammarRequest()
 		val wasm = File(path!!).readBytes()
 		lateinit var plugin: ExtismPlugin
-		val profileLoad = InstrumentationRegistry.getArguments().getString("profile") == "load"
 		val load = measureTime {
-			if (profileLoad) profile(repeat = 1) { plugin = load(wasm, compile) } else plugin = load(wasm, compile)
-		}
-		if (profileLoad) {
-			Log.i(TAG, "harper ${File(path).name} load ${load.ms()}")
-			return
+			plugin = ExtismPlugin(wasm, stubs, maxMemoryPages = HARPER_MEMORY_PAGES, compile = compile)
 		}
 		// ART compiles the generated DEX itself as it warms up, so each call is timed to show where it settles.
 		lateinit var output: ByteArray
 		val calls = List(HARPER_CALLS) { measureTime { output = plugin.call("diagnose", request, FUEL) } }
 		val mode = if (plugin.compiled) "compiled" else "interpreted"
 		Log.i(TAG, "harper ${File(path).name} (${wasm.size / 1024} KB) $mode: load ${load.ms()}, calls ${calls.joinToString { it.ms() }} on $PARAGRAPHS paragraphs, output ${output.size} bytes, hash ${output.contentHashCode()}")
-		if (InstrumentationRegistry.getArguments().getString("profile") == "1") profile { plugin.call("diagnose", request, FUEL) }
 	}
 
-	private fun load(wasm: ByteArray, compile: Boolean) = ExtismPlugin(
-		wasm,
-		listOf(noDispatch, noCacheGet, noCacheSet, noResource, noProgress),
-		maxMemoryPages = 256 * PAGES_PER_MIB,
-		compile = compile,
-	)
-
-	/** Samples this thread's stack while [work] runs [repeat] times, and logs the frames it was most often in. */
-	private fun profile(repeat: Int = 2, work: () -> Unit) {
-		val target = Thread.currentThread()
-		val leaves = HashMap<String, Int>()
-		val anywhere = HashMap<String, Int>()
-		var samples = 0
-		val running = java.util.concurrent.atomic.AtomicBoolean(true)
-		val sampler = kotlin.concurrent.thread {
-			while (running.get()) {
-				val stack = target.stackTrace
-				if (stack.isNotEmpty()) {
-					samples++
-					val frames = stack.map { "${it.className.substringAfterLast("chasm.jit.").take(60)}.${it.methodName}" }
-					leaves.merge(frames.first(), 1, Int::plus)
-					frames.toSet().forEach { anywhere.merge(it, 1, Int::plus) }
-				}
-				Thread.sleep(2)
-			}
+	@Test
+	fun countingSpeed() {
+		val iterations = 20_000_000L
+		val (interpreted, compiled) = listOf(false, true).map { compile ->
+			val plugin = ExtismPlugin(testPlugin("count"), compile = compile)
+			plugin.call("run", 1_000L.toLittleEndian(), FUEL)
+			measureTime { plugin.call("run", iterations.toLittleEndian(), FUEL) }
 		}
-		repeat(repeat) { work() }
-		running.set(false)
-		sampler.join()
-		Log.i(TAG, "$samples samples; leaf frames:")
-		leaves.entries.sortedByDescending { it.value }.take(25).forEach { Log.i(TAG, "  ${it.value * 100 / samples}% ${it.key}") }
-		Log.i(TAG, "frames anywhere on the stack:")
-		anywhere.entries.sortedByDescending { it.value }.take(120).forEach { Log.i(TAG, "  ${it.value * 100 / samples}% ${it.key}") }
+		Log.i(TAG, "count to $iterations: interpreted $interpreted, compiled $compiled")
+	}
+
+	@Test
+	fun upperCasingSpeed() {
+		val input = buildString { while (length < 1_000_000) append("It was the best of times, it was the worst of times. ") }.encodeToByteArray()
+		val (interpreted, compiled) = listOf(false, true).map { compile ->
+			val plugin = ExtismPlugin(testPlugin("upper"), compile = compile)
+			plugin.call("run", "warm up".encodeToByteArray(), FUEL)
+			measureTime { plugin.call("run", input, FUEL) }
+		}
+		Log.i(TAG, "upper on ${input.size} bytes: interpreted $interpreted, compiled $compiled")
 	}
 
 	private fun grammarRequest(): ByteArray {
@@ -179,6 +159,9 @@ class CompiledPluginBenchmark {
 	private val noCacheGet = ExtismPlugin.UserFunction("hammer_cache_get", params = 1, returnsValue = true) { 0 }
 	private val noCacheSet = ExtismPlugin.UserFunction("hammer_cache_set", params = 2, returnsValue = false) { 0 }
 
+	// A module asks only for the ones it imports.
+	private val stubs = listOf(noDispatch, noCacheGet, noCacheSet, noResource, noProgress)
+
 	private fun buildNovel(wordCount: Int = NOVEL_WORDS): String {
 		val words = listOf(
 			"the", "storm", "came", "early", "that", "year", "and", "Alice", "ran", "for", "lighthouse",
@@ -198,10 +181,12 @@ class CompiledPluginBenchmark {
 		const val ROOT = "/data/local/tmp/hammer-bench"
 		const val NOVEL_WORDS = 100_000
 		const val STYLE_WORDS = 30_000
-		const val PAGES_PER_MIB = 16
 		const val SCENES = 60
 		const val PARAGRAPHS = 300
 		const val HARPER_CALLS = 12
 		const val FUEL = Long.MAX_VALUE
+
+		// Harper's manifest asks for 256 MiB of linear memory.
+		const val HARPER_MEMORY_PAGES = 256 * PAGES_PER_MIB
 	}
 }

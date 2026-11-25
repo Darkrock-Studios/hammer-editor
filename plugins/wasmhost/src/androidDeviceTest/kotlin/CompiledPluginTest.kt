@@ -1,9 +1,6 @@
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.ExtismPlugin
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.concurrent.thread
@@ -11,9 +8,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.time.measureTime
 
-/** The host's limits hold in code chasm-jit compiles, and how much faster that code runs. */
+/** The host's limits hold in code chasm-jit compiles, and a module it refuses runs interpreted. */
 @RunWith(AndroidJUnit4::class)
 class CompiledPluginTest {
 
@@ -157,14 +153,7 @@ class CompiledPluginTest {
 		val error = assertFailsWith<PluginException> { plugin.call("run", "abc".encodeToByteArray(), FUEL) }
 		assertTrue(error.message!!.startsWith("Plugin's compiled code failed to load in run"), error.message)
 		assertTrue(plugin.compiledCodeFailed)
-		assertFailsWith<PluginException> { plugin.call("run", "abc".encodeToByteArray(), FUEL) }
-	}
-
-	@Test
-	fun cancellingStopsCompiling() {
-		val cancellation = Job().apply { cancel() }
-
-		assertFailsWith<CancellationException> { ExtismPlugin(testPlugin("upper"), compileCancellation = cancellation) }
+		assertTrue(plugin.stoppedPartway)
 	}
 
 	@Test
@@ -172,43 +161,11 @@ class CompiledPluginTest {
 		assertFalse(ExtismPlugin(testPlugin("upper"), compile = false).compiled)
 	}
 
-	@Test
-	fun countingSpeed() {
-		val iterations = 20_000_000L
-		fun time(compile: Boolean): kotlin.time.Duration {
-			val plugin = ExtismPlugin(testPlugin("count"), compile = compile)
-			plugin.call("run", 1_000L.toLittleEndian(), Long.MAX_VALUE)
-			return measureTime { plugin.call("run", iterations.toLittleEndian(), Long.MAX_VALUE) }
-		}
-		val interpreted = time(compile = false)
-		val compiled = time(compile = true)
-		Log.i(TAG, "count to $iterations: interpreted $interpreted, compiled $compiled")
-	}
-
-	@Test
-	fun upperCasingSpeed() {
-		val input = buildString { while (length < 1_000_000) append("It was the best of times, it was the worst of times. ") }.encodeToByteArray()
-		fun time(compile: Boolean): kotlin.time.Duration {
-			val plugin = ExtismPlugin(testPlugin("upper"), compile = compile)
-			plugin.call("run", "warm up".encodeToByteArray(), FUEL)
-			return measureTime { plugin.call("run", input, FUEL) }
-		}
-		val interpreted = time(compile = false)
-		val compiled = time(compile = true)
-		Log.i(TAG, "upper on ${input.size} bytes: interpreted $interpreted, compiled $compiled")
-	}
-
 	// What a plugin logs from the host, which is where a fallback to the interpreter is reported.
 	private val logged = mutableListOf<String>()
 	private val logging: (ExtismPlugin.LogLevel, String) -> Unit = { _, message -> logged += message }
 
-	private fun testPlugin(name: String): ByteArray =
-		requireNotNull(javaClass.getResourceAsStream("/plugins/$name.wasm")) { "No test plugin $name" }.use { it.readBytes() }
-
-	private fun Long.toLittleEndian(): ByteArray = ByteArray(8) { (this ushr (8 * it)).toByte() }
-
 	private companion object {
-		const val TAG = "CompiledPluginTest"
 		const val FUEL = 100_000_000L
 	}
 }
