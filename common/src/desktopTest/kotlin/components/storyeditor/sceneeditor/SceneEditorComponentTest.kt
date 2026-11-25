@@ -1,5 +1,6 @@
 package components.storyeditor.sceneeditor
 
+import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditorComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.increaseEditorTextSize
 import com.darkrockstudios.apps.hammer.common.data.*

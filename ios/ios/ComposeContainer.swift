@@ -56,7 +56,7 @@ final class ShortcutHostController: UIViewController {
 
     override var keyCommands: [UIKeyCommand]? {
         guard let actions = root.currentActions() else { return [] }
-        return IosKeyCommandsKt.iosKeyCommandSpecs(keymap: actions.keymap).map { spec in
+        return IosKeyCommandsKt.iosKeyCommands(keymap: actions.keymap).map { spec in
             var flags: UIKeyModifierFlags = []
             if spec.command { flags.insert(.command) }
             if spec.shift { flags.insert(.shift) }

@@ -64,6 +64,8 @@
 - Checkpoint 1 review: pre-focus dispatch means Mod+1..5, Mod+Shift+F, Mod+Shift+W and Mod+Q fire behind open dialogs until barriers exist. Checkpoint 5 must also put a barrier on the desktop window's own close-confirm sequence (`ProjectEditorWindow.kt`, rendered from `closeRequestHandlers`) and on the sync dialog, not only on the shared dialog shells. Add a test that Mod+3 with a close confirm showing does not navigate.
 - Checkpoint 1 review: the Android host in Task 2.1 must return `super.dispatchKeyEvent(event)` whenever `dispatch` returns false (today F3 is swallowed on projects that cannot sync). Pin it with a test that F3 on a project without sync is not consumed.
 - Task 1.0 (spike) is deferred to just before Checkpoint 5 and needs a person at the GUI.
+- Checkpoint 2 review: the iOS spec is symbolic in common (`IosKeyCommandSpec(key: ChordKey, ...)` in `IosKeyCommandSpecs.kt`); UIKit inputs resolve in iosMain (`iosKeyCommands(keymap)` in `IosKeyCommands.kt`) from `platform.UIKit` constants. Task 2.2's `input: String` spec text is superseded.
+- Checkpoint 2 review: `MenuDescriptor`/`MenuItemDescriptor` moved to `components.menu`. Task 3.1 still deletes `addMenu`/`removeMenu`, `MenuDescriptor` and the Android `TopAppBarDropdownMenu`.
 
 ---
 

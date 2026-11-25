@@ -1,6 +1,7 @@
 package components.actions
 
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionDispatch
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.actions.IosKeyCommandSpec
 import com.darkrockstudios.apps.hammer.common.components.actions.Keymap
@@ -24,29 +25,40 @@ class IosKeyCommandSpecsTest {
 
 	@Test
 	fun `Mod maps to command`() = assertEquals(
-		IosKeyCommandSpec("1", command = true, shift = false, actionId = "nav.home"),
+		IosKeyCommandSpec(ChordKey.Digit1, command = true, shift = false, actionId = "nav.home"),
 		specs.single { it.actionId == "nav.home" },
 	)
 
 	@Test
-	fun `function keys use the UIKit private-use characters`() {
-		assertEquals("", specs.single { it.actionId == "project.sync" }.input)
-		assertEquals("", specs.single { it.actionId == "help.cheatSheet" }.input)
-		assertEquals(listOf("", ""), specs.filter { it.actionId.startsWith("pane.") }.map { it.input })
+	fun `bare function keys carry no modifiers`() {
+		assertEquals(
+			IosKeyCommandSpec(ChordKey.F3, command = false, shift = false, actionId = "project.sync"),
+			specs.single { it.actionId == "project.sync" },
+		)
+		assertEquals(
+			listOf(
+				IosKeyCommandSpec(ChordKey.F6, command = false, shift = false, actionId = "pane.next"),
+				IosKeyCommandSpec(ChordKey.F6, command = false, shift = true, actionId = "pane.prev"),
+			),
+			specs.filter { it.actionId.startsWith("pane.") },
+		)
 	}
 
 	@Test
-	fun `page keys use the UIKit input constants`() {
-		assertEquals("UIKeyInputPageDown", specs.single { it.actionId == "item.next" }.input)
-		assertEquals("UIKeyInputPageUp", specs.single { it.actionId == "item.prev" }.input)
+	fun `page keys keep the command flag`() {
+		assertEquals(
+			IosKeyCommandSpec(ChordKey.PageDown, command = true, shift = false, actionId = "item.next"),
+			specs.single { it.actionId == "item.next" },
+		)
+		assertEquals(
+			IosKeyCommandSpec(ChordKey.PageUp, command = true, shift = false, actionId = "item.prev"),
+			specs.single { it.actionId == "item.prev" },
+		)
 	}
 
 	@Test
-	fun `letters are lowercase`() = assertEquals("n", specs.single { it.actionId == "item.new" }.input)
-
-	@Test
-	fun `enter is a carriage return`() = assertEquals(
-		IosKeyCommandSpec("\r", command = true, shift = true, actionId = "story.focusMode"),
+	fun `shift and command combine`() = assertEquals(
+		IosKeyCommandSpec(ChordKey.Enter, command = true, shift = true, actionId = "story.focusMode"),
 		specs.single { it.actionId == "story.focusMode" },
 	)
 }
