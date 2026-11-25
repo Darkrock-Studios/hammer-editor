@@ -107,6 +107,14 @@ class ExtismPlugin(
 		private set
 
 	/**
+	 * Whether the last call stopped partway, by trapping, running out of fuel, or being interrupted. Wasm
+	 * does not unwind, so the module's own state is left as the trap found it, such as a Rust `RefCell`
+	 * still borrowed, and later calls may fail on it. The module should be loaded again.
+	 */
+	var stoppedPartway = false
+		private set
+
+	/**
 	 * Whether the module's compiled code failed to load partway through a call, after which this instance
 	 * refuses calls. The module must be loaded again, interpreted.
 	 */
@@ -251,7 +259,9 @@ class ExtismPlugin(
 		loggingDropped = false
 		setFuel(fuel)
 
+		stoppedPartway = true
 		val result = invoke(store, instance, function)
+		stoppedPartway = result is ChasmResult.Error
 		if (result is ChasmResult.Error) {
 			if (outOfFuel(result.error)) throw PluginException("Plugin ran out of fuel in $function")
 			stopReason(result.error)?.let { throw PluginException("Plugin $it in $function") }
