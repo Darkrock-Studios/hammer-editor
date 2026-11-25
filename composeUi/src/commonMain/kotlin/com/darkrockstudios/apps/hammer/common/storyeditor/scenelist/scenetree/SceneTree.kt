@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -16,8 +17,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -26,8 +37,11 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.focus.isBareKeyDown
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.scene_list_empty
@@ -44,8 +58,11 @@ fun SceneTree(
 	state: SceneTreeState,
 	modifier: Modifier,
 	itemUi: ItemUi,
-	contentPadding: PaddingValues
+	contentPadding: PaddingValues,
+	onOpen: (SceneItem) -> Unit = {},
 ) {
+	var treeFocused by remember { mutableStateOf(false) }
+	val showCursor = treeFocused && LocalInputModeManager.current.inputMode == InputMode.Keyboard
 	Box {
 		Row {
 			if (state.summary.sceneTree.totalNodes <= 1) {
@@ -55,6 +72,9 @@ fun SceneTree(
 					state = state.listState,
 					modifier = modifier.reorderableModifier(state)
 						.onGloballyPositioned { state.setListCoordinates(it) }
+						.onFocusChanged { treeFocused = it.isFocused }
+						.onKeyEvent { event -> treeFocused && state.onTreeKey(event, onOpen) }
+						.focusable()
 						.weight(1f),
 					contentPadding = contentPadding
 				) {
@@ -73,6 +93,7 @@ fun SceneTree(
 							node = node,
 							nodeCollapsesChildren = nodeCollapsesChildren,
 							selectedId = state.selectedId,
+							cursor = showCursor && id == state.cursorId,
 							toggleExpanded = state::toggleExpanded,
 							modifier = Modifier.wrapContentHeight()
 								.fillMaxWidth()
@@ -88,6 +109,26 @@ fun SceneTree(
 		}
 		drawInsertLine(state)
 	}
+}
+
+/** Keys on the focused tree; rows are not focus stops, the cursor stands in for them. */
+private fun SceneTreeState.onTreeKey(event: KeyEvent, onOpen: (SceneItem) -> Unit): Boolean {
+	if (!event.isBareKeyDown()) return false
+	when (event.key) {
+		Key.DirectionDown -> moveCursor(1)
+		Key.DirectionUp -> moveCursor(-1)
+		Key.MoveHome -> cursorToStart()
+		Key.MoveEnd -> cursorToEnd()
+		Key.DirectionRight -> cursorRight()
+		Key.DirectionLeft -> cursorLeft()
+		Key.Enter, Key.NumPadEnter -> {
+			val node = cursorNode() ?: return false
+			if (node.value.type.isCollection) toggleExpanded(node.value.id) else onOpen(node.value)
+		}
+
+		else -> return false
+	}
+	return true
 }
 
 /**

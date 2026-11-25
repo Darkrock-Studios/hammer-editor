@@ -67,6 +67,9 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayF
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdCoachMarkAnchor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdCoachMarkAnchors
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
+import com.darkrockstudios.apps.hammer.common.compose.focus.LocalPaneFocus
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -168,6 +171,13 @@ fun SceneListUi(
 		}
 	}
 
+	val revealRequests = LocalPaneFocus.current?.revealRequests(PaneId.List) ?: 0
+	LaunchedEffect(revealRequests) {
+		if (revealRequests > 0) {
+			state.selectedSceneItem?.let { treeState.revealCursor(it.id) }
+		}
+	}
+
 	val footerState = rememberHdScrollAwayFooterState()
 	// Always reachable when the list can't scroll down to it (e.g. all groups collapsed).
 	val footerVisible = !treeState.listState.canScrollForward || !footerState.isHiddenByScroll
@@ -251,12 +261,14 @@ fun SceneListUi(
 				Box(modifier = Modifier.weight(1f).clipToBounds()) {
 					SceneTree(
 						modifier = Modifier.fillMaxSize().testTag(SCENE_LIST_TREE_TAG)
-							.nestedScroll(footerState.nestedScrollConnection),
+							.nestedScroll(footerState.nestedScrollConnection)
+							.paneEntry(PaneId.List),
 						state = treeState,
 						itemUi = { node: TreeValue<SceneItem>,
 						           toggleExpanded: (nodeId: Int) -> Unit,
 						           collapsed: Boolean,
-						           draggable: Modifier ->
+						           draggable: Modifier,
+						           cursor: Boolean ->
 
 							SceneNode(
 								sceneNode = node,
@@ -266,6 +278,7 @@ fun SceneListUi(
 								component = component,
 								toggleExpand = toggleExpanded,
 								collapsed = collapsed,
+								isCursor = cursor,
 								coachMarkAnchors = coachMarkAnchors,
 								isHintRow = node.value.id == hintRowId,
 								demonstrateSwipe = shownHint == NuxHint.SceneListSwipeMenu && node.value.id == hintRowId,
@@ -286,7 +299,8 @@ fun SceneListUi(
 								createGroup = { parent -> component.beginCreate(SceneList.CreateRequest.Kind.Group, parent) },
 							)
 						},
-						contentPadding = PaddingValues(bottom = footerState.height)
+						contentPadding = PaddingValues(bottom = footerState.height),
+						onOpen = component::onSceneSelected,
 					)
 
 					HdScrollAwayFooter(
@@ -596,6 +610,7 @@ private fun SceneNode(
 	component: SceneList,
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
+	isCursor: Boolean,
 	coachMarkAnchors: HdCoachMarkAnchors,
 	isHintRow: Boolean,
 	demonstrateSwipe: Boolean,
@@ -618,6 +633,7 @@ private fun SceneNode(
 			depth = sceneNode.depth,
 			hasDirtyBuffer = summary.hasDirtyBuffer.contains(scene.id),
 			isSelected = isSelected,
+			isCursor = isCursor,
 			demonstrateSwipe = demonstrateSwipe,
 			isChapter = isChapter,
 			onSceneSelected = component::onSceneSelected,
@@ -634,6 +650,7 @@ private fun SceneNode(
 			hasDirtyBuffer = summary.hasDirtyBuffer,
 			toggleExpand = toggleExpand,
 			collapsed = collapsed,
+			isCursor = isCursor,
 			demonstrateSwipe = demonstrateSwipe,
 			isChapter = isChapter,
 			onSceneDeleteRequest = sceneDefDeleteTarget,

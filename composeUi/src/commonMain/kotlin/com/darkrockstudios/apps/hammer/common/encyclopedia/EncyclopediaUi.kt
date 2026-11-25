@@ -15,6 +15,8 @@ import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.s
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 
 @Composable
 fun EncyclopediaUi(
@@ -41,7 +43,9 @@ fun EncyclopediaUi(
 				),
 			) { child ->
 				when (val destination = child.instance) {
-					is Encyclopedia.Destination.BrowseEntriesDestination -> {
+					is Encyclopedia.Destination.BrowseEntriesDestination -> Box(
+						modifier = Modifier.fillMaxSize().focusPane(PaneId.List),
+					) {
 						BrowseEntriesUi(
 							component = destination.component,
 							scope = scope,
@@ -53,7 +57,7 @@ fun EncyclopediaUi(
 
 					is Encyclopedia.Destination.ViewEntryDestination -> {
 						ViewEntryUi(
-							modifier = Modifier.align(Alignment.TopCenter),
+							modifier = Modifier.align(Alignment.TopCenter).focusPane(PaneId.Detail),
 							component = destination.component,
 							scope = scope,
 							rootSnackbar = rootSnackbar,

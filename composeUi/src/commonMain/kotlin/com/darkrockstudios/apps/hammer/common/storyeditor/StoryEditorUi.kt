@@ -14,12 +14,13 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftCompareUi
@@ -60,10 +61,14 @@ fun StoryEditorUi(
 		}
 
 		//val shouldShowList = (!isMultiPane && !component.isDetailShown()) || isMultiPane
+		val listState by component.listRouterState.subscribeAsState()
 		ListPane(
-			routerState = component.listRouterState,
+			state = listState,
 			snackbarHostState = snackbarHostState,
-			modifier = listModifier,
+			modifier = listModifier.focusPane(
+				PaneId.List,
+				enabled = listState.active.instance !is StoryEditor.ChildDestination.List.None,
+			),
 			isMultiPane = isMultiPane,
 		)
 
@@ -79,7 +84,10 @@ fun StoryEditorUi(
 			state = detailsState,
 			isMultiPane = isMultiPane,
 			snackbarHostState = snackbarHostState,
-			modifier = detailsModifier,
+			modifier = detailsModifier.focusPane(
+				PaneId.Detail,
+				enabled = detailsState.active.instance !is StoryEditor.ChildDestination.Detail.None,
+			),
 			backHandler = component.backHandler,
 			onBack = component::onBack,
 		)
@@ -123,13 +131,11 @@ private fun SetMultiPane(component: StoryEditor) {
 
 @Composable
 private fun ListPane(
-	routerState: Value<ChildStack<*, StoryEditor.ChildDestination.List>>,
+	state: ChildStack<*, StoryEditor.ChildDestination.List>,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier,
 	isMultiPane: Boolean,
 ) {
-	val state by routerState.subscribeAsState()
-
 	Children(
 		stack = state,
 		modifier = modifier,

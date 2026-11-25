@@ -15,6 +15,8 @@ import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.s
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -44,7 +46,7 @@ fun NotesUi(
 					is Notes.Destination.BrowseNotesDestination -> {
 						BrowseNotesUi(
 							component = dest.component,
-							modifier = Modifier,
+							modifier = Modifier.focusPane(PaneId.List),
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@ChildStack
 						)
@@ -53,7 +55,7 @@ fun NotesUi(
 					is Notes.Destination.ViewNoteDestination -> {
 						ViewNoteUi(
 							component = dest.component,
-							modifier = Modifier.align(Alignment.TopCenter),
+							modifier = Modifier.align(Alignment.TopCenter).focusPane(PaneId.Detail),
 							rootSnackbar = rootSnackbar,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@ChildStack

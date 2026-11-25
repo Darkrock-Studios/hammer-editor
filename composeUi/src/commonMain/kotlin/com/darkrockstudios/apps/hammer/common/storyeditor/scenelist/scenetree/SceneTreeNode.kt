@@ -15,6 +15,7 @@ fun SceneTreeNode(
 	node: TreeValue<SceneItem>,
 	nodeCollapsesChildren: Boolean,
 	selectedId: Int,
+	cursor: Boolean,
 	itemUi: ItemUi,
 	toggleExpanded: (nodeId: Int) -> Unit,
 	modifier: Modifier
@@ -25,7 +26,8 @@ fun SceneTreeNode(
 			node,
 			toggleExpanded,
 			nodeCollapsesChildren,
-			itemModifier
+			itemModifier,
+			cursor,
 		)
 	}
 }

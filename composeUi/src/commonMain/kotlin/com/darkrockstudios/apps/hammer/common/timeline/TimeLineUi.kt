@@ -34,6 +34,8 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -81,7 +83,9 @@ fun TimeLineUi(
 				),
 			) { child ->
 				when (val dest = child.instance) {
-					is TimeLine.Destination.TimeLineOverviewDestination -> {
+					is TimeLine.Destination.TimeLineOverviewDestination -> Box(
+						modifier = Modifier.fillMaxSize().focusPane(PaneId.List),
+					) {
 						TimeLineOverviewUi(
 							component = dest.component,
 							scope = scope,
@@ -102,7 +106,7 @@ fun TimeLineUi(
 
 					is TimeLine.Destination.ViewEventDestination -> {
 						ViewTimeLineEventUi(
-							modifier = Modifier.align(Alignment.TopCenter),
+							modifier = Modifier.align(Alignment.TopCenter).focusPane(PaneId.Detail),
 							component = dest.component,
 							scope = scope,
 							rootSnackbar = rootSnackbar,
