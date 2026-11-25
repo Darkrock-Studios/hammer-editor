@@ -12,7 +12,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -29,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfir
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
 import com.darkrockstudios.apps.hammer.common.compose.actions.toKeyChord
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
@@ -76,6 +76,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	}
 
 	val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
+	val escapes = remember(component) { EscapeRouter(component.actions, backDispatcher::back) }
 
 	LifecycleController(lifecycle, windowState)
 
@@ -91,10 +92,10 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		state = windowState,
 		icon = painterResource(Res.drawable.hammer_icon),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
-		onPreviewKeyEvent = { event -> event.toKeyChord()?.let(component.actions::dispatch) ?: false },
-		onKeyEvent = { event ->
-			if (event.key == Key.Escape && event.type == KeyEventType.KeyUp) backDispatcher.back() else false
-		}
+		onPreviewKeyEvent = { event ->
+			escapes.onPreviewKeyEvent(event) || event.toKeyChord()?.let(component.actions::dispatch) ?: false
+		},
+		onKeyEvent = escapes::onKeyEvent,
 	) {
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()

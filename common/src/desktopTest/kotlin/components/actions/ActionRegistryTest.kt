@@ -1,5 +1,6 @@
 package components.actions
 
+import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.create
 import com.arkivanov.essenty.lifecycle.destroy
@@ -11,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
+import com.darkrockstudios.apps.hammer.common.components.actions.registerOverlayWhile
 import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -173,5 +175,70 @@ class ActionRegistryTest {
 		assertTrue(registry.isLive(HammerActions.ItemNew.id))
 		lifecycle.destroy()
 		assertFalse(registry.isLive(HammerActions.ItemNew.id))
+	}
+
+	@Test
+	fun `only an overlay barrier counts as an overlay`() {
+		registry.register(ActionLayer.Overlay, mapOf(HammerActions.ItemNew.id to ActionHandler {}))
+		registry.register(ActionLayer.Item, emptyMap(), blocksBelow = true)
+		assertFalse(registry.hasOverlay())
+
+		val barrier = registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true)
+		assertTrue(registry.hasOverlay())
+
+		barrier.unregister()
+		assertFalse(registry.hasOverlay())
+	}
+
+	@Test
+	fun `dismissing runs the most recent overlay's dismiss only`() {
+		val dismissed = mutableListOf<String>()
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = { dismissed += "lower" })
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = { dismissed += "upper" })
+
+		assertTrue(registry.dismissTopOverlay())
+		assertEquals(listOf("upper"), dismissed)
+	}
+
+	@Test
+	fun `an overlay without a dismiss is passed over when dismissing`() {
+		val dismissed = IntArray(1)
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = { dismissed[0]++ })
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true)
+
+		assertTrue(registry.dismissTopOverlay())
+		assertEquals(1, dismissed[0])
+	}
+
+	@Test
+	fun `dismissing with nothing dismissable does nothing`() {
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true)
+
+		assertFalse(registry.dismissTopOverlay())
+	}
+
+	@Test
+	fun `registerOverlayWhile holds a barrier while the state is open and started`() {
+		val lifecycle = LifecycleRegistry()
+		val open = MutableValue(false)
+		val runs = IntArray(1)
+		registry.register(ActionLayer.Module, mapOf(HammerActions.ItemNew.id to counting(runs)))
+		registry.registerOverlayWhile(lifecycle, open) { it }
+		lifecycle.create()
+		lifecycle.start()
+
+		open.value = true
+		val blockedWhileOpen = !registry.dispatch(modN)
+		lifecycle.stop()
+		val freeWhileStopped = registry.dispatch(modN)
+		lifecycle.start()
+		val blockedAgain = !registry.dispatch(modN)
+		open.value = false
+
+		assertTrue(blockedWhileOpen)
+		assertTrue(freeWhileStopped)
+		assertTrue(blockedAgain)
+		assertTrue(registry.dispatch(modN))
+		assertFalse(registry.hasOverlay())
 	}
 }

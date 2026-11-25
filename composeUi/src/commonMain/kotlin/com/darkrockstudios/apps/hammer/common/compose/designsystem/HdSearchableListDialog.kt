@@ -73,6 +73,7 @@ fun <T> HdSearchableListDialog(
 	emptyLabel: String = "",
 	isSelected: (T) -> Boolean = { false },
 	clearSelected: Boolean = false,
+	blocksActions: Boolean = true,
 ) {
 	var query by rememberSaveable { mutableStateOf("") }
 
@@ -81,6 +82,7 @@ fun <T> HdSearchableListDialog(
 		onCloseRequest = onDismiss,
 		dismissOnTapOutside = true,
 		onDismissed = { query = "" },
+		blocksActions = blocksActions,
 	) {
 		HdSearchableListDialogContent(
 			title = title,

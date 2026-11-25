@@ -28,7 +28,7 @@ fun ProvideActions(registry: ActionRegistry, content: @Composable () -> Unit) {
 
 /**
  * Registers [handlers] while composed. Recompositions do not re-register: the registered
- * handlers call whichever lambdas the latest composition passed.
+ * handlers, and [onDismiss], call whichever lambdas the latest composition passed.
  */
 @Composable
 fun RegisterActions(
@@ -36,10 +36,13 @@ fun RegisterActions(
 	handlers: Map<ActionId, ActionHandler>,
 	blocksBelow: Boolean = false,
 	enabled: Boolean = true,
+	onDismiss: (() -> Unit)? = null,
 ) {
 	val registrar = LocalActionRegistrar.current
 	val latest by rememberUpdatedState(handlers)
-	DisposableEffect(registrar, layer, blocksBelow, enabled, handlers.keys) {
+	val latestDismiss by rememberUpdatedState(onDismiss)
+	val dismissable = onDismiss != null
+	DisposableEffect(registrar, layer, blocksBelow, enabled, handlers.keys, dismissable) {
 		val registration = if (registrar != null && enabled) {
 			registrar.register(
 				layer,
@@ -50,6 +53,7 @@ fun RegisterActions(
 					)
 				},
 				blocksBelow,
+				if (dismissable) ({ latestDismiss?.invoke() }) else null,
 			)
 		} else {
 			null

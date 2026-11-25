@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickResult
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
@@ -888,6 +889,93 @@ class ProjectRootComponentTest : ComponentTest() {
 		assertTrue(comp.actions.live().isEmpty())
 		assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
 		assertFalse(projectClosed)
+	}
+
+	@Test
+	fun `Mod+N with focus mode open does nothing`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.Notes)
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.N))
+		advanceUntilIdle()
+
+		assertFalse(handled)
+		val notes = assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+		assertIs<Notes.Destination.BrowseNotesDestination>(notes.component.stack.value.active.instance)
+	}
+
+	@Test
+	fun `global actions still run over focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.S, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		coVerify { sceneEditor.storeAllBuffers() }
+	}
+
+	@Test
+	fun `closing the modal restores module actions`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.Notes)
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		comp.dismissFocusMode()
+		advanceUntilIdle()
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.N))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		val notes = assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+		assertIs<Notes.Destination.CreateNoteDestination>(notes.component.stack.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+3 with a close confirm showing does not navigate`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.requestClose()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3))
+		advanceUntilIdle()
+
+		assertFalse(handled)
+		assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+		assertTrue(comp.actions.hasOverlay())
+	}
+
+	@Test
+	fun `cancelling the close confirm restores navigation`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.requestClose()
+		advanceUntilIdle()
+
+		comp.cancelCloseRequest()
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
 	}
 
 	@Test

@@ -575,6 +575,23 @@ class StoryEditorComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `Mod+N is blocked while the outline overview is open`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		advanceUntilIdle()
+		val liveBefore = registry.isLive(HammerActions.ItemNew.id)
+
+		comp.showOutlineOverview()
+		advanceUntilIdle()
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.N))
+		comp.dismissDialog()
+		advanceUntilIdle()
+
+		assertTrue(liveBefore)
+		assertFalse(handled)
+		assertTrue(registry.isLive(HammerActions.ItemNew.id))
+	}
+
+	@Test
 	fun `Mod+Shift+R opens the reader when no scene is open`() = runTest(mainTestDispatcher) {
 		val comp = startedStoryEditor()
 		advanceUntilIdle()

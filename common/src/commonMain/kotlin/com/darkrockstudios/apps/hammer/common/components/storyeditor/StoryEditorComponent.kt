@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerOverlayWhile
 import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverviewComponent
@@ -124,6 +125,13 @@ class StoryEditorComponent(
 				HammerActions.StoryReadingMode.id to ActionHandler { toggleReadingMode() },
 			),
 		)
+		actions.registerOverlayWhile(
+			lifecycle,
+			dialogRouter,
+			mapOf(HammerActions.StoryToggleOutline.id to ActionHandler { toggleOutlineOverview() }),
+		) { slot ->
+			slot.child?.instance.let { it != null && it !is StoryEditor.ChildDestination.DialogDestination.None }
+		}
 	}
 
 	/** Moves from the open scene editor to the scene [target] picks; not live without one to move to. */

@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerOverlayWhile
 import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchFilter
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchSavedState
@@ -169,6 +170,10 @@ class ProjectRootComponent(
 				HammerActions.ProjectClose.id to ActionHandler { onCloseProject() },
 			),
 		)
+		actions.registerOverlayWhile(lifecycle, modalRouter.state) { slot ->
+			slot.child?.instance.let { it != null && it !is ProjectRoot.ModalDestination.None }
+		}
+		actions.registerOverlayWhile(lifecycle, closeRequestHandlers) { it.isNotEmpty() }
 	}
 
 	private fun saveAllBuffers() {
