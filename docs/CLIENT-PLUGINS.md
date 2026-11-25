@@ -1220,7 +1220,7 @@ reading level report needs 192 MiB on a 100,000-word novel and 384 MiB on a
 300,000-word one, and hammer-plugin-development's Kotlin style report on the
 longer needs 768 MiB with a 22-word vocabulary and over 1 GiB with an
 8,000-word one. chasm's `TRADITIONAL` collector, which runs during a call,
-corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.4.0, the
+corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.5.0, the
 version Hammer pins. The desktop JVM's default heap is a quarter of the machine's
 memory, so an 8 GB machine allows about 1 GiB; Android's app heap, 192 to 512 MB,
 allows 96 to 256 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
