@@ -1970,7 +1970,9 @@ cannot load, the command exits with an error rather than reading input.
   stopped action or a text check the editor no longer wants, interrupts the
   module at its next function entry or loop iteration, or once the host
   function it is in returns. chasm makes one check for both, so interrupting
-  adds little to metering, which costs about 20% in tight loops.
+  adds little to metering, which costs about 20% in tight loops. A text check
+  first gets half a second to finish, since an interrupted module is loaded
+  afresh for its next call.
 - **Host memory.** What a plugin can make the host hold is capped per plugin:
   - The kernel (Extism's shared memory, holding a call's input, output, and host
     function results) at 256 MiB, or a sixteenth of the JVM's heap if that is
@@ -1978,7 +1980,8 @@ cannot load, the command exits with an error rather than reading input.
     half as much again, so two plugins growing at once take under a fifth of the
     heap. An allocation past it traps. A call's kernel is released when it ends.
   - Variables (`var_set`) at 1 MiB in all, Extism's own default, and 1,024 of
-    them; a `var_set` past either traps.
+    them; a `var_set` past either traps. They go with the module when it is
+    loaded afresh, as after a trap.
   - Logging at 4 KiB a line, cut short past that, and 64 KiB a call, past which
     the rest of the call's log is dropped with a warning.
   - The guest heap, as under [Languages](#languages).
