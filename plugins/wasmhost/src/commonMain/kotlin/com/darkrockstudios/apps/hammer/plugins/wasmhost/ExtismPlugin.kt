@@ -8,7 +8,6 @@ import io.github.charlietap.chasm.embedding.dsl.FunctionTypeBuilder
 import io.github.charlietap.chasm.embedding.dsl.ValueTypeListBuilder
 import io.github.charlietap.chasm.embedding.error.ChasmError
 import io.github.charlietap.chasm.embedding.function
-import io.github.charlietap.chasm.embedding.instance
 import io.github.charlietap.chasm.embedding.interrupt as interruptStore
 import io.github.charlietap.chasm.embedding.invoke
 import io.github.charlietap.chasm.embedding.module
@@ -46,6 +45,9 @@ import kotlin.time.TimeSource
  * [maxTableElements], whatever maximum the module declares, its kernel at [maxKernelBytes], its guest heap
  * at [maxGuestHeapBytes], both lower on a small host heap, a call's stack at [maxStackBytes], and its
  * variables and log output at fixed sizes.
+ *
+ * With [compile], the module is compiled to the platform's own code where chasm can, which is Android
+ * alone, and interpreted elsewhere or when it cannot be compiled; [compiled] says which.
  */
 class ExtismPlugin(
 	/**
@@ -63,6 +65,7 @@ class ExtismPlugin(
 	private val http: PluginHttp? = null,
 	maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 	maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
+	compile: Boolean = true,
 ) {
 	constructor(
 		wasm: ByteArray,
@@ -75,9 +78,10 @@ class ExtismPlugin(
 		http: PluginHttp? = null,
 		maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 		maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
+		compile: Boolean = true,
 	) : this(
 		{ wasm }, userFunctions, config, log, maxMemoryPages, maxTableElements, maxGuestHeapBytes, http, maxKernelBytes,
-		maxStackBytes,
+		maxStackBytes, compile,
 	)
 
 	private val kernel = ExtismKernel(maxKernelBytes)
@@ -104,12 +108,16 @@ class ExtismPlugin(
 		),
 	)
 	private val store = guestHeap.store
+
+	/** Whether the module's code was compiled rather than interpreted. */
+	var compiled = false
+		private set
 	private val instance: Instance = failingOutOfMemory("Plugin ran out of memory starting up") {
-		start(loadWasm, userFunctions)
+		start(loadWasm, userFunctions, compile)
 	}
 	private var calling = false
 
-	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>): Instance {
+	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>, compile: Boolean): Instance {
 		val module = module(loadWasm()).orThrow("Invalid plugin module")
 		val provided = (envFunctions() + userFunctions.map { it.toHost(kernel) } + RandomGet + ClockTimeGet)
 			.associateBy { it.module to it.name }
@@ -120,7 +128,9 @@ class ExtismPlugin(
 		}
 		// The start function, data initialization, and the initializer share this, as Extism hosts do for reactor modules.
 		setFuel(INSTANTIATION_FUEL)
-		val instance = instance(store, module, imports).orThrowStarting("Plugin failed to start")
+		val started = instantiate(store, module, imports, compile)
+		compiled = started.compiled
+		val instance = started.result.orThrowStarting("Plugin failed to start")
 		INITIALIZERS.firstOrNull { name -> module.exports.any { it.name == name } }?.let { initializer ->
 			invoke(store, instance, initializer).orThrowStarting("Plugin failed to initialize")
 		}

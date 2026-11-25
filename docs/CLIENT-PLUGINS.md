@@ -1192,8 +1192,9 @@ WebAssembly in a sandbox. `WasmPlugin` presents each as a `ClientPlugin`.
 [chasm](https://github.com/CharlieTap/chasm), a WebAssembly interpreter written
 in Kotlin Multiplatform, MIT and Apache licensed. It is published for JVM,
 Android, iOS, macOS, Linux, and Windows, so one host in `commonMain` covers
-every target with no native libraries to package. It never generates code at
-runtime, which iOS forbids. It supports Wasm 3.0 plus GC, exception handling,
+every target with no native libraries to package. It interprets everywhere but
+Android, generating no code at runtime, which iOS forbids; on Android its
+`chasm-jit` compiles each module to DEX (see [Host](#host)). It supports Wasm 3.0 plus GC, exception handling,
 and typed function references (what Kotlin/Wasm output needs), and WASI
 Preview 1 through a companion library. It does not support SIMD or Memory64.
 
@@ -1953,6 +1954,16 @@ cannot load, the command exits with an error rather than reading input.
 - **Execution.** `WasmPlugin.call` runs the module on the IO dispatcher, never
   the UI thread. Export rendering, already on a background dispatcher, calls it
   blocking. An operation the module dispatches blocks its thread until done.
+- **Compiling on Android.** `ExtismPlugin` hands Android modules to `chasm-jit`,
+  which compiles them to DEX that ART runs, and interprets them elsewhere or when
+  asked not to (`compile = false`). The compiled code keeps every limit below:
+  fuel, interrupts, the stack, memory and table caps, and the guest heap. A
+  module chasm-jit cannot compile, such as one using SIMD, is interpreted
+  instead, with a warning logged. Compiling costs load time and wins it back on
+  heavy calls: `harper-grammar` on a Pixel release build with chasm 2.4.0 loaded
+  in 1.96 s rather than 367 ms, and a 300-paragraph check took 0.39 s rather
+  than 3.1 s. Its tests are `androidDeviceTest`s, since only ART runs DEX:
+  `./gradlew :plugins:wasmhost:connectedAndroidDeviceTest`.
 - **Stopping a runaway module.** Each module runs in a chasm store that meters
   fuel: a check at every function entry and loop iteration takes a unit, and
   the call traps when none are left. The host sets the budget before each call;
