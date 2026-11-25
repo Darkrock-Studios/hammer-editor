@@ -6,9 +6,24 @@ import io.github.charlietap.chasm.embedding.shapes.Import
 import io.github.charlietap.chasm.embedding.shapes.Instance
 import io.github.charlietap.chasm.embedding.shapes.Module
 import io.github.charlietap.chasm.embedding.shapes.Store
+import kotlinx.coroutines.Job
 
-/** An instance, or why it could not start, and whether its code was compiled rather than interpreted. */
-internal class Instantiated(val result: ChasmResult<Instance, ChasmError.ExecutionError>, val compiled: Boolean)
+/** Whether chasm can compile modules to this platform's own code. */
+internal expect val platformCompiles: Boolean
 
-/** Instantiates [module] in [store], compiled to the platform's own code when [compile] asks and the platform can. */
-internal expect fun instantiate(store: Store, module: Module, imports: List<Import>, compile: Boolean): Instantiated
+/**
+ * Instantiates [module] in [store] with its code compiled, where [platformCompiles]. Cancelling
+ * [cancellation] stops compiling. An error beginning [JIT_FAILURE] is the compiler's, not the module's.
+ */
+internal expect fun compiledInstance(
+	store: Store,
+	module: Module,
+	imports: List<Import>,
+	cancellation: Job?,
+): ChasmResult<Instance, ChasmError.ExecutionError>
+
+/** Whether this is compiled code failing to load, which a call may find only when it first reaches that code. */
+internal expect fun Throwable.isCodeLoadFailure(): Boolean
+
+/** How chasm-jit's own compile and load failures begin. */
+internal const val JIT_FAILURE = "JIT "

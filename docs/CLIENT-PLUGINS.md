@@ -1958,8 +1958,12 @@ cannot load, the command exits with an error rather than reading input.
   which compiles them to DEX that ART runs, and interprets them elsewhere or when
   asked not to (`compile = false`). The compiled code keeps every limit below:
   fuel, interrupts, the stack, memory and table caps, and the guest heap. A
-  module chasm-jit cannot compile, such as one using SIMD, is interpreted
-  instead, with a warning logged. Compiling costs load time and wins it back on
+  module chasm-jit cannot compile, such as one with more locals than a DEX
+  method has registers, or whose compiling runs the host out of memory, is
+  interpreted instead in a fresh store, with a warning in the plugin's log. If
+  compiled code fails to load partway through a call, the call fails, and the
+  plugin is loaded afresh and interpreted from then on. Cancelling a call that
+  is loading the module stops its compiling. Compiling costs load time and wins it back on
   heavy calls: `harper-grammar` on a Pixel release build loads in 0.57 s rather
   than 0.37 s, its first 300-paragraph check, which builds the linter, takes
   5.7 s rather than 33 s, and later ones 0.37 s rather than 3.1 s. Its tests are `androidDeviceTest`s, since only ART runs DEX:

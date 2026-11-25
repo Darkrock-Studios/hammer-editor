@@ -2,6 +2,8 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.ExtismPlugin
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.concurrent.thread
@@ -46,8 +48,9 @@ class CompiledPluginTest {
 
 	@Test
 	fun compiledStartFunctionRunsOutOfFuel() {
-		val error = assertFailsWith<PluginException> { ExtismPlugin(testPlugin("start_spin")) }
+		val error = assertFailsWith<PluginException> { ExtismPlugin(testPlugin("start_spin"), log = logging) }
 		assertEquals("Plugin ran out of fuel starting up", error.message)
+		assertEquals(emptyList(), logged)
 	}
 
 	@Test
@@ -76,6 +79,7 @@ class CompiledPluginTest {
 	fun compiledRecursionRunsOutOfStackAtTheDefaultCap() {
 		val plugin = ExtismPlugin(testPlugin("recurse"))
 
+		assertTrue(plugin.compiled)
 		val error = assertFailsWith<PluginException> { plugin.call("run", ByteArray(0), Long.MAX_VALUE) }
 		assertEquals("Plugin ran out of stack in run", error.message)
 	}
@@ -93,6 +97,7 @@ class CompiledPluginTest {
 	fun compiledGcGarbageIsFreedWhenACallReturns() {
 		val plugin = ExtismPlugin(testPlugin("gc_heap"), maxGuestHeapBytes = 16L * 1024 * 1024)
 
+		assertTrue(plugin.compiled)
 		repeat(50) { plugin.call("churn", ByteArray(0), FUEL) }
 	}
 
@@ -116,18 +121,50 @@ class CompiledPluginTest {
 
 	@Test
 	fun compiledModuleWhoseMemoryStartsPastTheCapDoesNotStart() {
-		val error = assertFailsWith<PluginException> { ExtismPlugin(testPlugin("big_memory")) }
+		val error = assertFailsWith<PluginException> { ExtismPlugin(testPlugin("big_memory"), log = logging) }
 
 		assertEquals("Plugin needs more memory than its limit of 64 MiB", error.message)
+		assertEquals(emptyList(), logged)
 		assertTrue(ExtismPlugin(testPlugin("big_memory"), maxMemoryPages = 1100).compiled)
 	}
 
 	@Test
 	fun compiledModuleWhoseTableStartsPastTheCapDoesNotStart() {
-		val error = assertFailsWith<PluginException> { ExtismPlugin(testPlugin("big_table")) }
+		val error = assertFailsWith<PluginException> { ExtismPlugin(testPlugin("big_table"), log = logging) }
 
 		assertEquals("Plugin needs a table larger than its limit of 100000 elements", error.message)
+		assertEquals(emptyList(), logged)
 		assertTrue(ExtismPlugin(testPlugin("big_table"), maxTableElements = 100_001).compiled)
+	}
+
+	@Test
+	fun aModuleTheJitRefusesRunsInterpreted() {
+		val plugin = ExtismPlugin(testPlugin("jit_refused"), log = logging)
+
+		assertFalse(plugin.compiled)
+		assertTrue(logged.single().startsWith("Running interpreted, as its code could not be compiled: JIT "), logged.single())
+		plugin.call("run", ByteArray(0), FUEL)
+	}
+
+	@Test
+	fun codeFailingToLoadInACallFailsThePluginNotTheHost() {
+		// ART reports a generated class it cannot load as a LinkageError when a call first reaches it.
+		val unloadable = ExtismPlugin.UserFunction("hammer_dispatch", params = 1, returnsValue = true) {
+			throw NoClassDefFoundError("chunk")
+		}
+		val plugin = ExtismPlugin(testPlugin("dispatch_echo"), listOf(unloadable))
+
+		val error = assertFailsWith<PluginException> { plugin.call("run", "abc".encodeToByteArray(), FUEL) }
+		assertTrue(error.message!!.startsWith("Plugin's compiled code failed to load in run"), error.message)
+		assertTrue(plugin.compiledCodeFailed)
+		assertFailsWith<PluginException> { plugin.call("run", "abc".encodeToByteArray(), FUEL) }
+	}
+
+	@Test
+	fun cancellingStopsCompiling() {
+		val cancellation = Job().apply { cancel() }
+
+		assertFailsWith<CancellationException> { ExtismPlugin(testPlugin("upper"), compileCancellation = cancellation) }
 	}
 
 	@Test
@@ -160,6 +197,10 @@ class CompiledPluginTest {
 		val compiled = time(compile = true)
 		Log.i(TAG, "upper on ${input.size} bytes: interpreted $interpreted, compiled $compiled")
 	}
+
+	// What a plugin logs from the host, which is where a fallback to the interpreter is reported.
+	private val logged = mutableListOf<String>()
+	private val logging: (ExtismPlugin.LogLevel, String) -> Unit = { _, message -> logged += message }
 
 	private fun testPlugin(name: String): ByteArray =
 		requireNotNull(javaClass.getResourceAsStream("/plugins/$name.wasm")) { "No test plugin $name" }.use { it.readBytes() }

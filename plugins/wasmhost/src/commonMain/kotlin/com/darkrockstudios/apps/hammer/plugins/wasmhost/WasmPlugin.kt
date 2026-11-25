@@ -42,6 +42,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
@@ -109,15 +110,21 @@ class WasmPlugin(
 
 	// Only touched while holding the lock.
 	private var loaded: ExtismPlugin? = null
-	private val module: ExtismPlugin
-		get() = loaded ?: ExtismPlugin(
-			loadModule,
-			listOf(dispatchFunction(), progressFunction(), resourceFunction(), serverRequestFunction()) + cacheFunctions(),
-			log = ::log,
-			maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB,
-			http = pluginHttp(),
-			maxKernelBytes = maxKernelBytes,
-		).also { loaded = it }
+
+	// False once compiled code failed to load in a call, so later loads interpret; only touched while holding the lock.
+	private var compileModule = true
+
+	/** The loaded module, loading it if need be; cancelling [cancellation] stops it compiling. Hold the lock. */
+	private fun module(cancellation: Job? = null): ExtismPlugin = loaded ?: ExtismPlugin(
+		loadModule,
+		listOf(dispatchFunction(), progressFunction(), resourceFunction(), serverRequestFunction()) + cacheFunctions(),
+		log = ::log,
+		maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB,
+		http = pluginHttp(),
+		maxKernelBytes = maxKernelBytes,
+		compile = compileModule,
+		compileCancellation = cancellation,
+	).also { loaded = it }
 
 	// The call [interruptibly] is running, if any, which cancelling its caller interrupts. Only touched
 	// while holding interruptLock, which a call clears before the lock can pass to the next.
@@ -234,7 +241,7 @@ class WasmPlugin(
 
 	/** Loads the module now rather than on first use, which surfaces any problem with it as a [PluginException]. */
 	fun instantiate() {
-		lock.withLock { module }
+		lock.withLock { module() }
 	}
 
 	/** Runs the module's [function] on [input], off the caller's thread; cancelling the caller stops it at once. */
@@ -249,6 +256,8 @@ class WasmPlugin(
 		val work = async(ioDispatcher) {
 			lock.withLock {
 				ensureActive()
+				// Loaded before taking interruptLock, which a cancelled caller waits on.
+				val module = module(coroutineContext[Job])
 				val outer = interruptLock.withLock { running.also { running = Running(module).also { mine = it } } }
 				try {
 					block()
@@ -279,14 +288,14 @@ class WasmPlugin(
 		val outer = activeRoute
 		activeRoute = route ?: appRoute
 		try {
-			module.call(function, input, fuelPerCall)
+			module().call(function, input, fuelPerCall)
 		} finally {
 			activeRoute = outer
 			// chasm never gives back the guest heap a call grew, so a module that needed a lot is dropped and
-			// loaded afresh when next used, as is one that ran the host out of memory.
-			if (outer == null && loaded?.let { it.outOfMemory || it.guestHeapBytes > releaseGuestHeapAbove } == true) {
-				loaded = null
-			}
+			// loaded afresh when next used, as is one that ran the host out of memory or whose compiled code failed.
+			if (loaded?.compiledCodeFailed == true) compileModule = false
+			val spent = loaded?.let { it.outOfMemory || it.compiledCodeFailed || it.guestHeapBytes > releaseGuestHeapAbove }
+			if (outer == null && spent == true) loaded = null
 		}
 	}
 

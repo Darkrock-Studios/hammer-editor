@@ -8,6 +8,7 @@ import io.github.charlietap.chasm.embedding.dsl.FunctionTypeBuilder
 import io.github.charlietap.chasm.embedding.dsl.ValueTypeListBuilder
 import io.github.charlietap.chasm.embedding.error.ChasmError
 import io.github.charlietap.chasm.embedding.function
+import io.github.charlietap.chasm.embedding.instance
 import io.github.charlietap.chasm.embedding.interrupt as interruptStore
 import io.github.charlietap.chasm.embedding.invoke
 import io.github.charlietap.chasm.embedding.module
@@ -16,6 +17,7 @@ import io.github.charlietap.chasm.embedding.resetFuel
 import io.github.charlietap.chasm.embedding.shapes.ChasmResult
 import io.github.charlietap.chasm.embedding.shapes.Import
 import io.github.charlietap.chasm.embedding.shapes.Instance
+import io.github.charlietap.chasm.embedding.shapes.Module
 import io.github.charlietap.chasm.host.HostFunction
 import io.github.charlietap.chasm.host.HostFunctionException
 import io.github.charlietap.chasm.host.HostModuleInstance
@@ -28,6 +30,7 @@ import io.github.charlietap.chasm.host.withMemory
 import io.github.charlietap.chasm.host.writeI32
 import io.github.charlietap.chasm.runtime.value.NumberValue
 import io.github.charlietap.chasm.type.FunctionType
+import kotlinx.coroutines.Job
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
@@ -47,7 +50,8 @@ import kotlin.time.TimeSource
  * variables and log output at fixed sizes.
  *
  * With [compile], the module is compiled to the platform's own code where chasm can, which is Android
- * alone, and interpreted elsewhere or when it cannot be compiled; [compiled] says which.
+ * alone, and interpreted elsewhere or when it cannot be compiled; [compiled] says which. Cancelling
+ * [compileCancellation] stops compiling, failing the load.
  */
 class ExtismPlugin(
 	/**
@@ -60,12 +64,13 @@ class ExtismPlugin(
 	private val log: (level: LogLevel, message: String) -> Unit = { _, _ -> },
 	private val maxMemoryPages: Int = DEFAULT_MAX_MEMORY_PAGES,
 	private val maxTableElements: Int = DEFAULT_MAX_TABLE_ELEMENTS,
-	maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
+	private val maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
 	/** Sends `http_request`s, deciding for itself which it allows. */
 	private val http: PluginHttp? = null,
 	maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 	maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
 	compile: Boolean = true,
+	compileCancellation: Job? = null,
 ) {
 	constructor(
 		wasm: ByteArray,
@@ -79,9 +84,10 @@ class ExtismPlugin(
 		maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 		maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
 		compile: Boolean = true,
+		compileCancellation: Job? = null,
 	) : this(
 		{ wasm }, userFunctions, config, log, maxMemoryPages, maxTableElements, maxGuestHeapBytes, http, maxKernelBytes,
-		maxStackBytes, compile,
+		maxStackBytes, compile, compileCancellation,
 	)
 
 	private val kernel = ExtismKernel(maxKernelBytes)
@@ -100,37 +106,85 @@ class ExtismPlugin(
 	var outOfMemory = false
 		private set
 
-	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
-	private val guestHeap = GuestHeap(
-		maxGuestHeapBytes,
-		STORE_CONFIG.copy(
-			limits = StoreLimits(memoryPages = maxMemoryPages, tableElements = maxTableElements, stackBytes = maxStackBytes),
-		),
+	/**
+	 * Whether the module's compiled code failed to load partway through a call, after which this instance
+	 * refuses calls. The module must be loaded again, interpreted.
+	 */
+	var compiledCodeFailed = false
+		private set
+
+	private val storeConfig = STORE_CONFIG.copy(
+		limits = StoreLimits(memoryPages = maxMemoryPages, tableElements = maxTableElements, stackBytes = maxStackBytes),
 	)
-	private val store = guestHeap.store
+
+	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
+	private var guestHeap = GuestHeap(maxGuestHeapBytes, storeConfig)
+	private var store = guestHeap.store
 
 	/** Whether the module's code was compiled rather than interpreted. */
 	var compiled = false
 		private set
 	private val instance: Instance = failingOutOfMemory("Plugin ran out of memory starting up") {
-		start(loadWasm, userFunctions, compile)
+		start(loadWasm, userFunctions, compile, compileCancellation)
 	}
 	private var calling = false
 
-	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>, compile: Boolean): Instance {
+	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>, compile: Boolean, cancellation: Job?): Instance {
 		val module = module(loadWasm()).orThrow("Invalid plugin module")
+		if (compile && platformCompiles) {
+			startCompiled(module, userFunctions, cancellation)?.let { instance ->
+				compiled = true
+				return instance
+			}
+			// The failed attempt may have allocated the module in the store and run some of it.
+			guestHeap = GuestHeap(maxGuestHeapBytes, storeConfig)
+			store = guestHeap.store
+			kernel.reset()
+			vars.clear()
+			varBytes = 0
+		}
+		val imports = imports(module, userFunctions)
+		setFuel(INSTANTIATION_FUEL)
+		return initialized(module, instance(store, module, imports))
+	}
+
+	/**
+	 * The module started with compiled code, or null when chasm-jit could not compile or load it or ran the
+	 * host out of memory trying, so that it runs interpreted.
+	 */
+	@Suppress("TooGenericExceptionCaught")
+	private fun startCompiled(module: Module, userFunctions: List<UserFunction>, cancellation: Job?): Instance? {
+		val reason = try {
+			val imports = imports(module, userFunctions)
+			setFuel(INSTANTIATION_FUEL)
+			val result = compiledInstance(store, module, imports, cancellation)
+			if (result is ChasmResult.Error && result.error.error.startsWith(JIT_FAILURE)) {
+				result.error.error
+			} else {
+				return initialized(module, result)
+			}
+		} catch (e: Throwable) {
+			if (!e.isOutOfMemory() && !e.isCodeLoadFailure()) throw e
+			e.toString()
+		}
+		log(LogLevel.Warn, "Running interpreted, as its code could not be compiled: $reason")
+		return null
+	}
+
+	private fun imports(module: Module, userFunctions: List<UserFunction>): List<Import> {
 		val provided = (envFunctions() + userFunctions.map { it.toHost(kernel) } + RandomGet + ClockTimeGet)
 			.associateBy { it.module to it.name }
-		val imports = module.imports.map { import ->
+		return module.imports.map { import ->
 			val host = provided[import.moduleName to import.entityName]
 				?: throw PluginException("Plugin imports ${import.moduleName} ${import.entityName}, which the host does not provide")
 			Import(import.moduleName, import.entityName, function(store, host.type, host))
 		}
-		// The start function, data initialization, and the initializer share this, as Extism hosts do for reactor modules.
-		setFuel(INSTANTIATION_FUEL)
-		val started = instantiate(store, module, imports, compile)
-		compiled = started.compiled
-		val instance = started.result.orThrowStarting("Plugin failed to start")
+	}
+
+	// The start function, data initialization, and the initializer share the fuel set before instantiating,
+	// as Extism hosts do for reactor modules.
+	private fun initialized(module: Module, started: ChasmResult<Instance, ChasmError.ExecutionError>): Instance {
+		val instance = started.orThrowStarting("Plugin failed to start")
 		INITIALIZERS.firstOrNull { name -> module.exports.any { it.name == name } }?.let { initializer ->
 			invoke(store, instance, initializer).orThrowStarting("Plugin failed to initialize")
 		}
@@ -144,16 +198,32 @@ class ExtismPlugin(
 	fun call(function: String, input: ByteArray, fuel: Long): ByteArray {
 		require(fuel >= 0) { "Fuel must not be negative" }
 		if (outOfMemory) throw PluginException("Plugin ran out of memory earlier and must be loaded again")
+		if (compiledCodeFailed) throw PluginException("Plugin's compiled code failed earlier and must be loaded again")
 		// A host function re-entering the module would reset the memory and fuel of the call in progress.
 		if (calling) throw PluginException("Plugin was called again while running $function")
 		calling = true
 		try {
-			return failingOutOfMemory("Plugin ran out of memory in $function") { callOnce(function, input, fuel) }
+			return failingOutOfMemory("Plugin ran out of memory in $function") {
+				failingCodeLoad(function) { callOnce(function, input, fuel) }
+			}
 		} finally {
 			calling = false
 			// The output is copied out by now, so a kernel the call grew need not be held until the next.
 			kernel.reset()
 		}
+	}
+
+	/**
+	 * Runs [block], turning compiled code that fails to load, which ART may find only when a call first
+	 * reaches it, into a [PluginException].
+	 */
+	@Suppress("TooGenericExceptionCaught")
+	private inline fun <T> failingCodeLoad(function: String, block: () -> T): T = try {
+		block()
+	} catch (e: Throwable) {
+		if (!e.isCodeLoadFailure()) throw e
+		compiledCodeFailed = true
+		throw PluginException("Plugin's compiled code failed to load in $function: $e")
 	}
 
 	/**
