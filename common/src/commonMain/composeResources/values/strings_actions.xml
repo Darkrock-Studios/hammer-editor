@@ -44,4 +44,8 @@
 	<string name="action_edit_text_bigger">Larger text</string>
 	<string name="action_edit_text_smaller">Smaller text</string>
 	<string name="action_edit_text_reset">Reset text size</string>
+	<string name="palette_title">Commands</string>
+	<string name="palette_search_placeholder">Type a command</string>
+	<string name="palette_empty">No matching commands</string>
+	<string name="cheat_sheet_title">Keyboard shortcuts</string>
 </resources>

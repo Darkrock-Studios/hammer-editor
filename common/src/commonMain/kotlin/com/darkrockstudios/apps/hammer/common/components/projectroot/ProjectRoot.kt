@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.commandpalette.CheatSheet
+import com.darkrockstudios.apps.hammer.common.components.commandpalette.CommandPalette
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGallery
@@ -34,6 +36,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner, Comp
 	val actions: ActionRegistry
 	val routerState: Value<ChildStack<*, Destination<*>>>
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
+
+	/** The palette or cheat sheet; it shows over any modal. */
+	val commandOverlayState: Value<ChildSlot<CommandOverlayRouter.Config, CommandOverlay>>
 	val closeRequestHandlers: Value<Set<CloseConfirm>>
 	val backEnabled: Value<Boolean>
 
@@ -75,6 +80,10 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner, Comp
 
 	/** Opens the image gallery to browse and manage the project's images. */
 	fun showImageGallery()
+
+	fun showCommandPalette()
+	fun showCheatSheet()
+	fun dismissCommandOverlay()
 
 	/** Shows the item [link] names; false when the project has no such item. */
 	suspend fun navigateToDeepLink(link: ProjectDeepLink): Boolean
@@ -127,6 +136,14 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner, Comp
 		data class DuplicateIdsModal(val component: DuplicateIds) : ModalDestination()
 
 		data class ImageGalleryModal(val component: ImageGallery) : ModalDestination()
+	}
+
+	sealed class CommandOverlay {
+		data object None : CommandOverlay()
+
+		data class PaletteOverlay(val component: CommandPalette) : CommandOverlay()
+
+		data class CheatSheetOverlay(val component: CheatSheet) : CommandOverlay()
 	}
 
 	enum class DestinationTypes(val text: StringResource, val shortText: StringResource) {

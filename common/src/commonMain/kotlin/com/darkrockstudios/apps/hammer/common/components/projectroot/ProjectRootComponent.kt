@@ -153,6 +153,11 @@ class ProjectRootComponent(
 	override val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ProjectRoot.ModalDestination>>
 		get() = modalRouter.state
 
+	private val commandOverlayRouter = CommandOverlayRouter(componentContext, actions)
+
+	override val commandOverlayState: Value<ChildSlot<CommandOverlayRouter.Config, ProjectRoot.CommandOverlay>>
+		get() = commandOverlayRouter.state
+
 	init {
 		actions.registerWhileStarted(
 			lifecycle,
@@ -168,6 +173,10 @@ class ProjectRootComponent(
 				HammerActions.ProjectSaveAll.id to ActionHandler { saveAllBuffers() },
 				HammerActions.ProjectGallery.id to ActionHandler { showImageGallery() },
 				HammerActions.ProjectClose.id to ActionHandler { onCloseProject() },
+				HammerActions.PaletteOpen.id to ActionHandler { toggleCommandOverlay(CommandOverlayRouter.Config.Palette) },
+				HammerActions.HelpCheatSheet.id to ActionHandler {
+					toggleCommandOverlay(CommandOverlayRouter.Config.CheatSheet)
+				},
 			),
 		)
 		actions.registerOverlayWhile(
@@ -368,6 +377,21 @@ class ProjectRootComponent(
 	override fun dismissFocusMode() = modalRouter.dismissFocusMode()
 
 	override fun showImageGallery() = modalRouter.showImageGallery(ImageGalleryMode.Browse)
+
+	override fun showCommandPalette() = commandOverlayRouter.showPalette()
+
+	override fun showCheatSheet() = commandOverlayRouter.showCheatSheet()
+
+	override fun dismissCommandOverlay() = commandOverlayRouter.dismiss()
+
+	/** Its own chord closes an overlay; the other's switches to it. */
+	private fun toggleCommandOverlay(config: CommandOverlayRouter.Config) {
+		when {
+			commandOverlayRouter.isShowing(config) -> dismissCommandOverlay()
+			config == CommandOverlayRouter.Config.Palette -> showCommandPalette()
+			else -> showCheatSheet()
+		}
+	}
 
 	private fun reopenSceneAfterFocusMode(sceneItem: SceneItem) {
 		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)

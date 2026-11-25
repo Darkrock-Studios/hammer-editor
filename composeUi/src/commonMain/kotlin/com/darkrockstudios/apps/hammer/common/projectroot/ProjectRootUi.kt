@@ -20,6 +20,8 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.commandpalette.CheatSheetUi
+import com.darkrockstudios.apps.hammer.common.commandpalette.CommandPaletteUi
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
@@ -109,6 +111,9 @@ fun ProjectRootUi(
 				ModalContent(component) { message ->
 					rootSnackbar.showSnackbar(message)
 				}
+
+				// After the modal so it composes over focus mode.
+				CommandOverlayContent(component)
 			}
 		}
 	}
@@ -182,6 +187,16 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 		is ProjectRoot.ModalDestination.ImageGalleryModal -> {
 			ImageGalleryModalContent(overlay.component)
 		}
+	}
+}
+
+@Composable
+fun CommandOverlayContent(component: ProjectRoot) {
+	val state by component.commandOverlayState.subscribeAsState()
+	when (val overlay = state.child?.instance) {
+		null, ProjectRoot.CommandOverlay.None -> {}
+		is ProjectRoot.CommandOverlay.PaletteOverlay -> CommandPaletteUi(overlay.component)
+		is ProjectRoot.CommandOverlay.CheatSheetOverlay -> CheatSheetUi(overlay.component)
 	}
 }
 

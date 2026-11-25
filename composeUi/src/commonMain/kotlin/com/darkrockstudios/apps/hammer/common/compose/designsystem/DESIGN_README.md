@@ -532,7 +532,10 @@ a sort icon). Control labels are sentence case in the body face.
   plus optional mono greeble (`English (United States)     EN-US`).
   Use where a dropdown would be unwieldy: dozens to hundreds of
   options, e.g. every platform locale. Optional muted clear row above
-  the list resets the selection.
+  the list resets the selection. The command palette drives it from
+  the keyboard: `keyboardSelection` (Up/Down move a tonal highlight,
+  Enter picks), `autoFocusSearch`, its own `filter`, and
+  `itemTrailingContent` for a chord in `HdMetaText`.
 - **[`HdTabPill`](HdTabPill.kt)**: one tab of an evenly weighted row
   in a dialog, a label over a 2dp rule that takes the accent when
   active. Used where a dialog's list splits into a few kinds, such as

@@ -69,6 +69,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -91,6 +92,7 @@ import org.junit.jupiter.api.Test
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
+import utils.KeyStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -193,6 +195,7 @@ class ProjectRootComponentTest : ComponentTest() {
 			single { spellCheckRepository }
 			single<FocusModeService> { mockk(relaxed = true) }
 			single<UrlLauncher> { mockk(relaxed = true) }
+			single<StrRes> { KeyStrRes() }
 			single<VersionCheckRepository> { mockk(relaxed = true) }
 			single { TimelineSelectionSetting(PropertiesSettings(Properties())) }
 			single<AccountTagService> { mockk(relaxed = true) }
@@ -995,6 +998,171 @@ class ProjectRootComponentTest : ComponentTest() {
 		val modal = comp.modalRouterState.value.child?.instance
 		assertTrue(modal == null || modal is ProjectRoot.ModalDestination.None)
 		assertFalse(comp.actions.hasOverlay())
+	}
+
+	private fun ProjectRoot.palette() =
+		assertIs<ProjectRoot.CommandOverlay.PaletteOverlay>(commandOverlayState.value.child?.instance).component
+
+	private fun ProjectRoot.commandOverlayClosed(): Boolean =
+		commandOverlayState.value.child?.instance.let { it == null || it is ProjectRoot.CommandOverlay.None }
+
+	@Test
+	fun `Mod+K opens the palette and F1 the cheat sheet`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val paletteOpened = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		val paletteShown = comp.commandOverlayState.value.child?.instance
+		comp.dismissCommandOverlay()
+		val sheetOpened = comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		assertTrue(paletteOpened)
+		assertIs<ProjectRoot.CommandOverlay.PaletteOverlay>(paletteShown)
+		assertTrue(sheetOpened)
+		assertIs<ProjectRoot.CommandOverlay.CheatSheetOverlay>(comp.commandOverlayState.value.child?.instance)
+	}
+
+	@Test
+	fun `Mod+K over focus mode opens the palette and keeps focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.Notes)
+		advanceUntilIdle()
+		val itemNewLiveBefore = comp.actions.isLive(HammerActions.ItemNew.id)
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		assertTrue(itemNewLiveBefore)
+		assertTrue(handled)
+		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+		val ids = comp.palette().state.value.entries.map { it.id }
+		assertFalse(HammerActions.ItemNew.id in ids)
+		assertTrue(HammerActions.ProjectSaveAll.id in ids)
+	}
+
+	@Test
+	fun `Esc closes the palette over focus mode and keeps focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		val closed = comp.actions.dismissTopOverlay()
+		advanceUntilIdle()
+
+		assertTrue(closed)
+		assertTrue(comp.commandOverlayClosed())
+		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `a global action run from the palette over focus mode works`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		comp.palette().run(HammerActions.ProjectSaveAll.id)
+		advanceUntilIdle()
+
+		coVerify { sceneEditor.storeAllBuffers() }
+		assertTrue(comp.commandOverlayClosed())
+		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `a module action run from the palette runs once the palette is gone`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.Notes)
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		comp.palette().run(HammerActions.ItemNew.id)
+		advanceUntilIdle()
+
+		assertTrue(comp.commandOverlayClosed())
+		val notes = assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+		assertIs<Notes.Destination.CreateNoteDestination>(notes.component.stack.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+K with the palette open closes it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertTrue(comp.commandOverlayClosed())
+		assertFalse(comp.actions.hasOverlay())
+	}
+
+	@Test
+	fun `F1 with the cheat sheet open closes it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertTrue(comp.commandOverlayClosed())
+		assertFalse(comp.actions.hasOverlay())
+	}
+
+	@Test
+	fun `F1 with the palette open switches to the cheat sheet`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		val sheet = assertIs<ProjectRoot.CommandOverlay.CheatSheetOverlay>(
+			comp.commandOverlayState.value.child?.instance
+		).component
+		val navNotes = sheet.state.value.sections.flatMap { it.rows }.single { it.id == HammerActions.NavNotes.id }
+		assertTrue(navNotes.live)
+	}
+
+	@Test
+	fun `Mod+K over the cheat sheet switches to a palette of what is live below it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		val ids = comp.palette().state.value.entries.map { it.id }
+		assertTrue(HammerActions.NavNotes.id in ids)
 	}
 
 	@Test
