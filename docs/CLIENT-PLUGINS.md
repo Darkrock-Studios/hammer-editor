@@ -1513,7 +1513,10 @@ The Hammer-specific parts:
   rules, apart from the length and Unicode ones, as each file is added.
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
-  AssemblyScript's `abort` sets one and then traps.
+  AssemblyScript's `abort` sets one and then traps. A trap, running out of fuel
+  and being interrupted included, stops the module partway, with its own state
+  as the trap found it (a Rust `RefCell` still borrowed, say), so the host drops
+  the module and loads it afresh for the next call. Returning non-zero keeps it.
 - `extism:host/env` `http_request(request, body) -> response` and
   `http_status_code()`, Extism's HTTP imports, send a request to a host the
   plugin may reach (see [HTTP](#http)) and return its body and status;

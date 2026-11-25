@@ -7,6 +7,9 @@ import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import net.peanuuutz.tomlkt.Toml
@@ -57,7 +60,7 @@ class HarperGrammarPluginTest {
 				module {
 					single<FileSystem> { fileSystem }
 					single<Toml> { createTomlSerializer() }
-					single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.Unconfined }
+					single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 					single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 				},
 				registry.koinModule(),
@@ -140,5 +143,17 @@ class HarperGrammarPluginTest {
 		assertTrue(one.value.isNotEmpty())
 
 		assertEquals(emptyList(), issues("Il a mangé une pomme.", "fr"))
+	}
+
+	@Test
+	fun `a check cancelled partway leaves the next check working`() = runBlocking {
+		assertTrue("a -> an" in issues("This is a apple."))
+		val long = List(500) { "It were a quiet evening, and nobody seem to notice her arrival." }
+		val stopped = launch(Dispatchers.Default) { check.diagnose(TextDiagnosticsRequest(long, "en", "Project")) }
+		delay(500)
+		assertTrue(stopped.isActive, "the check ended before it could be cancelled")
+		stopped.cancelAndJoin()
+
+		assertTrue("a -> an" in issues("This is a apple."))
 	}
 }

@@ -241,6 +241,49 @@ class WasmPluginTest {
 		assertEquals(0, counter.callBlocking("run", 1_000L.toLittleEndian()).size)
 	}
 
+	private fun borrowPlugin(fuelPerCall: Long = WasmPlugin.DEFAULT_FUEL_PER_CALL, onLoad: () -> Unit = {}) = WasmPlugin(
+		PluginManifest.parse("id = \"borrow\"\nname = \"Borrow\"\nversion = \"1\"\napi = 1"),
+		{ onLoad(); testPlugin("borrow") },
+		fuelPerCall = fuelPerCall,
+	)
+
+	@Test
+	fun `a call cancelled partway is not left half done for the next call`() = runBlocking {
+		val plugin = borrowPlugin(fuelPerCall = Long.MAX_VALUE)
+		val endless = launch(Dispatchers.Default) { plugin.call("run", Long.MAX_VALUE.toLittleEndian()) }
+		delay(200)
+		endless.cancelAndJoin()
+
+		assertEquals(0, plugin.callBlocking("run", 1L.toLittleEndian()).size)
+	}
+
+	@Test
+	fun `a call that runs out of fuel partway is not left half done for the next call`() {
+		val plugin = borrowPlugin(fuelPerCall = 1_000)
+		val error = assertThrows<PluginException> { plugin.callBlocking("run", Long.MAX_VALUE.toLittleEndian()) }
+		assertEquals("Plugin ran out of fuel in run", error.message)
+
+		assertEquals(0, plugin.callBlocking("run", 1L.toLittleEndian()).size)
+	}
+
+	@Test
+	fun `a call that traps partway is not left half done for the next call`() {
+		val plugin = borrowPlugin()
+		assertThrows<PluginException> { plugin.callBlocking("panic", ByteArray(0)) }
+
+		assertEquals(0, plugin.callBlocking("run", 1L.toLittleEndian()).size)
+	}
+
+	@Test
+	fun `a module that returns a failure is kept for the next call`() {
+		var loads = 0
+		val plugin = borrowPlugin { loads++ }
+		assertThrows<PluginException> { plugin.callBlocking("refuse", ByteArray(0)) }
+
+		assertEquals(0, plugin.callBlocking("run", 1L.toLittleEndian()).size)
+		assertEquals(1, loads)
+	}
+
 	@Test
 	fun `a module left holding a large guest heap is loaded afresh for the next call`() {
 		var loads = 0
