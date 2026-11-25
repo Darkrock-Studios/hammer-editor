@@ -69,8 +69,7 @@ class CompiledPluginBenchmark {
 
 	/**
 	 * One Harper build, from the `module` argument, in the mode the `compile` argument names, so each runs
-	 * in a process of its own: load time, the first check, which builds the linter when the module was
-	 * not pre-initialized, and the best of three after it.
+	 * in a process of its own: load time, the first check, which builds the linter, and each check after it.
 	 */
 	@Test
 	fun harper() {

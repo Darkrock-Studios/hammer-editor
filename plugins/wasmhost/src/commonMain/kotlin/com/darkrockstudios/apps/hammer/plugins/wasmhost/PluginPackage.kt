@@ -113,7 +113,7 @@ class PluginPackage(
 			val resources = if (zip.exists(root / RESOURCES)) listResources(zip, root / RESOURCES) else emptyMap()
 
 			val moduleSize = zip.metadataOrNull(root / MODULE)?.size ?: throw PluginPackageException("Package has no $MODULE")
-			// A module's data has to fit its memory, so a pre-initialized one may be as large as that.
+			// A module's data segments have to fit its memory, so it may be as large as that.
 			val maxModuleBytes = manifest.limits.memory * BYTES_PER_MIB + MAX_CODE_BYTES
 			if (moduleSize > maxModuleBytes) throw PluginPackageException("$MODULE is larger than $maxModuleBytes bytes")
 			// Each read opens the package again, since reinstalling replaces the file under this path.
