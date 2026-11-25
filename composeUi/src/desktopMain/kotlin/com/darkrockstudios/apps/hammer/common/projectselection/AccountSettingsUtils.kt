@@ -58,6 +58,7 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override fun setInitialProjectScreen(value: InitialProjectScreen) {}
 		override fun setTipsEnabled(enabled: Boolean) {}
 		override fun resetTips() {}
+		override fun setSmartPunctuation(enabled: Boolean) {}
 		override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {}
 		override fun beginSetupServer() {}
 		override fun cancelServerSetup() {}

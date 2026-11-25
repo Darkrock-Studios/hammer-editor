@@ -99,6 +99,7 @@ class AccountSettingsComponent(
 			maxBackups = globalSettingsStore.globalSettings.maxBackups,
 			initialProjectScreen = globalSettingsStore.globalSettings.initialProjectScreen,
 			tipsEnabled = globalSettingsStore.globalSettings.tipsEnabled,
+			smartPunctuation = globalSettingsStore.globalSettings.smartPunctuation,
 		)
 	}
 	override val state: Value<AccountSettings.State> = _state
@@ -137,6 +138,7 @@ class AccountSettingsComponent(
 							maxBackups = settings.maxBackups,
 							initialProjectScreen = settings.initialProjectScreen,
 							tipsEnabled = settings.tipsEnabled,
+							smartPunctuation = settings.smartPunctuation,
 						)
 					}
 				}
@@ -188,6 +190,12 @@ class AccountSettingsComponent(
 		scope.launch {
 			nuxRepository.resetHints()
 			showToast(Res.string.settings_tips_reset_toast)
+		}
+	}
+
+	override fun setSmartPunctuation(enabled: Boolean) {
+		scope.launch {
+			globalSettingsStore.updateSettings { it.copy(smartPunctuation = enabled) }
 		}
 	}
 

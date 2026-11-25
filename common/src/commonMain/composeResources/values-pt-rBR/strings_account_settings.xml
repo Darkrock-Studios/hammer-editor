@@ -50,6 +50,9 @@
 	<string name="settings_spellcheck_in_focus_enable">Ativar no Modo de Foco</string>
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
+	<string name="settings_group_punctuation">Pontuação</string>
+	<string name="settings_smart_punctuation_enable">Pontuação inteligente</string>
+	<string name="settings_smart_punctuation_hint">Ao digitar, aspas retas viram curvas, -- vira travessão, um hífen entre espaços vira meia-risca e ... vira reticências.</string>
 	<string name="settings_spellcheck_dictionary">Dicionário</string>
 	<string name="settings_server_enable_sync_backup_desc">Prepare um servidor para sincronizar seus projetos entre dispositivos e criar "backups" seguros</string>
 	<!-- Backup Manager Dialog -->

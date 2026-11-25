@@ -23,6 +23,7 @@ interface AccountSettings : ComponentToaster {
 	fun setTipsEnabled(enabled: Boolean)
 	/** Shows every tip again, as if on a fresh install. */
 	fun resetTips()
+	fun setSmartPunctuation(enabled: Boolean)
 	fun reinstallExampleProject(onComplete: (Boolean) -> Unit)
 	fun beginSetupServer()
 	fun cancelServerSetup()
@@ -98,5 +99,6 @@ interface AccountSettings : ComponentToaster {
 		val tipsEnabled: Boolean = true,
 		/** Null until the seen tips have been read. */
 		@Transient val tipsProgress: NuxProgress? = null,
+		val smartPunctuation: Boolean = false,
 	)
 }

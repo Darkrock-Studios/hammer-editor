@@ -50,6 +50,9 @@
 	<string name="settings_spellcheck_in_focus_enable">Im Fokusmodus aktivieren</string>
 	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
+	<string name="settings_group_punctuation">Zeichensetzung</string>
+	<string name="settings_smart_punctuation_enable">Intelligente Zeichensetzung</string>
+	<string name="settings_smart_punctuation_hint">Beim Tippen werden gerade Anführungszeichen typografisch, -- wird zum Geviertstrich, ein Bindestrich zwischen Leerzeichen zum Halbgeviertstrich und ... zu Auslassungspunkten.</string>
 	<string name="settings_spellcheck_dictionary">Wörterbuch</string>
 	<string name="settings_server_enable_sync_backup_desc">Richte einen Server ein, um deine Projekte zwischen den Geräten zu synchronisieren und sichere Sicherungen zu erstellen.</string>
 	<!-- Backup Manager Dialog -->

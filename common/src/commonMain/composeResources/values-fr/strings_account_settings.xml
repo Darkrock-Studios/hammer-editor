@@ -50,6 +50,9 @@
 	<string name="settings_spellcheck_in_focus_enable">Activer en mode concentration</string>
 	<string name="settings_spellcheck_encyclopedia_enable">Apprendre les noms de l'encyclopédie</string>
 	<string name="settings_spellcheck_encyclopedia_enable_hint">Les noms d'entrés et les alias ne seront pas marqués comme mal orthographiés pendant que leur projet est ouvert</string>
+	<string name="settings_group_punctuation">Ponctuation</string>
+	<string name="settings_smart_punctuation_enable">Ponctuation intelligente</string>
+	<string name="settings_smart_punctuation_hint">Pendant la saisie, les guillemets droits deviennent typographiques, -- un tiret cadratin, un trait d&#8217;union entre espaces un tiret demi-cadratin et ... des points de suspension.</string>
 	<string name="settings_spellcheck_dictionary">Dictionnaire</string>
 	<string name="settings_server_enable_sync_backup_desc">Configurez un serveur pour synchroniser vos projets entre appareils et créer des sauvegardes sécurisées.</string>
 	<!-- Backup Manager Dialog -->

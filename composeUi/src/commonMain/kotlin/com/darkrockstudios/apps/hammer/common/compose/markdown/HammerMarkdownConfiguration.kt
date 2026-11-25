@@ -5,7 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import com.darkrockstudios.apps.hammer.common.compose.ApplySmartPunctuation
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
+import com.darkrockstudios.apps.hammer.common.compose.LocalSmartPunctuation
 import com.darkrockstudios.texteditor.RichTextStyles
 import com.darkrockstudios.texteditor.TextEditorStyle
 import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
@@ -33,7 +35,8 @@ val HammerImageBlockSize = ImageBlockSize(maxWidth = ImageLength.Fraction(0.7f),
 /**
  * This editor as markdown in [HammerMarkdownConfiguration], its images resolved through
  * [LocalImageProvider]. [richTextStyles] are assigned before the extension is made, and [init]
- * runs once on each new one. A new one is made for a new editor or image provider.
+ * runs once on each new one. A new one is made for a new editor or image provider. Typed text gets
+ * smart punctuation while [LocalSmartPunctuation] is on.
  */
 @Composable
 fun TextEditorState.rememberHammerMarkdown(
@@ -41,6 +44,7 @@ fun TextEditorState.rememberHammerMarkdown(
 	init: MarkdownExtension.() -> Unit = {},
 ): MarkdownExtension {
 	val imageProvider = LocalImageProvider.current
+	ApplySmartPunctuation(this)
 	return remember(this, imageProvider) {
 		this.richTextStyles = richTextStyles
 		withMarkdown(HammerMarkdownConfiguration, imageProvider).apply(init)
