@@ -39,14 +39,19 @@ import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFix
 import com.darkrockstudios.apps.hammer.operations.plugin.toActionFields
 import io.github.aakira.napier.Napier
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -213,7 +218,7 @@ class WasmPlugin(
 			val paragraphs = text.paragraphs
 			val request = DiagnoseRequest(check.name, paragraphs, text.language, text.project, settingsValues(), locale)
 			val found = List(paragraphs.size) { mutableListOf<TextDiagnostic>() }
-			val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString()
+			val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray(), TEXT_CHECK_GRACE).decodeToString()
 			if (reply.isBlank()) return@TextDiagnosticsProvider found
 			val diagnostics = try {
 				ReplyJson.decodeFromString<DiagnoseReply>(reply).diagnostics
@@ -237,20 +242,27 @@ class WasmPlugin(
 		lock.withLock { module }
 	}
 
-	/** Runs the module's [function] on [input], off the caller's thread; cancelling the caller stops it at once. */
-	suspend fun call(function: String, input: ByteArray): ByteArray = interruptibly { callBlocking(function, input) }
+	/**
+	 * Runs the module's [function] on [input], off the caller's thread. Cancelling the caller stops it once
+	 * [grace] has passed, at once by default.
+	 */
+	suspend fun call(function: String, input: ByteArray, grace: Duration = Duration.ZERO): ByteArray =
+		interruptibly(grace) { callBlocking(function, input) }
 
 	/**
 	 * Runs [block], which calls the module, holding the lock on the IO dispatcher. Cancelling the caller
-	 * interrupts the module, which otherwise would run to the end of its call.
+	 * interrupts the module after [grace], unless the call has ended by then; a call that ends on its own
+	 * keeps the module, where an interrupted one has it loaded afresh.
 	 */
-	private suspend fun <T> interruptibly(block: () -> T): T = coroutineScope {
+	private suspend fun <T> interruptibly(grace: Duration = Duration.ZERO, block: () -> T): T = coroutineScope {
 		var mine: Running? = null
 		val work = async(ioDispatcher) {
 			lock.withLock {
 				ensureActive()
 				val outer = interruptLock.withLock { running.also { running = Running(module).also { mine = it } } }
 				try {
+					// A cancel while the module was loading found no call to interrupt.
+					ensureActive()
 					block()
 				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 					// A call interrupted because its caller was cancelled ends as that cancellation, not a failure.
@@ -265,6 +277,7 @@ class WasmPlugin(
 		try {
 			work.await()
 		} catch (e: CancellationException) {
+			if (grace.isPositive()) withContext(NonCancellable) { withTimeoutOrNull(grace) { work.join() } }
 			interruptLock.withLock { running?.takeIf { it === mine }?.module?.interrupt() }
 			throw e
 		}
@@ -283,8 +296,9 @@ class WasmPlugin(
 		} finally {
 			activeRoute = outer
 			// chasm never gives back the guest heap a call grew, so a module that needed a lot is dropped and
-			// loaded afresh when next used, as is one that ran the host out of memory.
-			if (outer == null && loaded?.let { it.outOfMemory || it.guestHeapBytes > releaseGuestHeapAbove } == true) {
+			// loaded afresh when next used, as is one that ran the host out of memory or was stopped partway.
+			val drop = loaded?.let { it.outOfMemory || it.stoppedPartway || it.guestHeapBytes > releaseGuestHeapAbove }
+			if (outer == null && drop == true) {
 				loaded = null
 			}
 		}
@@ -805,6 +819,12 @@ class WasmPlugin(
 
 		/** Function calls plus loop iterations allowed per call before the module is stopped. */
 		const val DEFAULT_FUEL_PER_CALL = 2_000_000_000L
+
+		/**
+		 * How long a text check the editor no longer wants may run before it is interrupted. Most paragraph
+		 * checks finish sooner, which spares loading the module again: about half a second for Harper.
+		 */
+		val TEXT_CHECK_GRACE = 500.milliseconds
 
 		/** Guest heap a module may keep between calls; a Kotlin/Wasm plugin's small calls need a few MiB. */
 		const val DEFAULT_RELEASE_GUEST_HEAP_ABOVE = 64L * 1024 * 1024

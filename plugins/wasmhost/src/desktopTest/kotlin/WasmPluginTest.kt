@@ -6,8 +6,11 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import java.util.concurrent.atomic.AtomicInteger
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
 import kotlin.concurrent.thread
@@ -241,6 +244,94 @@ class WasmPluginTest {
 		assertEquals(0, counter.callBlocking("run", 1_000L.toLittleEndian()).size)
 	}
 
+	private class Borrow(fuelPerCall: Long = WasmPlugin.DEFAULT_FUEL_PER_CALL, loadDelayMillis: Long = 0) {
+		val loads = AtomicInteger()
+		val plugin = WasmPlugin(
+			PluginManifest.parse("id = \"borrow\"\nname = \"Borrow\"\nversion = \"1\"\napi = 1"),
+			{
+				loads.incrementAndGet()
+				Thread.sleep(loadDelayMillis)
+				testPlugin("borrow")
+			},
+			fuelPerCall = fuelPerCall,
+		)
+
+		fun runOnce() = assertEquals(0, plugin.callBlocking("run", 1L.toLittleEndian()).size)
+	}
+
+	@Test
+	fun `a call cancelled partway is loaded afresh for the next call`() = runBlocking {
+		val borrow = Borrow(fuelPerCall = BOUNDED_FUEL)
+		val endless = launch(Dispatchers.Default) { borrow.plugin.call("run", Long.MAX_VALUE.toLittleEndian()) }
+		delay(200)
+		endless.cancelAndJoin()
+
+		borrow.runOnce()
+		assertEquals(2, borrow.loads.get())
+	}
+
+	@Test
+	fun `a call that runs out of fuel partway is loaded afresh for the next call`() {
+		val borrow = Borrow(fuelPerCall = 1_000)
+		val error = assertThrows<PluginException> { borrow.plugin.callBlocking("run", Long.MAX_VALUE.toLittleEndian()) }
+		assertEquals("Plugin ran out of fuel in run", error.message)
+
+		borrow.runOnce()
+		assertEquals(2, borrow.loads.get())
+	}
+
+	@Test
+	fun `a call that traps partway is loaded afresh for the next call`() {
+		val borrow = Borrow()
+		assertThrows<PluginException> { borrow.plugin.callBlocking("panic", ByteArray(0)) }
+
+		borrow.runOnce()
+		assertEquals(2, borrow.loads.get())
+	}
+
+	@Test
+	fun `a module that returns a failure is kept for the next call`() {
+		val borrow = Borrow()
+		assertThrows<PluginException> { borrow.plugin.callBlocking("refuse", ByteArray(0)) }
+
+		borrow.runOnce()
+		assertEquals(1, borrow.loads.get())
+	}
+
+	@Test
+	fun `a cancelled call that ends within its grace keeps the module`() = runBlocking {
+		val borrow = Borrow(fuelPerCall = BOUNDED_FUEL)
+		val call = launch(Dispatchers.Default) { borrow.plugin.call("run", GRACE_RUN.toLittleEndian(), grace = 30.seconds) }
+		delay(100)
+		assertTrue(call.isActive, "the call ended before it could be cancelled")
+		call.cancelAndJoin()
+
+		borrow.runOnce()
+		assertEquals(1, borrow.loads.get())
+	}
+
+	@Test
+	fun `a cancelled call still running when its grace ends is interrupted`() = runBlocking {
+		val borrow = Borrow(fuelPerCall = BOUNDED_FUEL)
+		val endless = launch(Dispatchers.Default) { borrow.plugin.call("run", Long.MAX_VALUE.toLittleEndian(), grace = 300.milliseconds) }
+		delay(200)
+
+		val stopping = measureTime { withTimeout(5.seconds) { endless.cancelAndJoin() } }
+		assertTrue(stopping >= 300.milliseconds && stopping < 2.seconds, "took $stopping")
+		borrow.runOnce()
+		assertEquals(2, borrow.loads.get())
+	}
+
+	@Test
+	fun `a call cancelled while its module loads never runs`() = runBlocking {
+		val borrow = Borrow(fuelPerCall = BOUNDED_FUEL, loadDelayMillis = 500)
+		val endless = launch(Dispatchers.Default) { borrow.plugin.call("run", Long.MAX_VALUE.toLittleEndian()) }
+		delay(200)
+
+		withTimeout(5.seconds) { endless.cancelAndJoin() }
+		borrow.runOnce()
+	}
+
 	@Test
 	fun `a module left holding a large guest heap is loaded afresh for the next call`() {
 		var loads = 0
@@ -339,3 +430,9 @@ class WasmPluginTest {
 		override suspend fun <T> withProject(project: String, block: suspend (OpenProject) -> T): T = error("unused")
 	}
 }
+
+/** Iterations of borrow's "run" that take well over 100 ms and well under 30 s. */
+private const val GRACE_RUN = 100_000_000L
+
+/** Over 10 s of borrow's loop: a call that is never interrupted fails its test rather than hanging it. */
+private const val BOUNDED_FUEL = 1_000_000_000L
