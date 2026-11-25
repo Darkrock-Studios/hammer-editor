@@ -35,6 +35,14 @@ sealed class ImagePickTarget {
 	@Serializable
 	data class EventImage(val eventId: Int) : ImagePickTarget()
 
+	/** An image to embed in the text of a note being created, which has no id yet. */
+	@Serializable
+	data object NewNoteImage : ImagePickTarget()
+
+	/** An image to embed in the text of a timeline event being created, which has no id yet. */
+	@Serializable
+	data object NewEventImage : ImagePickTarget()
+
 	@Serializable
 	data object ProjectCover : ImagePickTarget()
 }

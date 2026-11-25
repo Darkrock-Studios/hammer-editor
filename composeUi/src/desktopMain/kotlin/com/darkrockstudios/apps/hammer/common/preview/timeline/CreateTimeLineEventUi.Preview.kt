@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.timeline
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -199,5 +200,6 @@ private class PreviewCreateTimeLineEvent(initial: CreateTimeLineEvent.State) : C
 	override fun confirmDiscard() {}
 	override fun cancelDiscard() {}
 	override fun onContentChanged(newText: String) {}
+	override suspend fun pickImageForText(): ImageDef? = null
 	override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 }

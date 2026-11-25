@@ -1,5 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
+import com.darkrockstudios.apps.hammer.common.components.images.pickImage
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -33,6 +38,8 @@ class CreateNoteComponent(
 	override val noteText: Value<String> = _noteText
 
 	private val notesRepository: NotesRepository by projectInject()
+	private val imagePickRequests: ImagePickRequests by projectInject()
+	private val imagesService: ImagesService by projectInject()
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		confirmDiscard()
@@ -57,6 +64,10 @@ class CreateNoteComponent(
 			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
 		}
 	}
+
+	// A new item has no id yet, so its pick has a target of its own.
+	override suspend fun pickImageForText(): ImageDef? =
+		imagePickRequests.pickImage(ImagePickTarget.NewNoteImage, imagesService)
 
 	override fun onTextChanged(newText: String) {
 		_noteText.update { newText }

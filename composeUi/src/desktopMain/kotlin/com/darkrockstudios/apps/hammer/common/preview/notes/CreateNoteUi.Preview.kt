@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.notes
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -69,6 +70,7 @@ private val component = object : CreateNote {
 	override fun closeCreate() {}
 	override fun confirmDiscard() {}
 	override fun cancelDiscard() {}
+	override suspend fun pickImageForText(): ImageDef? = null
 	override fun onTextChanged(newText: String) {}
 	override fun clearText() {}
 	override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()

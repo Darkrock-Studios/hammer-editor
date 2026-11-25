@@ -128,6 +128,7 @@ fun CreateNoteUi(
 						initialMarkdown = remember { noteText.value },
 						onMarkdownChanged = { component.onTextChanged(it) },
 						enableSpellChecking = state.spellCheckAllowed,
+						imagePicker = component::pickImageForText,
 						autoFocus = true,
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						testTag = NOTES_CREATE_BODY_TAG,

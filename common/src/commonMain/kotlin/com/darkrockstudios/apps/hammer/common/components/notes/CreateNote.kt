@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
@@ -21,4 +22,7 @@ interface CreateNote : TagSuggesting {
 	fun cancelDiscard()
 	fun onTextChanged(newText: String)
 	fun clearText()
+
+	/** Opens the gallery for an image to embed in the text; null when the pick is cancelled. */
+	suspend fun pickImageForText(): ImageDef?
 }

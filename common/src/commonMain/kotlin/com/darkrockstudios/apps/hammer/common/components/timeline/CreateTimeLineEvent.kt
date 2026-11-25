@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
@@ -49,6 +50,9 @@ interface CreateTimeLineEvent : TagSuggesting {
 	fun confirmDiscard()
 	fun cancelDiscard()
 	fun onContentChanged(newText: String)
+
+	/** Opens the gallery for an image to embed in the text; null when the pick is cancelled. */
+	suspend fun pickImageForText(): ImageDef?
 
 	data class State(
 		val projectDef: ProjectDef,

@@ -268,6 +268,7 @@ fun CreateTimeLineEventUi(
 								initialMarkdown = remember { contentText.value },
 								onMarkdownChanged = { component.onContentChanged(it) },
 								enableSpellChecking = state.spellCheckAllowed,
+								imagePicker = component::pickImageForText,
 								contentPadding = PaddingValues(Ui.Padding.XL),
 								testTag = TIME_LINE_CREATE_CONTENT_TAG,
 								modifier = Modifier.fillMaxWidth(),

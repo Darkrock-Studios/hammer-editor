@@ -1,3 +1,12 @@
+import com.darkrockstudios.texteditor.richstyle.ImageProvider
+import com.darkrockstudios.texteditor.richstyle.ImageBlockResource
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MARKDOWN_FORMAT_BAR_INSERT_IMAGE_TAG
+import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.State
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
@@ -95,23 +104,52 @@ class CreateTimeLineEventUiTest : BaseTest() {
 		override fun discardAndClose() {}
 		override fun confirmDiscard() {}
 		override fun cancelDiscard() {}
-		override fun onContentChanged(newText: String) {}
+		var content = ""
+		override fun onContentChanged(newText: String) {
+			content = newText
+		}
+
+		var picks = 0
+		override suspend fun pickImageForText(): ImageDef {
+			picks++
+			return ImageDef(id = 3, name = "Cat", fileExtension = "png")
+		}
+
 		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 	}
 
-	private fun show(component: CreateTimeLineEvent, size: DpSize? = null) {
+	/** Inside a project images resolve; an image is only offered there. */
+	private val imageProvider = object : ImageProvider {
+		override fun resolve(source: String): State<ImageBlockResource> = mutableStateOf(ImageBlockResource.Loading)
+	}
+
+	private fun show(component: CreateTimeLineEvent, size: DpSize? = null, inProject: Boolean = false) {
 		compose.setContent {
 			KoinApplicationPreview {
-				Box(modifier = if (size != null) Modifier.requiredSize(size).testTag(WINDOW_TAG) else Modifier) {
-					CreateTimeLineEventUi(
-						component = component,
-						scope = scope,
-						modifier = Modifier,
-						rootSnackbar = rememberRootSnackbarHostState(),
-					)
+				CompositionLocalProvider(LocalImageProvider provides imageProvider.takeIf { inProject }) {
+					Box(modifier = if (size != null) Modifier.requiredSize(size).testTag(WINDOW_TAG) else Modifier) {
+						CreateTimeLineEventUi(
+							component = component,
+							scope = scope,
+							modifier = Modifier,
+							rootSnackbar = rememberRootSnackbarHostState(),
+						)
+					}
 				}
 			}
 		}
+	}
+
+	@Test
+	fun `a new event can have an image inserted into its text`() {
+		val component = FakeCreate(CreateTimeLineEvent.State(projectDef = projectDef))
+		show(component, inProject = true)
+
+		compose.onNodeWithTag(MARKDOWN_FORMAT_BAR_INSERT_IMAGE_TAG, useUnmergedTree = true).performClick()
+		compose.waitForIdle()
+
+		assertEquals(1, component.picks)
+		assertTrue(component.content.contains(ImageReferenceSyntax.reference(3)), component.content)
 	}
 
 	private fun datedEvent() = FakeCreate(

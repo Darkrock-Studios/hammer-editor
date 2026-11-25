@@ -1,5 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
+import com.darkrockstudios.apps.hammer.common.components.images.pickImage
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -39,6 +44,8 @@ class CreateTimeLineEventComponent(
 	private val timelineService: TimelineService by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val entityCatalog: EntityCatalog by projectInject()
+	private val imagePickRequests: ImagePickRequests by projectInject()
+	private val imagesService: ImagesService by projectInject()
 
 	private val restored: PlacementDraft? = stateKeeper.consume(DRAFT_KEY, PlacementDraft.serializer())
 
@@ -152,6 +159,10 @@ class CreateTimeLineEventComponent(
 			}
 		}
 	}
+
+	// A new item has no id yet, so its pick has a target of its own.
+	override suspend fun pickImageForText(): ImageDef? =
+		imagePickRequests.pickImage(ImagePickTarget.NewEventImage, imagesService)
 
 	override fun onContentChanged(newText: String) {
 		_contentText.update { newText }
