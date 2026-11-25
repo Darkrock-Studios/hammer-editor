@@ -181,6 +181,7 @@ internal fun resolveServerConfig(
 	validateCacheDirectory(resolved.cache, fileSystem)
 	resolved.extraLinks.forEach { it.validate() }
 	resolved.accountDeletion.validate()
+	resolved.home.validate(resolved.communityEnabled)
 	return resolved
 }
 

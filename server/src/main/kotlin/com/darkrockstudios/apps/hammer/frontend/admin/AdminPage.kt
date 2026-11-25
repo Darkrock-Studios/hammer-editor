@@ -102,6 +102,8 @@ private fun Route.adminSettingsPage(
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
 			"aboutServer" to configRepository.get(AdminServerConfig.ABOUT_SERVER),
+			"serverName" to configRepository.get(AdminServerConfig.SERVER_NAME),
+			"serverTagline" to configRepository.get(AdminServerConfig.SERVER_TAGLINE),
 			"defaultLocale" to configuredDefaultLocale,
 			"availableLocales" to availableLocales,
 			"monEnabled" to mon.enabled,
@@ -275,17 +277,24 @@ private fun formatLastSync(instant: kotlin.time.Instant?): String? {
 	return formatSyncDate(instant).ifEmpty { null }
 }
 
+private const val SERVER_NAME_MAX = 80
+private const val SERVER_TAGLINE_MAX = 280
+
 private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {
 	hx.post("/settings") {
 		val params = call.receiveParameters()
 		val contact = params["contact"]?.trim().orEmpty()
 		val message = params["message"]?.trim().orEmpty()
 		val about = params["about"]?.trim().orEmpty().take(4096)
+		val name = params["name"]?.trim().orEmpty().take(SERVER_NAME_MAX)
+		val tagline = params["tagline"]?.trim().orEmpty().take(SERVER_TAGLINE_MAX)
 		val defaultLocale = params["defaultLocale"]?.trim().orEmpty()
 
 		configRepository.set(AdminServerConfig.CONTACT_EMAIL, contact)
 		configRepository.set(AdminServerConfig.SERVER_MESSAGE, message)
 		configRepository.set(AdminServerConfig.ABOUT_SERVER, about)
+		configRepository.set(AdminServerConfig.SERVER_NAME, name)
+		configRepository.set(AdminServerConfig.SERVER_TAGLINE, tagline)
 		if (defaultLocale.isNotEmpty()) {
 			configRepository.set(AdminServerConfig.DEFAULT_LOCALE, defaultLocale)
 		}

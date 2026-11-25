@@ -177,6 +177,13 @@ class AccountDao(
 			}
 		}
 
+	suspend fun getNewestCommunityAuthors(limit: Int): List<CommunityAuthor> =
+		withContext(ioDispatcher) {
+			queries.getNewestCommunityAuthors(limit.toLong()).executeAsList().map { row ->
+				CommunityAuthor(id = row.id, penName = row.pen_name!!, bio = row.bio, created = row.created)
+			}
+		}
+
 	suspend fun countCommunityAuthors(): Long = withContext(ioDispatcher) {
 		return@withContext queries.countCommunityAuthors().executeAsOne()
 	}

@@ -1,0 +1,111 @@
+{{> header}}
+
+<section class="masthead masthead--club">
+	<div class="masthead-content">
+		<p class="club-kicker">{{msg.home_community_kicker}}</p>
+		<h1>{{serverName}}</h1>
+		{{#serverTagline}}
+			<p class="masthead-tagline">{{serverTagline}}</p>
+		{{/serverTagline}}
+		<p class="club-cta">
+			{{^isLoggedIn}}
+				<a class="btn btn--accent" href="#join"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> {{msg.home_community_join_cta}}</a>
+			{{/isLoggedIn}}
+			{{#hasStories}}
+				<a class="btn btn--ghost club-cta__ghost" href="/community/feed">{{msg.home_community_read_cta}}</a>
+			{{/hasStories}}
+		</p>
+	</div>
+</section>
+
+{{> partials/server-notice}}
+
+<main class="page-main">
+
+	{{#hasCommunityContent}}
+		<section class="showcase">
+			<div class="showcase__inner club-grid">
+				{{#hasStories}}
+					<div>
+						<p class="eyebrow">{{msg.home_community_stories_label}}</p>
+						<h2>{{msg.home_community_stories_heading}}</h2>
+						<ul class="club-stories">
+							{{#stories}}
+								<li class="club-story">
+									<time datetime="{{isoDate}}">{{date}}</time>
+									<a class="club-story__title" href="/a/{{penNameUrl}}/{{projectNameUrl}}">{{projectName}}</a>
+									<span class="club-story__by">{{msg.feed_story_by}} <a href="/a/{{penNameUrl}}">{{penName}}</a></span>
+								</li>
+							{{/stories}}
+						</ul>
+						<p class="posts__all"><a class="more" href="/community/feed">{{msg.home_community_stories_all}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></p>
+					</div>
+				{{/hasStories}}
+				{{#hasAuthors}}
+				<div>
+					<p class="eyebrow">{{msg.home_community_authors_label}}</p>
+					<h2>{{msg.home_community_authors_heading}}</h2>
+					<ul class="club-authors">
+						{{#authors}}
+							<li>
+								<a class="club-author" href="/a/{{penNameUrl}}">
+									<span class="club-author__initial" aria-hidden="true">{{penInitial}}</span>
+									<span>
+										<span class="club-author__name">{{penName}}</span>
+										{{#bio}}<span class="club-author__bio">{{bio}}</span>{{/bio}}
+									</span>
+								</a>
+							</li>
+						{{/authors}}
+					</ul>
+					<p class="posts__all"><a class="more" href="/community/authors">{{msg.home_community_authors_all}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></p>
+				</div>
+				{{/hasAuthors}}
+			</div>
+		</section>
+	{{/hasCommunityContent}}
+
+	{{#aboutHtml}}
+		<section class="showcase showcase--sunk">
+			<div class="showcase__inner club-about">
+				<div>
+					<p class="eyebrow">{{msg.home_community_about_label}}</p>
+					<h2>{{msg.home_community_about_heading}}</h2>
+				</div>
+				<div class="club-about__text">{{{aboutHtml}}}</div>
+			</div>
+		</section>
+	{{/aboutHtml}}
+
+	<section class="showcase club-join" id="join">
+		<div class="showcase__inner">
+			<p class="eyebrow">{{msg.home_community_join_label}}</p>
+			<h2>{{msg.home_community_join_heading}}</h2>
+			<ol class="club-steps">
+				<li><strong>{{msg.home_community_step_app_name}}</strong> {{msg.home_community_step_app_body}}</li>
+				<li>
+					<strong>{{msg.home_community_step_account_name}}</strong>
+					{{#isLoggedIn}}{{msg.home_community_step_account_done}}{{/isLoggedIn}}
+					{{^isLoggedIn}}<a href="/signup">{{msg.home_community_step_signup}}</a> · <a href="/login">{{msg.home_community_step_login}}</a>{{/isLoggedIn}}
+				</li>
+				<li><strong>{{msg.home_community_step_sync_name}}</strong> {{msg.home_community_step_sync_body}}</li>
+			</ol>
+		</div>
+	</section>
+
+	{{> partials/home-download}}
+
+	<section class="showcase showcase--sunk">
+		<div class="showcase__inner">
+			<p class="eyebrow">{{msg.home_community_hammer_label}}</p>
+			<h2>{{msg.home_principles_heading}}</h2>
+			{{> partials/home-principles}}
+			<p class="principles-more">
+				<a class="more" href="{{hammerUrl}}">{{msg.home_community_hammer_link}} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+			</p>
+		</div>
+	</section>
+
+</main>
+
+{{> footer}}

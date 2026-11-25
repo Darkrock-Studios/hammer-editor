@@ -69,6 +69,7 @@ fun Route.sitemapRoutes(
 
 		val entries = buildContentEntries(
 			baseUrl = base,
+			includeHome = serverConfig.home.mode.indexable,
 			includeAbout = configRepository.get(AdminServerConfig.ABOUT_SERVER).isNotBlank(),
 			includeTerms = serverConfig.termsOfService != null,
 			includePrivacy = serverConfig.privacyPolicy != null,
@@ -82,6 +83,7 @@ fun Route.sitemapRoutes(
 
 internal fun buildContentEntries(
 	baseUrl: String,
+	includeHome: Boolean,
 	includeAbout: Boolean,
 	includeTerms: Boolean,
 	includePrivacy: Boolean,
@@ -91,7 +93,7 @@ internal fun buildContentEntries(
 ): List<SitemapEntry> {
 	val base = baseUrl.trimEnd('/')
 	val entries = mutableListOf<SitemapEntry>()
-	entries += SitemapEntry("$base/")
+	if (includeHome) entries += SitemapEntry("$base/")
 	if (includeAbout) entries += SitemapEntry("$base/about")
 	if (includeTerms) entries += SitemapEntry("$base/terms")
 	if (includePrivacy) entries += SitemapEntry("$base/privacy")

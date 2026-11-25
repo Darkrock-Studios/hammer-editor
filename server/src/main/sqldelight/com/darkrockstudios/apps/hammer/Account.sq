@@ -162,6 +162,13 @@ UPDATE account SET community_member = ? WHERE id = ?;
 getCommunityMember:
 SELECT community_member FROM account WHERE id = ?;
 
+getNewestCommunityAuthors:
+SELECT id, pen_name, bio, created
+FROM account
+WHERE community_member = TRUE AND pen_name IS NOT NULL
+ORDER BY created DESC
+LIMIT :limit;
+
 getCommunityAuthors:
 SELECT id, pen_name, bio, created
 FROM account

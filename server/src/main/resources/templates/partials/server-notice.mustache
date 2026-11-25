@@ -1,5 +1,5 @@
 {{#hasInstanceNotice}}
-	<div class="instance-band">
+	<div class="instance-band{{#inlineNotice}} instance-band--inline{{/inlineNotice}}">
 		{{#serverMessageHtml}}
 			<div class="instance-band__inner">
 				<span class="instance-band__label">{{msg.home_servermessage}}</span>
