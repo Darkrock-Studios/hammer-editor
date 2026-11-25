@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.StoryResult
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.encodeURLPathPart
 import io.ktor.server.htmx.hx
 import io.ktor.server.mustache.MustacheContent
 import io.ktor.server.plugins.origin
@@ -340,10 +341,13 @@ fun Route.publicStoryPage(
 			val formParams = call.receiveParameters()
 			val password = formParams["password"]
 
-			// Redirect back to GET, reusing the (already URL-safe) incoming segments.
+			// Redirect back to GET. Path parameters arrive decoded, so encode them again: a raw
+			// non-ASCII letter in the Location header goes out as a Latin-1 byte ("ë" as 0xEB),
+			// and the browser follows /a/Zo%EB/... instead of /a/Zo%C3%AB/..., which is a 404.
+			val storyPath = "/a/${penNameParam.encodeURLPathPart()}/${projectNameParam.encodeURLPathPart()}"
 			if (!password.isNullOrBlank()) {
 				call.respondRedirect(
-					"/a/$penNameParam/$projectNameParam?p=${
+					"$storyPath?p=${
 						URLEncoder.encode(
 							password,
 							StandardCharsets.UTF_8
@@ -351,7 +355,7 @@ fun Route.publicStoryPage(
 					}"
 				)
 			} else {
-				call.respondRedirect("/a/$penNameParam/$projectNameParam")
+				call.respondRedirect(storyPath)
 			}
 		}
 
