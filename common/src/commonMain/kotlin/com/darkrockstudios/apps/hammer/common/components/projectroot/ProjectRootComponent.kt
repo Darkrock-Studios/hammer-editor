@@ -485,3 +485,25 @@ class ProjectRootComponent(
 		}
 	}
 }
+
+/**
+ * A project root for hosts whose close requests (`project.close`, Home's close button) raise the
+ * unsaved-changes confirm through [ProjectRoot.requestClose]. The host closes the project when
+ * [ProjectRoot.closeRequestHandlers] reaches [CloseConfirm.Complete].
+ */
+fun confirmingProjectRootComponent(
+	componentContext: ComponentContext,
+	projectDef: ProjectDef,
+	initialDeepLink: ProjectDeepLink? = null,
+): ProjectRootComponent {
+	lateinit var root: ProjectRootComponent
+	root = ProjectRootComponent(
+		componentContext = componentContext,
+		projectDef = projectDef,
+		addMenu = {},
+		removeMenu = {},
+		onCloseProject = { root.requestClose() },
+		initialDeepLink = initialDeepLink,
+	)
+	return root
+}

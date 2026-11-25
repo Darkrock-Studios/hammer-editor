@@ -29,8 +29,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
-import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
-import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
+import com.darkrockstudios.apps.hammer.common.components.projectroot.confirmingProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
@@ -70,7 +69,6 @@ class ProjectRootActivity : AppCompatActivity() {
 	private val viewModel: ProjectRootViewModel by viewModels()
 
 	private var projectRoot: ProjectRoot? = null
-	private val shortcutHost = ProjectShortcutHost()
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -93,14 +91,7 @@ class ProjectRootActivity : AppCompatActivity() {
 
 			val deepLink = resolveDeepLink(intent)
 			val component = retainedComponent { componentContext ->
-				ProjectRootComponent(
-					componentContext = componentContext,
-					projectDef = projectDef,
-					addMenu = { /* Not needed on Android */ },
-					removeMenu = { /* Not needed on Android */ },
-					onCloseProject = { projectRoot?.requestClose() },
-					initialDeepLink = deepLink,
-				)
+				confirmingProjectRootComponent(componentContext, projectDef, deepLink)
 			}
 			projectRoot = component
 
@@ -185,27 +176,10 @@ class ProjectRootActivity : AppCompatActivity() {
 		settingsUpdateJob = null
 	}
 
-	override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-		if (event.action == KeyEvent.ACTION_DOWN) {
-			// hasModifiers matches exactly, so AltGr chords fall through and type their character.
-			val ctrlShift = KeyEvent.META_CTRL_ON or KeyEvent.META_SHIFT_ON
-			if (event.keyCode == KeyEvent.KEYCODE_F && event.hasModifiers(ctrlShift)) {
-				projectRoot?.let {
-					it.showGlobalSearch()
-					return true
-				}
-			}
-
-			if (event.keyCode == KeyEvent.KEYCODE_F3 && event.hasNoModifiers()) {
-				if (shortcutHost.startProjectSync()) return true
-			}
-
-			if (event.keyCode == KeyEvent.KEYCODE_S && event.hasModifiers(ctrlShift)) {
-				if (shortcutHost.saveAllBuffers()) return true
-			}
-		}
-		return super.dispatchKeyEvent(event)
-	}
+	// Ahead of Compose focus, so project chords work with nothing focused.
+	override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+		dispatchProjectKey(projectRoot?.actions, event.action, event.keyCode, event.metaState) ||
+			super.dispatchKeyEvent(event)
 
 	@Composable
 	private fun Content(
@@ -224,7 +198,7 @@ class ProjectRootActivity : AppCompatActivity() {
 			component.requestClose()
 		}
 
-		ProjectRootScaffold(component, onCloseRequest = ::finish, shortcutHost = shortcutHost)
+		ProjectRootScaffold(component, onCloseRequest = ::finish)
 	}
 
 	companion object {

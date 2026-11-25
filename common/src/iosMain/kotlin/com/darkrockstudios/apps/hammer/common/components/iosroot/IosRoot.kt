@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.iosroot
 
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionDispatcher
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import kotlinx.serialization.Serializable
@@ -24,4 +25,7 @@ interface IosRoot {
 	}
 
 	fun closeProject()
+
+	/** The open project's actions, or null when no project is open. */
+	fun currentActions(): ActionDispatcher?
 }

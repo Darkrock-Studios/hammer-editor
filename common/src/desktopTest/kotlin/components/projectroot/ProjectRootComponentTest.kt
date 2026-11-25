@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeep
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootModalRouter
+import com.darkrockstudios.apps.hammer.common.components.projectroot.confirmingProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -842,6 +843,37 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		assertTrue(handled)
 		assertTrue(projectClosed)
+	}
+
+	@Test
+	fun `Mod+Shift+W with a dirty buffer raises the unsaved confirm on a confirming root`() =
+		runTest(mainTestDispatcher) {
+			every { sceneEditor.hasDirtyBuffers() } returns true
+			coEvery { syncJournal.shouldAutoSync() } returns false
+			val comp = confirmingProjectRootComponent(context, projectDef)
+			context.resume()
+			advanceUntilIdle()
+
+			val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.W, shift = true))
+			advanceUntilIdle()
+
+			assertTrue(handled)
+			assertEquals(listOf(CloseConfirm.Scenes, CloseConfirm.Complete), comp.closeRequestHandlers.value.toList())
+		}
+
+	@Test
+	fun `Closing from Home on a confirming root raises the unsaved confirm`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+		val comp = confirmingProjectRootComponent(context, projectDef)
+		context.resume()
+		advanceUntilIdle()
+		val home = assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+
+		home.component.closeProject()
+		advanceUntilIdle()
+
+		assertEquals(listOf(CloseConfirm.Scenes, CloseConfirm.Complete), comp.closeRequestHandlers.value.toList())
 	}
 
 	@Test

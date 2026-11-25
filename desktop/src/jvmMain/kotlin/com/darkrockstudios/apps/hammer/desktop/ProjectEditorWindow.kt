@@ -14,8 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.FrameWindowScope
-import androidx.compose.ui.window.MenuBar
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
@@ -24,7 +22,6 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
-import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
@@ -205,43 +202,6 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 					}
 				}
 			}
-		}
-	}
-}
-
-@Composable
-private fun FrameWindowScope.EditorMenuBar(
-	component: ProjectRoot,
-	app: ApplicationState,
-	onRequestClose: (AppCloseManager, ApplicationState, ApplicationState.CloseType) -> Unit
-) {
-	val menu by app.menu.subscribeAsState()
-
-	MenuBar {
-		Menu(Res.string.project_window_menu_file.get()) {
-			Item(Res.string.project_window_menu_item_close.get(), onClick = {
-				onRequestClose(component, app, ApplicationState.CloseType.Project)
-			})
-			Item(Res.string.project_window_menu_item_exit.get(), onClick = {
-				onRequestClose(component, app, ApplicationState.CloseType.Application)
-			})
-		}
-
-		menu.forEach { menuDescriptor ->
-			Menu(menuDescriptor.label.get()) {
-				menuDescriptor.items.forEach { itemDescriptor ->
-					Item(
-						itemDescriptor.label.get(),
-						onClick = { itemDescriptor.action(itemDescriptor.id) },
-						shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
-					)
-				}
-			}
-		}
-
-		LaunchedEffect(menu) {
-			window.jMenuBar.invalidate()
-			window.jMenuBar.repaint()
 		}
 	}
 }

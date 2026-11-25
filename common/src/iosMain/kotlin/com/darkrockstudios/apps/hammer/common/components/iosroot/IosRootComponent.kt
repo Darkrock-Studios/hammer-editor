@@ -6,7 +6,8 @@ import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionDispatcher
+import com.darkrockstudios.apps.hammer.common.components.projectroot.confirmingProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
@@ -41,13 +42,7 @@ class IosRootComponent(
 					}
 				}
 				IosRoot.Destination.ProjectRootDestination(
-					ProjectRootComponent(
-						componentContext = componentContext,
-						projectDef = config.projectDef,
-						addMenu = {},
-						removeMenu = {},
-						onCloseProject = ::closeProject,
-					)
+					confirmingProjectRootComponent(componentContext, config.projectDef)
 				)
 			}
 			is IosRoot.Config.ProjectSelect -> {
@@ -76,4 +71,7 @@ class IosRootComponent(
 	override fun closeProject() {
 		navigation.activate(IosRoot.Config.ProjectSelect)
 	}
+
+	override fun currentActions(): ActionDispatcher? =
+		(slot.value.child?.instance as? IosRoot.Destination.ProjectRootDestination)?.component?.actions
 }

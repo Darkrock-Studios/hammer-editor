@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.window.ComposeUIViewController
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.iosroot.IosRoot
-import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -16,15 +15,15 @@ import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootScaffold
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectScaffold
 import platform.UIKit.UIViewController
 
-// shortcutHost is owned by the Swift container: UIKit key commands are the only key hook that
-// does not depend on what Compose has focused, and Kotlin cannot override that category member.
-fun MainViewController(root: IosRoot, shortcutHost: ProjectShortcutHost): UIViewController =
+// Project key chords are UIKit key commands in the Swift container: they see keys whatever
+// Compose has focused, and dispatch through IosRoot.currentActions.
+fun MainViewController(root: IosRoot): UIViewController =
 	ComposeUIViewController {
-		HammerApp(root, shortcutHost)
+		HammerApp(root)
 	}
 
 @Composable
-private fun HammerApp(root: IosRoot, shortcutHost: ProjectShortcutHost) {
+private fun HammerApp(root: IosRoot) {
 	val globalSettingsStore: GlobalSettingsStore = rememberKoinInject()
 	val settingsState by globalSettingsStore.globalSettingsUpdates
 		.collectAsState(initial = globalSettingsStore.globalSettings)
@@ -46,7 +45,6 @@ private fun HammerApp(root: IosRoot, shortcutHost: ProjectShortcutHost) {
 				ProjectRootScaffold(
 					component = destination.component,
 					onCloseRequest = { root.closeProject() },
-					shortcutHost = shortcutHost,
 				)
 
 			null -> Unit

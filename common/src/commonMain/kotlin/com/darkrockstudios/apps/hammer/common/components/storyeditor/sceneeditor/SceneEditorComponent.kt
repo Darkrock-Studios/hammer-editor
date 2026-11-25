@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.images.findPickedImage
@@ -229,7 +230,7 @@ class SceneEditorComponent(
 			"scene-editor-save",
 			Res.string.scene_editor_menu_item_save,
 			"",
-			KeyShortcut(83, ctrl = true)
+			actionId = HammerActions.EditSave.id,
 		) {
 			Napier.d("Scene save selected")
 			scope.launch { storeSceneContent() }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -29,11 +28,9 @@ import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
-import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
-import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchUi
@@ -93,18 +90,7 @@ fun ProjectRootUi(
 	rootSnackbar: RootSnackbarHostState,
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
-	shortcutHost: ProjectShortcutHost? = null,
 ) {
-	if (shortcutHost != null) {
-		DisposableEffect(shortcutHost, component) {
-			shortcutHost.bind(
-				startSync = { component.actions.invoke(HammerActions.ProjectSync.id) },
-				saveAll = { component.actions.invoke(HammerActions.ProjectSaveAll.id) },
-			)
-			onDispose { shortcutHost.unbind() }
-		}
-	}
-
 	Toaster(component, rootSnackbar)
 
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
