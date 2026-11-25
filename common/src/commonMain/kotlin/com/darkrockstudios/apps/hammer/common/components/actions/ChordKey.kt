@@ -20,8 +20,9 @@ data class KeyChord(val key: ChordKey, val primary: Boolean = false, val shift: 
 	fun label(platform: ChordPlatform = currentChordPlatform): String =
 		if (platform.modIsCmd) {
 			buildString {
-				if (primary) append('⌘')
+				// Apple's modifier order: Control, Option, Shift, Command.
 				if (shift) append('⇧')
+				if (primary) append('⌘')
 				append(if (key == ChordKey.Enter) "↩" else key.display)
 			}
 		} else {

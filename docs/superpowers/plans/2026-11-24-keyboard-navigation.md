@@ -59,6 +59,12 @@
 5. iOS `project.close` must go through the same unsaved-changes confirm as the other platforms, not straight to `closeProject`. Task 2.2 adds that and a test that `project.close` with a dirty buffer raises the confirm.
 6. iOS Swift is built by Adam in Xcode; the Linux host only runs the Kotlin tests.
 
+## Carried from checkpoint reviews
+
+- Checkpoint 1 review: pre-focus dispatch means Mod+1..5, Mod+Shift+F, Mod+Shift+W and Mod+Q fire behind open dialogs until barriers exist. Checkpoint 5 must also put a barrier on the desktop window's own close-confirm sequence (`ProjectEditorWindow.kt`, rendered from `closeRequestHandlers`) and on the sync dialog, not only on the shared dialog shells. Add a test that Mod+3 with a close confirm showing does not navigate.
+- Checkpoint 1 review: the Android host in Task 2.1 must return `super.dispatchKeyEvent(event)` whenever `dispatch` returns false (today F3 is swallowed on projects that cannot sync). Pin it with a test that F3 on a project without sync is not consumed.
+- Task 1.0 (spike) is deferred to just before Checkpoint 5 and needs a person at the GUI.
+
 ---
 
 ## Checkpoint 1: Core and desktop host

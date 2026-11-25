@@ -10,7 +10,7 @@ class KeyChordLabelTest {
 
 	@Test
 	fun `Apple labels use symbols`() {
-		assertEquals("⌘⇧N", KeyChord.mod(ChordKey.N, shift = true).label(ChordPlatform.DesktopMac))
+		assertEquals("⇧⌘N", KeyChord.mod(ChordKey.N, shift = true).label(ChordPlatform.DesktopMac))
 		assertEquals("⌘↩", KeyChord.mod(ChordKey.Enter).label(ChordPlatform.Ios))
 		assertEquals("⇧F6", KeyChord.bare(ChordKey.F6, shift = true).label(ChordPlatform.DesktopMac))
 	}
