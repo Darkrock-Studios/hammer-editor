@@ -92,7 +92,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 					true
 				}
 
-				else -> false
+				null -> false
 			}
 		}
 	) {

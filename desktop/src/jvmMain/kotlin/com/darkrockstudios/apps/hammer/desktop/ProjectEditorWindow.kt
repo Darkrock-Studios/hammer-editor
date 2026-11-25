@@ -25,10 +25,14 @@ import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.actions.toKeyChord
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -56,7 +60,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	settings: GlobalSettings,
 	darkMode: Boolean,
 ) {
-	val backDispatcher = BackDispatcher()
+	val backDispatcher = remember { BackDispatcher() }
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle = lifecycle, backHandler = backDispatcher) }
 	val windowState = rememberPersistedWindowState(
@@ -86,53 +90,38 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	}
 
 	val windowTitle = Res.string.project_window_title.get(projectDef.name)
-	val shortcutHost = remember { ProjectShortcutHost() }
 
 	MaterialDecoratedWindow(
 		title = windowTitle,
 		state = windowState,
 		icon = painterResource(Res.drawable.hammer_icon),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
-		onPreviewKeyEvent = { event ->
-			when (event.toProjectShortcut()) {
-				ProjectShortcut.SyncProject -> shortcutHost.startProjectSync()
-				ProjectShortcut.SaveAll -> shortcutHost.saveAllBuffers()
-				null -> false
-			}
-		},
+		onPreviewKeyEvent = { event -> event.toKeyChord()?.let(component.actions::dispatch) ?: false },
 		onKeyEvent = { event ->
-			when (event.toProjectEditorShortcut()) {
-				WindowShortcut.Back -> backDispatcher.back()
-
-				WindowShortcut.GlobalSearch -> {
-					component.showGlobalSearch()
-					true
-				}
-
-				WindowShortcut.CloseProject -> {
-					onRequestClose(component, app, ApplicationState.CloseType.Project)
-					true
-				}
-
-				WindowShortcut.Quit -> {
-					onRequestClose(component, app, ApplicationState.CloseType.Application)
-					true
-				}
-
-				null -> false
-			}
+			if (event.key == Key.Escape && event.type == KeyEventType.KeyUp) backDispatcher.back() else false
 		}
 	) {
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
 		RaiseOnRequest(app.raiseRequests.value)
 		LaunchedEffect(component) { app.deepLinks.collect { component.navigateToDeepLink(it) } }
+		DisposableEffect(component) {
+			val quit = component.actions.register(
+				ActionLayer.Root,
+				mapOf(
+					HammerActions.AppQuit.id to ActionHandler {
+						onRequestClose(component, app, ApplicationState.CloseType.Application)
+					},
+				),
+			)
+			onDispose { quit.unregister() }
+		}
 
 		TitledWindowContent(windowTitle) {
 			// Tao windows are their own ComposeScene: locals provided outside the
 			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
-				AppContent(component, shortcutHost)
+				AppContent(component)
 
 				LaunchedEffect(closeRequest) {
 					if (closeRequest != ApplicationState.CloseType.None) {
@@ -258,7 +247,7 @@ private fun FrameWindowScope.EditorMenuBar(
 }
 
 @Composable
-private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost) {
+private fun AppContent(component: ProjectRoot) {
 	val router by component.routerState.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
@@ -284,7 +273,7 @@ private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost
 						},
 					)
 
-					ProjectRootUi(component, rootSnackbar, shortcutHost = shortcutHost)
+					ProjectRootUi(component, rootSnackbar)
 				}
 
 				SnackbarHost(

@@ -1,5 +1,11 @@
 package components.projectroot
 
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.components.ToastMessage
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
+import com.darkrockstudios.apps.hammer.save_all_toast
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
@@ -13,7 +19,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeep
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootModalRouter
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -112,16 +117,12 @@ class ProjectRootComponentTest : ComponentTest() {
 	private lateinit var timeLineRepository: TimeLineRepository
 	private lateinit var timelineService: TimelineService
 
-	private val addedMenus = mutableListOf<MenuDescriptor>()
-	private val removedMenuIds = mutableListOf<String>()
 	private var projectClosed = false
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
-		addedMenus.clear()
-		removedMenuIds.clear()
 		projectClosed = false
 
 		settingsUpdates = MutableSharedFlow()
@@ -231,8 +232,8 @@ class ProjectRootComponentTest : ComponentTest() {
 	) = ProjectRootComponent(
 		componentContext = context,
 		projectDef = projectDef,
-		addMenu = { addedMenus.add(it) },
-		removeMenu = { removedMenuIds.add(it) },
+		addMenu = {},
+		removeMenu = {},
 		onCloseProject = { projectClosed = true },
 		initialDeepLink = initialDeepLink,
 	)
@@ -690,51 +691,7 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `Sync menu is added on start for server synchronized projects`() = runTest(mainTestDispatcher) {
-		every { syncJournal.isServerSynchronized() } returns true
-
-		newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		assertTrue(addedMenus.any { it.id == ProjectRootComponent.SYNC_MENU_ID })
-
-		context.stop()
-		advanceUntilIdle()
-		assertTrue(ProjectRootComponent.SYNC_MENU_ID in removedMenuIds)
-	}
-
-	@Test
-	fun `No sync menu for local-only projects`() = runTest(mainTestDispatcher) {
-		every { syncJournal.isServerSynchronized() } returns false
-
-		newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		assertTrue(addedMenus.none { it.id == ProjectRootComponent.SYNC_MENU_ID })
-	}
-
-	@Test
-	fun `Turning project sync off and on removes and restores the sync menu`() = runTest(mainTestDispatcher) {
-		every { syncJournal.isServerSynchronized() } returns true
-
-		newComponent()
-		context.resume()
-		advanceUntilIdle()
-		assertEquals(1, addedMenus.count { it.id == ProjectRootComponent.SYNC_MENU_ID })
-
-		projectSyncEnabled.value = false
-		advanceUntilIdle()
-		assertTrue(ProjectRootComponent.SYNC_MENU_ID in removedMenuIds)
-
-		projectSyncEnabled.value = true
-		advanceUntilIdle()
-		assertEquals(2, addedMenus.count { it.id == ProjectRootComponent.SYNC_MENU_ID })
-	}
-
-	@Test
-	fun `No sync menu, sync request or close sync when project sync is off`() = runTest(mainTestDispatcher) {
+	fun `No sync action, sync request or close sync when project sync is off`() = runTest(mainTestDispatcher) {
 		every { syncJournal.isServerSynchronized() } returns true
 		every { sceneEditor.hasDirtyBuffers() } returns false
 		coEvery { syncJournal.shouldAutoSync() } returns true
@@ -743,7 +700,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
-		assertTrue(addedMenus.none { it.id == ProjectRootComponent.SYNC_MENU_ID })
+		assertFalse(comp.actions.isLive(HammerActions.ProjectSync.id))
 
 		comp.startProjectSync()
 		advanceUntilIdle()
@@ -755,24 +712,152 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `The images menu opens the gallery to browse`() = runTest(mainTestDispatcher) {
+	fun `The sync action follows the project sync setting`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertTrue(comp.actions.isLive(HammerActions.ProjectSync.id))
+
+		projectSyncEnabled.value = false
+		advanceUntilIdle()
+		assertFalse(comp.actions.isLive(HammerActions.ProjectSync.id))
+
+		projectSyncEnabled.value = true
+		advanceUntilIdle()
+		assertTrue(comp.actions.isLive(HammerActions.ProjectSync.id))
+	}
+
+	@Test
+	fun `The image gallery action opens the gallery to browse`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
 
-		val menu = addedMenus.single { it.id == ProjectRootComponent.IMAGES_MENU_ID }
-		menu.items.single().let { it.action(it.id) }
+		val handled = comp.actions.invoke(HammerActions.ProjectGallery.id)
 		advanceUntilIdle()
 
+		assertTrue(handled)
 		assertEquals(
 			ProjectRootModalRouter.Config.ImageGallery(ImageGalleryMode.Browse),
 			comp.modalRouterState.value.child?.configuration,
 		)
 		assertIs<ProjectRoot.ModalDestination.ImageGalleryModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `Mod+3 shows the Notes destination`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+1 through Mod+5 reach every destination in nav rail order`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		val digits = listOf(ChordKey.Digit1, ChordKey.Digit2, ChordKey.Digit3, ChordKey.Digit4, ChordKey.Digit5)
+
+		val reached = (digits.drop(1) + digits.first()).associateWith { digit ->
+			comp.actions.dispatch(KeyChord.mod(digit))
+			advanceUntilIdle()
+			comp.routerState.value.active.instance.getLocationType()
+		}
+
+		assertEquals(ProjectRoot.DestinationTypes.entries.toList(), digits.map { reached[it] })
+	}
+
+	@Test
+	fun `Mod+Shift+F opens global search`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.F, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertIs<ProjectRoot.ModalDestination.GlobalSearchModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `F3 starts a sync for a server synchronized project`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+		every { sceneEditor.hasDirtyBuffers() } returns false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.bare(ChordKey.F3))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertEquals(setOf(CloseConfirm.Sync), comp.closeRequestHandlers.value)
+	}
+
+	@Test
+	fun `F3 is not handled for a local-only project`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertFalse(comp.actions.dispatch(KeyChord.bare(ChordKey.F3)))
+		assertTrue(comp.closeRequestHandlers.value.isEmpty())
+	}
+
+	@Test
+	fun `Mod+Shift+S saves every buffer and says so`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		val toasts = mutableListOf<ToastMessage>()
+		backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { comp.toast.collect { toasts += it } }
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.S, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		coVerify { sceneEditor.storeAllBuffers() }
+		assertEquals(listOf<ToastMessage>(ToastMessage.Resource(Res.string.save_all_toast)), toasts)
+	}
+
+	@Test
+	fun `Mod+Shift+W asks to close the project`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.W, shift = true))
+
+		assertTrue(handled)
+		assertTrue(projectClosed)
+	}
+
+	@Test
+	fun `Root actions stop answering once the project is stopped`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
 
 		context.stop()
 		advanceUntilIdle()
-		assertTrue(ProjectRootComponent.IMAGES_MENU_ID in removedMenuIds)
+
+		assertFalse(comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3)))
+		assertFalse(comp.actions.dispatch(KeyChord.mod(ChordKey.W, shift = true)))
+		assertTrue(comp.actions.live().isEmpty())
+		assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+		assertFalse(projectClosed)
 	}
 
 	@Test

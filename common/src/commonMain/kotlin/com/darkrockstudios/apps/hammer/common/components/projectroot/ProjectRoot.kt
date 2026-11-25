@@ -7,6 +7,8 @@ import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGallery
@@ -24,9 +26,12 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import org.jetbrains.compose.resources.StringResource
 
-interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
+interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner, ComponentToaster {
 	fun onBack()
 	val projectDef: ProjectDef
+
+	/** Every project action; platform hosts dispatch key chords here. */
+	val actions: ActionRegistry
 	val routerState: Value<ChildStack<*, Destination<*>>>
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
 	val closeRequestHandlers: Value<Set<CloseConfirm>>

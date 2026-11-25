@@ -1,0 +1,109 @@
+package com.darkrockstudios.apps.hammer.common.components.actions
+
+import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.arkivanov.essenty.lifecycle.subscribe
+
+class ActionHandler(val isEnabled: () -> Boolean = { true }, val perform: () -> Unit)
+
+fun interface ActionRegistration {
+	fun unregister()
+}
+
+interface ActionRegistrar {
+	/**
+	 * [blocksBelow] hides every lower registration, and earlier ones in the same layer, from
+	 * all but [ActionDef.global] actions.
+	 */
+	fun register(
+		layer: ActionLayer,
+		handlers: Map<ActionId, ActionHandler>,
+		blocksBelow: Boolean = false,
+	): ActionRegistration
+}
+
+interface ActionDispatcher {
+	val keymap: Keymap
+
+	/** False when nothing answers the chord, so the host passes the key on. */
+	fun dispatch(chord: KeyChord): Boolean
+	fun invoke(id: ActionId): Boolean
+	fun isLive(id: ActionId): Boolean
+
+	/** The actions that would run now, in [HammerActions.all] order. */
+	fun live(): List<ActionDef>
+}
+
+/**
+ * Layered action handlers: the highest [ActionLayer] answers first, then the most recent
+ * registration within a layer. Main thread only.
+ */
+class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegistrar, ActionDispatcher {
+
+	private class Registration(
+		val layer: ActionLayer,
+		val seq: Long,
+		val blocksBelow: Boolean,
+		val handlers: Map<ActionId, ActionHandler>,
+	)
+
+	private val registrations = mutableListOf<Registration>()
+	private var nextSeq = 0L
+
+	override fun register(
+		layer: ActionLayer,
+		handlers: Map<ActionId, ActionHandler>,
+		blocksBelow: Boolean,
+	): ActionRegistration {
+		val registration = Registration(layer, nextSeq++, blocksBelow, handlers)
+		registrations += registration
+		return ActionRegistration { registrations.remove(registration) }
+	}
+
+	override fun dispatch(chord: KeyChord): Boolean {
+		val id = keymap.actionFor(chord) ?: return false
+		if (HammerActions.byId(id)?.dispatch == ActionDispatch.Local) return false
+		return invoke(id)
+	}
+
+	override fun invoke(id: ActionId): Boolean {
+		val handler = resolve(id) ?: return false
+		handler.perform()
+		return true
+	}
+
+	override fun isLive(id: ActionId): Boolean = resolve(id) != null
+
+	override fun live(): List<ActionDef> = HammerActions.all.filter { isLive(it.id) }
+
+	private fun resolve(id: ActionId): ActionHandler? {
+		val def = HammerActions.byId(id) ?: return null
+		val ordered = registrations.sortedWith(
+			compareByDescending<Registration> { it.layer.ordinal }.thenByDescending { it.seq }
+		)
+		var blocked = false
+		for (reg in ordered) {
+			if (!blocked || def.global) {
+				reg.handlers[id]?.takeIf { it.isEnabled() }?.let { return it }
+			}
+			if (reg.blocksBelow) blocked = true
+		}
+		return null
+	}
+}
+
+/** Registers [handlers] each time [lifecycle] starts and drops them when it stops. */
+fun ActionRegistrar.registerWhileStarted(
+	lifecycle: Lifecycle,
+	layer: ActionLayer,
+	handlers: Map<ActionId, ActionHandler>,
+	blocksBelow: Boolean = false,
+) {
+	var registration: ActionRegistration? = null
+	lifecycle.subscribe(
+		onStart = { registration = register(layer, handlers, blocksBelow) },
+		onStop = {
+			registration?.unregister()
+			registration = null
+		},
+	)
+}
