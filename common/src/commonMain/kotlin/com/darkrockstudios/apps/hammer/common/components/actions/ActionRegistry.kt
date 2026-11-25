@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.actions
 
+import com.arkivanov.decompose.value.ObserveLifecycleMode
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.lifecycle.Lifecycle
@@ -16,12 +17,18 @@ interface ActionRegistrar {
 	 * [blocksBelow] hides every lower registration, and earlier ones in the same layer, from
 	 * all but [ActionDef.global] actions. An [ActionLayer.Overlay] barrier with [onDismiss] is
 	 * one Esc can close: see [ActionDispatcher.dismissTopOverlay].
+	 *
+	 * An overlay barrier with [onDismiss] registered right over one without (a dialog shell over
+	 * its component's guard) does not hide that guard's own handlers: the two are one overlay.
+	 *
+	 * While [isActive] is false the registration is absent, but it keeps its place in the order.
 	 */
 	fun register(
 		layer: ActionLayer,
 		handlers: Map<ActionId, ActionHandler>,
 		blocksBelow: Boolean = false,
 		onDismiss: (() -> Unit)? = null,
+		isActive: () -> Boolean = { true },
 	): ActionRegistration
 }
 
@@ -40,8 +47,9 @@ interface ActionDispatcher {
 	fun hasOverlay(): Boolean
 
 	/**
-	 * Runs the dismiss of the most recent overlay barrier that has one. Barriers without one
-	 * (a component's guard under its own dialog) are passed over. False when none ran.
+	 * Runs the dismiss of the topmost overlay barrier. False when there is none or it has no
+	 * dismiss (a component's guard whose dialog is not up yet); an older overlay never closes
+	 * behind a newer one.
 	 */
 	fun dismissTopOverlay(): Boolean
 }
@@ -58,6 +66,7 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 		val blocksBelow: Boolean,
 		val handlers: Map<ActionId, ActionHandler>,
 		val onDismiss: (() -> Unit)?,
+		val isActive: () -> Boolean,
 	) {
 		val isOverlay: Boolean get() = layer == ActionLayer.Overlay && blocksBelow
 	}
@@ -70,8 +79,9 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 		handlers: Map<ActionId, ActionHandler>,
 		blocksBelow: Boolean,
 		onDismiss: (() -> Unit)?,
+		isActive: () -> Boolean,
 	): ActionRegistration {
-		val registration = Registration(layer, nextSeq++, blocksBelow, handlers, onDismiss)
+		val registration = Registration(layer, nextSeq++, blocksBelow, handlers, onDismiss, isActive)
 		registrations += registration
 		return ActionRegistration { registrations.remove(registration) }
 	}
@@ -92,31 +102,38 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 
 	override fun live(): List<ActionDef> = HammerActions.all.filter { isLive(it.id) }
 
-	override fun hasOverlay(): Boolean = registrations.any { it.isOverlay }
+	override fun hasOverlay(): Boolean = registrations.any { it.isOverlay && it.isActive() }
 
 	override fun dismissTopOverlay(): Boolean {
-		val dismiss = registrations
-			.filter { it.isOverlay && it.onDismiss != null }
-			.maxByOrNull { it.seq }
-			?.onDismiss
-			?: return false
+		val top = registrations.filter { it.isOverlay && it.isActive() }.maxByOrNull { it.seq } ?: return false
+		val dismiss = top.onDismiss ?: return false
 		dismiss()
 		return true
 	}
 
 	private fun resolve(id: ActionId): ActionHandler? {
 		val def = HammerActions.byId(id) ?: return null
-		val ordered = registrations.sortedWith(
+		val ordered = registrations.filter { it.isActive() }.sortedWith(
 			compareByDescending<Registration> { it.layer.ordinal }.thenByDescending { it.seq }
 		)
 		var blocked = false
-		for (reg in ordered) {
-			if (!blocked || def.global) {
+		var guard: Registration? = null
+		for ((index, reg) in ordered.withIndex()) {
+			if (!blocked || def.global || reg === guard) {
 				reg.handlers[id]?.takeIf { it.isEnabled() }?.let { return it }
 			}
-			if (reg.blocksBelow) blocked = true
+			if (reg.blocksBelow && !blocked) {
+				blocked = true
+				guard = guardUnder(reg, ordered.subList(index + 1, ordered.size))
+			}
 		}
 		return null
+	}
+
+	/** The component guard [shell] sits on, if [shell] is a dialog shell right over one. */
+	private fun guardUnder(shell: Registration, below: List<Registration>): Registration? {
+		if (!shell.isOverlay || shell.onDismiss == null) return null
+		return below.firstOrNull { it.isOverlay }?.takeIf { it.onDismiss == null }
 	}
 }
 
@@ -138,8 +155,9 @@ fun ActionRegistrar.registerWhileStarted(
 }
 
 /**
- * Holds an [ActionLayer.Overlay] barrier, answering [handlers], while [lifecycle] is started and
- * [isOpen] holds for [state].
+ * Holds an [ActionLayer.Overlay] barrier, answering [handlers], while [isOpen] holds for [state];
+ * it counts only while [lifecycle] is started. The barrier keeps its place across a stop and
+ * start, so a dialog shell registered over it stays on top.
  */
 fun <T : Any> ActionRegistrar.registerOverlayWhile(
 	lifecycle: Lifecycle,
@@ -152,12 +170,13 @@ fun <T : Any> ActionRegistrar.registerOverlayWhile(
 		barrier?.unregister()
 		barrier = null
 	}
-	state.subscribe(lifecycle) { value ->
+	val started = { lifecycle.state >= Lifecycle.State.STARTED }
+	state.subscribe(lifecycle, ObserveLifecycleMode.CREATE_DESTROY) { value ->
 		if (!isOpen(value)) {
 			lift()
 		} else if (barrier == null) {
-			barrier = register(ActionLayer.Overlay, handlers, blocksBelow = true)
+			barrier = register(ActionLayer.Overlay, handlers, blocksBelow = true, isActive = started)
 		}
 	}
-	lifecycle.subscribe(onStop = ::lift)
+	lifecycle.subscribe(onDestroy = ::lift)
 }

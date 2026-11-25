@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -95,6 +96,7 @@ fun HdSplitButton(
 			) {
 				Icon(Icons.Filled.ArrowDropDown, contentDescription = menuContentDescription, tint = content)
 			}
+			MenuOverlay(expanded) { expanded = false }
 			DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 				menuItems.forEach { item ->
 					DropdownMenuItem(

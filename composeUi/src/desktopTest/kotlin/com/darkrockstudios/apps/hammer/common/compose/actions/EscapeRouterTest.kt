@@ -127,6 +127,20 @@ class EscapeRouterTest {
 	}
 
 	@Test
+	fun `Esc under a newer overlay without a dismiss closes nothing and never steps back`() {
+		openOverlay()
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true)
+
+		val pressConsumed = deliver(press)
+		val releaseConsumed = deliver(release)
+
+		assertTrue(pressConsumed)
+		assertTrue(releaseConsumed)
+		assertEquals(0, dismissals)
+		assertEquals(0, backs)
+	}
+
+	@Test
 	fun `other keys pass through`() {
 		openOverlay()
 

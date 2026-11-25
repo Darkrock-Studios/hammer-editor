@@ -592,6 +592,21 @@ class StoryEditorComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `the outline still blocks Mod+N after a stop and start`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		comp.showOutlineOverview()
+		advanceUntilIdle()
+
+		context.stop()
+		context.resume()
+		advanceUntilIdle()
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.N))
+
+		assertFalse(handled)
+		assertTrue(registry.hasOverlay())
+	}
+
+	@Test
 	fun `Mod+Shift+R opens the reader when no scene is open`() = runTest(mainTestDispatcher) {
 		val comp = startedStoryEditor()
 		advanceUntilIdle()

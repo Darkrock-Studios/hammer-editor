@@ -26,6 +26,7 @@ class ActionRegistryTest {
 	private fun counting(counter: IntArray, index: Int = 0) = ActionHandler { counter[index]++ }
 
 	private val modN = KeyChord.mod(ChordKey.N)
+	private val modShiftO = KeyChord.mod(ChordKey.O, shift = true)
 
 	@Test
 	fun `an unbound chord is not handled`() {
@@ -201,12 +202,86 @@ class ActionRegistryTest {
 	}
 
 	@Test
-	fun `an overlay without a dismiss is passed over when dismissing`() {
+	fun `a newer overlay without a dismiss keeps Esc from closing an older one`() {
 		val dismissed = IntArray(1)
 		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = { dismissed[0]++ })
 		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true)
 
-		assertTrue(registry.dismissTopOverlay())
+		val ran = registry.dismissTopOverlay()
+
+		assertFalse(ran)
+		assertEquals(0, dismissed[0])
+		assertTrue(registry.hasOverlay())
+	}
+
+	@Test
+	fun `a dialog shell does not hide its component overlay's handlers`() {
+		val runs = IntArray(1)
+		registry.register(ActionLayer.Overlay, mapOf(HammerActions.StoryToggleOutline.id to counting(runs)), blocksBelow = true)
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = {})
+
+		val handled = registry.dispatch(modShiftO)
+
+		assertTrue(handled)
+		assertEquals(1, runs[0])
+	}
+
+	@Test
+	fun `a dialog shell still hides what is under its component overlay`() {
+		val runs = IntArray(1)
+		registry.register(ActionLayer.Module, mapOf(HammerActions.ItemNew.id to counting(runs)))
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true)
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = {})
+
+		val handled = registry.dispatch(modN)
+
+		assertFalse(handled)
+		assertEquals(0, runs[0])
+	}
+
+	@Test
+	fun `a newer dialog hides an older overlay's handlers`() {
+		val runs = IntArray(1)
+		registry.register(ActionLayer.Overlay, mapOf(HammerActions.StoryToggleOutline.id to counting(runs)), blocksBelow = true)
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = {})
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = {})
+
+		val handled = registry.dispatch(modShiftO)
+
+		assertFalse(handled)
+		assertEquals(0, runs[0])
+	}
+
+	@Test
+	fun `a newer component overlay hides an older overlay's handlers`() {
+		val runs = IntArray(1)
+		registry.register(ActionLayer.Overlay, mapOf(HammerActions.StoryToggleOutline.id to counting(runs)), blocksBelow = true)
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = {})
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true)
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = {})
+
+		val handled = registry.dispatch(modShiftO)
+
+		assertFalse(handled)
+		assertEquals(0, runs[0])
+	}
+
+	@Test
+	fun `a component overlay stays under its dialog across a stop and start`() {
+		val lifecycle = LifecycleRegistry()
+		val open = MutableValue(false)
+		val dismissed = IntArray(1)
+		registry.registerOverlayWhile(lifecycle, open) { it }
+		lifecycle.create()
+		lifecycle.start()
+		open.value = true
+		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = { dismissed[0]++ })
+
+		lifecycle.stop()
+		lifecycle.start()
+		val ran = registry.dismissTopOverlay()
+
+		assertTrue(ran)
 		assertEquals(1, dismissed[0])
 	}
 

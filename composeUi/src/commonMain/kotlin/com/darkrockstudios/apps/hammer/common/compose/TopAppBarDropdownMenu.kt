@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -37,6 +38,7 @@ fun TopAppBarDropdownMenu(
 			)
 		}
 
+		MenuOverlay(expanded) { expanded = false }
 		DropdownMenu(
 			modifier = Modifier.align(TopEnd),
 			expanded = expanded,

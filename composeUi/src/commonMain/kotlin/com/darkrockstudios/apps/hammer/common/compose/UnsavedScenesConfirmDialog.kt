@@ -27,7 +27,6 @@ fun UnsavedScenesConfirmDialog(
 		onDismiss = onCancel,
 		destructive = true,
 		kind = Res.string.confirm_kind_unsaved.get(),
-		implicitDismiss = false,
 	) {
 		UnsavedScenesActions(
 			saveButtonText = saveButtonText,

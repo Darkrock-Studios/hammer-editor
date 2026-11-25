@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
+import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
 import com.darkrockstudios.apps.hammer.common.compose.actions.toKeyChord
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
@@ -125,79 +126,82 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 					}
 				}
 
-				if (shouldConfirmClose.isNotEmpty()) {
-					val item = shouldConfirmClose.first()
-					when (item) {
-						CloseConfirm.Scenes -> {
-							confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
-								scope.launch {
+				// The confirms sit outside ProjectRootUi, so their shells need the registry here.
+				ProvideActions(component.actions) {
+					if (shouldConfirmClose.isNotEmpty()) {
+						val item = shouldConfirmClose.first()
+						when (item) {
+							CloseConfirm.Scenes -> {
+								confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
+									scope.launch {
+										when (result) {
+											ConfirmCloseResult.SaveAll -> component.storeDirtyBuffers()
+											ConfirmCloseResult.Discard -> component.discardUnsaved(CloseConfirm.Scenes)
+											ConfirmCloseResult.Cancel -> Unit
+										}
+
+										withContext(mainDispatcher) {
+											if (result != ConfirmCloseResult.Cancel) {
+												component.closeRequestDealtWith(CloseConfirm.Scenes)
+											} else {
+												cancelClose()
+											}
+										}
+									}
+								}
+							}
+
+							CloseConfirm.Notes -> {
+								confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
 									when (result) {
-										ConfirmCloseResult.SaveAll -> component.storeDirtyBuffers()
-										ConfirmCloseResult.Discard -> component.discardUnsaved(CloseConfirm.Scenes)
-										ConfirmCloseResult.Cancel -> Unit
-									}
-
-									withContext(mainDispatcher) {
-										if (result != ConfirmCloseResult.Cancel) {
-											component.closeRequestDealtWith(CloseConfirm.Scenes)
-										} else {
-											cancelClose()
+										ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+										ConfirmCloseResult.Discard -> scope.launch {
+											component.discardUnsaved(CloseConfirm.Notes)
+											withContext(mainDispatcher) {
+												component.closeRequestDealtWith(CloseConfirm.Notes)
+											}
 										}
+										ConfirmCloseResult.Cancel -> cancelClose()
 									}
 								}
 							}
-						}
 
-						CloseConfirm.Notes -> {
-							confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
-								when (result) {
-									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-									ConfirmCloseResult.Discard -> scope.launch {
-										component.discardUnsaved(CloseConfirm.Notes)
-										withContext(mainDispatcher) {
-											component.closeRequestDealtWith(CloseConfirm.Notes)
+							CloseConfirm.Encyclopedia -> {
+								confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
+									when (result) {
+										ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+										ConfirmCloseResult.Discard -> scope.launch {
+											component.discardUnsaved(CloseConfirm.Encyclopedia)
+											withContext(mainDispatcher) {
+												component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+											}
 										}
+										ConfirmCloseResult.Cancel -> cancelClose()
 									}
-									ConfirmCloseResult.Cancel -> cancelClose()
 								}
 							}
-						}
 
-						CloseConfirm.Encyclopedia -> {
-							confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
-								when (result) {
-									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-									ConfirmCloseResult.Discard -> scope.launch {
-										component.discardUnsaved(CloseConfirm.Encyclopedia)
-										withContext(mainDispatcher) {
-											component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+							CloseConfirm.Timeline -> {
+								confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
+									when (result) {
+										ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+										ConfirmCloseResult.Discard -> scope.launch {
+											component.discardUnsaved(CloseConfirm.Timeline)
+											withContext(mainDispatcher) {
+												component.closeRequestDealtWith(CloseConfirm.Timeline)
+											}
 										}
+										ConfirmCloseResult.Cancel -> cancelClose()
 									}
-									ConfirmCloseResult.Cancel -> cancelClose()
 								}
 							}
-						}
 
-						CloseConfirm.Timeline -> {
-							confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
-								when (result) {
-									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-									ConfirmCloseResult.Discard -> scope.launch {
-										component.discardUnsaved(CloseConfirm.Timeline)
-										withContext(mainDispatcher) {
-											component.closeRequestDealtWith(CloseConfirm.Timeline)
-										}
-									}
-									ConfirmCloseResult.Cancel -> cancelClose()
-								}
+							CloseConfirm.Sync -> {
+								component.showProjectSync()
 							}
-						}
 
-						CloseConfirm.Sync -> {
-							component.showProjectSync()
+							CloseConfirm.Complete -> performClose(app, closeRequest)
 						}
-
-						CloseConfirm.Complete -> performClose(app, closeRequest)
 					}
 				}
 			}

@@ -961,6 +961,43 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `a close confirm still blocks Mod+3 after the window stops and starts`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.requestClose()
+		advanceUntilIdle()
+
+		context.stop()
+		context.resume()
+		advanceUntilIdle()
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3))
+		advanceUntilIdle()
+
+		assertFalse(handled)
+		assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+Shift+Enter leaves focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Enter, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		val modal = comp.modalRouterState.value.child?.instance
+		assertTrue(modal == null || modal is ProjectRoot.ModalDestination.None)
+		assertFalse(comp.actions.hasOverlay())
+	}
+
+	@Test
 	fun `cancelling the close confirm restores navigation`() = runTest(mainTestDispatcher) {
 		every { sceneEditor.hasDirtyBuffers() } returns true
 		coEvery { syncJournal.shouldAutoSync() } returns false

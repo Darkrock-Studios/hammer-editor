@@ -170,7 +170,15 @@ class ProjectRootComponent(
 				HammerActions.ProjectClose.id to ActionHandler { onCloseProject() },
 			),
 		)
-		actions.registerOverlayWhile(lifecycle, modalRouter.state) { slot ->
+		actions.registerOverlayWhile(
+			lifecycle,
+			modalRouter.state,
+			mapOf(
+				HammerActions.StoryFocusMode.id to ActionHandler(
+					isEnabled = { modalRouter.state.value.child?.instance is ProjectRoot.ModalDestination.FocusModeModal },
+				) { dismissFocusMode() },
+			),
+		) { slot ->
 			slot.child?.instance.let { it != null && it !is ProjectRoot.ModalDestination.None }
 		}
 		actions.registerOverlayWhile(lifecycle, closeRequestHandlers) { it.isNotEmpty() }

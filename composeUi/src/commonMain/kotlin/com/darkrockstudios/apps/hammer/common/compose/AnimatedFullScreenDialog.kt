@@ -70,8 +70,8 @@ class AnimatedDialogScope internal constructor(
  *   false.
  * @param onClosed fires once the exit animation has finished. Use this to actually unmount the
  *   dialog (e.g. clear the rendering state, dismiss the navigation slot).
- * @param blocksActions while open, the dialog is an overlay barrier: only global actions reach
- *   the screens behind it, and the window's Esc calls [onDismissRequest].
+ * @param blocksActions while mounted, the dialog is an overlay barrier: only global actions reach
+ *   the screens behind it, and the window's Esc calls [onDismissRequest] while [isOpen].
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -102,12 +102,13 @@ internal fun AnimatedDialogContainer(
 		onDismissRequest = onDismissRequest,
 		properties = properties,
 	) {
+		// Held through the exit animation too; an Esc then is taken but closes nothing more.
 		RegisterActions(
 			ActionLayer.Overlay,
 			emptyMap(),
 			blocksBelow = true,
-			enabled = blocksActions && isOpen,
-			onDismiss = onDismissRequest,
+			enabled = blocksActions,
+			onDismiss = { if (isOpen) onDismissRequest() },
 		)
 
 		PredictiveBackHandler(enabled = transitionState.targetState) { events ->

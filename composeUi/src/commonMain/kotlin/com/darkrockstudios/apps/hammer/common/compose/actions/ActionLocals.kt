@@ -61,3 +61,18 @@ fun RegisterActions(
 		onDispose { registration?.unregister() }
 	}
 }
+
+/**
+ * Makes an open menu the topmost overlay, so the window's Esc closes it rather than the dialog or
+ * screen under it: hosts such as Tao do not close a popup on Esc themselves.
+ */
+@Composable
+fun MenuOverlay(expanded: Boolean, onDismissRequest: () -> Unit) {
+	RegisterActions(
+		ActionLayer.Overlay,
+		emptyMap(),
+		blocksBelow = true,
+		enabled = expanded,
+		onDismiss = onDismissRequest,
+	)
+}

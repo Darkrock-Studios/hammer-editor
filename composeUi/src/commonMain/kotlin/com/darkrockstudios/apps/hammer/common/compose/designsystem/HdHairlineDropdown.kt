@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -80,6 +81,7 @@ fun <T> HdHairlineDropdown(
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
+			MenuOverlay(expanded && enabled) { expanded = false }
 			DropdownMenu(
 				expanded = expanded && enabled,
 				onDismissRequest = { expanded = false },
