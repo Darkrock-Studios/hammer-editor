@@ -20,6 +20,9 @@ import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
 import com.darkrockstudios.apps.hammer.monitoring.LogLine
 import com.darkrockstudios.apps.hammer.monitoring.LogRingBuffer
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.monitoring.ReviewDay
+import com.darkrockstudios.apps.hammer.monitoring.ReviewStats
+import com.darkrockstudios.apps.hammer.monitoring.ReviewStatsRepository
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlert
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlerts
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
@@ -53,8 +56,10 @@ import kotlinx.serialization.json.Json
 import java.net.URLEncoder
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.util.Locale
 import kotlin.math.ceil
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
@@ -75,6 +80,7 @@ fun Route.adminMonitoringPages(
 	securityRepository: SecurityRepository,
 	userActivityRepository: UserActivityRepository,
 	storyReaderRepository: StoryReaderRepository,
+	reviewStatsRepository: ReviewStatsRepository,
 	recurringTaskRegistry: RecurringTaskRegistry,
 	healthService: HealthService,
 	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
@@ -111,6 +117,8 @@ fun Route.adminMonitoringPages(
 			val hasReaders = listOf(readers.h24, readers.d7, readers.d30).any { it > 0 }
 			val readersDaily = storyReaderRepository.dailyReaders(now)
 
+			val reviews = reviewStatsRepository.overview(now)
+
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
@@ -139,6 +147,7 @@ fun Route.adminMonitoringPages(
 				"readers30d" to formatCount(readers.d30),
 				"readersChartJson" to buildReadersChart(readersDaily),
 			)
+			model.putAll(reviewStatsModel(reviews))
 
 			call.respond(MustacheContent("admin-monitoring.mustache", call.withDefaults(model)))
 		}
@@ -548,6 +557,61 @@ internal fun buildTrafficChart(points: List<TimeSeriesPoint>): String {
 	return Json.encodeToString(ChartPayload.serializer(), payload)
 }
 
+internal fun reviewStatsModel(stats: ReviewStats): Map<String, Any> {
+	val status = stats.status
+	// Flat per-status keys: Mustache can't look up a message by a dynamic key.
+	val segments = listOf(
+		"Waiting" to status.waiting,
+		"Editing" to status.editing,
+		"Awaiting" to status.awaitingAuthor,
+		"Resolved" to status.resolved,
+		"Canceled" to status.canceled,
+		"Expired" to status.expired,
+	).flatMap { (key, count) ->
+		listOf(
+			"review${key}Count" to formatCount(count),
+			"review${key}Shown" to (count > 0),
+			// Feeds a CSS flex-grow, so it must not take the server locale's decimal comma.
+			"review${key}Share" to "%.2f".format(Locale.ROOT, if (status.total > 0) count * 100.0 / status.total else 0.0),
+		)
+	}
+	fun rateOfTotal(n: Long) = if (status.total > 0) formatPercent(n.toDouble() / status.total) else "—"
+
+	return segments.toMap() + mapOf(
+		"hasReviews" to (status.total > 0),
+		"reviewsRequested24h" to formatCount(stats.requested.h24),
+		"reviewsRequested7d" to formatCount(stats.requested.d7),
+		"reviewsRequested30d" to formatCount(stats.requested.d30),
+		"reviewsReturned24h" to formatCount(stats.returned.h24),
+		"reviewsReturned7d" to formatCount(stats.returned.d7),
+		"reviewsReturned30d" to formatCount(stats.returned.d30),
+		"reviewsResolved24h" to formatCount(stats.resolved.h24),
+		"reviewsResolved7d" to formatCount(stats.resolved.d7),
+		"reviewsResolved30d" to formatCount(stats.resolved.d30),
+		"reviewsTotal" to formatCount(status.total),
+		"reviewsOpenedRate" to rateOfTotal(status.opened),
+		"reviewsReturnedRate" to rateOfTotal(status.returned),
+		"reviewsTurnaround" to (stats.medianTurnaround?.let(::formatTurnaround) ?: "—"),
+		"reviewsChartJson" to buildReviewsChart(stats.daily),
+	)
+}
+
+internal fun formatTurnaround(d: Duration): String = when {
+	d < 1.hours -> "${d.inWholeMinutes}m"
+	d < 2.days -> "${d.inWholeHours}h"
+	else -> "%.1fd".format(d.inWholeMinutes / (24.0 * 60))
+}
+
+private fun buildReviewsChart(daily: List<ReviewDay>): String {
+	val payload = ReviewsChartPayload(
+		labels = daily.map { formatInstant(it.day, "MMM dd", ZoneOffset.UTC) },
+		requested = daily.map { it.requested },
+		returned = daily.map { it.returned },
+		resolved = daily.map { it.resolved },
+	)
+	return Json.encodeToString(ReviewsChartPayload.serializer(), payload)
+}
+
 private fun rangeToDuration(range: String) = when (range) {
 	RANGE_7D -> 7.days
 	RANGE_30D -> 30.days
@@ -582,6 +646,14 @@ private data class ActiveUsersChartPayload(
 private data class ReadersChartPayload(
 	val labels: List<String>,
 	val readers: List<Long>,
+)
+
+@Serializable
+private data class ReviewsChartPayload(
+	val labels: List<String>,
+	val requested: List<Long>,
+	val returned: List<Long>,
+	val resolved: List<Long>,
 )
 
 private val errorExportJson = Json { prettyPrint = true }

@@ -90,6 +90,7 @@ import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
+import com.darkrockstudios.apps.hammer.monitoring.ReviewStatsRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
@@ -258,6 +259,7 @@ fun mainModule(
 	// make Koin try to inject the Int rather than honor it.
 	single { StoryReaderCollector(clock = get()) }
 	single<StoryReaderRepository>()
+	single<ReviewStatsRepository>()
 	single<StoryKudosRepository>()
 	single { MonitoringState() }
 	single { RecurringTaskRegistry() }

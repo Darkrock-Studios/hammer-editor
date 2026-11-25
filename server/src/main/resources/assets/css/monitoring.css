@@ -258,6 +258,105 @@
 .mon-au-stat--web .mon-au-stat__name i { color: var(--primary); }
 .mon-au-stat--readers .mon-au-stat__name i { color: var(--accent); }
 
+/* --- Editor reviews: request-an-editor milestones and where requests stand --- */
+.mon-au-card__stats--triple { grid-template-columns: repeat(3, 1fr); }
+.mon-au-card__stats--triple .mon-au-stat__value { font-size: 1.7rem; }
+.mon-au-card__stats--triple .mon-au-stat__name { flex-direction: column; gap: 0.2rem; font-size: 0.78rem; }
+
+.mon-au-stat--review-requested::before { background: var(--accent); }
+.mon-au-stat--review-returned::before { background: var(--primary); }
+.mon-au-stat--review-resolved::before { background: var(--success); }
+.mon-au-stat--review-requested .mon-au-stat__name i { color: var(--accent); }
+.mon-au-stat--review-returned .mon-au-stat__name i { color: var(--primary); }
+.mon-au-stat--review-resolved .mon-au-stat__name i { color: var(--success); }
+
+/* Status colors run warm to cool along the request's life; lapsed requests are hatched. */
+.mon-review-seg--waiting { --seg: var(--accent-light); }
+.mon-review-seg--editing { --seg: var(--accent); }
+.mon-review-seg--awaiting { --seg: var(--primary); }
+.mon-review-seg--resolved { --seg: var(--success); }
+.mon-review-seg--canceled { --seg: var(--neutral-400); }
+.mon-review-seg--expired {
+	--seg: repeating-linear-gradient(135deg, var(--neutral-400) 0 3px, var(--neutral-200) 3px 6px);
+}
+
+.mon-review-bar {
+	display: flex;
+	gap: 2px;
+	height: 14px;
+	margin-bottom: 0.75rem;
+	padding: 2px;
+	background: var(--paper-white);
+	border: 1px solid var(--neutral-200);
+	border-radius: 3px;
+}
+
+.mon-review-bar__seg {
+	flex-basis: 0;
+	min-width: 4px;
+	background: var(--seg);
+	border-radius: 1px;
+}
+
+.mon-review-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem 1.4rem;
+	margin: 0 0 1.5rem;
+	padding: 0;
+	list-style: none;
+}
+
+.mon-review-legend__item {
+	display: flex;
+	align-items: baseline;
+	gap: 0.45rem;
+}
+
+.mon-review-legend__swatch {
+	align-self: center;
+	width: 10px;
+	height: 10px;
+	background: var(--seg);
+	border-radius: 1px;
+}
+
+.mon-review-legend__name { font-family: 'Lora', Georgia, serif; font-size: 0.88rem; color: var(--neutral-600); }
+
+.mon-review-legend__count {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.mon-review-facts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	margin: 0 0 1.75rem;
+	border-top: 1px solid var(--neutral-200);
+	border-bottom: 1px solid var(--neutral-200);
+}
+
+.mon-review-fact { padding: 0.85rem 1rem; }
+.mon-review-fact + .mon-review-fact { border-left: 1px solid var(--neutral-200); }
+.mon-review-fact dt { font-family: 'Lora', Georgia, serif; font-size: 0.88rem; color: var(--neutral-500); }
+
+.mon-review-fact dd {
+	margin: 0.25rem 0 0;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.6rem;
+	line-height: 1.1;
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.mon-review-fact__note { margin: 0.2rem 0 0; font-family: 'Lora', Georgia, serif; font-size: 0.75rem; color: var(--neutral-400); }
+
+@media (max-width: 600px) {
+	.mon-review-fact + .mon-review-fact { border-left: none; border-top: 1px solid var(--neutral-200); }
+}
+
 .mon-live-dot { color: var(--success); font-size: 0.5rem; vertical-align: middle; animation: monPulse 2s ease-in-out infinite; }
 
 @keyframes monPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }

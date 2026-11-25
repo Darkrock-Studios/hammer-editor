@@ -113,6 +113,7 @@ fun Route.frontend() {
 	val mfaRepository: MfaRepository by inject()
 	val userActivityRepository: UserActivityRepository by inject()
 	val storyReaderRepository: StoryReaderRepository by inject()
+	val reviewStatsRepository: com.darkrockstudios.apps.hammer.monitoring.ReviewStatsRepository by inject()
 	val storyReaderCollector: StoryReaderCollector by inject()
 	val storyKudosRepository: StoryKudosRepository by inject()
 	val serverProjectDataRepository: com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository by inject()
@@ -234,6 +235,7 @@ fun Route.frontend() {
 		securityRepository,
 		userActivityRepository,
 		storyReaderRepository,
+		reviewStatsRepository,
 		recurringTaskRegistry,
 		healthService,
 		projectsSyncManager,
