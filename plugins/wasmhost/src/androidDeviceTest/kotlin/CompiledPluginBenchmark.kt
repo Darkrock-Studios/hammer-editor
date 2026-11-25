@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.DEFAULT_MAX_MEMORY_PAGES
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.ExtismPlugin
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PAGES_PER_MIB
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.platformCompiler
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
@@ -80,7 +81,7 @@ class CompiledPluginBenchmark {
 		val wasm = File(path!!).readBytes()
 		lateinit var plugin: ExtismPlugin
 		val load = measureTime {
-			plugin = ExtismPlugin(wasm, stubs, maxMemoryPages = HARPER_MEMORY_PAGES, compile = compile)
+			plugin = ExtismPlugin(wasm, stubs, maxMemoryPages = HARPER_MEMORY_PAGES, compiler = platformCompiler.takeIf { compile })
 		}
 		// ART compiles the generated DEX itself as it warms up, so each call is timed to show where it settles.
 		lateinit var output: ByteArray
@@ -93,7 +94,7 @@ class CompiledPluginBenchmark {
 	fun countingSpeed() {
 		val iterations = 20_000_000L
 		val (interpreted, compiled) = listOf(false, true).map { compile ->
-			val plugin = ExtismPlugin(testPlugin("count"), compile = compile)
+			val plugin = ExtismPlugin(testPlugin("count"), compiler = platformCompiler.takeIf { compile })
 			plugin.call("run", 1_000L.toLittleEndian(), FUEL)
 			measureTime { plugin.call("run", iterations.toLittleEndian(), FUEL) }
 		}
@@ -104,7 +105,7 @@ class CompiledPluginBenchmark {
 	fun upperCasingSpeed() {
 		val input = buildString { while (length < 1_000_000) append("It was the best of times, it was the worst of times. ") }.encodeToByteArray()
 		val (interpreted, compiled) = listOf(false, true).map { compile ->
-			val plugin = ExtismPlugin(testPlugin("upper"), compile = compile)
+			val plugin = ExtismPlugin(testPlugin("upper"), compiler = platformCompiler.takeIf { compile })
 			plugin.call("run", "warm up".encodeToByteArray(), FUEL)
 			measureTime { plugin.call("run", input, FUEL) }
 		}
@@ -133,7 +134,7 @@ class CompiledPluginBenchmark {
 				val mode = if (compile) "compiled" else "interpreted"
 				try {
 					lateinit var plugin: ExtismPlugin
-					val load = measureTime { plugin = ExtismPlugin(wasm, userFunctions, maxMemoryPages = maxMemoryPages, compile = compile) }
+					val load = measureTime { plugin = ExtismPlugin(wasm, userFunctions, maxMemoryPages = maxMemoryPages, compiler = platformCompiler.takeIf { compile }) }
 					plugin.call(function, input, FUEL)
 					val best = (1..3).minOf { measureTime { plugin.call(function, input, FUEL) } }
 					val ran = if (plugin.compiled == compile) mode else "interpreted (could not compile)"

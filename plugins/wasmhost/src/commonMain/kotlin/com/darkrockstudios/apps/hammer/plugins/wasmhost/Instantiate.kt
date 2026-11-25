@@ -7,19 +7,21 @@ import io.github.charlietap.chasm.embedding.shapes.Instance
 import io.github.charlietap.chasm.embedding.shapes.Module
 import io.github.charlietap.chasm.embedding.shapes.Store
 
-/** Whether chasm can compile modules to this platform's own code. */
-internal expect val platformCompiles: Boolean
+/** Compiles a module to the platform's own code as it instantiates it. */
+fun interface ModuleCompiler {
+	fun instantiate(store: Store, module: Module, imports: List<Import>): CompiledStart
+}
 
-/** Instantiates [module] in [store] with its code compiled; call only where [platformCompiles]. */
-internal expect fun compiledInstance(store: Store, module: Module, imports: List<Import>): CompiledStart
-
-internal sealed interface CompiledStart {
+sealed interface CompiledStart {
 	/** The module started, or failed to start for a reason of its own. */
 	class Started(val result: ChasmResult<Instance, ChasmError.ExecutionError>) : CompiledStart
 
 	/** The compiler could not compile or load the module, which should run interpreted. */
 	class Refused(val reason: String) : CompiledStart
 }
+
+/** chasm's compiler for this platform, or null where chasm only interprets. */
+internal expect val platformCompiler: ModuleCompiler?
 
 /** Whether this is compiled code failing to load, which a call may find only when it first reaches that code. */
 internal expect fun Throwable.isCodeLoadFailure(): Boolean

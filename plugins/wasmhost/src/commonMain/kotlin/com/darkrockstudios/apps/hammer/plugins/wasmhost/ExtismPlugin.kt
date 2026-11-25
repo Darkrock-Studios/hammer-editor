@@ -48,8 +48,8 @@ import kotlin.time.TimeSource
  * at [maxGuestHeapBytes], both lower on a small host heap, a call's stack at [maxStackBytes], and its
  * variables and log output at fixed sizes.
  *
- * With [compile], the module is compiled to the platform's own code where chasm can, which is Android
- * alone, and interpreted elsewhere or when it cannot be compiled; [compiled] says which.
+ * With a [compiler], by default chasm's own where it has one (Android alone), the module is compiled to
+ * the platform's own code, and interpreted when the compiler refuses it; [compiled] says which.
  */
 class ExtismPlugin(
 	/**
@@ -67,7 +67,7 @@ class ExtismPlugin(
 	private val http: PluginHttp? = null,
 	maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 	maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
-	compile: Boolean = true,
+	compiler: ModuleCompiler? = platformCompiler,
 ) {
 	constructor(
 		wasm: ByteArray,
@@ -80,10 +80,10 @@ class ExtismPlugin(
 		http: PluginHttp? = null,
 		maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 		maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
-		compile: Boolean = true,
+		compiler: ModuleCompiler? = platformCompiler,
 	) : this(
 		{ wasm }, userFunctions, config, log, maxMemoryPages, maxTableElements, maxGuestHeapBytes, http, maxKernelBytes,
-		maxStackBytes, compile,
+		maxStackBytes, compiler,
 	)
 
 	private val kernel = ExtismKernel(maxKernelBytes)
@@ -126,20 +126,20 @@ class ExtismPlugin(
 	internal var compiled = false
 		private set
 	private val instance: Instance = failingOutOfMemory("Plugin ran out of memory starting up") {
-		start(loadWasm, userFunctions, compile)
+		start(loadWasm, userFunctions, compiler)
 	}
 	private var calling = false
 
-	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>, compile: Boolean): Instance {
+	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>, compiler: ModuleCompiler?): Instance {
 		val module = module(loadWasm()).orThrow("Invalid plugin module")
-		if (compile && platformCompiles) startCompiled(module, userFunctions)?.let { return it }
+		if (compiler != null) startCompiled(compiler, module, userFunctions)?.let { return it }
 		return initialized(module, instantiated(module, userFunctions) { imports -> instance(store, module, imports) })
 	}
 
 	/** The module started with compiled code, or null when chasm-jit refused it, leaving a fresh store to interpret it in. */
 	@Suppress("TooGenericExceptionCaught")
-	private fun startCompiled(module: Module, userFunctions: List<UserFunction>): Instance? {
-		val refusal = when (val start = instantiated(module, userFunctions) { imports -> compiledInstance(store, module, imports) }) {
+	private fun startCompiled(compiler: ModuleCompiler, module: Module, userFunctions: List<UserFunction>): Instance? {
+		val refusal = when (val start = instantiated(module, userFunctions) { imports -> compiler.instantiate(store, module, imports) }) {
 			is CompiledStart.Refused -> start.reason
 			is CompiledStart.Started -> try {
 				return initialized(module, start.result).also { compiled = true }

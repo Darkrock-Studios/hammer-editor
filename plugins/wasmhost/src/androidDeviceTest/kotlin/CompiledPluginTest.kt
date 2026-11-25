@@ -158,7 +158,7 @@ class CompiledPluginTest {
 
 	@Test
 	fun interpretedWhenAsked() {
-		assertFalse(ExtismPlugin(testPlugin("upper"), compile = false).compiled)
+		assertFalse(ExtismPlugin(testPlugin("upper"), compiler = null).compiled)
 	}
 
 	// What a plugin logs from the host, which is where a fallback to the interpreter is reported.

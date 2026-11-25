@@ -127,7 +127,7 @@ class WasmPlugin(
 		maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB,
 		http = pluginHttp(),
 		maxKernelBytes = maxKernelBytes,
-		compile = compileModule,
+		compiler = platformCompiler.takeIf { compileModule },
 	).also {
 		loaded = it
 		compileModule = it.compiled
