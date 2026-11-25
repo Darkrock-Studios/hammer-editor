@@ -5,7 +5,7 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
@@ -13,8 +13,7 @@ class NotesComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val updateShouldClose: () -> Unit,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Notes {
 
@@ -102,8 +101,7 @@ class NotesComponent(
 			noteId = config.noteId,
 			dismissView = ::showBrowse,
 			updateShouldClose = updateShouldClose,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 	}

@@ -18,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.Ren
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntryComponent
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.components.menu.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
 import com.darkrockstudios.apps.hammer.common.components.timeline.placementLinks
@@ -51,8 +50,6 @@ import okio.IOException
 class ViewEntryComponent(
 	componentContext: ComponentContext,
 	entryDef: EntryDef,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
 	private val closeEntry: () -> Unit,
 	private val showScene: (SceneItem) -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
@@ -514,10 +511,6 @@ class ViewEntryComponent(
 		reload()
 	}
 
-	private fun getMenuId(): String {
-		return "view-entry"
-	}
-
 	private fun addEntryMenu() {
 
 		val addImage = MenuItemDescriptor(
@@ -553,12 +546,6 @@ class ViewEntryComponent(
 		}
 
 		val menuItems = setOf(rename, addImage, removeImage, deleteEntry)
-		val menu = MenuDescriptor(
-			getMenuId(),
-			Res.string.encyclopedia_entry_menu_group,
-			menuItems.toList()
-		)
-		addMenu(menu)
 		_state.getAndUpdate {
 			it.copy(
 				menuItems = menuItems
@@ -567,7 +554,6 @@ class ViewEntryComponent(
 	}
 
 	private fun removeEntryMenu() {
-		removeMenu(getMenuId())
 		_state.getAndUpdate {
 			it.copy(
 				menuItems = emptySet()

@@ -61,8 +61,6 @@ class ViewEntryComponentExternalChangeTest : ComponentTest() {
 		val comp = ViewEntryComponent(
 			componentContext = context,
 			entryDef = originalDef,
-			addMenu = {},
-			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
@@ -94,8 +92,6 @@ class ViewEntryComponentExternalChangeTest : ComponentTest() {
 		val comp = ViewEntryComponent(
 			componentContext = context,
 			entryDef = originalDef,
-			addMenu = {},
-			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
@@ -126,8 +122,6 @@ class ViewEntryComponentExternalChangeTest : ComponentTest() {
 		ViewEntryComponent(
 			componentContext = context,
 			entryDef = originalDef,
-			addMenu = {},
-			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},

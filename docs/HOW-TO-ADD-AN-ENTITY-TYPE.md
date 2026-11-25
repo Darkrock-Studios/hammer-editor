@@ -383,7 +383,7 @@ Each feature is a `ChildStack` with Browse, View and Create configs. Copy `notes
 `Notes.kt` (interface, `Destination`, `@Serializable Config`), `NotesComponent.kt` (`createChild`,
 `isAtRoot`, `shouldConfirmClose`, `isUnsaved`, `discardUnsaved`, child factories,
 `childStack(key = "XRouter")`), `BrowseNotesComponent`, `ViewNoteComponent` (stateKeeper draft,
-`BackCallback` while editing, `addMenu`/`removeMenu`, `isEditingAndDirty`) and
+`BackCallback` while editing, `state.menuItems` set on start and cleared on stop, `isEditingAndDirty`) and
 `CreateNoteComponent`. Browse and View/Create components extend `TagSuggesting` if tagged.
 
 `isUnsaved` in the copied router has an `else -> false`: list your own View and Create

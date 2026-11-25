@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEventComponent
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
@@ -46,8 +46,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	private val shownScenes = mutableListOf<SceneItem>()
 	private val shownEntries = mutableListOf<EntryDef>()
 	private val searchedTags = mutableListOf<String>()
-	private val addedMenus = mutableListOf<MenuDescriptor>()
-	private val removedMenus = mutableListOf<String>()
+	private val registry = ActionRegistry()
 	private val shownOn = mutableListOf<Pair<String, Int>>()
 	private var closes = 0
 	private var shouldCloseUpdates = 0
@@ -58,8 +57,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 			projectDef = projectDef,
 			eventId = eventId,
 			onCloseEvent = { closes++ },
-			addMenu = { addedMenus += it },
-			removeMenu = { removedMenus += it },
+			actions = registry,
 			updateShouldClose = { shouldCloseUpdates++ },
 			onShowGlobalSearchForTag = { searchedTags += it },
 			onShowScene = { shownScenes += it },
@@ -814,16 +812,13 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
 		val component = opened(event.id)
 
-		val menu = addedMenus.single()
-		val (move, delete) = menu.items
-		assertEquals(setOf(move, delete), component.state.value.menuItems)
+		val (move, delete) = component.state.value.menuItems.toList()
 		delete.action(delete.id)
 		assertTrue(component.state.value.confirmDelete)
 		move.action(move.id)
 		assertTrue(component.state.value.confirmMove)
 
 		context.stop()
-		assertEquals(listOf(menu.id), removedMenus)
 		assertEquals(emptySet(), component.state.value.menuItems)
 	}
 

@@ -233,8 +233,6 @@ class ProjectRootComponentTest : ComponentTest() {
 	) = ProjectRootComponent(
 		componentContext = context,
 		projectDef = projectDef,
-		addMenu = {},
-		removeMenu = {},
 		onCloseProject = { projectClosed = true },
 		initialDeepLink = initialDeepLink,
 	)

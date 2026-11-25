@@ -5,7 +5,7 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -15,8 +15,7 @@ class EncyclopediaComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val updateShouldClose: () -> Unit,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val showScene: (SceneItem) -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val showTimelineEvent: (eventId: Int) -> Unit,
@@ -106,8 +105,6 @@ class EncyclopediaComponent(
 		return ViewEntryComponent(
 			componentContext = componentContext,
 			entryDef = config.entryDef,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
 			closeEntry = ::closeEntry,
 			showScene = showScene,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,

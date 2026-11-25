@@ -152,9 +152,6 @@ fun SceneListUi(
 		)
 	}
 
-	var showCreateGroupDialog by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
-	var showCreateSceneDialog by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
-
 	var addMenuOpen by remember { mutableStateOf(false) }
 
 	fun moveScene(request: MoveRequest) {
@@ -285,8 +282,8 @@ fun SceneListUi(
 								sceneDefMoveTarget = { moveTarget ->
 									sceneDefMoveTarget = moveTarget
 								},
-								createScene = { parent -> showCreateSceneDialog = parent },
-								createGroup = { parent -> showCreateGroupDialog = parent },
+								createScene = { parent -> component.beginCreate(SceneList.CreateRequest.Kind.Scene, parent) },
+								createGroup = { parent -> component.beginCreate(SceneList.CreateRequest.Kind.Group, parent) },
 							)
 						},
 						contentPadding = PaddingValues(bottom = footerState.height)
@@ -333,7 +330,7 @@ fun SceneListUi(
 									},
 									onClick = {
 										addMenuOpen = false
-										showCreateSceneDialog = treeState.summary.sceneTree.root.value
+										component.beginCreate(SceneList.CreateRequest.Kind.Scene, null)
 									},
 								)
 								DropdownMenuItem(
@@ -347,7 +344,7 @@ fun SceneListUi(
 									},
 									onClick = {
 										addMenuOpen = false
-										showCreateGroupDialog = treeState.summary.sceneTree.root.value
+										component.beginCreate(SceneList.CreateRequest.Kind.Group, null)
 									},
 								)
 							}
@@ -360,13 +357,14 @@ fun SceneListUi(
 
 	// Children of the root are chapters, so the dialogs say so when that is the parent. The parent
 	// is latched so the wording holds while the dialog animates closed.
-	val createParent = showCreateGroupDialog ?: showCreateSceneDialog
+	val createRequest = state.createRequest
+	val createParent = createRequest?.parent
 	var lastCreateParent by remember { mutableStateOf(createParent) }
 	if (createParent != null) lastCreateParent = createParent
 	val creatingChapter = lastCreateParent?.isRootScene == true
 
 	CreateDialog(
-		show = showCreateGroupDialog != null,
+		show = createRequest?.kind == SceneList.CreateRequest.Kind.Group,
 		title = if (creatingChapter) {
 			Res.string.scene_list_create_chapter_group_dialog_title.get()
 		} else {
@@ -374,19 +372,16 @@ fun SceneListUi(
 		},
 		parentName = lastCreateParent?.takeUnless { creatingChapter }?.name,
 	) { groupName ->
-		scope.launch {
-			Napier.d { "Create dialog close" }
-			if (groupName != null) {
-				component.createGroup(showCreateGroupDialog, groupName)
-			}
-			withContext(mainDispatcher) {
-				showCreateGroupDialog = null
-			}
+		Napier.d { "Create dialog close" }
+		if (groupName != null) {
+			scope.launch { component.createGroup(createParent, groupName) }
+		} else {
+			component.dismissCreate()
 		}
 	}
 
 	CreateDialog(
-		show = showCreateSceneDialog != null,
+		show = createRequest?.kind == SceneList.CreateRequest.Kind.Scene,
 		title = if (creatingChapter) {
 			Res.string.scene_list_create_chapter_scene_dialog_title.get()
 		} else {
@@ -394,14 +389,11 @@ fun SceneListUi(
 		},
 		parentName = lastCreateParent?.takeUnless { creatingChapter }?.name,
 	) { sceneName ->
-		scope.launch {
-			Napier.d { "Create dialog close" }
-			if (sceneName != null) {
-				component.createScene(showCreateSceneDialog, sceneName)
-			}
-			withContext(mainDispatcher) {
-				showCreateSceneDialog = null
-			}
+		Napier.d { "Create dialog close" }
+		if (sceneName != null) {
+			scope.launch { component.createScene(createParent, sceneName) }
+		} else {
+			component.dismissCreate()
 		}
 	}
 

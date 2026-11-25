@@ -1,5 +1,6 @@
 package components.notes
 
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.notes.NotesComponent
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -69,12 +70,12 @@ class NotesComponentTest : ComponentTest() {
 		searchedTag = null
 	}
 
+	private val registry = ActionRegistry()
 	private fun newComponent() = NotesComponent(
 		componentContext = context,
 		projectDef = projectDef,
 		updateShouldClose = { shouldCloseUpdates++ },
-		addMenu = {},
-		removeMenu = {},
+		actions = registry,
 		onShowGlobalSearchForTag = { searchedTag = it },
 	)
 

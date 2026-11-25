@@ -136,12 +136,22 @@ private fun testSceneSummary(): SceneSummary {
 }
 
 private fun fakeComponent() = object : SceneList {
-	override val state: Value<SceneList.State> = MutableValue(
+	private val _state = MutableValue(
 		SceneList.State(
 			projectDef = fakeProjectDef(),
 			sceneSummary = testSceneSummary(),
 		)
 	)
+	override val state: Value<SceneList.State> = _state
+
+	override fun beginCreate(kind: SceneList.CreateRequest.Kind, parent: SceneItem?) {
+		val target = parent ?: _state.value.sceneSummary!!.sceneTree.root.value
+		_state.value = _state.value.copy(createRequest = SceneList.CreateRequest(kind, target))
+	}
+
+	override fun dismissCreate() {
+		_state.value = _state.value.copy(createRequest = null)
+	}
 
 	override fun onSceneSelected(sceneDef: SceneItem) {}
 	override suspend fun moveScene(moveRequest: MoveRequest) {}

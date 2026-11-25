@@ -15,7 +15,6 @@
 	<string name="scene_editor_save_button">Save</string>
 	<string name="scene_editor_metadata_button">Scene info</string>
 	<string name="scene_editor_toast_save_successful">Saved</string>
-	<string name="scene_editor_menu_group">Scene</string>
 	<string name="scene_editor_menu_item_save_draft">New Draft</string>
 	<string name="scene_editor_menu_item_view_drafts">View Drafts</string>
 	<string name="scene_editor_menu_item_rename">Rename</string>

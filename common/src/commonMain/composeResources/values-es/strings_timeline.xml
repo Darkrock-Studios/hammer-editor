@@ -28,7 +28,6 @@
 	<string name="timeline_create_date_placeholder">p. ej. Primavera del año 3</string>
 	<string name="timeline_view_discard_title">¿Descartar los cambios?</string>
 	<string name="timeline_view_discard_message">Perderás todos los cambios que hayas hecho.</string>
-	<string name="timeline_view_menu_group">Evento</string>
 	<string name="timeline_view_menu_delete">Eliminar</string>
 	<string name="timeline_view_confirm_delete_title">¿Eliminar el evento de cronología?</string>
 	<string name="timeline_view_confirm_delete_message">¡Esta acción no se puede deshacer!</string>

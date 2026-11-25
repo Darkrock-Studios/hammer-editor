@@ -7,6 +7,11 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.essenty.instancekeeper.InstanceKeeper
 import com.arkivanov.essenty.instancekeeper.retainedInstance
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
@@ -31,12 +36,18 @@ class SceneListComponent(
 	private val openSceneEditor: (sceneDef: SceneItem) -> Unit,
 	private val showOutlineOverviewDialog: () -> Unit,
 	private val showReader: () -> Unit,
+	private val actions: ActionRegistrar,
 ) : ProjectComponentBase(projectDef, componentContext), SceneList {
 
 	private val projectEditor: SceneEditorService by projectInject()
 	private val nuxRepository: NuxRepository by inject()
 
-	private val _state = MutableValue(SceneList.State(projectDef = projectDef))
+	private val _state = MutableValue(
+		SceneList.State(
+			projectDef = projectDef,
+			createRequest = stateKeeper.consume(CREATE_REQUEST_KEY, SceneList.CreateRequest.serializer()),
+		)
+	)
 	override val state: Value<SceneList.State> = _state
 
 	private val hasRows = MutableStateFlow(false)
@@ -54,6 +65,41 @@ class SceneListComponent(
 
 		projectEditor.subscribeToSceneUpdates(scope, ::onSceneListUpdate)
 		projectEditor.subscribeToBufferUpdates(null, scope, ::onSceneBufferUpdate)
+
+		stateKeeper.register(CREATE_REQUEST_KEY, SceneList.CreateRequest.serializer()) { _state.value.createRequest }
+
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(
+				HammerActions.ItemNew.id to ActionHandler {
+					beginCreate(SceneList.CreateRequest.Kind.Scene, defaultCreateParent())
+				},
+				HammerActions.StoryNewGroup.id to ActionHandler {
+					beginCreate(SceneList.CreateRequest.Kind.Group, defaultCreateParent())
+				},
+			),
+		)
+	}
+
+	/** The selected group, the group holding the selected scene, or the root when nothing is selected. */
+	private fun defaultCreateParent(): SceneItem? {
+		val tree = _state.value.sceneSummary?.sceneTree ?: return null
+		val selectedId = _state.value.selectedSceneItem?.id ?: return null
+		val node = tree.findBy { it.id == selectedId } ?: return null
+		return when (node.value.type) {
+			SceneItem.Type.Scene -> tree[node.parent].value
+			SceneItem.Type.Group, SceneItem.Type.Root -> node.value
+		}
+	}
+
+	override fun beginCreate(kind: SceneList.CreateRequest.Kind, parent: SceneItem?) {
+		val target = parent ?: _state.value.sceneSummary?.sceneTree?.root?.value ?: return
+		_state.getAndUpdate { it.copy(createRequest = SceneList.CreateRequest(kind, target)) }
+	}
+
+	override fun dismissCreate() {
+		_state.getAndUpdate { it.copy(createRequest = null) }
 	}
 
 	private fun watchSelectedScene(selectedSceneItem: SharedFlow<SceneItem?>) {
@@ -125,6 +171,7 @@ class SceneListComponent(
 		}
 
 		val newSceneItem = projectEditor.createScene(foundParent, sceneName)
+		withContext(dispatcherMain) { dismissCreate() }
 		if (newSceneItem != null) {
 			Napier.i("Scene created: $sceneName")
 			openSceneEditor(newSceneItem)
@@ -141,6 +188,7 @@ class SceneListComponent(
 		}
 
 		val newSceneItem = projectEditor.createGroup(foundParent, groupName)
+		withContext(dispatcherMain) { dismissCreate() }
 		if (newSceneItem != null) {
 			Napier.i("Group created: $groupName")
 		} else {
@@ -244,6 +292,7 @@ class SceneListComponent(
 private val LIST_HINTS = listOf(NuxHint.SceneListSwipeMenu, NuxHint.SceneListContextMenu, NuxHint.SceneListReorder)
 
 private const val TIPS_VISIT_KEY = "SceneListComponent.tipsVisit"
+private const val CREATE_REQUEST_KEY = "SceneListComponent.createRequest"
 
 /** One visit's tips state. [dismissedHint] blocks any other tip until a reset, so a visit shows at most one. Main thread only. */
 private class TipsVisit(val nuxVisit: NuxVisit) : InstanceKeeper.Instance {

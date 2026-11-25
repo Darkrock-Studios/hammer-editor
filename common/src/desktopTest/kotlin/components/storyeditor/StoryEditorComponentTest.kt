@@ -1,7 +1,11 @@
 package components.storyeditor
 
 import com.arkivanov.decompose.value.getValue
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.DetailsRouter
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditorComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderMode
@@ -19,6 +23,8 @@ import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidRefere
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -56,7 +62,7 @@ class StoryEditorComponentTest : ComponentTest() {
 
 	private val sceneTreeCallbacks = mutableListOf<(SceneSummary) -> Unit>()
 	private lateinit var sceneUpdates: MutableSharedFlow<SceneSummary>
-	private val addedMenus = mutableListOf<MenuDescriptor>()
+	private val registry = ActionRegistry()
 	private var focusModeScene: SceneItem? = null
 
 	@BeforeEach
@@ -64,7 +70,6 @@ class StoryEditorComponentTest : ComponentTest() {
 		super.setup()
 
 		sceneTreeCallbacks.clear()
-		addedMenus.clear()
 		focusModeScene = null
 
 		settingsStore = mockk(relaxed = true)
@@ -101,8 +106,7 @@ class StoryEditorComponentTest : ComponentTest() {
 	private fun newComponent(componentContext: TestComponentContext = context) = StoryEditorComponent(
 		componentContext = componentContext,
 		projectDef = projectDef,
-		addMenu = { addedMenus.add(it) },
-		removeMenu = { },
+		actions = registry,
 		showFocusMode = { focusModeScene = it },
 		showEntry = { },
 		showGlobalSearchForTag = { },
@@ -279,7 +283,10 @@ class StoryEditorComponentTest : ComponentTest() {
 			comp.showScene(sceneItem(1))
 			advanceUntilIdle()
 
-			val viewDrafts = addedMenus.flatMap { it.items }
+			val editor = assertIs<StoryEditor.ChildDestination.Detail.EditorDestination>(
+				comp.detailsRouterState.value.active.instance
+			).component
+			val viewDrafts = editor.state.value.menuItems
 				.first { it.id == SceneEditorComponent.VIEW_DRAFTS_MENU_ITEM_ID }
 			viewDrafts.action("")
 			advanceUntilIdle()
@@ -462,5 +469,155 @@ class StoryEditorComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertTrue(comp.hasUnsavedBuffers())
+	}
+
+	// --- actions -------------------------------------------------------------
+
+	// root -> [G1 -> [S1, S2], G2 -> [S3]]
+	private fun twoGroupTree(): ImmutableTree<SceneItem> {
+		fun group(id: Int, vararg scenes: SceneItem) =
+			TreeNode(SceneItem(projectDef, SceneItem.Type.Group, id, "Group $id", order = 0)).apply {
+				scenes.forEach { addChild(TreeNode(it)) }
+			}
+		val root = TreeNode(SceneItem(projectDef, SceneItem.Type.Root, id = 0, name = "root", order = 0)).apply {
+			addChild(group(101, sceneItem(1), sceneItem(2)))
+			addChild(group(102, sceneItem(3)))
+		}
+		return Tree<SceneItem>().apply { setRoot(root) }.toImmutableTree()
+	}
+
+	private fun startedStoryEditor(): StoryEditor {
+		every { sceneEditor.getSceneTree() } returns twoGroupTree()
+		val comp = newComponent()
+		context.resume()
+		return comp
+	}
+
+	private fun StoryEditor.openSceneId(): Int? =
+		(detailsRouterState.value.active.instance as? StoryEditor.ChildDestination.Detail.EditorDestination)
+			?.component?.state?.value?.sceneItem?.id
+
+	@Test
+	fun `Mod+PageDown opens the next scene`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		comp.showScene(sceneItem(1))
+		advanceUntilIdle()
+
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.PageDown))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertEquals(2, comp.openSceneId())
+	}
+
+	@Test
+	fun `Mod+PageUp opens the previous scene across groups`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		comp.showScene(sceneItem(3))
+		advanceUntilIdle()
+
+		registry.dispatch(KeyChord.mod(ChordKey.PageUp))
+		advanceUntilIdle()
+
+		assertEquals(2, comp.openSceneId())
+	}
+
+	@Test
+	fun `Mod+PageUp at the first scene is not handled`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		comp.showScene(sceneItem(1))
+		advanceUntilIdle()
+
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.PageUp))
+		advanceUntilIdle()
+
+		assertFalse(handled)
+		assertEquals(1, comp.openSceneId())
+	}
+
+	@Test
+	fun `Mod+Shift+PageDown opens the first scene of the next group`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		comp.showScene(sceneItem(1))
+		advanceUntilIdle()
+
+		registry.dispatch(KeyChord.mod(ChordKey.PageDown, shift = true))
+		advanceUntilIdle()
+
+		assertEquals(3, comp.openSceneId())
+	}
+
+	@Test
+	fun `Mod+Shift+PageUp opens the first scene of the previous group`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		comp.showScene(sceneItem(3))
+		advanceUntilIdle()
+
+		registry.dispatch(KeyChord.mod(ChordKey.PageUp, shift = true))
+		advanceUntilIdle()
+
+		assertEquals(1, comp.openSceneId())
+	}
+
+	@Test
+	fun `Mod+Shift+O toggles the outline overview`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		advanceUntilIdle()
+
+		registry.dispatch(KeyChord.mod(ChordKey.O, shift = true))
+		advanceUntilIdle()
+		val opened = comp.dialogState.value.child?.instance
+		registry.dispatch(KeyChord.mod(ChordKey.O, shift = true))
+		advanceUntilIdle()
+
+		assertIs<StoryEditor.ChildDestination.DialogDestination.OutlineDestination>(opened)
+		assertIs<StoryEditor.ChildDestination.DialogDestination.None>(comp.dialogState.value.child?.instance)
+	}
+
+	@Test
+	fun `Mod+Shift+R opens the reader when no scene is open`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		advanceUntilIdle()
+
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.R, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertEquals(DetailsRouter.Config.Reader(sceneDef = null), comp.detailsRouterState.value.active.configuration)
+	}
+
+	@Test
+	fun `Mod+Shift+R reads the open scene`() = runTest(mainTestDispatcher) {
+		val comp = startedStoryEditor()
+		comp.showScene(sceneItem(2))
+		advanceUntilIdle()
+
+		registry.dispatch(KeyChord.mod(ChordKey.R, shift = true))
+		advanceUntilIdle()
+
+		assertEquals(DetailsRouter.Config.Reader(sceneDef = sceneItem(2)), comp.detailsRouterState.value.active.configuration)
+	}
+
+	@Test
+	fun `next and previous are not live without an open scene`() = runTest(mainTestDispatcher) {
+		startedStoryEditor()
+		advanceUntilIdle()
+
+		assertFalse(registry.isLive(HammerActions.ItemNext.id))
+		assertFalse(registry.isLive(HammerActions.ItemPrev.id))
+		assertFalse(registry.isLive(HammerActions.StoryNextGroup.id))
+		assertFalse(registry.isLive(HammerActions.StoryPrevGroup.id))
+		assertTrue(registry.isLive(HammerActions.StoryToggleOutline.id))
+	}
+
+	@Test
+	fun `Story actions stop answering once stopped`() = runTest(mainTestDispatcher) {
+		startedStoryEditor()
+		advanceUntilIdle()
+
+		context.stop()
+
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.O, shift = true)))
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.R, shift = true)))
 	}
 }

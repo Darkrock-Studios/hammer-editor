@@ -12,7 +12,6 @@
 	<string name="scene_editor_save_button">Guardar</string>
 	<string name="scene_editor_metadata_button">Info de la escena</string>
 	<string name="scene_editor_toast_save_successful">Guardado</string>
-	<string name="scene_editor_menu_group">Escena</string>
 	<string name="scene_editor_menu_item_save_draft">Nuevo borrador</string>
 	<string name="scene_editor_menu_item_view_drafts">Ver borradores</string>
 	<string name="scene_editor_menu_item_rename">Renombrar</string>

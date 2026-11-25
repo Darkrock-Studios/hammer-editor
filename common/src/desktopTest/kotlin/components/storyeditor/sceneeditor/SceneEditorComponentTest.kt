@@ -1,31 +1,41 @@
 package components.storyeditor.sceneeditor
 
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
+import com.arkivanov.essenty.lifecycle.create
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditorComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.increaseEditorTextSize
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import io.mockk.*
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.ComponentTest
@@ -35,10 +45,10 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
-// These tests drive lifecycle by calling onCreate()/onStart()/onStop() directly rather than
-// context.resume(), which keeps the eagerly-constructed child SceneMetadataPanelComponent dormant
-// so its lazy dependencies don't need registering. Its construction-time dependencies
-// (SceneEditorService, ScrubInvalidReferencesUseCase) still must be registered.
+// Most tests drive lifecycle by calling onCreate()/onStart()/onStop() directly rather than
+// context.resume(), which keeps the eagerly-constructed child SceneMetadataPanelComponent dormant.
+// The action tests start the context, since actions follow the real lifecycle, so the child's
+// dependencies are registered too.
 class SceneEditorComponentTest : ComponentTest() {
 
 	private val sceneItem = SceneItem(projectDef, SceneItem.Type.Scene, id = 7, name = "Chapter One", order = 0)
@@ -61,8 +71,8 @@ class SceneEditorComponentTest : ComponentTest() {
 	private var closeCount = 0
 	private var focusShownFor: SceneItem? = null
 	private var readerShownFor: SceneItem? = null
-	private val addedMenus = mutableListOf<MenuDescriptor>()
-	private val removedMenuIds = mutableListOf<String>()
+	private var draftsShownFor: SceneItem? = null
+	private val registry = ActionRegistry()
 
 	private fun settings(
 		spellCheckEnabled: Boolean = true,
@@ -113,22 +123,23 @@ class SceneEditorComponentTest : ComponentTest() {
 			single { draftsRepository } bind SceneDraftRepository::class
 			single { autoConfirm } bind AutoConfirmReferencesUseCase::class
 			single<ScrubInvalidReferencesUseCase> { mockk(relaxed = true) }
+			single<CoroutineScope>(named(APP_SCOPE)) { scope }
+			single<EncyclopediaService> { mockk(relaxed = true) { every { entryListFlow } returns MutableSharedFlow() } }
+			single<TimelineService> { mockk { every { placementsFlow(any(), any()) } returns emptyFlow() } }
 		})
 
 		closeCount = 0
 		focusShownFor = null
 		readerShownFor = null
-		addedMenus.clear()
-		removedMenuIds.clear()
+		draftsShownFor = null
 	}
 
 	private fun newComponent() = SceneEditorComponent(
 		componentContext = context,
 		originalSceneItem = sceneItem,
-		addMenu = { addedMenus.add(it) },
-		removeMenu = { removedMenuIds.add(it) },
+		actions = registry,
 		closeSceneEditor = { closeCount++ },
-		showDraftsList = {},
+		showDraftsList = { draftsShownFor = it },
 		showFocusMode = { focusShownFor = it },
 		showReader = { readerShownFor = it },
 		showEntry = {},
@@ -580,15 +591,109 @@ class SceneEditorComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `the editor menu is added on start and removed on stop`() = runTest(mainTestDispatcher) {
+	fun `menu items appear on start and clear on stop`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 
 		comp.onStart()
-		assertEquals(1, addedMenus.size)
 		assertTrue(comp.state.value.menuItems.isNotEmpty())
 
 		comp.onStop()
-		assertEquals(listOf(addedMenus.single().id), removedMenuIds)
 		assertTrue(comp.state.value.menuItems.isEmpty())
+	}
+
+	// --- actions -------------------------------------------------------------
+
+	private fun startedComponent() = newComponent().also { context.start() }
+
+	@Test
+	fun `Mod+W closes the scene editor`() = runTest(mainTestDispatcher) {
+		startedComponent()
+
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.W))
+
+		assertTrue(handled)
+		assertEquals(1, closeCount)
+	}
+
+	@Test
+	fun `Mod+Shift+Enter enters focus mode for this scene`() = runTest(mainTestDispatcher) {
+		startedComponent()
+
+		registry.dispatch(KeyChord.mod(ChordKey.Enter, shift = true))
+
+		assertEquals(sceneItem, focusShownFor)
+	}
+
+	@Test
+	fun `Mod+Shift+R reads this scene`() = runTest(mainTestDispatcher) {
+		startedComponent()
+
+		registry.dispatch(KeyChord.mod(ChordKey.R, shift = true))
+
+		assertEquals(sceneItem, readerShownFor)
+	}
+
+	@Test
+	fun `Mod+Shift+D begins saving a draft`() = runTest(mainTestDispatcher) {
+		val comp = startedComponent()
+
+		registry.dispatch(KeyChord.mod(ChordKey.D, shift = true))
+
+		assertTrue(comp.state.value.isSavingDraft)
+	}
+
+	@Test
+	fun `Mod+Shift+H shows this scene's drafts`() = runTest(mainTestDispatcher) {
+		startedComponent()
+
+		registry.dispatch(KeyChord.mod(ChordKey.H, shift = true))
+
+		assertEquals(sceneItem, draftsShownFor)
+	}
+
+	@Test
+	fun `Mod+Shift+M toggles the scene info modal on a narrow layout`() = runTest(mainTestDispatcher) {
+		val comp = startedComponent()
+		comp.setLayoutMode(false)
+
+		registry.dispatch(KeyChord.mod(ChordKey.M, shift = true))
+		val afterFirst = comp.state.value.showMetadataModal
+		registry.dispatch(KeyChord.mod(ChordKey.M, shift = true))
+
+		assertTrue(afterFirst)
+		assertFalse(comp.state.value.showMetadataModal)
+	}
+
+	@Test
+	fun `item actions are live only while started`() = runTest(mainTestDispatcher) {
+		newComponent()
+		context.lifecycle.create()
+		val beforeStart = registry.isLive(HammerActions.ItemClose.id)
+
+		context.start()
+		val whileStarted = registry.isLive(HammerActions.ItemClose.id)
+		context.stop()
+
+		assertFalse(beforeStart)
+		assertTrue(whileStarted)
+		assertFalse(registry.isLive(HammerActions.ItemClose.id))
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.W)))
+		assertEquals(0, closeCount)
+	}
+
+	@Test
+	fun `menu items carry their action ids`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.onStart()
+
+		val actionIds = comp.state.value.menuItems.associate { it.id to it.actionId }
+		assertEquals(HammerActions.ItemClose.id, actionIds["scene-editor-close"])
+		assertEquals(HammerActions.EditSave.id, actionIds["scene-editor-save"])
+		assertEquals(HammerActions.StoryViewDrafts.id, actionIds[SceneEditorComponent.VIEW_DRAFTS_MENU_ITEM_ID])
+		assertEquals(HammerActions.StoryNewDraft.id, actionIds["scene-editor-save-draft"])
+		assertEquals(HammerActions.StoryToggleSceneInfo.id, actionIds["scene-editor-toggle-metadata"])
+		assertEquals(HammerActions.StoryFocusMode.id, actionIds["scene-editor-focus-mode"])
+		assertEquals(HammerActions.StoryReadingMode.id, actionIds["scene-editor-read"])
 	}
 }

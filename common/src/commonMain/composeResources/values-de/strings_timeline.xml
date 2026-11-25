@@ -28,7 +28,6 @@
 	<string name="timeline_create_date_placeholder">z. B. Frühling von J3</string>
 	<string name="timeline_view_discard_title">Änderungen verwerfen?</string>
 	<string name="timeline_view_discard_message">Alle vorgenommenen Änderungen gehen verloren.</string>
-	<string name="timeline_view_menu_group">Ereignis</string>
 	<string name="timeline_view_menu_delete">Löschen</string>
 	<string name="timeline_view_confirm_delete_title">Ereignis löschen?</string>
 	<string name="timeline_view_confirm_delete_message">Dies kann nicht rückgängig gemacht werden!</string>

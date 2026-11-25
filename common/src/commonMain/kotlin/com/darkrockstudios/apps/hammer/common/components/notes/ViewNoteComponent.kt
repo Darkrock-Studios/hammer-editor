@@ -9,10 +9,10 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.images.pickImage
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.components.menu.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
@@ -21,7 +21,6 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.notes_menu_delete
-import com.darkrockstudios.apps.hammer.notes_menu_group
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,8 +32,7 @@ class ViewNoteComponent(
 	private val noteId: Int,
 	private val dismissView: () -> Unit,
 	private val updateShouldClose: () -> Unit,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ViewNote {
 
@@ -294,7 +292,6 @@ class ViewNoteComponent(
 		removeEntryMenu()
 	}
 
-	private val menuId = "view-note"
 	private fun addEntryMenu() {
 		val deleteEntry = MenuItemDescriptor(
 			"view-note-delete",
@@ -305,12 +302,6 @@ class ViewNoteComponent(
 		}
 
 		val menuItems = setOf(deleteEntry)
-		val menu = MenuDescriptor(
-			menuId,
-			Res.string.notes_menu_group,
-			menuItems.toList()
-		)
-		addMenu(menu)
 		_state.getAndUpdate {
 			it.copy(
 				menuItems = menuItems
@@ -319,7 +310,6 @@ class ViewNoteComponent(
 	}
 
 	private fun removeEntryMenu() {
-		removeMenu(menuId)
 		_state.getAndUpdate {
 			it.copy(
 				menuItems = emptySet()

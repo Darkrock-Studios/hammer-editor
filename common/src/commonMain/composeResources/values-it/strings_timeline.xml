@@ -28,7 +28,6 @@
 	<string name="timeline_create_date_placeholder">es. Primavera dell’anno 3</string>
 	<string name="timeline_view_discard_title">Scartare le modifiche?</string>
 	<string name="timeline_view_discard_message">Perderai tutte le modifiche apportate.</string>
-	<string name="timeline_view_menu_group">Evento</string>
 	<string name="timeline_view_menu_delete">Elimina</string>
 	<string name="timeline_view_confirm_delete_title">Eliminare l’evento di cronologia?</string>
 	<string name="timeline_view_confirm_delete_message">Questa azione non può essere annullata!</string>

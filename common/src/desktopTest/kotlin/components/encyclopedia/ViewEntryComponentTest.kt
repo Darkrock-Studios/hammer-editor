@@ -76,8 +76,6 @@ class ViewEntryComponentTest : ComponentTest() {
 		val comp = ViewEntryComponent(
 			componentContext = context,
 			entryDef = origDef,
-			addMenu = {},
-			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
@@ -124,8 +122,6 @@ class ViewEntryComponentTest : ComponentTest() {
 		val comp = ViewEntryComponent(
 			componentContext = context,
 			entryDef = origDef,
-			addMenu = {},
-			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
@@ -155,8 +151,6 @@ class ViewEntryComponentTest : ComponentTest() {
 		val comp = ViewEntryComponent(
 			componentContext = context,
 			entryDef = entry.toDef(proj),
-			addMenu = {},
-			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},

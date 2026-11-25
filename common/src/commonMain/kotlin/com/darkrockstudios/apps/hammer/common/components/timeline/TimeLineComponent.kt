@@ -21,7 +21,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -41,8 +41,7 @@ class TimeLineComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val updateShouldClose: () -> Unit,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
 	private val onShowEntry: (EntryDef) -> Unit,
@@ -121,8 +120,7 @@ class TimeLineComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			selection = selection,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			onRequestNewTimeline = ::requestCreateTimeline,
 			onSelectTimeline = ::selectTimeline,
 		)
@@ -137,8 +135,7 @@ class TimeLineComponent(
 			projectDef = config.projectDef,
 			eventId = config.eventId,
 			onCloseEvent = ::showOverview,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			updateShouldClose = updateShouldClose,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 			onShowScene = onShowScene,
@@ -156,8 +153,7 @@ class TimeLineComponent(
 			projectDef = config.projectDef,
 			eventId = config.eventId,
 			onCloseEvent = dialogNavigation::dismiss,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			updateShouldClose = updateShouldClose,
 			onShowGlobalSearchForTag = { tag ->
 				dialogNavigation.dismiss()

@@ -51,7 +51,6 @@
 	<string name="encyclopedia_entry_delete_toast">Entrada eliminada</string>
 	<string name="encyclopedia_entry_name_hint">Nombre</string>
 	<string name="encyclopedia_entry_close_button">Cerrar entrada</string>
-	<string name="encyclopedia_entry_menu_group">Entrada</string>
 	<string name="encyclopedia_entry_menu_delete">Eliminar entrada</string>
 	<string name="encyclopedia_entry_menu_remove_image">Quitar imagen</string>
 	<string name="encyclopedia_entry_menu_add_image">Añadir imagen</string>

@@ -1,6 +1,6 @@
 package components.notes
 
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNoteComponent
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
@@ -41,8 +41,7 @@ class ViewNoteComponentTest : ComponentTest() {
 
 	private var dismissViewCount = 0
 	private var searchedTag: String? = null
-	private val addedMenus = mutableListOf<MenuDescriptor>()
-	private val removedMenuIds = mutableListOf<String>()
+	private val registry = ActionRegistry()
 
 	@BeforeEach
 	override fun setup() {
@@ -57,8 +56,6 @@ class ViewNoteComponentTest : ComponentTest() {
 
 		dismissViewCount = 0
 		searchedTag = null
-		addedMenus.clear()
-		removedMenuIds.clear()
 	}
 
 	private fun note(id: Int = 1, content: String = "original body", tags: Set<String> = setOf("alpha")) =
@@ -71,8 +68,7 @@ class ViewNoteComponentTest : ComponentTest() {
 			noteId = noteId,
 			dismissView = { dismissViewCount++ },
 			updateShouldClose = {},
-			addMenu = { addedMenus.add(it) },
-			removeMenu = { removedMenuIds.add(it) },
+			actions = registry,
 			onShowGlobalSearchForTag = { searchedTag = it },
 		)
 
@@ -218,8 +214,7 @@ class ViewNoteComponentTest : ComponentTest() {
 				// The coroutine debug agent appends " @coroutine#N" to thread names
 				dismissView = { dismissThread = Thread.currentThread().name.substringBefore(" @") },
 				updateShouldClose = {},
-				addMenu = {},
-				removeMenu = {},
+				actions = registry,
 				onShowGlobalSearchForTag = {},
 			)
 			context.resume()
@@ -431,14 +426,12 @@ class ViewNoteComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `the entry menu is added on start and removed on stop`() = runTest(mainTestDispatcher) {
+	fun `menu items appear on start and clear on stop`() = runTest(mainTestDispatcher) {
 		val comp = startWith(note())
-		assertEquals(1, addedMenus.size)
 		assertTrue(comp.state.value.menuItems.isNotEmpty())
 
 		context.stop()
 
-		assertTrue(removedMenuIds.isNotEmpty())
 		assertTrue(comp.state.value.menuItems.isEmpty())
 	}
 

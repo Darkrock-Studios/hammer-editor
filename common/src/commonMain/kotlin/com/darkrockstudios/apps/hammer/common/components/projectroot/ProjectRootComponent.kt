@@ -23,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
@@ -49,8 +48,6 @@ private const val GLOBAL_SEARCH_STATE_KEY = "global_search_state"
 class ProjectRootComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
 	private val onCloseProject: (() -> Unit),
 	initialDeepLink: ProjectDeepLink? = null,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot, ComponentToaster by ComponentToasterImpl() {
@@ -124,8 +121,7 @@ class ProjectRootComponent(
 	private val router = ProjectRootRouter(
 		componentContext,
 		projectDef,
-		addMenu,
-		removeMenu,
+		actions,
 		::updateCloseConfirmRequirement,
 		::startProjectSync,
 		::showGlobalSearch,
@@ -501,8 +497,6 @@ fun confirmingProjectRootComponent(
 	root = ProjectRootComponent(
 		componentContext = componentContext,
 		projectDef = projectDef,
-		addMenu = {},
-		removeMenu = {},
 		onCloseProject = { root.requestClose() },
 		initialDeepLink = initialDeepLink,
 	)

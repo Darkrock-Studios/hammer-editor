@@ -6,14 +6,24 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxHint
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.serialization.Serializable
 
 interface SceneList {
 	val state: Value<State>
 	fun onSceneSelected(sceneDef: SceneItem)
 	suspend fun moveScene(moveRequest: MoveRequest)
 	fun loadScenes()
+
+	/** Creates the scene and clears [State.createRequest]. */
 	suspend fun createScene(parent: SceneItem?, sceneName: String)
+
+	/** Creates the group and clears [State.createRequest]. */
 	suspend fun createGroup(parent: SceneItem?, groupName: String)
+
+	/** Asks for a name for a new item under [parent], or under the tree root when null. */
+	fun beginCreate(kind: CreateRequest.Kind, parent: SceneItem?)
+	fun dismissCreate()
+
 	suspend fun deleteScene(scene: SceneItem)
 	suspend fun renameScene(scene: SceneItem, newName: String): Boolean
 
@@ -42,5 +52,11 @@ interface SceneList {
 		val archivedScenes: ImmutableList<SceneItem> = persistentListOf(),
 		/** Coach marks the list may show on this visit, most wanted first; the UI shows the first it can point at. */
 		val offeredHints: ImmutableList<NuxHint> = persistentListOf(),
+		val createRequest: CreateRequest? = null,
 	)
+
+	@Serializable
+	data class CreateRequest(val kind: Kind, val parent: SceneItem) {
+		enum class Kind { Scene, Group }
+	}
 }

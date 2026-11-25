@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntryComponent
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -93,13 +92,10 @@ class ViewEntryComponentImagesTest : ComponentTest() {
 	)
 
 	private fun component(
-		menus: MutableList<MenuDescriptor> = mutableListOf(),
 		componentContext: TestComponentContext = context,
 	) = ViewEntryComponent(
 		componentContext = componentContext,
 		entryDef = stored.toDef(projectDef),
-		addMenu = { menus.add(it) },
-		removeMenu = {},
 		closeEntry = {},
 		showScene = {},
 		onShowGlobalSearchForTag = {},
@@ -191,13 +187,12 @@ class ViewEntryComponentImagesTest : ComponentTest() {
 
 	@Test
 	fun `The menu's remove asks about the image on show`() = runTest(mainTestDispatcher) {
-		val menus = mutableListOf<MenuDescriptor>()
-		val comp = component(menus)
+		val comp = component()
 		context.resume()
 		advanceUntilIdle()
 
 		comp.showImageAt(1)
-		val remove = menus.single().items.single { it.id == "view-entry-remove-image" }
+		val remove = comp.state.value.menuItems.single { it.id == "view-entry-remove-image" }
 		remove.action(remove.id)
 		assertEquals(5, comp.state.value.removeImageConfirm)
 

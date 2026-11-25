@@ -10,11 +10,14 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.images.findPickedImage
-import com.darkrockstudios.apps.hammer.common.components.menu.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.components.menu.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
@@ -42,8 +45,7 @@ import kotlin.time.Clock
 class SceneEditorComponent(
 	componentContext: ComponentContext,
 	originalSceneItem: SceneItem,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val closeSceneEditor: () -> Unit,
 	private val showDraftsList: (SceneItem) -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
@@ -93,6 +95,21 @@ class SceneEditorComponent(
 	)
 
 	private val sceneDef: SceneItem = state.value.sceneItem
+
+	init {
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Item,
+			mapOf(
+				HammerActions.ItemClose.id to ActionHandler { closeEditor() },
+				HammerActions.StoryFocusMode.id to ActionHandler { enterFocusMode() },
+				HammerActions.StoryReadingMode.id to ActionHandler { readScene() },
+				HammerActions.StoryToggleSceneInfo.id to ActionHandler { toggleMetadata() },
+				HammerActions.StoryNewDraft.id to ActionHandler { beginSaveDraft() },
+				HammerActions.StoryViewDrafts.id to ActionHandler { showDraftsList(sceneDef) },
+			),
+		)
+	}
 
 	override fun onCreate() {
 		super.onCreate()
@@ -222,7 +239,8 @@ class SceneEditorComponent(
 		val closeItem = MenuItemDescriptor(
 			"scene-editor-close",
 			Res.string.scene_editor_menu_item_close,
-			""
+			"",
+			actionId = HammerActions.ItemClose.id,
 		) {
 			Napier.d("Scene close selected")
 			closeSceneEditor()
@@ -277,7 +295,8 @@ class SceneEditorComponent(
 		val draftsItem = MenuItemDescriptor(
 			VIEW_DRAFTS_MENU_ITEM_ID,
 			Res.string.scene_editor_menu_item_view_drafts,
-			""
+			"",
+			actionId = HammerActions.StoryViewDrafts.id,
 		) {
 			Napier.i("View drafts")
 			showDraftsList(sceneDef)
@@ -286,7 +305,8 @@ class SceneEditorComponent(
 		val saveDraftItem = MenuItemDescriptor(
 			"scene-editor-save-draft",
 			Res.string.scene_editor_menu_item_save_draft,
-			""
+			"",
+			actionId = HammerActions.StoryNewDraft.id,
 		) {
 			Napier.i("Save draft")
 			beginSaveDraft()
@@ -295,7 +315,8 @@ class SceneEditorComponent(
 		val metadataItem = MenuItemDescriptor(
 			"scene-editor-toggle-metadata",
 			Res.string.scene_editor_metadata_button,
-			""
+			"",
+			actionId = HammerActions.StoryToggleSceneInfo.id,
 		) {
 			Napier.i("Toggle Metadata")
 			toggleMetadata()
@@ -304,7 +325,8 @@ class SceneEditorComponent(
 		val focusModeItem = MenuItemDescriptor(
 			"scene-editor-focus-mode",
 			Res.string.scene_editor_focus_mode_button,
-			""
+			"",
+			actionId = HammerActions.StoryFocusMode.id,
 		) {
 			Napier.i("Enter Focus Mode")
 			enterFocusMode()
@@ -313,7 +335,8 @@ class SceneEditorComponent(
 		val readItem = MenuItemDescriptor(
 			"scene-editor-read",
 			Res.string.scene_editor_menu_item_read,
-			""
+			"",
+			actionId = HammerActions.StoryReadingMode.id,
 		) {
 			Napier.i("Read scene")
 			readScene()
@@ -332,12 +355,6 @@ class SceneEditorComponent(
 			readItem,
 			closeItem,
 		)
-		val menu = MenuDescriptor(
-			getMenuId(),
-			Res.string.scene_editor_menu_group,
-			menuItems.toList()
-		)
-		addMenu(menu)
 		_state.getAndUpdate {
 			it.copy(
 				menuItems = menuItems
@@ -350,7 +367,6 @@ class SceneEditorComponent(
 	}
 
 	override fun removeEditorMenu() {
-		removeMenu(getMenuId())
 		_state.getAndUpdate {
 			it.copy(
 				menuItems = emptySet()
@@ -582,10 +598,6 @@ class SceneEditorComponent(
 				)
 			}
 		}
-	}
-
-	private fun getMenuId(): String {
-		return "scene-editor-${sceneDef.id}-${sceneDef.name}"
 	}
 
 	override fun onStart() {

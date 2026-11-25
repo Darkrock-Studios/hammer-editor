@@ -1,5 +1,6 @@
 package components.encyclopedia
 
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.EncyclopediaComponent
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -81,12 +82,12 @@ class EncyclopediaComponentTest : ComponentTest() {
 		})
 	}
 
+	private val registry = ActionRegistry()
 	private fun newComponent() = EncyclopediaComponent(
 		componentContext = context,
 		projectDef = projectDef,
 		updateShouldClose = {},
-		addMenu = {},
-		removeMenu = {},
+		actions = registry,
 		showScene = {},
 		onShowGlobalSearchForTag = {},
 		showTimelineEvent = {},

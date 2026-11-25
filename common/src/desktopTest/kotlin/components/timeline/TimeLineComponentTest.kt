@@ -1,5 +1,6 @@
 package components.timeline
 
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
@@ -45,12 +46,12 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 
 	private val settingsShown = mutableListOf<String>()
 
+	private val registry = ActionRegistry()
 	private fun newComponent(componentContext: TestComponentContext = context) = TimeLineComponent(
 		componentContext = componentContext,
 		projectDef = projectDef,
 		updateShouldClose = {},
-		addMenu = {},
-		removeMenu = {},
+		actions = registry,
 		onShowGlobalSearchForTag = {},
 		onShowScene = {},
 		onShowEntry = {},
@@ -199,8 +200,7 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 			componentContext = context,
 			projectDef = projectDef,
 			updateShouldClose = {},
-			addMenu = {},
-			removeMenu = {},
+			actions = registry,
 			onShowGlobalSearchForTag = { searched += it },
 			onShowScene = {},
 			onShowEntry = {},

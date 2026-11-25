@@ -12,7 +12,6 @@
 	<string name="scene_editor_save_button">Зберегти</string>
 	<string name="scene_editor_metadata_button">Про сцену</string>
 	<string name="scene_editor_toast_save_successful">Збережено</string>
-	<string name="scene_editor_menu_group">Сцена</string>
 	<string name="scene_editor_menu_item_save_draft">Нова чернетка</string>
 	<string name="scene_editor_menu_item_view_drafts">Переглянути чернетки</string>
 	<string name="scene_editor_menu_item_rename">Перейменувати</string>
