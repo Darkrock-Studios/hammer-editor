@@ -36,6 +36,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.client.statement.HttpResponse
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.runBlocking
@@ -213,7 +214,10 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 			client().apply {
 				val ownerSync = projectSynchronizationBegan(ownerId, ownerToken, emptyState)
 				val memberRefused = projectSynchronizationBeganRequest(memberId, memberToken, emptyState)
-				assertEquals(HttpStatusCode.BadRequest, memberRefused.status)
+				// Busy, not bad: the member's client waits on project_sync_in_progress and tries again.
+				assertEquals(HttpStatusCode.Conflict, memberRefused.status)
+				assertEquals(ApiErrorCode.PROJECT_SYNC_IN_PROGRESS, memberRefused.body<HttpResponseError>().errorCode)
+				assertEquals("5", memberRefused.headers[HttpHeaders.RetryAfter])
 				endSyncRequest(ownerId, ownerToken, ownerSync)
 
 				val memberSync1 = projectSynchronizationBegan(memberId, memberToken, emptyState)
@@ -222,7 +226,8 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 				assertFalse(stale.status.isSuccess())
 
 				val ownerRefused = projectSynchronizationBeganRequest(ownerId, ownerToken, emptyState)
-				assertEquals(HttpStatusCode.BadRequest, ownerRefused.status)
+				assertEquals(HttpStatusCode.Conflict, ownerRefused.status)
+				assertEquals(ApiErrorCode.PROJECT_SYNC_IN_PROGRESS, ownerRefused.body<HttpResponseError>().errorCode)
 				endSyncRequest(memberId, memberToken, memberSync2)
 			}
 		}
@@ -237,6 +242,7 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 			val refused = projectSynchronizationBeganRequest(memberId, memberToken, emptyState)
 			assertEquals(HttpStatusCode.Conflict, refused.status)
 			assertEquals(ApiErrorCode.PROJECT_SYNC_IN_PROGRESS, refused.body<HttpResponseError>().errorCode)
+			assertEquals("5", refused.headers[HttpHeaders.RetryAfter])
 		}
 	}
 

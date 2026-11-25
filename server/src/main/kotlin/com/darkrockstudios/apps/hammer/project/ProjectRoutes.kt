@@ -50,6 +50,9 @@ import org.koin.ktor.ext.get
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Instant
 
+/** How long a client should wait before trying again to begin a project sync refused as busy. */
+internal const val SYNC_BUSY_RETRY_AFTER_SECONDS = 5
+
 fun Route.projectRoutes(logger: Logger) {
 	authenticate(USER_AUTH) {
 		route("/project/{userId}/{projectId}") {
@@ -105,13 +108,18 @@ private fun Route.beginProjectSync() {
 		if (isSuccess(result)) {
 			call.respond(result.data)
 		} else {
-			val ownerSyncing = result.exception is OwnerSyncInProgressException
+			// Busy is transient (two devices closing the same book, a co-author mid-sync): say so,
+			// with Retry-After, so the client waits and tries again instead of failing the sync.
+			val busy = result.exception is ProjectSyncBusyException
+			if (busy) {
+				call.response.headers.append(HttpHeaders.RetryAfter, SYNC_BUSY_RETRY_AFTER_SECONDS.toString())
+			}
 			call.respond(
-				status = if (ownerSyncing) HttpStatusCode.Conflict else HttpStatusCode.BadRequest,
+				status = if (busy) HttpStatusCode.Conflict else HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Failed to begin sync",
 					displayMessage = result.displayMessageText(call, R(ERR_KEY_UNKNOWN)),
-					errorCode = if (ownerSyncing) ApiErrorCode.PROJECT_SYNC_IN_PROGRESS else null,
+					errorCode = if (busy) ApiErrorCode.PROJECT_SYNC_IN_PROGRESS else null,
 				),
 			)
 		}

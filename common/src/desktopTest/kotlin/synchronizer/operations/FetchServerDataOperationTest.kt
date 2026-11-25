@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.P
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDeletedElsewhereException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNeedsAccountSyncException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNoLongerSharedException
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectSyncBusyException
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
@@ -458,6 +459,61 @@ class FetchServerDataOperationTest : BaseTest() {
 		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
 
+	@Test
+	fun `A busy project is waited on, then synced once it is free`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		val logs = mutableListOf<SyncLogMessage>()
+
+		stubSettings()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returnsMany
+			listOf(Result.failure(busy()), Result.failure(busy()), Result.success(beganResponse))
+
+		val result = execute(op) { logs.add(it) }
+
+		assertTrue(isSuccess(result))
+		coVerify(exactly = 3) { serverProjectApi.beginProjectSync(1L, projId, entityState, false) }
+		// Waited 3 s, then 5 s, and said so once.
+		assertEquals(8_000L, testScheduler.currentTime)
+		assertEquals(1, logs.count { it.level == SyncLogLevel.INFO }, "one line while waiting")
+		assertTrue(logs.none { it.level == SyncLogLevel.WARN || it.level == SyncLogLevel.ERROR })
+	}
+
+	@Test
+	fun `A project still busy after about a minute fails as busy, keeping the local changes`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		val logs = mutableListOf<SyncLogMessage>()
+
+		stubSettings()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(busy())
+
+		val result = execute(op) { logs.add(it) }
+
+		assertFalse(isSuccess(result))
+		assertIs<ProjectSyncBusyException>(result.exception)
+		coVerify(exactly = 7) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
+		assertEquals(63_000L, testScheduler.currentTime)
+		assertEquals(1, logs.count { it.level == SyncLogLevel.INFO }, "one line while waiting")
+		assertEquals(1, logs.count { it.level == SyncLogLevel.WARN }, "one line on giving up")
+		// Busy proves nothing about the server copy: the baseline and the project stay as they are.
+		coVerify(exactly = 0) { projectDataRepository.clearSyncBaseline() }
+		coVerify(exactly = 0) { projectCreateResolver.createInOwnSession(any()) }
+	}
+
+	@Test
+	fun `A conflict that is not busy is not waited on`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+
+		stubSettings()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns
+			Result.failure(conflict(ApiErrorCode.NOT_MEMBER))
+
+		val result = execute(op)
+
+		assertFalse(isSuccess(result))
+		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
+		assertEquals(0L, testScheduler.currentTime)
+	}
+
 	private fun accountSyncDatasource() = AccountSyncDatasource(
 		FakeFileSystem(),
 		createJsonSerializer(),
@@ -477,6 +533,8 @@ class FetchServerDataOperationTest : BaseTest() {
 		statusCode = HttpStatusCode.Conflict,
 		error = HttpResponseError(error = "Conflict", displayMessage = "nope", errorCode = errorCode),
 	)
+
+	private fun busy() = conflict(ApiErrorCode.PROJECT_SYNC_IN_PROGRESS)
 
 	private fun gone() = HttpFailureException(
 		statusCode = HttpStatusCode.Gone,

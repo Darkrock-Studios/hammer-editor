@@ -271,6 +271,8 @@
 
 	<string name="sync_log_client_data_computed">Client Entity data calculated</string>
 	<string name="sync_log_server_data_loaded">Server data received</string>
+	<string name="sync_log_project_sync_busy_waiting">%1$s is being synced by another device or a co-author; waiting for it to finish</string>
+	<string name="sync_log_project_sync_busy_gave_up">%1$s is still being synced elsewhere; your changes are kept and will sync next time</string>
 	<string name="sync_log_client_data_loaded">Client data loaded</string>
 	<string name="sync_log_backup_made">Local Backup made: %1$s</string>
 	<string name="sync_log_entity_download_success">Entity %1$d downloaded</string>

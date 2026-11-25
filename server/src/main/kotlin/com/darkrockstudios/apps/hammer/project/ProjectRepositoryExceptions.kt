@@ -4,6 +4,14 @@ import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 
 class InvalidSyncIdException : Exception("Invalid sync id")
+
+/**
+ * A project sync can't begin yet because something else holds the project: another device or
+ * account has its session, or an account sync is running. Transient, so it is answered as 409
+ * `project_sync_in_progress` with Retry-After, and the client waits and tries again.
+ */
+open class ProjectSyncBusyException(reason: String) : Exception("Project sync busy: $reason")
+
 class NoEntityTypeFound(val id: Int) : Exception("Could not find Type for Entity ID: $id")
 class EntityNotFound(val id: Int) : Exception("Entity $id not found on server")
 class EntityTypeConflictException(
@@ -31,7 +39,7 @@ class EntityValidationException(
 
 /** A project session cannot start while the owner's account session (which can rename or delete it) is live. */
 class OwnerSyncInProgressException(val projectId: ProjectId) :
-	Exception("The owner of project $projectId is syncing their account")
+	ProjectSyncBusyException("the owner of project $projectId is syncing their account")
 
 /** The owner cannot delete, rename or move a project while a co-author holds a session on it. */
 class ProjectSyncInProgressException(val projectId: ProjectId) :

@@ -45,8 +45,10 @@ object ApiErrorCode {
 	/** A co-author asked for something only the owner may do: rename or move the project. */
 	const val NOT_OWNER = "not_owner"
 	/**
-	 * Refused while another account's session on the same project is live: a project sync while the
-	 * owner syncs their account, or the owner's delete, rename or move while a co-author syncs it.
+	 * Refused while another session on the same project is live: a project sync while another device
+	 * or account holds the project's session, while the caller's own account sync runs, or while the
+	 * owner syncs their account; or the owner's delete, rename or move while a co-author syncs it.
+	 * Transient: a refused project sync carries Retry-After, and the client waits and tries again.
 	 */
 	const val PROJECT_SYNC_IN_PROGRESS = "project_sync_in_progress"
 	/** Upsert refused: a sibling group already has that name. Also on delete, when a child would collide. */

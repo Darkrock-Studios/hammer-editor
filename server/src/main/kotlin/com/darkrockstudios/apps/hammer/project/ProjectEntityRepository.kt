@@ -60,7 +60,8 @@ class ProjectEntityRepository(
 		if (projectsSessions.hasActiveSyncSession(callerId)) {
 			return SResult.failure(
 				"begin sync failure: existing account session",
-				Msg.r("api_project_sync_begin_error_session", callerId)
+				Msg.r("api_project_sync_begin_error_session", callerId),
+				ProjectSyncBusyException("this account's account sync is running"),
 			)
 		}
 		if (ownerAccountSyncing(callerId, owner)) return ownerSyncingFailure(callerId, projectDef)
@@ -83,7 +84,8 @@ class ProjectEntityRepository(
 			)
 		} ?: return SResult.failure(
 			"begin sync failure: active session on another install",
-			Msg.r("api_project_sync_begin_error_session", callerId)
+			Msg.r("api_project_sync_begin_error_session", callerId),
+			ProjectSyncBusyException("another install or account holds the project's session"),
 		)
 
 		// The owner may have begun an account sync since the check above. Their delete, rename and

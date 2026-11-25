@@ -412,7 +412,9 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 
 			// A different install must not steal an active session.
 			val otherInstallResponse = projectSynchronizationBeganRequest(userId, authTokenB, state)
-			assertEquals(HttpStatusCode.BadRequest, otherInstallResponse.status)
+			// Refused as busy (409, Retry-After), so the other install waits and tries again.
+			assertEquals(HttpStatusCode.Conflict, otherInstallResponse.status)
+			assertEquals("5", otherInstallResponse.headers[HttpHeaders.RetryAfter])
 
 			// The original install's session is untouched and still usable.
 			val download: ApiProjectEntity.SceneEntity = downloadEntity(

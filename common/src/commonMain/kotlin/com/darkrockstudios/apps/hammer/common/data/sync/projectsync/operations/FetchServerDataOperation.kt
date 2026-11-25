@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.CResult
@@ -16,9 +17,14 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_fa
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
 import com.darkrockstudios.apps.hammer.sync_log_account_project_needs_account_sync
+import com.darkrockstudios.apps.hammer.sync_log_project_sync_busy_gave_up
+import com.darkrockstudios.apps.hammer.sync_log_project_sync_busy_waiting
 import com.darkrockstudios.apps.hammer.sync_log_server_data_loaded
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class FetchServerDataOperation(
 	projectDef: ProjectDef,
@@ -40,7 +46,7 @@ class FetchServerDataOperation(
 
 		state as FetchLocalDataState
 
-		var result = beginSync(state)
+		var result = beginSyncWhenFree(state, onLog)
 
 		// 410: the server has no record of this id (it lost the project, or never had it). Create it
 		// under the local id and try once more.
@@ -53,7 +59,7 @@ class FetchServerDataOperation(
 			syncJournal.clearSyncBaseline()
 			projectDataRepository.clearSyncBaseline()
 			state.clientSyncData = syncJournal.loadSyncData()
-			result = beginSync(state)
+			result = beginSyncWhenFree(state, onLog)
 		}
 
 		return if (result.isSuccess) {
@@ -69,8 +75,37 @@ class FetchServerDataOperation(
 
 			CResult.success(fetchServerDataStateState)
 		} else {
-			CResult.failure(result.exceptionOrNull() ?: IllegalStateException("No exception"))
+			val failure = result.exceptionOrNull()
+			if (failure.isProjectSyncBusy()) {
+				// Still busy after waiting: fail this sync only. Nothing local is lost; the
+				// changes stay unsynced and go up on the next sync.
+				onLog(syncLogW(strRes.get(Res.string.sync_log_project_sync_busy_gave_up, projectDef.name), projectDef))
+				CResult.failure(ProjectSyncBusyException(projectDef.name))
+			} else {
+				CResult.failure(failure ?: IllegalStateException("No exception"))
+			}
 		}
+	}
+
+	/**
+	 * Begins the sync, waiting while the server says the project is busy: another device or a
+	 * co-author is syncing it, as when two copies of a book are closed at the same moment. Tries
+	 * again after each of [PROJECT_SYNC_BUSY_WAITS], then returns the last answer.
+	 */
+	private suspend fun beginSyncWhenFree(
+		state: FetchLocalDataState,
+		onLog: OnSyncLog,
+	): Result<ProjectSynchronizationBegan> {
+		var result = beginSync(state)
+		for ((attempt, wait) in PROJECT_SYNC_BUSY_WAITS.withIndex()) {
+			if (!result.exceptionOrNull().isProjectSyncBusy()) break
+			if (attempt == 0) {
+				onLog(syncLogI(strRes.get(Res.string.sync_log_project_sync_busy_waiting, projectDef.name), projectDef))
+			}
+			delay(wait)
+			result = beginSync(state)
+		}
+		return result
 	}
 
 	private suspend fun beginSync(state: FetchLocalDataState): Result<ProjectSynchronizationBegan> =
@@ -138,6 +173,17 @@ internal suspend fun logCreateOutcome(
 		outcome.error
 	}
 }
+
+/** The waits between attempts to begin a sync while the project is busy: about a minute in all. */
+internal val PROJECT_SYNC_BUSY_WAITS: List<Duration> =
+	listOf(3.seconds, 5.seconds, 10.seconds, 15.seconds, 15.seconds, 15.seconds)
+
+private fun Throwable?.isProjectSyncBusy(): Boolean =
+	this is HttpFailureException && error.errorCode == ApiErrorCode.PROJECT_SYNC_IN_PROGRESS
+
+/** The project was still being synced elsewhere after waiting; the local changes go up next time. */
+class ProjectSyncBusyException(projectName: String) :
+	SyncOperationException("Project is still being synced by another device or co-author: $projectName")
 
 class ProjectDeletedElsewhereException(projectName: String) :
 	SyncOperationException("Project was deleted on another device: $projectName")
