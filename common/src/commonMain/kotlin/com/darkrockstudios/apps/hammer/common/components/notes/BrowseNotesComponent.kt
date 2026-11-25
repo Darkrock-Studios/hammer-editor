@@ -65,12 +65,35 @@ class BrowseNotesComponent(
 	}
 
 	private var reportedOrder: List<Int>? = null
+	private var reportedAgainst: Set<Int> = emptySet()
 
+	/**
+	 * The list only reports while it is composed, so notes may have come and gone since. Deleted
+	 * ids drop out, and a note the list never saw goes after its nearest predecessor in
+	 * [BrowseNotes.State.notes] order that the list shows.
+	 */
 	override val visibleOrder: List<Int>
-		get() = reportedOrder ?: state.value.notes.map { it.id }
+		get() {
+			val current = state.value.notes.map { it.id }
+			val reported = reportedOrder ?: return current
+			val present = current.toSet()
+			val order = reported.filterTo(mutableListOf()) { it in present }
+			val seen = reportedAgainst + reported
+			var insertAt = 0
+			for (id in current) {
+				if (id in seen) {
+					val shownAt = order.indexOf(id)
+					if (shownAt >= 0) insertAt = shownAt + 1
+				} else {
+					order.add(insertAt++, id)
+				}
+			}
+			return order
+		}
 
 	override fun onVisibleOrderChanged(noteIds: List<Int>) {
 		reportedOrder = noteIds
+		reportedAgainst = state.value.notes.mapTo(HashSet()) { it.id }
 	}
 
 	override fun viewNote(noteId: Int) {

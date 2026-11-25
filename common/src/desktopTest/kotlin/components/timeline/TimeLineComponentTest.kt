@@ -632,6 +632,39 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
+	fun `Mod+W closes a blank new event`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.showCreateEvent()
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+		advanceUntilIdle()
+
+		assertIs<TimeLine.Config.TimeLineOverviewConfig>(component.stack.value.active.configuration)
+	}
+
+	@Test
+	fun `Mod+W on a new event with content asks to discard it`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.showCreateEvent()
+		advanceUntilIdle()
+		val create = assertIs<TimeLine.Destination.CreateEventDestination>(component.stack.value.active.instance).component
+		create.setTitle("Storm")
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+		advanceUntilIdle()
+
+		assertTrue(create.state.value.confirmDiscard)
+		assertIs<TimeLine.Config.CreateEventConfig>(component.stack.value.active.configuration)
+	}
+
+	@Test
 	fun `Mod+N is not live in the deleted-timeline bucket`() = runTest(mainTestDispatcher) {
 		givenProject()
 		timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", timeline = "gone0001"))

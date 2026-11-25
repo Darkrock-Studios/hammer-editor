@@ -11,6 +11,11 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
@@ -34,6 +39,7 @@ class CreateTimeLineEventComponent(
 	projectDef: ProjectDef,
 	private val timelineId: String,
 	private val onClose: () -> Unit,
+	private val actions: ActionRegistrar,
 ) : ProjectComponentBase(projectDef, componentContext), CreateTimeLineEvent {
 
 	private val timelineService: TimelineService by projectInject()
@@ -81,6 +87,11 @@ class CreateTimeLineEventComponent(
 				end = current.end,
 			)
 		}
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Item,
+			mapOf(HammerActions.ItemClose.id to ActionHandler { closeCreation() }),
+		)
 	}
 
 	override fun onCreate() {

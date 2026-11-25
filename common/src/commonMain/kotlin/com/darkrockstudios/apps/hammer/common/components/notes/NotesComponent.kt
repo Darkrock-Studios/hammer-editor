@@ -119,6 +119,7 @@ class NotesComponent(
 			projectDef = config.projectDef,
 			dismissCreate = ::showBrowse,
 			updateShouldClose = updateShouldClose,
+			actions = actions,
 		)
 	}
 

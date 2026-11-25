@@ -23,10 +23,14 @@ import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModal
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModalDefaults
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
@@ -104,6 +108,13 @@ internal fun CreateEntryUi(
 	var excludeFromDictionary by rememberSaveable { mutableStateOf(false) }
 
 	var imagePath by remember { mutableStateOf<String?>(null) }
+
+	// The draft lives here rather than in the component, so the close chord is registered here too.
+	val requestClose: () -> Unit = {
+		val isDirty = name.isNotBlank() || description.isNotBlank() || tags.isNotEmpty() || imagePath != null
+		if (isDirty) component.confirmClose() else close()
+	}
+	RegisterActions(ActionLayer.Item, mapOf(HammerActions.ItemClose.id to ActionHandler { requestClose() }))
 
 	suspend fun reportImage(result: ImageAddResult) {
 		imageAddResultMessage(result, strRes)?.let { rootSnackbar.showSnackbar(it) }

@@ -267,10 +267,16 @@ class NotesComponentTest : ComponentTest() {
 		assertIs<Notes.Destination.CreateNoteDestination>(comp.stack.value.active.instance)
 	}
 
-	private fun givenNotes(vararg ids: Int) {
-		val notes = ids.map { NoteContent(id = it, created = Instant.fromEpochSeconds(1000L + it), content = "note $it") }
-		every { notesRepository.notesListFlow } returns MutableStateFlow(notes.map { NoteContainer(it) })
-		every { notesRepository.findNoteForId(any()) } answers { notes.find { note -> note.id == firstArg<Int>() } }
+	private fun noteWithId(id: Int) =
+		NoteContainer(NoteContent(id = id, created = Instant.fromEpochSeconds(1000L + id), content = "note $id"))
+
+	private fun givenNotes(vararg ids: Int): MutableStateFlow<List<NoteContainer>> {
+		val notes = MutableStateFlow(ids.map(::noteWithId))
+		every { notesRepository.notesListFlow } returns notes
+		every { notesRepository.findNoteForId(any()) } answers {
+			notes.value.find { it.note.id == firstArg<Int>() }?.note
+		}
+		return notes
 	}
 
 	private fun browse(comp: NotesComponent) =
@@ -364,5 +370,74 @@ class NotesComponentTest : ComponentTest() {
 
 		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
 		assertEquals(Notes.Config.ViewNoteConfig(3), comp.stack.value.active.configuration)
+	}
+
+	@Test
+	fun `Mod+W closes a blank new note`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		comp.showCreateNote()
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+		advanceUntilIdle()
+
+		assertIs<Notes.Destination.BrowseNotesDestination>(comp.stack.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+W on a new note with text asks to discard it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		comp.showCreateNote()
+		advanceUntilIdle()
+		val create = assertIs<Notes.Destination.CreateNoteDestination>(comp.stack.value.active.instance).component
+		create.onTextChanged("half a thought")
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+		advanceUntilIdle()
+
+		assertTrue(create.state.value.confirmDiscard)
+		assertIs<Notes.Destination.CreateNoteDestination>(comp.stack.value.active.instance)
+	}
+
+	@Test
+	fun `a note added while the list is not reporting can be stepped to and from`() = runTest(mainTestDispatcher) {
+		val notes = givenNotes(1, 2, 3)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		browse(comp).onVisibleOrderChanged(listOf(3, 1, 2))
+		comp.showViewNote(3)
+		advanceUntilIdle()
+
+		notes.value = notes.value + noteWithId(4)
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageUp)))
+		advanceUntilIdle()
+		assertEquals(Notes.Config.ViewNoteConfig(4), comp.stack.value.active.configuration)
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		advanceUntilIdle()
+		assertEquals(Notes.Config.ViewNoteConfig(3), comp.stack.value.active.configuration)
+	}
+
+	@Test
+	fun `next note skips a note deleted while the list is not reporting`() = runTest(mainTestDispatcher) {
+		val notes = givenNotes(1, 2, 3)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		browse(comp).onVisibleOrderChanged(listOf(3, 1, 2))
+		comp.showViewNote(3)
+		advanceUntilIdle()
+
+		notes.value = notes.value.filterNot { it.note.id == 1 }
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		advanceUntilIdle()
+		assertEquals(Notes.Config.ViewNoteConfig(2), comp.stack.value.active.configuration)
 	}
 }

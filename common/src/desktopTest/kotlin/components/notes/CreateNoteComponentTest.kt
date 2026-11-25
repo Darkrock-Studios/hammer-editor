@@ -1,5 +1,6 @@
 package components.notes
 
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNoteComponent
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.InvalidNote
@@ -54,6 +55,7 @@ class CreateNoteComponentTest : ComponentTest() {
 			projectDef = projectDef,
 			dismissCreate = { dismissCreateCount++ },
 			updateShouldClose = {},
+			actions = ActionRegistry(),
 		)
 
 	private fun started(): CreateNoteComponent {
@@ -113,6 +115,7 @@ class CreateNoteComponentTest : ComponentTest() {
 					dismissThread = Thread.currentThread().name.substringBefore(" @")
 				},
 				updateShouldClose = {},
+				actions = ActionRegistry(),
 			)
 			context.resume()
 

@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEventComponent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
@@ -31,6 +32,7 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 			projectDef = projectDef,
 			timelineId = timelineId,
 			onClose = { closed++ },
+			actions = ActionRegistry(),
 		)
 
 	@Test

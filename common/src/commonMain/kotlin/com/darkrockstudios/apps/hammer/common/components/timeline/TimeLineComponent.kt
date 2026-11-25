@@ -184,7 +184,8 @@ class TimeLineComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			timelineId = config.timelineId,
-			onClose = ::showOverview
+			onClose = ::showOverview,
+			actions = actions,
 		)
 	}
 

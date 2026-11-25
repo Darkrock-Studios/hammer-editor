@@ -8,6 +8,11 @@ import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.InvalidNote
@@ -21,7 +26,8 @@ class CreateNoteComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val dismissCreate: () -> Unit,
-	private val updateShouldClose: () -> Unit
+	private val updateShouldClose: () -> Unit,
+	private val actions: ActionRegistrar,
 ) : ProjectComponentBase(projectDef, componentContext), CreateNote {
 
 	private val _state = MutableValue(CreateNote.State())
@@ -42,6 +48,11 @@ class CreateNoteComponent(
 		stateKeeper.register(DRAFT_KEY, SavedDraft.serializer()) {
 			SavedDraft(noteText = _noteText.value)
 		}
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Item,
+			mapOf(HammerActions.ItemClose.id to ActionHandler { closeCreate() }),
+		)
 	}
 
 	override fun onCreate() {
