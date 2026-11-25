@@ -35,6 +35,10 @@ sealed class PublicProjectResult {
 		val isPublic: Boolean,
 		/** Scene ids this share is limited to; null exposes the entire story. */
 		val sceneIds: Set<Int>? = null,
+		/** The private share that opened the story; null for public access. */
+		val accessId: Long? = null,
+		/** When that private share ends, if it does. */
+		val accessExpiresAt: Instant? = null,
 	) : PublicProjectResult() {
 		/** [userId] is read from the project row, so it is the owner. */
 		val owner: OwnerId
@@ -259,10 +263,17 @@ class ProjectAccessRepository(
 		)
 	}
 
+	/**
+	 * The access a reader gets to a story: public access first, then a private share opened by
+	 * [password] or, with no password, by one of [unlockedShares] (share id to the fingerprint of
+	 * the password it was unlocked with, oldest first). An unlocked share only counts while that
+	 * share is live and its password unchanged.
+	 */
 	suspend fun findAccessibleProject(
 		penName: String,
 		projectName: String,
-		password: String?
+		password: String?,
+		unlockedShares: Map<Long, String> = emptyMap(),
 	): PublicProjectResult {
 		// First check for public access (no password required)
 		val publicInfo = projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName)
@@ -286,9 +297,10 @@ class ProjectAccessRepository(
 			return PublicProjectResult.NotFound
 		}
 
-		// If no password provided but there's private access available, require password
+		// No password: a share this reader already unlocked, or else ask for the password
 		if (password.isNullOrBlank()) {
-			return PublicProjectResult.PasswordRequired
+			return findUnlockedShare(penName, projectName, unlockedShares)
+				?: PublicProjectResult.PasswordRequired
 		}
 
 		// Check password-protected access
@@ -316,6 +328,37 @@ class ProjectAccessRepository(
 			penName = passwordInfo.penName,
 			isPublic = false,
 			sceneIds = sceneIds,
+			accessId = passwordInfo.accessId,
+			accessExpiresAt = passwordInfo.expiresAt,
+		)
+	}
+
+	/**
+	 * The live share of the story that [unlockedShares] holds with its current password. If it holds
+	 * several, the most recently unlocked wins: that is the password the reader typed last.
+	 */
+	private suspend fun findUnlockedShare(
+		penName: String,
+		projectName: String,
+		unlockedShares: Map<Long, String>,
+	): PublicProjectResult.Success? {
+		if (unlockedShares.isEmpty()) return null
+		val liveShares = projectAccessDao.findLivePrivateShares(penName, projectName, clock.now())
+			.associateBy { it.accessId }
+		val share = unlockedShares.entries.reversed().firstNotNullOfOrNull { (accessId, fingerprint) ->
+			liveShares[accessId]?.takeIf { fingerprintsMatch(fingerprint, sharePasswordFingerprint(it.password)) }
+		} ?: return null
+
+		val sceneIds = projectAccessDao.getSceneIdsForAccess(share.accessId).toSet().ifEmpty { null }
+		return PublicProjectResult.Success(
+			userId = share.userId,
+			projectUuid = ProjectId(share.projectUuid),
+			projectName = share.projectName,
+			penName = share.penName,
+			isPublic = false,
+			sceneIds = sceneIds,
+			accessId = share.accessId,
+			accessExpiresAt = share.expiresAt,
 		)
 	}
 

@@ -135,6 +135,25 @@ WHERE account.pen_name = CAST(:penName AS CITEXT)
 ORDER BY project_access.id
 LIMIT 1;
 
+-- The live password-protected shares of one story, for checking a reader's unlocked shares.
+findLivePrivateAccessByPenNameAndProjectName:
+SELECT
+    project.uuid AS project_uuid,
+    project.user_id,
+    project.name AS project_name,
+    account.pen_name,
+    project_access.id AS access_id,
+    project_access.access_password,
+    project_access.expires_at
+FROM project
+INNER JOIN account ON project.user_id = account.id
+INNER JOIN project_access ON project.id = project_access.project_id
+WHERE account.pen_name = CAST(:penName AS CITEXT)
+  AND project.name = CAST(:projectName AS CITEXT)
+  AND project_access.access_password IS NOT NULL
+  AND (project_access.expires_at IS NULL OR project_access.expires_at > :now)
+ORDER BY project_access.id;
+
 hasAnyAccessForProject:
 SELECT EXISTS(
     SELECT 1

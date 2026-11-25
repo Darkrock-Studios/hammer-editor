@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
@@ -115,8 +116,8 @@ class StoryImagesTest : WebEndToEndTest() {
 	}
 
 	/** The absolute URL the page links image [imageId] at, attribute escaping undone. */
-	private suspend fun linkedImageUrl(pagePath: String, imageId: Int): String {
-		val body = client().get(pagePath).bodyAsText()
+	private suspend fun linkedImageUrl(pagePath: String, imageId: Int, browser: HttpClient = client()): String {
+		val body = browser.get(pagePath).bodyAsText()
 		val src = Regex("""src="([^"]*/image/$imageId\?s=[^"]*)"""").find(body)
 		assertNotNull(src, "the page should link image $imageId through a signed url")
 		return route(src.groupValues[1].removePrefix("/").replace("&amp;", "&"))
@@ -216,17 +217,18 @@ class StoryImagesTest : WebEndToEndTest() {
 	}
 
 	@Test
-	fun `a private share's image needs the share's password`(): Unit = runBlocking {
+	fun `a private share's image needs the unlocked share`(): Unit = runBlocking {
 		doStartServer()
 		seedStory()
 		grantAccess(password = "secret")
+		val browser = HttpClient { install(HttpCookies) }
 
-		val url = linkedImageUrl(storyPath(password = "secret"), 2)
-		assertTrue(url.endsWith("&p=secret"), url)
+		val url = linkedImageUrl(storyPath(password = "secret"), 2, browser)
+		assertFalse(url.contains("p="), url)
 
-		assertEquals(HttpStatusCode.OK, client().get(url).status)
-		assertEquals(HttpStatusCode.NotFound, client().get(url.removeSuffix("&p=secret")).status)
-		assertEquals(HttpStatusCode.NotFound, client().get(url.replace("&p=secret", "&p=wrong")).status)
+		assertEquals(HttpStatusCode.OK, browser.get(url).status)
+		assertEquals(HttpStatusCode.NotFound, client().get(url).status, "not without the share cookie")
+		assertEquals(HttpStatusCode.NotFound, client().get("$url&p=secret").status, "a password in the URL opens nothing")
 	}
 
 	@Test
@@ -358,19 +360,20 @@ class StoryImagesTest : WebEndToEndTest() {
 	}
 
 	@Test
-	fun `a private share's cover needs the share's password`(): Unit = runBlocking {
+	fun `a private share's cover needs the unlocked share`(): Unit = runBlocking {
 		doStartServer()
 		seedStory()
 		grantAccess(password = "secret")
 		setCover(3)
 
-		val src = assertNotNull(coverSrc(client().get(storyPath(password = "secret")).bodyAsText()))
-		assertTrue(src.endsWith("&p=secret"), src)
+		val browser = HttpClient { install(HttpCookies) }
+
+		val src = assertNotNull(coverSrc(browser.get(storyPath(password = "secret")).bodyAsText()))
+		assertFalse(src.contains("p="), src)
 		val url = route(src.removePrefix("/"))
 
-		assertEquals(HttpStatusCode.OK, client().get(url).status)
-		assertEquals(HttpStatusCode.NotFound, client().get(url.removeSuffix("&p=secret")).status)
-		assertEquals(HttpStatusCode.NotFound, client().get(url.replace("&p=secret", "&p=wrong")).status)
+		assertEquals(HttpStatusCode.OK, browser.get(url).status)
+		assertEquals(HttpStatusCode.NotFound, client().get(url).status, "not without the share cookie")
 	}
 
 	@Test

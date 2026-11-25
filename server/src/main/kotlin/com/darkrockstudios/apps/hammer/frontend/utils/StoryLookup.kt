@@ -18,13 +18,15 @@ data class StoryLookup(
 
 /**
  * Resolves the `{penName}/{projectName}` route parameters of a public story URL to the access
- * the reader gets with [password]. Null when the author or project does not exist.
+ * the reader gets with [password] or, without one, with the private shares this browser has
+ * already unlocked ([unlockedShares]). Null when the author or project does not exist.
  */
 suspend fun ApplicationCall.lookUpStory(
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
 	projectAccessRepository: ProjectAccessRepository,
 	password: String?,
+	unlockedShares: Map<Long, String> = emptyMap(),
 ): StoryLookup? {
 	val penNameParam = parameters["penName"]
 	val projectNameParam = parameters["projectName"]
@@ -41,7 +43,7 @@ suspend fun ApplicationCall.lookUpStory(
 	return StoryLookup(
 		account = account,
 		projectName = projectName,
-		result = projectAccessRepository.findAccessibleProject(penName, projectName, password),
+		result = projectAccessRepository.findAccessibleProject(penName, projectName, password, unlockedShares),
 		penNameSegment = penNameParam,
 		projectSegment = projectNameParam,
 	)

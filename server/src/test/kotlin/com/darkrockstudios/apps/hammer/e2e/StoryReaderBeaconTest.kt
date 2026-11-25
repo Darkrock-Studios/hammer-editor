@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.e2e.util.TestProject
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.monitoring.ReaderKey
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
@@ -36,6 +38,11 @@ class StoryReaderBeaconTest : EndToEndTest() {
 		val segment = ProjectName.projectSegment(projectNameText, projectUuid.toString())
 		val query = if (password != null) "?p=$password" else ""
 		return route("a/$penName/$segment/read$query")
+	}
+
+	private fun storyPath(password: String): String {
+		val segment = ProjectName.projectSegment(projectNameText, projectUuid.toString())
+		return route("a/$penName/$segment?p=$password")
 	}
 
 	/** Author account with a pen name and a project; access is left for each test to grant. */
@@ -82,24 +89,26 @@ class StoryReaderBeaconTest : EndToEndTest() {
 	}
 
 	@Test
-	fun `a private share only records once the correct password is supplied`(): Unit = runBlocking {
+	fun `a private share only records once this browser has unlocked it`(): Unit = runBlocking {
 		doStartServer()
 		seedAuthorAndProject()
 		grantAccess(password = "secret") // private share, no public access
 
-		// No password: resolution stops at PasswordRequired, so nothing is recorded.
-		val noPassword = client().post(beaconPath())
-		assertEquals(HttpStatusCode.NoContent, noPassword.status)
+		// Not unlocked: resolution stops at PasswordRequired, so nothing is recorded.
+		val notUnlocked = client().post(beaconPath())
+		assertEquals(HttpStatusCode.NoContent, notUnlocked.status)
 		assertEquals(0, recordedReads().size)
 
-		// Wrong password is likewise not a Success and records nothing.
-		val wrongPassword = client().post(beaconPath(password = "nope"))
-		assertEquals(HttpStatusCode.NoContent, wrongPassword.status)
+		// A password in the beacon URL opens nothing: the beacon reads only the share cookie.
+		val passwordInUrl = client().post(beaconPath(password = "secret"))
+		assertEquals(HttpStatusCode.NoContent, passwordInUrl.status)
 		assertEquals(0, recordedReads().size)
 
-		// The correct password resolves to Success and records the reader.
-		val rightPassword = client().post(beaconPath(password = "secret"))
-		assertEquals(HttpStatusCode.NoContent, rightPassword.status)
+		// A browser that unlocked the share (here through an old ?p= link) is recorded.
+		val browser = HttpClient { install(HttpCookies) }
+		browser.get(storyPath(password = "secret"))
+		val unlocked = browser.post(beaconPath())
+		assertEquals(HttpStatusCode.NoContent, unlocked.status)
 		assertEquals(1, recordedReads().size)
 	}
 

@@ -55,9 +55,10 @@
 	var timer = null;
 
 	function fireBeacon() {
-		// Beacon back to the same story URL (carrying ?p=... for private shares and
-		// any &page=...). The server re-resolves access from these exactly as the
-		// GET did, so the beacon can't record anything the visitor couldn't load.
+		// Beacon back to the same story URL (with any ?page=...). The server
+		// re-resolves access exactly as the GET did, a private share through the
+		// browser's share cookie, so the beacon can't record anything the visitor
+		// couldn't load.
 		var url = window.location.pathname + '/read' + window.location.search;
 
 		try {

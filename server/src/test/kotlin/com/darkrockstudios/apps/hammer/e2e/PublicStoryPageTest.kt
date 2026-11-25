@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
 import com.darkrockstudios.apps.hammer.e2e.util.TestProject
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
@@ -41,6 +43,12 @@ class PublicStoryPageTest : EndToEndTest() {
 	}
 
 	private fun pagePath(page: Int): String = route("a/$penName/$segment?page=$page")
+
+	/**
+	 * A browser that keeps cookies: a `?p=` link unlocks the share into its share cookie and
+	 * redirects to the clean URL, which it then opens with that cookie.
+	 */
+	private fun reader() = HttpClient { install(HttpCookies) }
 
 	/** The page with Mustache's attribute escaping undone, so links read as written. */
 	private fun String.unescaped(): String = replace("&#61;", "=").replace("&amp;", "&")
@@ -222,7 +230,7 @@ class PublicStoryPageTest : EndToEndTest() {
 		seedStory()
 		grantAccess(password = "secret")
 
-		val response = client().get(storyPath(password = "secret"))
+		val response = reader().get(storyPath(password = "secret"))
 
 		assertEquals(HttpStatusCode.OK, response.status)
 		assertTrue(response.bodyAsText().contains("test content 1"), "the reader still gets the story")
@@ -259,7 +267,7 @@ class PublicStoryPageTest : EndToEndTest() {
 		)
 		grantAccess(password = "secret")
 
-		val response = client().get(storyPath(password = "secret"))
+		val response = reader().get(storyPath(password = "secret"))
 
 		assertEquals(HttpStatusCode.OK, response.status)
 		assertTrue(response.bodyAsText().contains("test content 1"), "the live share must win over the expired one")
@@ -272,7 +280,7 @@ class PublicStoryPageTest : EndToEndTest() {
 		seedSecondScene()
 		grantAccess(password = "secret", sceneIds = listOf(1))
 
-		val body = client().get(storyPath(password = "secret")).bodyAsText()
+		val body = reader().get(storyPath(password = "secret")).bodyAsText()
 
 		assertTrue(body.contains("test content 1"), "the selected scene should render")
 		assertTrue(!body.contains("test content 2"), "an unselected scene must not leak into the share")
@@ -286,7 +294,7 @@ class PublicStoryPageTest : EndToEndTest() {
 		grantAccess(password = "secret", sceneIds = listOf(1, 2))
 
 		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 2L)
-		val response = client().get(storyPath(password = "secret"))
+		val response = reader().get(storyPath(password = "secret"))
 
 		assertEquals(HttpStatusCode.OK, response.status)
 		val body = response.bodyAsText()
@@ -301,7 +309,7 @@ class PublicStoryPageTest : EndToEndTest() {
 		grantAccess(password = "secret", sceneIds = listOf(1))
 
 		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 1L)
-		val response = client().get(storyPath(password = "secret"))
+		val response = reader().get(storyPath(password = "secret"))
 
 		assertEquals(HttpStatusCode.NotFound, response.status)
 	}
@@ -313,13 +321,15 @@ class PublicStoryPageTest : EndToEndTest() {
 		seedSecondScene()
 		grantAccess(password = "secret", sceneIds = listOf(1))
 
-		val before = assertNotNull(client().get(storyPath(password = "secret")).headers[HttpHeaders.ETag])
+		val browser = reader()
+		browser.get(storyPath(password = "secret"))
+		val before = assertNotNull(browser.get(storyPath()).headers[HttpHeaders.ETag])
 
 		val edited = E2eTestData.createTestScene(2).copy(content = "an edit outside the share")
 		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 2L)
 		E2eTestData.insertEntity(userId, projectRowId(), edited, database(), encryptor())
 
-		val response = client().get(storyPath(password = "secret")) { header(HttpHeaders.IfNoneMatch, before) }
+		val response = browser.get(storyPath()) { header(HttpHeaders.IfNoneMatch, before) }
 
 		assertEquals(HttpStatusCode.NotModified, response.status, "an unselected edit must not invalidate the share")
 	}
@@ -331,13 +341,15 @@ class PublicStoryPageTest : EndToEndTest() {
 		seedSecondScene()
 		grantAccess(password = "secret", sceneIds = listOf(1))
 
-		val before = assertNotNull(client().get(storyPath(password = "secret")).headers[HttpHeaders.ETag])
+		val browser = reader()
+		browser.get(storyPath(password = "secret"))
+		val before = assertNotNull(browser.get(storyPath()).headers[HttpHeaders.ETag])
 
 		val edited = E2eTestData.createTestScene(1).copy(content = "a freshly written chapter")
 		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 1L)
 		E2eTestData.insertEntity(userId, projectRowId(), edited, database(), encryptor())
 
-		val response = client().get(storyPath(password = "secret")) { header(HttpHeaders.IfNoneMatch, before) }
+		val response = browser.get(storyPath()) { header(HttpHeaders.IfNoneMatch, before) }
 
 		assertEquals(HttpStatusCode.OK, response.status)
 		assertNotEquals(before, response.headers[HttpHeaders.ETag])
@@ -381,17 +393,20 @@ class PublicStoryPageTest : EndToEndTest() {
 	}
 
 	@Test
-	fun `a private share keeps its password between the cover and the prose`(): Unit = runBlocking {
+	fun `a private share links between the cover and the prose without its password`(): Unit = runBlocking {
 		doStartServer()
 		seedStory()
 		grantAccess(password = "secret")
 		seedCover()
+		val browser = reader()
 
-		val cover = client().get(storyPath(password = "secret")).bodyAsText().unescaped()
-		assertTrue(cover.contains("""href="/a/$penName/$segment?page=1&p=secret""""), cover)
+		val cover = browser.get(storyPath(password = "secret")).bodyAsText().unescaped()
+		assertTrue(cover.contains("""href="/a/$penName/$segment?page=1""""), cover)
+		assertFalse(cover.contains("p=secret"), cover)
 
-		val first = client().get(route("a/$penName/$segment?page=1&p=secret")).bodyAsText().unescaped()
-		assertTrue(first.contains("""<a href="/a/$penName/$segment?p=secret" class="pagination-button prev">"""), first)
+		val first = browser.get(pagePath(1)).bodyAsText().unescaped()
+		assertTrue(first.contains("""<a href="/a/$penName/$segment" class="pagination-button prev">"""), first)
+		assertFalse(first.contains("p=secret"), first)
 	}
 
 	@Test

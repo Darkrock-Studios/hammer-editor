@@ -6,12 +6,13 @@ import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
 import com.darkrockstudios.apps.hammer.e2e.util.TestProject
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.htmx.HxResponseHeaders
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -25,9 +26,10 @@ import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 /**
- * Submitting a private share's password redirects back to the story. When the pen name or the
- * story's name has letters outside ASCII, the Location header must carry them percent-encoded as
- * UTF-8; sent raw, "ë" went out as the Latin-1 byte 0xEB and the browser landed on a 404.
+ * Unlocking a private share redirects back to the story: the password form through HX-Redirect,
+ * an old `?p=` link through Location. When the pen name or the story's name has letters outside
+ * ASCII, the header must carry them percent-encoded as UTF-8; sent raw, "ë" went out as the
+ * Latin-1 byte 0xEB and the browser landed on a 404.
  */
 class PublicStoryPasswordRedirectTest : EndToEndTest() {
 
@@ -61,40 +63,45 @@ class PublicStoryPasswordRedirectTest : EndToEndTest() {
 		).executeAsOne()
 	}
 
-	/** Submits the password form the way the page's htmx does, without following the redirect. */
-	private suspend fun submitPassword(formBody: String): HttpResponse =
-		HttpClient { followRedirects = false }.post(route(storyPath.removePrefix("/"))) {
-			header("HX-Request", "true")
-			contentType(ContentType.Application.FormUrlEncoded)
-			setBody(formBody)
-		}
+	/** A browser that keeps cookies and, like htmx, shows each redirect instead of following it. */
+	private val browser = HttpClient {
+		install(HttpCookies)
+		followRedirects = false
+	}
 
-	private fun assertAsciiLocation(response: HttpResponse): String {
-		assertEquals(HttpStatusCode.Found, response.status)
-		val location = assertNotNull(response.headers[HttpHeaders.Location])
-		assertTrue(location.all { it.code < 128 }, "the Location header must be plain ASCII: $location")
-		return location
+	private fun assertAscii(header: String?, name: String): String {
+		val value = assertNotNull(header, "$name header")
+		assertTrue(value.all { it.code < 128 }, "the $name header must be plain ASCII: $value")
+		return value
 	}
 
 	@Test
-	fun `the password redirect keeps non-ASCII names encoded and lands on the story`(): Unit = runBlocking {
+	fun `the password form redirects to the encoded story address and lands on the story`(): Unit = runBlocking {
 		doStartServer()
 		seedPrivateShare()
 
-		val location = assertAsciiLocation(submitPassword("password=$password"))
-		assertEquals("$storyPath?p=$password", location)
+		val response = browser.post(route(storyPath.removePrefix("/"))) {
+			header("HX-Request", "true")
+			contentType(ContentType.Application.FormUrlEncoded)
+			setBody("password=$password")
+		}
 
-		val story = client().get(route(location.removePrefix("/")))
+		val target = assertAscii(response.headers[HxResponseHeaders.Redirect], "HX-Redirect")
+		assertEquals(storyPath, target)
+
+		val story = browser.get(route(target.removePrefix("/")))
 		assertEquals(HttpStatusCode.OK, story.status)
 		assertTrue(story.bodyAsText().contains("test content 1"), "the redirect must land on the story")
 	}
 
 	@Test
-	fun `a blank password redirects to the encoded story address`(): Unit = runBlocking {
+	fun `an old password link redirects to the encoded story address`(): Unit = runBlocking {
 		doStartServer()
 		seedPrivateShare()
 
-		val location = assertAsciiLocation(submitPassword("password="))
-		assertEquals(storyPath, location)
+		val response = browser.get(route("${storyPath.removePrefix("/")}?p=$password&page=1"))
+
+		assertEquals(HttpStatusCode.Found, response.status)
+		assertEquals("$storyPath?page=1", assertAscii(response.headers[HttpHeaders.Location], "Location"))
 	}
 }

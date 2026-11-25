@@ -20,10 +20,12 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.PendingMfaSession
+import com.darkrockstudios.apps.hammer.frontend.data.ShareAccessSession
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.frontend.og.ogImageRoutes
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.SHARE_ACCESS_LIFETIME
 import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
@@ -209,6 +211,7 @@ fun Route.frontend() {
 		storyImageService,
 		storyImageSigner,
 		serverConfig,
+		clock,
 	)
 	storyKudosRoutes(
 		accountsRepository,
@@ -245,6 +248,7 @@ fun Route.frontend() {
 
 const val COOKIE_USER_SESSION = "user_session"
 const val COOKIE_PENDING_MFA_SESSION = "mfa_pending"
+const val COOKIE_SHARE_ACCESS_SESSION = "share_access"
 
 /**
  * Encrypts and authenticates the web session cookie so a client cannot forge or
@@ -261,6 +265,10 @@ internal fun userSessionTransformer(keyMaterial: ByteArray): SessionTransportTra
 /** Keyed apart from [userSessionTransformer] so neither cookie's value is accepted as the other. */
 internal fun pendingMfaSessionTransformer(keyMaterial: ByteArray): SessionTransportTransformerEncrypt =
 	sessionTransformer(keyMaterial, "hammer.web.mfa-pending")
+
+/** Keyed apart from the sign-in cookies, so none of them is accepted as another. */
+internal fun shareAccessSessionTransformer(keyMaterial: ByteArray): SessionTransportTransformerEncrypt =
+	sessionTransformer(keyMaterial, "hammer.web.share-access")
 
 private fun sessionTransformer(keyMaterial: ByteArray, label: String): SessionTransportTransformerEncrypt {
 	// AES-128: the transformer generates an IV sized to the encryption key, and
@@ -301,6 +309,14 @@ fun Application.configureFrontEnd() {
 			cookie.maxAgeInSeconds = PENDING_MFA_LIFETIME.inWholeSeconds
 			cookie.extensions["SameSite"] = "lax"
 			transform(pendingMfaSessionTransformer(sessionKeyMaterial))
+		}
+		// Site-wide, not scoped to one story's path: a path holding a non-ASCII pen name would
+		// have to match the browser's encoding of it exactly. Each entry names its own share.
+		cookie<ShareAccessSession>(COOKIE_SHARE_ACCESS_SESSION) {
+			cookie.path = "/"
+			cookie.maxAgeInSeconds = SHARE_ACCESS_LIFETIME.inWholeSeconds
+			cookie.extensions["SameSite"] = "lax"
+			transform(shareAccessSessionTransformer(sessionKeyMaterial))
 		}
 	}
 

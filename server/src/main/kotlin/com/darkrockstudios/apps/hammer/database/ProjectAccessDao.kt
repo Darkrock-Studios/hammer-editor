@@ -16,6 +16,17 @@ data class PublicProjectInfo(
 	val accessId: Long? = null,
 )
 
+/** One live password-protected share of a story, password included, for server-side checks only. */
+data class PrivateShareInfo(
+	val accessId: Long,
+	val password: String,
+	val expiresAt: Instant?,
+	val projectUuid: String,
+	val userId: Long,
+	val projectName: String,
+	val penName: String,
+)
+
 data class PublishedStoryInfo(
 	val projectUuid: String,
 	val projectName: String,
@@ -201,6 +212,27 @@ class ProjectAccessDao(
 					penName = it.pen_name ?: "",
 					expiresAt = it.expires_at,
 					accessId = it.access_id,
+				)
+			}
+	}
+
+	suspend fun findLivePrivateShares(
+		penName: String,
+		projectName: String,
+		now: Instant,
+	): List<PrivateShareInfo> = withContext(ioDispatcher) {
+		queries.findLivePrivateAccessByPenNameAndProjectName(penName, projectName, now)
+			.executeAsList()
+			.mapNotNull { row ->
+				val password = row.access_password ?: return@mapNotNull null
+				PrivateShareInfo(
+					accessId = row.access_id,
+					password = password,
+					expiresAt = row.expires_at,
+					projectUuid = row.project_uuid,
+					userId = row.user_id,
+					projectName = row.project_name,
+					penName = row.pen_name ?: "",
 				)
 			}
 	}

@@ -12,7 +12,9 @@ import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
+import com.darkrockstudios.apps.hammer.frontend.utils.rememberUnlockedShare
 import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
+import com.darkrockstudios.apps.hammer.frontend.utils.unlockedShares
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
@@ -24,13 +26,16 @@ import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.StoryResult
+import io.ktor.htmx.HxResponseHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.encodeURLPathPart
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.htmx.hx
 import io.ktor.server.mustache.MustacheContent
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.request.userAgent
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Route
@@ -39,8 +44,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
+import kotlin.time.Clock
 
 fun Route.publicStoryPage(
 	storyRendererService: StoryRendererService,
@@ -52,15 +56,23 @@ fun Route.publicStoryPage(
 	storyImageService: StoryImageService,
 	storyImageSigner: StoryImageSigner,
 	serverConfig: ServerConfig,
+	clock: Clock,
 ) {
 	route("/a/{penName}/{projectName}") {
 		get {
-			// Check for password and page in query parameters
+			// A private share opens with the shares this browser has unlocked. An old link may still
+			// carry the share password (?p=): it unlocks once, then the reader goes to the clean URL.
 			val password = call.request.queryParameters["p"]
 			val pageParam = call.request.queryParameters["page"]
 			val page = pageParam?.toIntOrNull() ?: 1
 
-			val lookup = call.lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password)
+			val lookup = call.lookUpStory(
+				accountsRepository,
+				projectsRepository,
+				projectAccessRepository,
+				password = password,
+				unlockedShares = call.unlockedShares(clock.now()),
+			)
 			if (lookup == null) {
 				call.respond(HttpStatusCode.NotFound)
 				return@get
@@ -78,40 +90,39 @@ fun Route.publicStoryPage(
 				}
 
 				is PublicProjectResult.PasswordRequired -> {
-					// Password-protected stories are private shares — never index them.
-					call.applyRobotsTag(indexable = false)
-
-					// Show password form
-					val model = call.withDefaults(
-						mapOf(
-							"page_stylesheet" to "/assets/css/story.css",
-							"penName" to penNameForUrl,
-							"projectName" to projectNameForUrl,
-							"error" to (password != null) // Show error if password was provided but invalid
-						)
+					// Show an error if a password was provided but invalid
+					call.respondPasswordForm(
+						penNameForUrl,
+						projectNameForUrl,
+						error = password != null,
+						page = requestedPage(pageParam),
 					)
-					call.respond(MustacheContent("password-form.mustache", model))
 				}
 
 				is PublicProjectResult.Success -> {
+					// A link carrying the password has done its job: remember the share in this
+					// browser and move the reader to the clean URL, so the password leaves the
+					// address bar, history and anything copied from it.
+					if (password != null) {
+						resolved.accessId?.let { accessId ->
+							call.rememberUnlockedShare(accessId, password, resolved.accessExpiresAt, clock.now())
+						}
+						call.respondRedirect(storyLocation(penNameForUrl, projectNameForUrl, requestedPage(pageParam)))
+						return@get
+					}
+
 					// Only publicly-published stories by authors who participate in the community
 					// feature are indexable. `isPublic` comes from the access layer, which knows
 					// whether it granted access with no password or unlocked a private share.
 					val indexable = resolved.isPublic && account.community_member
 					call.applyRobotsTag(indexable = indexable)
 
-					val passwordParam = if (!password.isNullOrBlank()) {
-						"&p=${URLEncoder.encode(password, StandardCharsets.UTF_8)}"
-					} else {
-						""
-					}
-
 					val projectDef = ProjectDefinition(name = projectName, uuid = resolved.projectUuid)
 					val storyUrl = "/a/$penNameForUrl/$projectNameForUrl"
 
 					suspend fun signedImageUrl(imageId: Int): String {
 						val signature = storyImageSigner.sign(resolved.projectUuid, imageId)
-						return "$storyUrl/image/$imageId?s=$signature$passwordParam"
+						return "$storyUrl/image/$imageId?s=$signature"
 					}
 
 					// A story with a cover opens on it, as its own first page; the prose starts at ?page=1.
@@ -122,7 +133,7 @@ fun Route.publicStoryPage(
 						projectDef,
 					)?.let { signedImageUrl(it) }
 					val isCoverPage = pageParam == null && coverImageUrl != null
-					val coverPageUrl = storyUrl + if (passwordParam.isEmpty()) "" else "?" + passwordParam.removePrefix("&")
+					val coverPageUrl = storyUrl
 
 					// The page shell — everything not derived from the story render. Built first so
 					// it can be hashed into the validator, then filled in with the render below.
@@ -171,7 +182,7 @@ fun Route.publicStoryPage(
 						if (isCoverPage) {
 							model["isCoverPage"] = true
 							model["coverImageUrl"] = coverImageUrl
-							model["startReadingUrl"] = "$storyUrl?page=1$passwordParam"
+							model["startReadingUrl"] = "$storyUrl?page=1"
 						}
 					}
 
@@ -192,12 +203,13 @@ fun Route.publicStoryPage(
 					// `indexable` is an explicit input: it gates the JSON-LD block but never reaches
 					// the shell model. The signing key generation is too, so rotating the key
 					// reissues the page's signed image links before the old generation is retired.
+					// So is the share, as two shares of one story can show different scenes.
 					val etag = prepared?.let {
 						pageETag(
 							model,
 							it.version,
 							page,
-							passwordParam,
+							resolved.accessId,
 							indexable,
 							projectDataHash,
 							storyImageSigner.keyGeneration(),
@@ -263,9 +275,9 @@ fun Route.publicStoryPage(
 									"hasNextPage" to data.hasNextPage,
 									"hasPrevPage" to (data.hasPrevPage || coverImageUrl != null),
 									"prevIsCover" to (!data.hasPrevPage && coverImageUrl != null),
-									"nextPageUrl" to "$storyUrl?page=${data.nextPage}$passwordParam",
+									"nextPageUrl" to "$storyUrl?page=${data.nextPage}",
 									"prevPageUrl" to if (data.hasPrevPage) {
-										"$storyUrl?page=${data.prevPage}$passwordParam"
+										"$storyUrl?page=${data.prevPage}"
 									} else {
 										coverPageUrl
 									},
@@ -313,9 +325,13 @@ fun Route.publicStoryPage(
 				return@get
 			}
 
-			val password = call.request.queryParameters["p"]
-			val resolved = call.lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password)
-				?.result as? PublicProjectResult.Success
+			val resolved = call.lookUpStory(
+				accountsRepository,
+				projectsRepository,
+				projectAccessRepository,
+				password = null,
+				unlockedShares = call.unlockedShares(clock.now()),
+			)?.result as? PublicProjectResult.Success
 			if (resolved == null || !storyImageSigner.verify(resolved.projectUuid, imageId, signature)) {
 				call.respond(HttpStatusCode.NotFound)
 				return@get
@@ -329,33 +345,37 @@ fun Route.publicStoryPage(
 			)
 		}
 
+		// The password form. A right password unlocks the share in this browser and sends the reader
+		// to the clean story URL as a full page load (HX-Redirect), at the page they asked for; the
+		// password goes in no URL. A wrong one shows the form again with the error.
 		hx.post {
-			val penNameParam = call.parameters["penName"]
-			val projectNameParam = call.parameters["projectName"]
-
-			if (penNameParam.isNullOrBlank() || projectNameParam.isNullOrBlank()) {
-				call.respond(HttpStatusCode.NotFound)
-				return@post
-			}
-
 			val formParams = call.receiveParameters()
-			val password = formParams["password"]
+			val password = formParams["password"]?.takeIf { it.isNotBlank() }
+			val page = requestedPage(formParams["page"])
 
-			// Redirect back to GET. Path parameters arrive decoded, so encode them again: a raw
-			// non-ASCII letter in the Location header goes out as a Latin-1 byte ("ë" as 0xEB),
-			// and the browser follows /a/Zo%EB/... instead of /a/Zo%C3%AB/..., which is a 404.
-			val storyPath = "/a/${penNameParam.encodeURLPathPart()}/${projectNameParam.encodeURLPathPart()}"
-			if (!password.isNullOrBlank()) {
-				call.respondRedirect(
-					"$storyPath?p=${
-						URLEncoder.encode(
-							password,
-							StandardCharsets.UTF_8
-						)
-					}"
+			val lookup = call.lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password)
+			when (val resolved = lookup?.result) {
+				null, PublicProjectResult.NotFound -> call.respond(HttpStatusCode.NotFound)
+
+				PublicProjectResult.PasswordRequired -> call.respondPasswordForm(
+					lookup.penNameSegment,
+					lookup.projectSegment,
+					error = password != null,
+					page = page,
 				)
-			} else {
-				call.respondRedirect(storyPath)
+
+				is PublicProjectResult.Success -> {
+					if (password != null) {
+						resolved.accessId?.let { accessId ->
+							call.rememberUnlockedShare(accessId, password, resolved.accessExpiresAt, clock.now())
+						}
+					}
+					call.response.header(
+						HxResponseHeaders.Redirect,
+						storyLocation(lookup.penNameSegment, lookup.projectSegment, page),
+					)
+					call.respond(HttpStatusCode.NoContent)
+				}
 			}
 		}
 
@@ -366,9 +386,13 @@ fun Route.publicStoryPage(
 		post("/read") {
 			// A beacon is fire-and-forget: always answer 204 and never leak resolution
 			// outcomes, so a bad beacon looks the same as a good one.
-			val password = call.request.queryParameters["p"]
-			val resolved = call.lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password)
-				?.result
+			val resolved = call.lookUpStory(
+				accountsRepository,
+				projectsRepository,
+				projectAccessRepository,
+				password = null,
+				unlockedShares = call.unlockedShares(clock.now()),
+			)?.result
 			if (resolved is PublicProjectResult.Success) {
 				// Skip the author reading their own story.
 				val viewerId = call.sessions.get<UserSession>()?.userId
@@ -386,4 +410,38 @@ fun Route.publicStoryPage(
 			call.respond(HttpStatusCode.NoContent)
 		}
 	}
+}
+
+/**
+ * A story's address for a Location or HX-Redirect header, at [page] if one was asked for. Path
+ * parameters arrive decoded, so they are encoded again: a raw non-ASCII letter in a header goes out
+ * as a Latin-1 byte ("ë" as 0xEB), and the browser follows /a/Zo%EB/... instead of
+ * /a/Zo%C3%AB/..., which is a 404.
+ */
+private fun storyLocation(penName: String, projectName: String, page: Int?): String =
+	"/a/${penName.encodeURLPathPart()}/${projectName.encodeURLPathPart()}" + (page?.let { "?page=$it" } ?: "")
+
+/** A requested page number, if it is one: a positive whole number. */
+private fun requestedPage(value: String?): Int? = value?.toIntOrNull()?.takeIf { it > 0 }
+
+/** The password form for a private share, keeping the page the reader asked for. */
+private suspend fun ApplicationCall.respondPasswordForm(
+	penName: String,
+	projectName: String,
+	error: Boolean,
+	page: Int?,
+) {
+	// Password-protected stories are private shares — never index them.
+	applyRobotsTag(indexable = false)
+
+	val model = withDefaults(
+		mapOf(
+			"page_stylesheet" to "/assets/css/story.css",
+			"penName" to penName,
+			"projectName" to projectName,
+			"error" to error,
+		)
+	)
+	page?.let { model["requestedPage"] = it }
+	respond(MustacheContent("password-form.mustache", model))
 }

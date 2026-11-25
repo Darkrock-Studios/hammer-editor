@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.e2e.util.WebEndToEndTest
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.SWAP_ERROR_HEADER
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -86,7 +87,8 @@ class StoryKudosTest : WebEndToEndTest() {
 		doStartServer()
 		seedStory()
 		grantAccess(password = "secret")
-		val privateShare = client().get(storyPath("?p=secret")).bodyAsText()
+		// A browser that keeps cookies: the ?p= link unlocks the share, then redirects to the clean URL.
+		val privateShare = HttpClient { install(HttpCookies) }.get(storyPath("?p=secret")).bodyAsText()
 		assertContains(privateShare, "story-content")
 		assertFalse(privateShare.contains("story-kudos-slot"))
 
