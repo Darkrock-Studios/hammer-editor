@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -53,10 +54,10 @@ class BrowseEntriesKeyboardTest : BaseTest() {
 	private val viewed = mutableListOf<Int>()
 
 	@OptIn(ExperimentalSharedTransitionApi::class)
-	private fun show() {
+	private fun show(width: Dp = 500.dp) {
 		compose.setContent {
 			KoinApplicationPreview {
-				Box(modifier = Modifier.requiredSize(500.dp, 900.dp)) {
+				Box(modifier = Modifier.requiredSize(width, 900.dp)) {
 					SharedTransitionLayout {
 						AnimatedVisibility(visible = true) {
 							BrowseEntriesUi(
@@ -87,5 +88,20 @@ class BrowseEntriesKeyboardTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertEquals(listOf(2), viewed)
+	}
+
+	@Test
+	fun `Down in two columns moves to the entry below`() {
+		show(width = 800.dp)
+
+		compose.onNodeWithTag(ENTRIES_GRID_TAG).requestFocus()
+		compose.onNodeWithTag(ENTRIES_GRID_TAG).performKeyInput {
+			pressKey(Key.DirectionDown)
+			pressKey(Key.DirectionDown)
+			pressKey(Key.Enter)
+		}
+		compose.waitForIdle()
+
+		assertEquals(listOf(3), viewed)
 	}
 }

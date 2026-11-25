@@ -359,8 +359,32 @@ class SceneTreeState(
 	fun revealCursor(id: Int) {
 		val tree = summary.sceneTree
 		val node = tree.findBy { it.id == id } ?: return
-		tree.getBranch(node.index, true).forEach { collapsedNodes.remove(it.value.id) }
+		tree.getBranch(node.index, excludeLeaf = true).forEach { collapsedNodes.remove(it.value.id) }
 		setCursorIndex(visibleNodes.indexOfFirst { it.value.id == id })
+	}
+
+	private var openSceneId: Int? = null
+	private var openSceneChanged = false
+
+	internal fun setOpenScene(id: Int?) {
+		if (id == openSceneId) return
+		openSceneId = id
+		openSceneChanged = true
+	}
+
+	/**
+	 * Puts the cursor on the open scene when it has none yet, or when a scene was opened some
+	 * other way (the mouse, a next-scene chord) since. Collapsed groups stay as they are.
+	 */
+	internal fun followOpenScene() {
+		val open = openSceneId ?: return
+		val follow = cursorId == NO_SELECTION || openSceneChanged
+		openSceneChanged = false
+		if (!follow) return
+		cursorId = open
+		val index = cursorIndex()
+		val node = visibleNodes.getOrNull(index) ?: return
+		coroutineScope.launch { listState.revealItem(index, key = node.value.id) }
 	}
 
 	companion object {

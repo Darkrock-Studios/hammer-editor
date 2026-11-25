@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,9 +61,14 @@ fun SceneTree(
 	itemUi: ItemUi,
 	contentPadding: PaddingValues,
 	onOpen: (SceneItem) -> Unit = {},
+	openSceneId: Int? = null,
 ) {
 	var treeFocused by remember { mutableStateOf(false) }
 	val showCursor = treeFocused && LocalInputModeManager.current.inputMode == InputMode.Keyboard
+	LaunchedEffect(state, openSceneId) {
+		state.setOpenScene(openSceneId)
+		if (treeFocused) state.followOpenScene()
+	}
 	Box {
 		Row {
 			if (state.summary.sceneTree.totalNodes <= 1) {
@@ -72,7 +78,11 @@ fun SceneTree(
 					state = state.listState,
 					modifier = modifier.reorderableModifier(state)
 						.onGloballyPositioned { state.setListCoordinates(it) }
-						.onFocusChanged { treeFocused = it.isFocused }
+						.onFocusChanged {
+							val gained = it.isFocused && !treeFocused
+							treeFocused = it.isFocused
+							if (gained) state.followOpenScene()
+						}
 						.onKeyEvent { event -> treeFocused && state.onTreeKey(event, onOpen) }
 						.focusable()
 						.weight(1f),

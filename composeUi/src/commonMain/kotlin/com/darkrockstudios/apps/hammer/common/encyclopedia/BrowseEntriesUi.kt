@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -83,7 +83,8 @@ import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorFrame
 import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
 import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
 import com.darkrockstudios.apps.hammer.common.compose.focus.revealItem
-import com.darkrockstudios.apps.hammer.common.compose.focus.showsCursorAt
+import com.darkrockstudios.apps.hammer.common.compose.focus.gridRowStep
+import com.darkrockstudios.apps.hammer.common.compose.focus.showsCursorOn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.help.HelpButton
 import com.darkrockstudios.apps.hammer.common.help.HelpScreen
@@ -231,6 +232,7 @@ fun BrowseEntriesUi(
 		// column.
 		val gridState = rememberLazyGridState()
 		val cursor = rememberListCursorState()
+		val entryKeys = remember(filteredEntries) { filteredEntries.map { it.id } }
 		Box(modifier = Modifier.weight(1f)) {
 			LazyVerticalGrid(
 				state = gridState,
@@ -241,19 +243,19 @@ fun BrowseEntriesUi(
 					.paneEntry(PaneId.List)
 					.keyboardListNavigation(
 						state = cursor,
-						itemCount = filteredEntries.size,
+						keys = entryKeys,
 						onActivate = { viewEntry(filteredEntries[it]) },
 						scrollToItem = gridState::revealItem,
-						horizontalSteps = true,
+						rowStep = gridState.gridRowStep(),
 					),
 				contentPadding = PaddingValues(Ui.Padding.XL),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 			) {
-				itemsIndexed(filteredEntries, key = { _, entry -> entry.id }) { index, entryDef ->
+				items(filteredEntries, key = { it.id }) { entryDef ->
 					EncyclopediaEntryItem(
 						entryDef = entryDef,
-						modifier = Modifier.listCursorFrame(cursor.showsCursorAt(index)),
+						modifier = Modifier.listCursorFrame(cursor.showsCursorOn(entryDef.id)),
 						component = component,
 						viewEntry = viewEntry,
 						scope = scope,

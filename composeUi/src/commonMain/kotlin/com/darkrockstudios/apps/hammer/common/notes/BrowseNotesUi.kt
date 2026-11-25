@@ -95,14 +95,15 @@ import com.darkrockstudios.apps.hammer.notes_word_count_short
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
-import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed as staggeredItemsIndexed
+import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
 import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardListNavigation
 import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorFrame
 import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
 import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
 import com.darkrockstudios.apps.hammer.common.compose.focus.revealItem
-import com.darkrockstudios.apps.hammer.common.compose.focus.showsCursorAt
+import com.darkrockstudios.apps.hammer.common.compose.focus.laneRowStep
+import com.darkrockstudios.apps.hammer.common.compose.focus.showsCursorOn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.help.HelpButton
 import com.darkrockstudios.apps.hammer.common.help.HelpScreen
@@ -332,6 +333,7 @@ fun BrowseNotesUi(
 
 		val gridState = rememberLazyStaggeredGridState()
 		val cursor = rememberListCursorState()
+		val noteKeys = remember(visibleNotes) { visibleNotes.map { it.id } }
 		Box(modifier = Modifier.weight(1f)) {
 			LazyVerticalStaggeredGrid(
 				state = gridState,
@@ -342,10 +344,10 @@ fun BrowseNotesUi(
 					.paneEntry(PaneId.List)
 					.keyboardListNavigation(
 						state = cursor,
-						itemCount = visibleNotes.size,
+						keys = noteKeys,
 						onActivate = { component.viewNote(visibleNotes[it].id) },
 						scrollToItem = gridState::revealItem,
-						horizontalSteps = true,
+						rowStep = gridState.laneRowStep(),
 					),
 				contentPadding = PaddingValues(
 					horizontal = Ui.Padding.XL,
@@ -353,10 +355,10 @@ fun BrowseNotesUi(
 				),
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
-				staggeredItemsIndexed(
+				staggeredItems(
 					items = visibleNotes,
-					key = { _, note -> note.id },
-				) { index, note ->
+					key = { note -> note.id },
+				) { note ->
 					NoteCard(
 						note = note,
 						activeTags = activeTags,
@@ -364,7 +366,7 @@ fun BrowseNotesUi(
 						sharedTransitionScope = sharedTransitionScope,
 						animatedVisibilityScope = animatedVisibilityScope,
 						modifier = Modifier.padding(bottom = Ui.Padding.L)
-							.listCursorFrame(cursor.showsCursorAt(index)),
+							.listCursorFrame(cursor.showsCursorOn(note.id)),
 						onClick = { component.viewNote(note.id) },
 					)
 				}

@@ -301,6 +301,7 @@ fun SceneListUi(
 						},
 						contentPadding = PaddingValues(bottom = footerState.height),
 						onOpen = component::onSceneSelected,
+						openSceneId = state.selectedSceneItem?.id,
 					)
 
 					HdScrollAwayFooter(

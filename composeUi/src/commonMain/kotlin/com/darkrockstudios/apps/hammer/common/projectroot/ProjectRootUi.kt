@@ -7,16 +7,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.InputMode
-import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
@@ -38,7 +34,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDest
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
-import com.darkrockstudios.apps.hammer.common.compose.focus.LocalPaneFocus
+import com.darkrockstudios.apps.hammer.common.compose.focus.FocusFirstPaneOnArrival
 import com.darkrockstudios.apps.hammer.common.compose.focus.ProvidePaneFocus
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
@@ -129,19 +125,10 @@ fun ProjectRootUi(
 	}
 }
 
-/** With a keyboard, a destination opens with its first pane focused unless something has focus. */
 @Composable
 private fun FocusFirstPane(component: ProjectRoot) {
-	val paneFocus = LocalPaneFocus.current ?: return
 	val routerState by component.routerState.subscribeAsState()
-	val keyboard = LocalInputModeManager.current.inputMode == InputMode.Keyboard
-	val panes = paneFocus.registeredPanes
-	LaunchedEffect(routerState.active.configuration, panes) {
-		if (!keyboard) return@LaunchedEffect
-		// A frame later, so the new panes are laid out.
-		withFrameNanos {}
-		paneFocus.focusFirstIfNothingFocused()
-	}
+	FocusFirstPaneOnArrival(routerState.active.configuration)
 }
 
 @Composable

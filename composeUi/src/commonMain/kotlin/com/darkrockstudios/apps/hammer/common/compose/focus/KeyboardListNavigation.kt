@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,12 +38,21 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+
+/**
+ * How Up and Down move in a grid: the item a row below ([down]) or above [current], among
+ * [count] items. Left and Right stay single steps.
+ */
+fun interface GridRowStep {
+	fun step(current: Int, count: Int, down: Boolean): Int
+}
 
 /** The cursor after [key] in a list of [count], or null when [key] does not move it. */
-internal fun listCursorStep(current: Int, count: Int, key: Key, horizontalSteps: Boolean): Int? {
-	val forward = key == Key.DirectionDown || (horizontalSteps && key == Key.DirectionRight)
-	val back = key == Key.DirectionUp || (horizontalSteps && key == Key.DirectionLeft)
-	if (!forward && !back && key != Key.MoveHome && key != Key.MoveEnd) return null
+internal fun listCursorStep(current: Int, count: Int, key: Key, rowStep: GridRowStep? = null): Int? {
+	val vertical = key == Key.DirectionDown || key == Key.DirectionUp
+	val horizontal = rowStep != null && (key == Key.DirectionRight || key == Key.DirectionLeft)
+	if (!vertical && !horizontal && key != Key.MoveHome && key != Key.MoveEnd) return null
 	if (count <= 0) return null
 	val last = count - 1
 	val at = current.coerceAtMost(last)
@@ -50,66 +60,144 @@ internal fun listCursorStep(current: Int, count: Int, key: Key, horizontalSteps:
 		key == Key.MoveHome -> 0
 		key == Key.MoveEnd -> last
 		at < 0 -> 0
-		forward -> (at + 1).coerceAtMost(last)
+		vertical && rowStep != null -> rowStep.step(at, count, key == Key.DirectionDown).coerceIn(0, last)
+		key == Key.DirectionDown || key == Key.DirectionRight -> (at + 1).coerceAtMost(last)
 		else -> (at - 1).coerceAtLeast(0)
 	}
 }
 
-/** A list's roving cursor: an index into what the list shows, or -1 before the first move. */
+/**
+ * In a grid of [columns] equal cells, the item a row below or above [current]. Down from a row
+ * with nothing under it lands on the last item when a shorter last row is still below.
+ */
+internal fun gridRowStep(current: Int, count: Int, columns: Int, down: Boolean): Int {
+	val perRow = columns.coerceAtLeast(1)
+	val last = count - 1
+	if (!down) return (current - perRow).takeIf { it >= 0 } ?: current
+	val below = current + perRow
+	return when {
+		below <= last -> below
+		current / perRow < last / perRow -> last
+		else -> current
+	}
+}
+
+/** A staggered grid item on screen: its [lane] and the y of its [top]. */
+internal data class LaneCell(val index: Int, val lane: Int, val top: Int)
+
+/**
+ * In a staggered grid, the nearest item below or above [current] in its lane, from the items on
+ * screen. When the lane has none on screen: if every item that way is on screen the lane ends
+ * there, so the nearest item below or above in any lane, else one step, as the lane's next item
+ * may be off screen.
+ */
+internal fun staggeredRowStep(current: Int, count: Int, down: Boolean, shown: List<LaneCell>): Int {
+	val step = if (down) (current + 1).coerceAtMost(count - 1) else (current - 1).coerceAtLeast(0)
+	val here = shown.firstOrNull { it.index == current } ?: return step
+	val ahead = shown.filter { if (down) it.index > current else it.index < current }
+	val inLane = ahead.filter { it.lane == here.lane }
+	if (inLane.isNotEmpty()) return if (down) inLane.minOf { it.index } else inLane.maxOf { it.index }
+	val remaining = if (down) count - 1 - current else current
+	if (ahead.size < remaining) return step
+	return ahead
+		.filter { if (down) it.top > here.top else it.top < here.top }
+		.minWithOrNull(compareBy({ abs(it.top - here.top) }, { abs(it.lane - here.lane) }))
+		?.index ?: current
+}
+
+/** Up and Down by row, with the column count read from the laid out items. */
+fun LazyGridState.gridRowStep(): GridRowStep = GridRowStep { current, count, down ->
+	val columns = layoutInfo.visibleItemsInfo.maxOfOrNull { it.column }?.plus(1) ?: 1
+	gridRowStep(current, count, columns, down)
+}
+
+/** Up and Down within a lane, from the laid out items. */
+fun LazyStaggeredGridState.laneRowStep(): GridRowStep = GridRowStep { current, count, down ->
+	val shown = layoutInfo.visibleItemsInfo.map { LaneCell(it.index, it.lane, it.offset.y) }
+	staggeredRowStep(current, count, down, shown)
+}
+
+/**
+ * A list's roving cursor. It holds the key of the item under it, so filtering or sorting keeps
+ * it on the same item; when that item goes, it falls to where the item was.
+ */
 @Stable
-class ListCursorState internal constructor(private val saved: MutableIntState) {
-	var cursor: Int
-		get() = saved.intValue
-		set(value) {
-			saved.intValue = value
-		}
+class ListCursorState internal constructor(
+	private val savedKey: MutableState<Any?>,
+	private val savedIndex: MutableIntState,
+) {
+	/** The key of the item under the cursor, null before the first move. */
+	val key: Any?
+		get() = savedKey.value
+
+	/** The cursor's index among [keys], or -1 when it has no item there. */
+	fun indexIn(keys: List<Any>): Int {
+		val key = savedKey.value ?: return -1
+		if (keys.isEmpty()) return -1
+		val at = keys.indexOf(key)
+		return if (at >= 0) at else savedIndex.intValue.coerceIn(0, keys.lastIndex)
+	}
+
+	internal fun moveTo(index: Int, keys: List<Any>) {
+		savedKey.value = keys[index]
+		savedIndex.intValue = index
+	}
 
 	internal var hasFocus by mutableStateOf(false)
 }
 
 @Composable
 fun rememberListCursorState(): ListCursorState {
-	val saved = rememberSaveable { mutableIntStateOf(-1) }
-	return remember(saved) { ListCursorState(saved) }
+	val savedKey = rememberSaveable { mutableStateOf<Any?>(null) }
+	val savedIndex = rememberSaveable { mutableIntStateOf(-1) }
+	return remember(savedKey, savedIndex) { ListCursorState(savedKey, savedIndex) }
 }
 
-/** Whether row [index] draws the cursor: only while the list has keyboard focus. */
+/** Whether the item with [key] draws the cursor: only while the list has keyboard focus. */
 @Composable
-fun ListCursorState.showsCursorAt(index: Int): Boolean =
-	hasFocus && cursor == index && LocalInputModeManager.current.inputMode == InputMode.Keyboard
+fun ListCursorState.showsCursorOn(key: Any): Boolean =
+	hasFocus && this.key == key && LocalInputModeManager.current.inputMode == InputMode.Keyboard
 
 /**
- * Makes the list the single focus stop for its rows: Up/Down (and Left/Right with
- * [horizontalSteps]), Home and End move [state]'s cursor, Enter activates the row under it. Keys
- * only count while the list itself has focus, not a row's own control.
+ * Makes the list the single focus stop for its rows: Up/Down, Home and End move [state]'s cursor,
+ * Enter activates the row under it. With [rowStep] the list is a grid: Up/Down go by row and
+ * Left/Right step one item. Keys only count while the list itself has focus, not a row's own
+ * control.
+ *
+ * [keys] are the shown items' keys in order. The cursor saves its key, so keys must be saveable
+ * (an Int or a String).
  */
 @Composable
 fun Modifier.keyboardListNavigation(
 	state: ListCursorState,
-	itemCount: Int,
+	keys: List<Any>,
 	onActivate: (Int) -> Unit,
 	scrollToItem: suspend (Int) -> Unit,
-	horizontalSteps: Boolean = false,
+	rowStep: GridRowStep? = null,
 ): Modifier {
 	val scope = rememberCoroutineScope()
 	val activate by rememberUpdatedState(onActivate)
 	val scroll by rememberUpdatedState(scrollToItem)
-	LaunchedEffect(state, itemCount) {
-		if (itemCount > 0 && state.cursor >= itemCount) state.cursor = itemCount - 1
+	val currentKeys by rememberUpdatedState(keys)
+	val currentRowStep by rememberUpdatedState(rowStep)
+	LaunchedEffect(state, keys) {
+		val index = state.indexIn(keys)
+		if (index >= 0) state.moveTo(index, keys)
 	}
 	return this
 		.onFocusChanged { state.hasFocus = it.isFocused }
 		.onKeyEvent { event ->
 			if (!state.hasFocus || !event.isBareKeyDown()) return@onKeyEvent false
+			val shown = currentKeys
+			val current = state.indexIn(shown)
 			if (event.key == Key.Enter || event.key == Key.NumPadEnter) {
-				val index = state.cursor.coerceAtMost(itemCount - 1)
-				if (index < 0) return@onKeyEvent false
-				activate(index)
+				if (current < 0) return@onKeyEvent false
+				activate(current)
 				return@onKeyEvent true
 			}
-			val next = listCursorStep(state.cursor, itemCount, event.key, horizontalSteps)
+			val next = listCursorStep(current, shown.size, event.key, currentRowStep)
 				?: return@onKeyEvent false
-			state.cursor = next
+			state.moveTo(next, shown)
 			scope.launch { scroll(next) }
 			true
 		}

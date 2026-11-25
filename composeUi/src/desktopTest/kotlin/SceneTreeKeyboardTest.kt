@@ -63,6 +63,7 @@ class SceneTreeKeyboardTest {
 
 	private lateinit var treeState: SceneTreeState
 	private val opened = mutableListOf<Int>()
+	private var openScene by mutableStateOf<Int?>(null)
 
 	private fun ComposeUiTest.showTree(height: Dp = 600.dp, withEditor: Boolean = false) {
 		setContent {
@@ -86,6 +87,7 @@ class SceneTreeKeyboardTest {
 						},
 						contentPadding = PaddingValues(),
 						onOpen = { opened += it.id },
+						openSceneId = openScene,
 					)
 				}
 			}
@@ -204,6 +206,61 @@ class SceneTreeKeyboardTest {
 		assertTrue(!isCollapsed(KeyIds.PART_A))
 		assertEquals(KeyIds.VACUUM, cursor())
 		onNodeWithTag(row(KeyIds.VACUUM)).assertIsDisplayed()
+	}
+
+	@Test
+	fun `reveal leaves a group it lands on collapsed`() = runComposeUiTest {
+		showTree()
+		runOnIdle {
+			treeState.toggleExpanded(KeyIds.PART_A)
+			treeState.toggleExpanded(KeyIds.CH2)
+		}
+
+		runOnIdle { treeState.revealCursor(KeyIds.PART_A) }
+		waitForIdle()
+
+		assertTrue(!isCollapsed(KeyIds.CH2))
+		assertTrue(isCollapsed(KeyIds.PART_A))
+		assertEquals(KeyIds.PART_A, cursor())
+	}
+
+	@Test
+	fun `focusing the tree starts the cursor on the open scene`() = runComposeUiTest {
+		openScene = KeyIds.EXPLORATION
+		showTree()
+
+		keys(emptyList())
+		val start = cursor()
+		keys(listOf(Key.DirectionDown))
+
+		assertEquals(KeyIds.EXPLORATION, start)
+		assertEquals(KeyIds.OVERVIEW, cursor())
+	}
+
+	@Test
+	fun `the cursor moves to a scene opened since it last moved`() = runComposeUiTest {
+		showTree(withEditor = true)
+		keys(listOf(Key.DirectionDown))
+		onNodeWithTag(EDITOR).requestFocus()
+
+		openScene = KeyIds.DOOR
+		waitForIdle()
+		keys(emptyList())
+
+		assertEquals(KeyIds.DOOR, cursor())
+	}
+
+	@Test
+	fun `the cursor stays where it was moved while the open scene is unchanged`() = runComposeUiTest {
+		openScene = KeyIds.DOOR
+		showTree(withEditor = true)
+		keys(listOf(Key.DirectionDown))
+		onNodeWithTag(EDITOR).requestFocus()
+		waitForIdle()
+
+		keys(emptyList())
+
+		assertEquals(KeyIds.DISCOVERY, cursor())
 	}
 
 	@Test

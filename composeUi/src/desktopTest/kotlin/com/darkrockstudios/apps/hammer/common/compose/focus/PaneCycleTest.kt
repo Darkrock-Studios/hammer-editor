@@ -6,7 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -138,6 +145,68 @@ class PaneCycleTest {
 
 		assertFalse(live)
 		assertFalse(handled)
+	}
+
+	private var destination by mutableStateOf("story")
+	private var detailOpen by mutableStateOf(false)
+	private var outgoingShown by mutableStateOf(false)
+	private var focusManager: FocusManager? = null
+
+	private fun ComposeUiTest.showArrivingScreen() {
+		setContent {
+			focusManager = LocalFocusManager.current
+			LocalInputModeManager.current.requestInputMode(InputMode.Keyboard)
+			ProvideActions(registry) {
+				ProvidePaneFocus {
+					paneFocus = LocalPaneFocus.current
+					FocusFirstPaneOnArrival(destination)
+					Row {
+						if (outgoingShown) {
+							Box(Modifier.size(100.dp).focusPane(PaneId.List)) { Stop("outgoing") }
+						}
+						Box(Modifier.size(100.dp).focusPane(PaneId.List)) { Stop("a1") }
+						Box(Modifier.size(100.dp).focusPane(PaneId.Detail, enabled = detailOpen)) { Stop("b") }
+					}
+				}
+			}
+		}
+		waitForIdle()
+	}
+
+	@Test
+	fun `with a keyboard a screen arrives with its first pane focused`() = runComposeUiTest {
+		showArrivingScreen()
+
+		onNodeWithTag("a1").assertIsFocused()
+	}
+
+	@Test
+	fun `a pane opening beside an unfocused screen does not take focus`() = runComposeUiTest {
+		showArrivingScreen()
+		runOnIdle { focusManager?.clearFocus() }
+		waitForIdle()
+
+		detailOpen = true
+		waitForIdle()
+
+		onNodeWithTag("a1").assertIsNotFocused()
+		assertNull(paneFocus?.focusedPane)
+	}
+
+	@Test
+	fun `an arriving screen waits for the outgoing screen to give up focus`() = runComposeUiTest {
+		outgoingShown = true
+		showArrivingScreen()
+		onNodeWithTag("outgoing").requestFocus()
+		waitForIdle()
+
+		destination = "notes"
+		waitForIdle()
+		onNodeWithTag("a1").assertIsNotFocused()
+		outgoingShown = false
+		waitForIdle()
+
+		onNodeWithTag("a1").assertIsFocused()
 	}
 
 	@Test

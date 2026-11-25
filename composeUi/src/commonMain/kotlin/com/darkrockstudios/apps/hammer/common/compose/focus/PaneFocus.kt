@@ -4,6 +4,7 @@ import androidx.compose.foundation.focusGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -12,7 +13,9 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
@@ -21,10 +24,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.onFocusEvent
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.platform.LocalInputModeManager
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
+import kotlinx.coroutines.flow.first
 
 /** Ordinal is F6 order. */
 enum class PaneId { List, Detail }
@@ -108,6 +114,21 @@ class PaneFocusState {
 		return focus(first)
 	}
 
+	/**
+	 * [focusFirstIfNothingFocused] for a screen that just arrived. A pane holding focus at the
+	 * start belongs to the outgoing screen, which keeps focus while it animates out, so this
+	 * waits for that pane to leave. If it loses focus while still attached, focus went somewhere
+	 * the user chose and this does nothing.
+	 */
+	internal suspend fun focusFirstOnArrival() {
+		val outgoing = panes.lastOrNull { it.hasFocus }
+		if (outgoing != null) {
+			snapshotFlow { outgoing in panes && outgoing.hasFocus }.first { !it }
+			if (outgoing in panes) return
+		}
+		focusFirstIfNothingFocused()
+	}
+
 	/** Bumped by `focus(id, reveal = true)`, so the pane can bring its current item into view. */
 	fun revealRequests(id: PaneId): Int = reveals[id] ?: 0
 
@@ -143,6 +164,23 @@ fun ProvidePaneFocus(content: @Composable () -> Unit) {
 	}
 	RegisterActions(ActionLayer.Root, handlers)
 	CompositionLocalProvider(LocalPaneFocus provides state, content = content)
+}
+
+/**
+ * With a keyboard, focuses the first pane when [destination] changes, unless a pane already has
+ * focus. Panes coming and going within a destination (a scene opening beside the tree) never
+ * move focus.
+ */
+@Composable
+fun FocusFirstPaneOnArrival(destination: Any?) {
+	val paneFocus = LocalPaneFocus.current ?: return
+	val keyboard = LocalInputModeManager.current.inputMode == InputMode.Keyboard
+	LaunchedEffect(destination) {
+		if (!keyboard) return@LaunchedEffect
+		// A frame later, so the new panes are laid out.
+		withFrameNanos {}
+		paneFocus.focusFirstOnArrival()
+	}
 }
 
 /**
