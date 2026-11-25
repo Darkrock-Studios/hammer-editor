@@ -134,6 +134,11 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Compile before the emulator boots. A build running alongside boot can starve SystemUI into
+      # an ANR, and its dialog then holds window focus for the rest of the run.
+      - name: Build app and test APKs
+        run: ./gradlew :android:assembleDebug :android:assembleDebugAndroidTest
+
       # Cache the emulator system image + AVD snapshot so subsequent runs skip the slow cold
       # boot. Keyed on every parameter that defines the AVD - bump the key if any `with:` value
       # below changes, or the cached snapshot won't match.
