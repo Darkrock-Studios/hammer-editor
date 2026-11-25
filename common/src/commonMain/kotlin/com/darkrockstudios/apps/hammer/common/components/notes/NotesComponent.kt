@@ -5,7 +5,11 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
@@ -118,7 +122,45 @@ class NotesComponent(
 		)
 	}
 
+	private val browse: BrowseNotes?
+		get() = stack.value.items.firstNotNullOfOrNull {
+			(it.instance as? Notes.Destination.BrowseNotesDestination)?.component
+		}
+
+	/**
+	 * Steps the open note by [offset] in the list's order. Not live over a dirty edit: replacing
+	 * the view would drop its draft.
+	 */
+	private fun noteStep(offset: Int): ActionHandler {
+		fun target(): Int? {
+			val view = stack.value.active.instance as? Notes.Destination.ViewNoteDestination ?: return null
+			if (view.component.isEditingAndDirty()) return null
+			val open = (stack.value.active.configuration as Notes.Config.ViewNoteConfig).noteId
+			val order = browse?.visibleOrder ?: return null
+			val index = order.indexOf(open)
+			if (index < 0) return null
+			return order.getOrNull(index + offset)
+		}
+		return ActionHandler(isEnabled = { target() != null }) {
+			target()?.let { id ->
+				val config = Notes.Config.ViewNoteConfig(id)
+				navigation.navigate { configs -> configs.dropLast(1).filter { it != config } + config }
+			}
+		}
+	}
+
 	init {
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(
+				HammerActions.ItemNew.id to ActionHandler(
+					isEnabled = { stack.value.active.configuration !is Notes.Config.CreateNoteConfig },
+				) { showCreateNote() },
+				HammerActions.ItemNext.id to noteStep(1),
+				HammerActions.ItemPrev.id to noteStep(-1),
+			),
+		)
 		stack = componentContext.childStack(
 			source = navigation,
 			initialConfiguration = Notes.Config.BrowseNotesConfig(projectDef = projectDef),

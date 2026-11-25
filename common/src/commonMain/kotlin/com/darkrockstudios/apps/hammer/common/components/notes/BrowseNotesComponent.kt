@@ -64,6 +64,15 @@ class BrowseNotesComponent(
 		}
 	}
 
+	private var reportedOrder: List<Int>? = null
+
+	override val visibleOrder: List<Int>
+		get() = reportedOrder ?: state.value.notes.map { it.id }
+
+	override fun onVisibleOrderChanged(noteIds: List<Int>) {
+		reportedOrder = noteIds
+	}
+
 	override fun viewNote(noteId: Int) {
 		onViewNote(noteId)
 	}

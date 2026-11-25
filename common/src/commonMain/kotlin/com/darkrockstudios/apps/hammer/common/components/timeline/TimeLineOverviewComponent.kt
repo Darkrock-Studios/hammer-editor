@@ -11,7 +11,11 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
@@ -89,6 +93,11 @@ class TimeLineOverviewComponent(
 			frameBackCallback.isEnabled = it.frame != TimelineFrame.Everything
 		}
 		selection.subscribe(lifecycle) { onSelected(it) }
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(HammerActions.TimelineNew.id to ActionHandler { onRequestNewTimeline() }),
+		)
 	}
 
 	private fun onSelected(selected: TimelineSelection) {

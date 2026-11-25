@@ -67,7 +67,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
 import com.darkrockstudios.apps.hammer.common.encyclopedia.rename.RenameEntryDialog
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
 import com.darkrockstudios.apps.hammer.common.compose.DetailViewDropdownMenu
@@ -234,6 +238,22 @@ internal fun ViewEntryUi(
 		component.finishTextEdit()
 	}
 
+	val requestClose: () -> Unit = {
+		val isDirty = content != null &&
+			(entryNameText != content.name || entryText != content.text)
+		when {
+			editing && isDirty -> component.confirmClose()
+			editing -> {
+				component.finishNameEdit()
+				component.finishTextEdit()
+				closeEntry()
+			}
+
+			else -> closeEntry()
+		}
+	}
+	RegisterActions(ActionLayer.Item, mapOf(HammerActions.ItemClose.id to ActionHandler { requestClose() }))
+
 	suspend fun reportImage(result: ImageAddResult) {
 		imageAddResultMessage(result, strRes)?.let { rootSnackbar.showSnackbar(it) }
 	}
@@ -306,20 +326,7 @@ internal fun ViewEntryUi(
 						Column {
 							CrumbRow(
 								menuSlot = { DetailViewDropdownMenu(state.menuItems, ActionPlace.Entry, state.entryDef.id) },
-								onClose = {
-									val isDirty = content != null &&
-										(entryNameText != content.name || entryText != content.text)
-									when {
-										editing && isDirty -> component.confirmClose()
-										editing -> {
-											component.finishNameEdit()
-											component.finishTextEdit()
-											closeEntry()
-										}
-
-										else -> closeEntry()
-									}
-								},
+								onClose = requestClose,
 							)
 
 							HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)

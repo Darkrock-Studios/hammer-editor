@@ -5,7 +5,11 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -126,7 +130,45 @@ class EncyclopediaComponent(
 		navigation.pop()
 	}
 
+	private val browse: BrowseEntries?
+		get() = stack.value.items.firstNotNullOfOrNull {
+			(it.instance as? Encyclopedia.Destination.BrowseEntriesDestination)?.component
+		}
+
+	/**
+	 * Steps the open entry by [offset] through the filtered list. Not live during an edit: the
+	 * edit buffer lives in the UI, so replacing the view would drop it unasked.
+	 */
+	private fun entryStep(offset: Int): ActionHandler {
+		fun target(): EntryDef? {
+			val view = stack.value.active.instance as? Encyclopedia.Destination.ViewEntryDestination ?: return null
+			if (isEditing(view.component)) return null
+			val open = (stack.value.active.configuration as Encyclopedia.Config.ViewEntryConfig).entryDef
+			val order = browse?.getFilteredEntries() ?: return null
+			val index = order.indexOfFirst { it.id == open.id }
+			if (index < 0) return null
+			return order.getOrNull(index + offset)
+		}
+		return ActionHandler(isEnabled = { target() != null }) {
+			target()?.let { entry ->
+				val config = Encyclopedia.Config.ViewEntryConfig(entry)
+				navigation.navigate { configs -> configs.dropLast(1).filter { it != config } + config }
+			}
+		}
+	}
+
 	init {
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(
+				HammerActions.ItemNew.id to ActionHandler(
+					isEnabled = { stack.value.active.configuration !is Encyclopedia.Config.CreateEntryConfig },
+				) { showCreateEntry() },
+				HammerActions.ItemNext.id to entryStep(1),
+				HammerActions.ItemPrev.id to entryStep(-1),
+			),
+		)
 		stack = componentContext.childStack(
 			source = navigation,
 			initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),

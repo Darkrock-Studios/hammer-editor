@@ -10,8 +10,14 @@ interface BrowseNotes {
 	val state: Value<State>
 	val rankedTags: Value<List<TagCount>>
 
+	/** Note ids in the order the list shows them; [State.notes] order until the list reports one. */
+	val visibleOrder: List<Int>
+
 	fun viewNote(noteId: Int)
 	fun showCreate()
+
+	/** The list filters and sorts in the UI, so it reports the order it shows here. */
+	fun onVisibleOrderChanged(noteIds: List<Int>)
 
 	@Serializable
 	data class State(

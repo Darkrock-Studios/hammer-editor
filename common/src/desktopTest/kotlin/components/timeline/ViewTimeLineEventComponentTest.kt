@@ -8,6 +8,9 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEventComponent
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
@@ -1161,4 +1164,40 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	}
 
 	// endregion
+
+	@Test
+	fun `Mod+W on a clean event closes it`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
+		opened(event.id)
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+
+		assertEquals(1, closes)
+	}
+
+	@Test
+	fun `Mod+W on a dirty event edit asks before closing`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm", content = "orig")).event()
+		val component = opened(event.id)
+		component.beginEdit()
+		component.onEventTextChanged("dirty")
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+
+		assertTrue(component.state.value.confirmClose)
+		assertEquals(0, closes)
+	}
+
+	@Test
+	fun `Mod+W is not live once the event stops`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
+		opened(event.id)
+
+		context.stop()
+
+		assertFalse(registry.isLive(HammerActions.ItemClose.id))
+	}
 }

@@ -34,6 +34,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -174,6 +175,7 @@ fun BrowseNotesUi(
 		}
 		applySort(byTags, sortMode)
 	}
+	LaunchedEffect(visibleNotes) { component.onVisibleOrderChanged(visibleNotes.map { it.id }) }
 
 	val toggleTag: (String) -> Unit = { tag ->
 		activeTags = if (tag in activeTags) activeTags - tag else activeTags + tag

@@ -1,6 +1,10 @@
 package components.encyclopedia
 
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.EncyclopediaComponent
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -32,6 +36,7 @@ import utils.ComponentTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -255,5 +260,84 @@ class EncyclopediaComponentTest : ComponentTest() {
 
 		assertIs<Encyclopedia.Destination.BrowseEntriesDestination>(comp.stack.value.active.instance)
 		assertEquals(emptySet(), comp.shouldConfirmClose())
+	}
+
+	private fun def(id: Int, name: String, type: EntryType = EntryType.PERSON) =
+		EntryDef(projectDef = projectDef, id = id, type = type, name = name)
+
+	private val alice = def(1, "Alice")
+	private val castle = def(2, "Castle", EntryType.PLACE)
+	private val bob = def(3, "Bob")
+
+	private fun givenEntries(vararg defs: EntryDef) {
+		every { encyclopediaService.entryListFlow } returns MutableStateFlow(defs.toList())
+	}
+
+	private fun browse(comp: EncyclopediaComponent): BrowseEntries =
+		assertNotNull(comp.stack.value.items.firstNotNullOfOrNull {
+			(it.instance as? Encyclopedia.Destination.BrowseEntriesDestination)?.component
+		})
+
+	@Test
+	fun `Mod+N opens a new entry`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.N)))
+		advanceUntilIdle()
+
+		assertIs<Encyclopedia.Destination.CreateEntryDestination>(comp.stack.value.active.instance)
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.N)))
+	}
+
+	@Test
+	fun `Mod+PageDown opens the next filtered entry`() = runTest(mainTestDispatcher) {
+		givenEntries(alice, castle, bob)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		browse(comp).updateFilter(null, EntryType.PERSON)
+		comp.showViewEntry(alice)
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		advanceUntilIdle()
+
+		assertEquals(Encyclopedia.Config.ViewEntryConfig(bob), comp.stack.value.active.configuration)
+		assertEquals(2, comp.stack.value.items.size)
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+	}
+
+	@Test
+	fun `Mod+PageUp opens the previous entry`() = runTest(mainTestDispatcher) {
+		givenEntries(alice, castle, bob)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showViewEntry(castle)
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageUp)))
+		advanceUntilIdle()
+
+		assertEquals(Encyclopedia.Config.ViewEntryConfig(alice), comp.stack.value.active.configuration)
+	}
+
+	@Test
+	fun `next entry is not live while browsing or editing`() = runTest(mainTestDispatcher) {
+		givenEntries(alice, castle, bob)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertFalse(registry.isLive(HammerActions.ItemNext.id))
+
+		comp.showViewEntry(alice)
+		advanceUntilIdle()
+		val view = assertIs<Encyclopedia.Destination.ViewEntryDestination>(comp.stack.value.active.instance)
+		view.component.startTextEdit()
+
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		assertEquals(Encyclopedia.Config.ViewEntryConfig(alice), comp.stack.value.active.configuration)
 	}
 }

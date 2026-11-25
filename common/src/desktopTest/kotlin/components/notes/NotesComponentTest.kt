@@ -1,6 +1,9 @@
 package components.notes
 
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.notes.NotesComponent
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.ComponentTest
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -261,5 +265,104 @@ class NotesComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertIs<Notes.Destination.CreateNoteDestination>(comp.stack.value.active.instance)
+	}
+
+	private fun givenNotes(vararg ids: Int) {
+		val notes = ids.map { NoteContent(id = it, created = Instant.fromEpochSeconds(1000L + it), content = "note $it") }
+		every { notesRepository.notesListFlow } returns MutableStateFlow(notes.map { NoteContainer(it) })
+		every { notesRepository.findNoteForId(any()) } answers { notes.find { note -> note.id == firstArg<Int>() } }
+	}
+
+	private fun browse(comp: NotesComponent) =
+		assertNotNull(comp.stack.value.items.firstNotNullOfOrNull {
+			(it.instance as? Notes.Destination.BrowseNotesDestination)?.component
+		})
+
+	@Test
+	fun `Mod+N opens a new note`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.N)))
+		advanceUntilIdle()
+
+		assertIs<Notes.Destination.CreateNoteDestination>(comp.stack.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+PageDown opens the next note in the order the list shows`() = runTest(mainTestDispatcher) {
+		givenNotes(1, 2, 3)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		browse(comp).onVisibleOrderChanged(listOf(3, 1, 2))
+		comp.showViewNote(1)
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		advanceUntilIdle()
+
+		assertEquals(Notes.Config.ViewNoteConfig(2), comp.stack.value.active.configuration)
+		assertEquals(2, comp.stack.value.items.size)
+	}
+
+	@Test
+	fun `Mod+PageUp opens the previous note and stops at the first`() = runTest(mainTestDispatcher) {
+		givenNotes(1, 2, 3)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		browse(comp).onVisibleOrderChanged(listOf(3, 1, 2))
+		comp.showViewNote(1)
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageUp)))
+		advanceUntilIdle()
+
+		assertEquals(Notes.Config.ViewNoteConfig(3), comp.stack.value.active.configuration)
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.PageUp)))
+	}
+
+	@Test
+	fun `next note follows the newest first order until the list reports one`() = runTest(mainTestDispatcher) {
+		givenNotes(1, 2, 3)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showViewNote(3)
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		advanceUntilIdle()
+
+		assertEquals(Notes.Config.ViewNoteConfig(2), comp.stack.value.active.configuration)
+	}
+
+	@Test
+	fun `next note is not live while browsing`() = runTest(mainTestDispatcher) {
+		givenNotes(1, 2, 3)
+		newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertFalse(registry.isLive(HammerActions.ItemNext.id))
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+	}
+
+	@Test
+	fun `next note is not live over a dirty edit`() = runTest(mainTestDispatcher) {
+		givenNotes(1, 2, 3)
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showViewNote(3)
+		advanceUntilIdle()
+		val view = assertIs<Notes.Destination.ViewNoteDestination>(comp.stack.value.active.instance)
+		view.component.beginEdit()
+		view.component.onContentChanged("changed body")
+
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		assertEquals(Notes.Config.ViewNoteConfig(3), comp.stack.value.active.configuration)
 	}
 }

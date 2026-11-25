@@ -1,6 +1,9 @@
 package components.timeline
 
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
@@ -611,4 +614,94 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 	}
 
 	// endregion
+
+	@Test
+	fun `Mod+N opens a new event on the selected timeline`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before")
+		val component = newComponent()
+		context.resume()
+		component.selectTimeline(TimelineSelection.Def(before))
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.N)))
+		advanceUntilIdle()
+
+		assertEquals(before, assertIs<TimeLine.Config.CreateEventConfig>(component.stack.value.active.configuration).timelineId)
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.N)))
+	}
+
+	@Test
+	fun `Mod+N is not live in the deleted-timeline bucket`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", timeline = "gone0001"))
+		val component = newComponent()
+		context.resume()
+		component.selectTimeline(TimelineSelection.Orphans)
+		advanceUntilIdle()
+
+		assertFalse(registry.isLive(HammerActions.ItemNew.id))
+	}
+
+	@Test
+	fun `Mod+W closes an event dialog and asks first over a dirty edit`() = runTest(mainTestDispatcher) {
+		givenEvent()
+		val component = newComponent()
+		context.resume()
+		component.showEventDialog(event.id)
+		advanceUntilIdle()
+		val dialog = assertNotNull(component.eventDialog.value.child).instance
+		dialog.beginEdit()
+		dialog.onEventTextChanged("a different body")
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+		assertTrue(dialog.state.value.confirmClose)
+		assertNotNull(component.eventDialog.value.child)
+
+		dialog.cancelClose()
+		dialog.discardEdit()
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+		assertNull(component.eventDialog.value.child)
+	}
+
+	@Test
+	fun `Mod+PageDown opens the next event on this timeline`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val first = eventOn(TimelineDef.MAIN_ID, "First")
+		val second = eventOn(TimelineDef.MAIN_ID, "Second")
+		val third = eventOn(TimelineDef.MAIN_ID, "Third")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		val order = overview(component).state.value.filtered.listRows.map { it.event.id }
+		component.showViewEvent(order[1])
+		advanceUntilIdle()
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		advanceUntilIdle()
+
+		assertEquals(TimeLine.Config.ViewEventConfig(projectDef, order[2]), component.stack.value.active.configuration)
+		assertEquals(2, component.stack.value.items.size)
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+		assertEquals(setOf(first.id, second.id, third.id), order.toSet())
+	}
+
+	@Test
+	fun `next event is not live on the overview or over a dirty edit`() = runTest(mainTestDispatcher) {
+		givenProject()
+		eventOn(TimelineDef.MAIN_ID, "First")
+		eventOn(TimelineDef.MAIN_ID, "Second")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertFalse(registry.isLive(HammerActions.ItemNext.id))
+
+		val order = overview(component).state.value.filtered.listRows.map { it.event.id }
+		component.showViewEvent(order[0])
+		advanceUntilIdle()
+		viewEvent(component).beginEdit()
+		viewEvent(component).onEventTextChanged("a different body")
+
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.PageDown)))
+	}
 }

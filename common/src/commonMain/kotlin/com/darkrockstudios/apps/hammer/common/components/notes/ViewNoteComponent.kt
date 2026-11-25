@@ -9,7 +9,11 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.images.pickImage
@@ -74,6 +78,11 @@ class ViewNoteComponent(
 				isEditing = _state.value.isEditing,
 			)
 		}
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Item,
+			mapOf(HammerActions.ItemClose.id to ActionHandler { confirmClose() }),
+		)
 	}
 
 	override fun onCreate() {

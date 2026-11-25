@@ -9,6 +9,7 @@ import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.navigate
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
@@ -21,7 +22,11 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -207,6 +212,29 @@ class TimeLineComponent(
 	private val overview: TimeLineOverview?
 		get() = stack.value.items.firstNotNullOfOrNull { (it.instance as? TimeLine.Destination.TimeLineOverviewDestination)?.component }
 
+	/**
+	 * Steps the open event by [offset] in the order the overview lists the selected timeline. Not
+	 * live over a dirty edit, whose draft replacing the view would drop.
+	 */
+	private fun eventStep(offset: Int): ActionHandler {
+		fun target(): Int? {
+			if (eventDialog.value.child != null) return null
+			val view = stack.value.active.instance as? TimeLine.Destination.ViewEventDestination ?: return null
+			if (view.component.isEditingAndDirty()) return null
+			val open = (stack.value.active.configuration as TimeLine.Config.ViewEventConfig).eventId
+			val order = overview?.state?.value?.filtered?.listRows ?: return null
+			val index = order.indexOfFirst { it.event.id == open }
+			if (index < 0) return null
+			return order.getOrNull(index + offset)?.event?.id
+		}
+		return ActionHandler(isEnabled = { target() != null }) {
+			target()?.let { eventId ->
+				val config = TimeLine.Config.ViewEventConfig(projectDef, eventId)
+				navigation.navigate { configs -> configs.dropLast(1).filter { it != config } + config }
+			}
+		}
+	}
+
 	// The overview may be showing another timeline than the event's.
 	private fun onSelectedTimeline(eventId: Int): Boolean =
 		overview?.state?.value?.rows?.any { it.event.id == eventId } == true
@@ -336,6 +364,20 @@ class TimeLineComponent(
 	}
 
 	init {
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(
+				HammerActions.ItemNew.id to ActionHandler(
+					isEnabled = {
+						_selection.value is TimelineSelection.Def &&
+							stack.value.active.configuration !is TimeLine.Config.CreateEventConfig
+					},
+				) { showCreateEvent() },
+				HammerActions.ItemNext.id to eventStep(1),
+				HammerActions.ItemPrev.id to eventStep(-1),
+			),
+		)
 		stateKeeper.register(SELECTION_KEY, TimelineSelection.serializer()) { _selection.value }
 		backHandler.register(dialogBackCallback)
 		stack.subscribe(lifecycle) {

@@ -88,6 +88,8 @@ private fun fakeComponent(): BrowseNotes = object : BrowseNotes {
 			)
 		)
 
+	override val visibleOrder: List<Int> = emptyList()
 	override fun viewNote(noteId: Int) {}
 	override fun showCreate() {}
+	override fun onVisibleOrderChanged(noteIds: List<Int>) {}
 }

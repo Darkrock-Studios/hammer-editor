@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.arkivanov.decompose.value.MutableValue
@@ -951,6 +952,20 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		assertEquals(listOf("Kept"), timeLineRepository.currentEvents().map { it.title })
 	}
 
+
+	@Test
+	fun `the new timeline action asks for a timeline while the overview is shown`() = runTest(mainTestDispatcher) {
+		givenProject()
+		newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertTrue(registry.invoke(HammerActions.TimelineNew.id))
+		assertEquals(1, newTimelineRequests)
+
+		context.stop()
+		assertFalse(registry.isLive(HammerActions.TimelineNew.id))
+	}
 
 	// endregion
 }

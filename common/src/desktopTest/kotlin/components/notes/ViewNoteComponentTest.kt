@@ -1,6 +1,9 @@
 package components.notes
 
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNoteComponent
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
@@ -467,5 +470,35 @@ class ViewNoteComponentTest : ComponentTest() {
 
 		assertFalse(restored.state.value.isEditing)
 		assertEquals("orig", restored.noteText.value)
+	}
+
+	@Test
+	fun `Mod+W closes a clean note`() = runTest(mainTestDispatcher) {
+		startWith(note())
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+
+		assertEquals(1, dismissViewCount)
+	}
+
+	@Test
+	fun `Mod+W on a dirty edit asks before closing`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note(content = "orig"))
+		comp.beginEdit()
+		comp.onContentChanged("dirty")
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+
+		assertTrue(comp.state.value.confirmClose)
+		assertEquals(0, dismissViewCount)
+	}
+
+	@Test
+	fun `Mod+W is not live once the note stops`() = runTest(mainTestDispatcher) {
+		startWith(note())
+
+		context.stop()
+
+		assertFalse(registry.isLive(HammerActions.ItemClose.id))
 	}
 }
