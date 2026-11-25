@@ -1126,7 +1126,7 @@ fixtures. Between them they use every slot:
 | `style` | C | A project action whose first page is a `scenes` field, with progress, a document page, the [cache](#cache) keyed by each scene's text, per-language [resources](#resources), and translations |
 | `reading-level` | Kotlin | A project and scene action with a scene picker page of its own, resources, and the cache |
 | `simple-grammar` | C | A text check, with byte offsets the host turns into the editor's UTF-16 ranges, written on the C kit's `hammer_diagnose.h` |
-| `harper-grammar` | Rust | A text check declaring `limits.memory = 256` |
+| `harper-grammar` | Rust | A text check pre-initialized with Wizer: a module of over 100 MB declaring `limits.memory = 256` |
 | `name-checker` | Rust | A text check and a document-page action in one plugin. The check reads the encyclopedia through `entry.list`, using the request's `project` |
 | `languagetool` | Rust | [HTTP](#http) to declared hosts, `userHosts` for a self-hosted server, and `secret` settings for the Premium API key and the server address |
 | `fantasy-names`, `real-names`, `scifi-names` | Kotlin | Action fields remembered for the next run, inline buttons, `state` across calls, and page-level `errors` |
@@ -1232,16 +1232,14 @@ never dropped for what it holds there.
 Rust has a kit of its own in `hammer-plugin-sdk` (`rust/hammer`): Hammer's
 imports, operations, and the cache, the `diagnose` request and reply types,
 character to byte offsets, an optional `getrandom` backend on the host's
-`random_get`, and panics reported as the call's error. Its `tools/finish.py`
-strips what crates written for the browser leave behind (wasm-bindgen's
-exports, and a trap in place of any of its imports still reachable) and fails
-the build if the module imports anything Hammer does not offer.
-
-`harper-grammar` was once pre-initialized at build time with
-[Wizer](https://github.com/bytecodealliance/wizer), which saved its first check
-building the linter, about 16 s on desktop. It is no longer: the module grew to
-117 MB, too large to load interpreted on a phone, and compiling on Android
-starts it quickly without it.
+`random_get`, panics reported as the call's error, and an allocator that
+zeroes freed memory. Its `tools/finish.py` strips what crates written for
+the browser leave behind (wasm-bindgen's exports, and a trap in place of any of
+its imports still reachable) and fails the build if the module imports
+anything Hammer does not offer. A plugin whose start-up is slow can run it at
+build time under [Wizer](https://github.com/bytecodealliance/wizer), which
+saves the memory start-up leaves into the module; the zeroing allocator keeps
+what start-up threw away out of it.
 
 The C kit (`c/include`) builds freestanding (`--target=wasm32-unknown-unknown
 -nostdlib`), so a C plugin imports nothing but Extism and Hammer functions.
@@ -1394,8 +1392,8 @@ two or more installed plugins share a kind, the project's settings show a
 dropdown for it, where the user picks one or none. The dropdown shows the first
 translated label among the kind's plugins by plugin id, else the first label.
 
-A module may be as large as its memory limit plus 32 MiB, since its data
-segments may fill its memory. The install dialog says when
+A module may be as large as its memory limit plus 32 MiB, since a
+pre-initialized module carries its memory's data. The install dialog says when
 a plugin asks for more memory than the default.
 
 Each `permissions.operations` entry is an operation's name, or a scope with
@@ -2010,9 +2008,11 @@ cannot load, the command exits with an error rather than reading input.
 - **Loading a large module.** Each load reads the module from the package and
   hands the bytes to chasm, which keeps them until the module has started; then
   they are let go, and the decoded module and the module's linear memory remain.
-  So a large module needs a JVM heap several times its size while it loads.
-  Short of that, the load fails as out of memory, and a text check it provides
-  leaves the text unmarked.
+  So a pre-initialized module needs a JVM heap several times its size while it
+  loads: the 104 MB `harper-grammar` module loads in a 400 MB heap but not in
+  392, and holds about 90 MB once loaded. Short of that, the load fails as out
+  of memory, and a text check it provides leaves the text unmarked. It is
+  untried on Android's app heap.
 - **iOS.** Kotlin/Native has no heap limit to read, so the kernel's cap is a fixed
   256 MiB there, and chasm caps a Kotlin/Wasm plugin's guest heap at a fixed
   1 GiB, which the host cannot measure. Most failed allocations abort the process

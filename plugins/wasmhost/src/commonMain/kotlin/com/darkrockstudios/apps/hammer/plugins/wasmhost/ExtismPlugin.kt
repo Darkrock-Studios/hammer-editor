@@ -54,7 +54,7 @@ import kotlin.time.TimeSource
 class ExtismPlugin(
 	/**
 	 * The module's bytes, asked for once, inside the constructor: held only by chasm's decoded module, they
-	 * can be collected once the module has started, which matters for a large module.
+	 * can be collected once the module has started, which matters for a pre-initialized module of 100 MB or more.
 	 */
 	loadWasm: () -> ByteArray,
 	userFunctions: List<UserFunction> = emptyList(),
