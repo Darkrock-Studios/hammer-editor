@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -193,10 +194,11 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 @Composable
 fun CommandOverlayContent(component: ProjectRoot) {
 	val state by component.commandOverlayState.subscribeAsState()
+	// Keyed so a palette reopened during its predecessor's exit starts from fresh dialog state.
 	when (val overlay = state.child?.instance) {
 		null, ProjectRoot.CommandOverlay.None -> {}
-		is ProjectRoot.CommandOverlay.PaletteOverlay -> CommandPaletteUi(overlay.component)
-		is ProjectRoot.CommandOverlay.CheatSheetOverlay -> CheatSheetUi(overlay.component)
+		is ProjectRoot.CommandOverlay.PaletteOverlay -> key(overlay.component) { CommandPaletteUi(overlay.component) }
+		is ProjectRoot.CommandOverlay.CheatSheetOverlay -> key(overlay.component) { CheatSheetUi(overlay.component) }
 	}
 }
 

@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.runComposeUiTest
 import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionId
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
@@ -32,28 +31,39 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Holds a barrier on [registry] and runs through it, as the real palette does. */
+/** Holds a barrier on [registry] through its exit and runs past it, as the real palette does. */
 private class FakeCommandPalette(
 	entries: List<PaletteEntry>,
 	private val registry: ActionRegistry = ActionRegistry(),
+	loaded: Boolean = true,
 ) : CommandPalette {
-	override val state: Value<CommandPalette.State> = MutableValue(CommandPalette.State(entries))
+	override val state = MutableValue(CommandPalette.State(entries, loaded = loaded))
 	val ran = mutableListOf<ActionId>()
 	var dismissed = 0
+	var exits = 0
 
 	private var barrier: ActionRegistration? =
 		registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = ::dismiss)
 
 	override fun run(id: ActionId) {
+		if (!state.value.open) return
 		dismiss()
+		barrier?.unregister()
 		ran += id
 		registry.invoke(id)
+		barrier = registry.register(ActionLayer.Overlay, emptyMap(), blocksBelow = true, onDismiss = {})
 	}
 
 	override fun dismiss() {
+		if (!state.value.open) return
+		state.value = state.value.copy(open = false)
+		dismissed++
+	}
+
+	override fun onDismissed() {
 		barrier?.unregister()
 		barrier = null
-		dismissed++
+		exits++
 	}
 }
 
@@ -143,6 +153,62 @@ class CommandPaletteUiTest {
 	}
 
 	@Test
+	fun `nothing shows until the commands load`() = runComposeUiTest {
+		val fake = FakeCommandPalette(emptyList(), loaded = false)
+		setContent { CommandPaletteUi(fake) }
+		waitForIdle()
+
+		val emptyShown = onAllNodesWithText("No matching commands").fetchSemanticsNodes().isNotEmpty()
+
+		assertFalse(emptyShown)
+	}
+
+	@Test
+	fun `once loaded with nothing live, the empty label shows`() = runComposeUiTest {
+		val fake = FakeCommandPalette(emptyList())
+		setContent { CommandPaletteUi(fake) }
+		waitForIdle()
+
+		val emptyShown = onAllNodesWithText("No matching commands").fetchSemanticsNodes().isNotEmpty()
+
+		assertTrue(emptyShown)
+	}
+
+	@Test
+	fun `Enter before the commands load does nothing`() = runComposeUiTest {
+		val fake = FakeCommandPalette(emptyList(), loaded = false)
+		setContent { CommandPaletteUi(fake) }
+		waitForIdle()
+
+		searchField().performKeyInput { pressKey(Key.Enter) }
+		waitForIdle()
+
+		assertTrue(fake.ran.isEmpty())
+		assertEquals(0, fake.dismissed)
+	}
+
+	@Test
+	fun `closing plays the exit before the palette is told it has gone`() = runComposeUiTest {
+		val fake = FakeCommandPalette(entries)
+		setContent { CommandPaletteUi(fake) }
+		waitForIdle()
+		mainClock.autoAdvance = false
+
+		fake.dismiss()
+		mainClock.advanceTimeByFrame()
+		mainClock.advanceTimeByFrame()
+		val shownDuringExit = onAllNodesWithText("Commands").fetchSemanticsNodes().isNotEmpty()
+		val exitsDuringExit = fake.exits
+		mainClock.advanceTimeBy(1_000)
+		waitForIdle()
+
+		assertTrue(shownDuringExit)
+		assertEquals(0, exitsDuringExit)
+		assertEquals(1, fake.exits)
+		assertTrue(onAllNodesWithText("Commands").fetchSemanticsNodes().isEmpty())
+	}
+
+	@Test
 	fun `Esc dismisses`() = runComposeUiTest {
 		val registry = ActionRegistry()
 		val fake = FakeCommandPalette(entries, registry)
@@ -154,6 +220,7 @@ class CommandPaletteUiTest {
 
 		assertTrue(closed)
 		assertEquals(1, fake.dismissed)
+		assertEquals(1, fake.exits)
 		assertTrue(fake.ran.isEmpty())
 		assertFalse(registry.hasOverlay())
 	}

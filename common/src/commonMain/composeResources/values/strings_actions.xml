@@ -48,4 +48,5 @@
 	<string name="palette_search_placeholder">Type a command</string>
 	<string name="palette_empty">No matching commands</string>
 	<string name="cheat_sheet_title">Keyboard shortcuts</string>
+	<string name="cheat_sheet_editor_hint">While editing text</string>
 </resources>

@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.cheat_sheet_editor_hint
 import com.darkrockstudios.apps.hammer.cheat_sheet_title
 import com.darkrockstudios.apps.hammer.common.components.commandpalette.CheatSheet
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
@@ -35,8 +36,9 @@ fun CheatSheetUi(component: CheatSheet) {
 	val state by component.state.subscribeAsState()
 
 	AnimatedDialog(
-		visible = true,
+		visible = state.open,
 		onCloseRequest = component::dismiss,
+		onDismissed = component::onDismissed,
 		dismissOnTapOutside = true,
 		// The component holds the barrier Esc closes.
 		blocksActions = false,
@@ -51,7 +53,7 @@ fun CheatSheetUi(component: CheatSheet) {
 					.verticalScroll(rememberScrollState()),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 			) {
-				state.sections.forEachIndexed { index, section ->
+				if (state.loaded) state.sections.forEachIndexed { index, section ->
 					Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
 						HdSectionHeader(section = index + 1, title = section.category)
 						section.rows.forEach { row -> CheatSheetRow(row) }
@@ -67,7 +69,7 @@ private fun CheatSheetRow(row: CheatSheet.Row) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.alpha(if (row.live) 1f else DEAD_ROW_ALPHA)
+			.alpha(if (row.reach == CheatSheet.Reach.Dead) DEAD_ROW_ALPHA else 1f)
 			.padding(vertical = Ui.Padding.S),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
@@ -78,6 +80,14 @@ private fun CheatSheetRow(row: CheatSheet.Row) {
 			color = MaterialTheme.colorScheme.onSurface,
 			modifier = Modifier.weight(1f),
 		)
+		if (row.reach == CheatSheet.Reach.Editor) {
+			Text(
+				text = Res.string.cheat_sheet_editor_hint.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				maxLines = 1,
+			)
+		}
 		row.chords.forEach { chord -> HdMetaText(text = chord.label(), maxLines = 1) }
 	}
 }

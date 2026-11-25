@@ -69,6 +69,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.components.commandpalette.CheatSheet
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import io.mockk.coEvery
@@ -1006,6 +1007,92 @@ class ProjectRootComponentTest : ComponentTest() {
 	private fun ProjectRoot.commandOverlayClosed(): Boolean =
 		commandOverlayState.value.child?.instance.let { it == null || it is ProjectRoot.CommandOverlay.None }
 
+	private fun ProjectRoot.cheatSheet() =
+		assertIs<ProjectRoot.CommandOverlay.CheatSheetOverlay>(commandOverlayState.value.child?.instance).component
+
+	/** What the overlay's UI does once its exit animation has played. */
+	private fun ProjectRoot.finishCommandOverlayExit() {
+		when (val overlay = commandOverlayState.value.child?.instance) {
+			is ProjectRoot.CommandOverlay.PaletteOverlay -> overlay.component.onDismissed()
+			is ProjectRoot.CommandOverlay.CheatSheetOverlay -> overlay.component.onDismissed()
+			else -> {}
+		}
+	}
+
+	@Test
+	fun `a dismissed palette stays up for its exit, then the slot clears`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		val palette = comp.palette()
+
+		comp.dismissCommandOverlay()
+		val shownDuringExit = comp.commandOverlayState.value.child?.instance
+		comp.finishCommandOverlayExit()
+
+		assertFalse(palette.state.value.open)
+		assertIs<ProjectRoot.CommandOverlay.PaletteOverlay>(shownDuringExit)
+		assertTrue(comp.commandOverlayClosed())
+		assertFalse(comp.actions.hasOverlay())
+	}
+
+	@Test
+	fun `Esc during the palette exit over focus mode keeps focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		comp.actions.dismissTopOverlay()
+		val secondEsc = comp.actions.dismissTopOverlay()
+		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
+
+		assertTrue(secondEsc)
+		assertTrue(comp.commandOverlayClosed())
+		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `Mod+K while the palette plays its exit opens a fresh one`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		val first = comp.palette()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		val second = comp.palette()
+		assertTrue(first !== second)
+		assertTrue(second.state.value.open)
+		assertTrue(HammerActions.NavNotes.id in second.state.value.entries.map { it.id })
+	}
+
+	@Test
+	fun `F1 while the palette plays its exit opens a sheet of what is live below it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		comp.dismissCommandOverlay()
+
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		val navNotes = comp.cheatSheet().state.value.sections.flatMap { it.rows }.single { it.id == HammerActions.NavNotes.id }
+		assertEquals(CheatSheet.Reach.Live, navNotes.reach)
+	}
+
 	@Test
 	fun `Mod+K opens the palette and F1 the cheat sheet`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
@@ -1059,6 +1146,7 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		val closed = comp.actions.dismissTopOverlay()
 		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
 
 		assertTrue(closed)
 		assertTrue(comp.commandOverlayClosed())
@@ -1077,6 +1165,7 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		comp.palette().run(HammerActions.ProjectSaveAll.id)
 		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
 
 		coVerify { sceneEditor.storeAllBuffers() }
 		assertTrue(comp.commandOverlayClosed())
@@ -1094,6 +1183,7 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		comp.palette().run(HammerActions.ItemNew.id)
 		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
 
 		assertTrue(comp.commandOverlayClosed())
 		val notes = assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
@@ -1110,6 +1200,7 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
 		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
 
 		assertTrue(handled)
 		assertTrue(comp.commandOverlayClosed())
@@ -1126,6 +1217,7 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		val handled = comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
 		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
 
 		assertTrue(handled)
 		assertTrue(comp.commandOverlayClosed())
@@ -1143,11 +1235,8 @@ class ProjectRootComponentTest : ComponentTest() {
 		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
 		advanceUntilIdle()
 
-		val sheet = assertIs<ProjectRoot.CommandOverlay.CheatSheetOverlay>(
-			comp.commandOverlayState.value.child?.instance
-		).component
-		val navNotes = sheet.state.value.sections.flatMap { it.rows }.single { it.id == HammerActions.NavNotes.id }
-		assertTrue(navNotes.live)
+		val navNotes = comp.cheatSheet().state.value.sections.flatMap { it.rows }.single { it.id == HammerActions.NavNotes.id }
+		assertEquals(CheatSheet.Reach.Live, navNotes.reach)
 	}
 
 	@Test

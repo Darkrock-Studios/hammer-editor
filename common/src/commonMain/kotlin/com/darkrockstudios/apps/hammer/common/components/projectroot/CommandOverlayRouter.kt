@@ -34,15 +34,23 @@ class CommandOverlayRouter(
 	private val current: Config
 		get() = state.value.child?.configuration ?: Config.None
 
+	/** False once the overlay in the slot has started to close, while its exit plays. */
+	private val currentIsOpen: Boolean
+		get() = when (val overlay = state.value.child?.instance) {
+			is ProjectRoot.CommandOverlay.PaletteOverlay -> overlay.component.state.value.open
+			is ProjectRoot.CommandOverlay.CheatSheetOverlay -> overlay.component.state.value.open
+			ProjectRoot.CommandOverlay.None, null -> false
+		}
+
 	private fun createChild(config: Config, componentContext: ComponentContext): ProjectRoot.CommandOverlay =
 		when (config) {
 			Config.None -> ProjectRoot.CommandOverlay.None
 			Config.Palette -> ProjectRoot.CommandOverlay.PaletteOverlay(
-				CommandPaletteComponent(componentContext, actions, ::dismiss)
+				CommandPaletteComponent(componentContext, actions, ::clear)
 			)
 
 			Config.CheatSheet -> ProjectRoot.CommandOverlay.CheatSheetOverlay(
-				CheatSheetComponent(componentContext, actions, ::dismiss)
+				CheatSheetComponent(componentContext, actions, ::clear)
 			)
 		}
 
@@ -50,17 +58,28 @@ class CommandOverlayRouter(
 
 	fun showCheatSheet() = show(Config.CheatSheet)
 
+	/** Starts closing the overlay; the slot clears once its UI has played the exit. */
 	fun dismiss() {
-		navigation.activate(Config.None)
+		when (val overlay = state.value.child?.instance) {
+			is ProjectRoot.CommandOverlay.PaletteOverlay -> overlay.component.dismiss()
+			is ProjectRoot.CommandOverlay.CheatSheetOverlay -> overlay.component.dismiss()
+			ProjectRoot.CommandOverlay.None, null -> {}
+		}
 	}
 
-	fun isShowing(config: Config): Boolean = current == config
+	/** Whether [config] is up and not yet closing. */
+	fun isShowing(config: Config): Boolean = current == config && currentIsOpen
 
 	private fun show(config: Config) {
-		if (current == config) return
-		// The one showing goes first, so its barrier is down before the new one looks at what is live.
-		if (current != Config.None) dismiss()
+		if (isShowing(config)) return
+		// The one in the slot, open or playing its exit, is destroyed first, so its barrier is down
+		// before the new one looks at what is live.
+		if (current != Config.None) clear()
 		navigation.activate(config)
+	}
+
+	private fun clear() {
+		navigation.activate(Config.None)
 	}
 
 	sealed class Config {

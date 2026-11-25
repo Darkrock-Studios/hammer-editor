@@ -19,9 +19,10 @@ import com.darkrockstudios.apps.hammer.palette_title
 fun CommandPaletteUi(component: CommandPalette) {
 	val state by component.state.subscribeAsState()
 	val showChords = rememberShowChords()
+	val emptyLabel = Res.string.palette_empty.get()
 
 	HdSearchableListDialog(
-		visible = true,
+		visible = state.open,
 		title = Res.string.palette_title.get(),
 		items = state.entries,
 		itemLabel = { it.label },
@@ -37,8 +38,10 @@ fun CommandPaletteUi(component: CommandPalette) {
 		blocksActions = false,
 		onSelect = { component.run(it.id) },
 		onDismiss = component::dismiss,
+		onDismissed = component::onDismissed,
 		closeContentDescription = Res.string.hd_dialog_close.get(),
 		searchPlaceholder = Res.string.palette_search_placeholder.get(),
-		emptyLabel = Res.string.palette_empty.get(),
+		// Blank while the labels resolve, so an empty list does not read as no matches.
+		emptyLabel = if (state.loaded) emptyLabel else "",
 	)
 }

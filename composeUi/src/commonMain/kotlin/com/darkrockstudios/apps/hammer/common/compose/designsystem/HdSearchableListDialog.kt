@@ -73,7 +73,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  * [filter] replaces the built-in match (it also sees a blank query). With [keyboardSelection],
  * Up and Down in the search field move a highlight that starts on the first match, and Enter
  * picks it. [autoFocusSearch] puts the caret in the search field on open. [itemTrailingContent]
- * draws a row's trailing end in place of the [itemTrailing] greeble.
+ * draws a row's trailing end in place of the [itemTrailing] greeble. [onDismissed] runs once the
+ * exit animation after [visible] turns false has played.
  */
 @Composable
 fun <T> HdSearchableListDialog(
@@ -97,6 +98,7 @@ fun <T> HdSearchableListDialog(
 	keyboardSelection: Boolean = false,
 	autoFocusSearch: Boolean = false,
 	itemTrailingContent: (@Composable (T) -> Unit)? = null,
+	onDismissed: () -> Unit = {},
 ) {
 	var query by rememberSaveable { mutableStateOf("") }
 
@@ -104,7 +106,10 @@ fun <T> HdSearchableListDialog(
 		visible = visible,
 		onCloseRequest = onDismiss,
 		dismissOnTapOutside = true,
-		onDismissed = { query = "" },
+		onDismissed = {
+			query = ""
+			onDismissed()
+		},
 		blocksActions = blocksActions,
 	) {
 		HdSearchableListDialogContent(

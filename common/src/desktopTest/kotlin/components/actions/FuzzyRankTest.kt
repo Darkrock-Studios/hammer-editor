@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 
 class FuzzyRankTest {
 
-	private fun e(label: String) = PaletteEntry(ActionId(label), label, "cat", null)
+	private fun e(label: String, category: String = "cat") = PaletteEntry(ActionId(label), label, category, null)
 
 	@Test
 	fun `a blank query keeps table order`() {
@@ -58,5 +58,32 @@ class FuzzyRankTest {
 		val ranked = rankActions("va", entries)
 
 		assertEquals(listOf("Save all", "View drafts"), ranked.map { it.label })
+	}
+
+	@Test
+	fun `a loose label match beats a category prefix`() {
+		val entries = listOf(e("Go to Notes", "Story"), e("Save text", "Project"))
+
+		val ranked = rankActions("st", entries)
+
+		assertEquals(listOf("Save text", "Go to Notes"), ranked.map { it.label })
+	}
+
+	@Test
+	fun `category prefix beats word start beats substring`() {
+		val entries = listOf(e("Save all", "Subitems"), e("Next pane", "Story items"), e("Go to Notes", "Items"))
+
+		val ranked = rankActions("item", entries)
+
+		assertEquals(listOf("Go to Notes", "Next pane", "Save all"), ranked.map { it.label })
+	}
+
+	@Test
+	fun `category ties keep input order`() {
+		val entries = listOf(e("Save all", "Project"), e("Quit", "Project"), e("Go to Notes", "Navigation"))
+
+		val ranked = rankActions("proj", entries)
+
+		assertEquals(listOf("Save all", "Quit"), ranked.map { it.label })
 	}
 }

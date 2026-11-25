@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.commandpalette
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionId
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
@@ -16,7 +17,7 @@ import org.koin.core.component.inject
 class CommandPaletteComponent(
 	componentContext: ComponentContext,
 	private val actions: ActionRegistry,
-	onDismiss: () -> Unit,
+	private val onClosed: () -> Unit,
 ) : ComponentBase(componentContext), CommandPalette {
 
 	private val strRes: StrRes by inject()
@@ -27,7 +28,7 @@ class CommandPaletteComponent(
 	// Taken before the barrier goes up, so it is what is live under whatever the palette covers.
 	private val offered = actions.live().filter { it.id != HammerActions.PaletteOpen.id }
 
-	private val barrier = CommandOverlayBarrier(actions, lifecycle, onDismiss)
+	private val barrier = CommandOverlayBarrier(actions, lifecycle) { _state.update { it.copy(open = false) } }
 
 	init {
 		scope.launch {
@@ -39,15 +40,19 @@ class CommandPaletteComponent(
 					chord = actions.keymap.primaryChord(def.id),
 				)
 			}
-			withContext(dispatcherMain) { _state.value = CommandPalette.State(entries) }
+			withContext(dispatcherMain) { _state.update { it.copy(entries = entries, loaded = true) } }
 		}
 	}
 
 	override fun run(id: ActionId) {
-		if (barrier.dismiss()) actions.invoke(id)
+		barrier.close { actions.invoke(id) }
 	}
 
 	override fun dismiss() {
-		barrier.dismiss()
+		barrier.close()
+	}
+
+	override fun onDismissed() {
+		if (barrier.finishExit()) onClosed()
 	}
 }

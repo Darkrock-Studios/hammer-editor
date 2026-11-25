@@ -77,17 +77,28 @@ class CheatSheetComponentTest : ComponentTest() {
 		context.resume()
 		advanceUntilIdle()
 
-		assertTrue(sheet.row("nav.home").live)
-		assertFalse(sheet.row("nav.notes").live)
+		assertEquals(CheatSheet.Reach.Live, sheet.row("nav.home").reach)
+		assertEquals(CheatSheet.Reach.Dead, sheet.row("nav.notes").reach)
 	}
 
 	@Test
-	fun `editor chords count as live`() = runTest(mainTestDispatcher) {
+	fun `editor chords are neither live nor dead`() = runTest(mainTestDispatcher) {
 		val sheet = newCheatSheet()
 		context.resume()
 		advanceUntilIdle()
 
-		assertTrue(sheet.row("edit.bold").live)
+		assertEquals(CheatSheet.Reach.Editor, sheet.row("edit.bold").reach)
+	}
+
+	@Test
+	fun `the sheet is not loaded until its labels resolve`() = runTest(mainTestDispatcher) {
+		val sheet = newCheatSheet()
+		val loadedAtOpen = sheet.state.value.loaded
+		context.resume()
+		advanceUntilIdle()
+
+		assertFalse(loadedAtOpen)
+		assertTrue(sheet.state.value.loaded)
 	}
 
 	@Test
@@ -114,7 +125,27 @@ class CheatSheetComponentTest : ComponentTest() {
 
 		assertTrue(blocked)
 		assertTrue(closed)
+		assertEquals(0, dismissed)
+	}
+
+	@Test
+	fun `the sheet plays its exit, then leaves and lifts its barrier`() = runTest(mainTestDispatcher) {
+		registry.register(ActionLayer.Module, mapOf(HammerActions.ItemNew.id to ActionHandler {}))
+		val sheet = newCheatSheet()
+		context.resume()
+		advanceUntilIdle()
+
+		sheet.dismiss()
+		val openAfterDismiss = sheet.state.value.open
+		val escDuringExit = registry.dismissTopOverlay()
+		val blockedDuringExit = !registry.dispatch(KeyChord.mod(ChordKey.N))
+		sheet.onDismissed()
+
+		assertFalse(openAfterDismiss)
+		assertTrue(escDuringExit)
+		assertTrue(blockedDuringExit)
 		assertEquals(1, dismissed)
+		assertFalse(registry.hasOverlay())
 		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.N)))
 	}
 }

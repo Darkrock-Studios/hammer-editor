@@ -48,7 +48,23 @@ class CommandPaletteComponentTest : ComponentTest() {
 		registry.register(ActionLayer.Module, mapOf(HammerActions.ItemNew.id to ActionHandler { events += "item.new" }))
 	}
 
-	private fun newPalette() = CommandPaletteComponent(context, registry) { events += "dismissed" }
+	private fun newPalette() = CommandPaletteComponent(context, registry) { events += "gone" }
+
+	private fun CommandPaletteComponent.recordClosing() = state.subscribe { if (!it.open) events += "closing" }
+
+	@Test
+	fun `the palette is not loaded until its labels resolve`() = runTest(mainTestDispatcher) {
+		registerNotesAndNewItem()
+
+		val palette = newPalette()
+		val loadedAtOpen = palette.state.value.loaded
+		context.resume()
+		advanceUntilIdle()
+
+		assertFalse(loadedAtOpen)
+		assertTrue(palette.state.value.loaded)
+		assertEquals(2, palette.state.value.entries.size)
+	}
 
 	@Test
 	fun `the palette lists live actions only`() = runTest(mainTestDispatcher) {
@@ -94,10 +110,27 @@ class CommandPaletteComponentTest : ComponentTest() {
 		val palette = newPalette()
 		context.resume()
 		advanceUntilIdle()
+		palette.recordClosing()
 
 		palette.run(HammerActions.ItemNew.id)
 
-		assertEquals(listOf("dismissed", "item.new"), events)
+		assertEquals(listOf("closing", "item.new"), events)
+	}
+
+	@Test
+	fun `the palette leaves only once its exit has played`() = runTest(mainTestDispatcher) {
+		registerNotesAndNewItem()
+		val palette = newPalette()
+		context.resume()
+		advanceUntilIdle()
+
+		palette.dismiss()
+		val goneBeforeExit = "gone" in events
+		palette.onDismissed()
+
+		assertFalse(goneBeforeExit)
+		assertFalse(palette.state.value.open)
+		assertEquals(listOf("gone"), events)
 	}
 
 	@Test
@@ -114,18 +147,37 @@ class CommandPaletteComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `Esc closes the palette and lifts its barrier`() = runTest(mainTestDispatcher) {
+	fun `Esc closes the palette and its barrier lifts once the exit has played`() = runTest(mainTestDispatcher) {
 		registerNotesAndNewItem()
-		newPalette()
+		val palette = newPalette()
 		context.resume()
 		advanceUntilIdle()
 
 		val closed = registry.dismissTopOverlay()
+		val openAfterEsc = palette.state.value.open
+		palette.onDismissed()
 
 		assertTrue(closed)
-		assertEquals(listOf("dismissed"), events)
+		assertFalse(openAfterEsc)
 		assertFalse(registry.hasOverlay())
 		assertTrue(registry.dispatch(modN))
+	}
+
+	@Test
+	fun `Esc during the exit is taken and does nothing more`() = runTest(mainTestDispatcher) {
+		registerNotesAndNewItem()
+		val palette = newPalette()
+		context.resume()
+		advanceUntilIdle()
+		palette.recordClosing()
+		registry.dismissTopOverlay()
+
+		val overlayDuringExit = registry.hasOverlay()
+		val secondEsc = registry.dismissTopOverlay()
+
+		assertTrue(overlayDuringExit)
+		assertTrue(secondEsc)
+		assertEquals(listOf("closing"), events)
 	}
 
 	@Test
@@ -134,11 +186,26 @@ class CommandPaletteComponentTest : ComponentTest() {
 		val palette = newPalette()
 		context.resume()
 		advanceUntilIdle()
+		palette.recordClosing()
 
 		palette.run(HammerActions.NavNotes.id)
 		palette.dismiss()
+		palette.run(HammerActions.ItemNew.id)
 
-		assertEquals(listOf("dismissed", "nav.notes"), events)
+		assertEquals(listOf("closing", "nav.notes"), events)
+	}
+
+	@Test
+	fun `the exit is ignored while the palette is open`() = runTest(mainTestDispatcher) {
+		registerNotesAndNewItem()
+		val palette = newPalette()
+		context.resume()
+		advanceUntilIdle()
+
+		palette.onDismissed()
+
+		assertTrue(events.isEmpty())
+		assertTrue(registry.hasOverlay())
 	}
 
 	@Test
