@@ -49,4 +49,5 @@
 	<string name="palette_empty">No matching commands</string>
 	<string name="cheat_sheet_title">Keyboard shortcuts</string>
 	<string name="cheat_sheet_editor_hint">While editing text</string>
+	<string name="cheat_sheet_only_available">Only show what works here</string>
 </resources>

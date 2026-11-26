@@ -23,11 +23,13 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.cheat_sheet_editor_hint
+import com.darkrockstudios.apps.hammer.cheat_sheet_only_available
 import com.darkrockstudios.apps.hammer.cheat_sheet_title
 import com.darkrockstudios.apps.hammer.common.components.commandpalette.CheatSheet
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardScroll
@@ -56,6 +58,12 @@ fun CheatSheetUi(component: CheatSheet) {
 			val scrollState = rememberScrollState()
 			val focusRequester = remember { FocusRequester() }
 			LaunchedEffect(Unit) { focusRequester.requestFocus() }
+			HdHairlineToggleRow(
+				checked = state.onlyAvailable,
+				onCheckedChange = component::setOnlyAvailable,
+				label = Res.string.cheat_sheet_only_available.get(),
+				modifier = Modifier.padding(bottom = Ui.Padding.L),
+			)
 			Column(
 				modifier = Modifier
 					.heightIn(max = CheatSheetMaxHeight)
@@ -64,7 +72,7 @@ fun CheatSheetUi(component: CheatSheet) {
 					.verticalScroll(scrollState),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 			) {
-				if (state.loaded) state.sections.forEachIndexed { index, section ->
+				if (state.loaded) state.shownSections.forEachIndexed { index, section ->
 					Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
 						HdSectionHeader(section = index + 1, title = section.category)
 						section.rows.forEach { row -> CheatSheetRow(row) }

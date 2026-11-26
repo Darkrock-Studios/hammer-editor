@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.onAllNodesWithText
@@ -34,6 +35,10 @@ private class FakeCheatSheet(sections: List<CheatSheet.Section>, loaded: Boolean
 	override fun onDismissed() {
 		exits++
 	}
+
+	override fun setOnlyAvailable(only: Boolean) {
+		state.value = state.value.copy(onlyAvailable = only)
+	}
 }
 
 @OptIn(ExperimentalTestApi::class)
@@ -42,7 +47,10 @@ class CheatSheetUiTest {
 	private val sections = listOf(
 		CheatSheet.Section(
 			"Navigation",
-			listOf(CheatSheet.Row(ActionId("nav.notes"), "Go to Notes", listOf(KeyChord.mod(ChordKey.Digit3)), CheatSheet.Reach.Live)),
+			listOf(
+				CheatSheet.Row(ActionId("nav.notes"), "Go to Notes", listOf(KeyChord.mod(ChordKey.Digit3)), CheatSheet.Reach.Live),
+				CheatSheet.Row(ActionId("nav.timeline"), "Go to Timeline", listOf(KeyChord.mod(ChordKey.Digit5)), CheatSheet.Reach.Dead),
+			),
 		),
 		CheatSheet.Section(
 			"Editing",
@@ -125,5 +133,20 @@ class CheatSheetUiTest {
 		onNodeWithTag(CHEAT_SHEET_SCROLL_TAG).performKeyInput { pressKey(Key.MoveHome) }
 		waitForIdle()
 		onNodeWithText("Row 0").assertIsDisplayed()
+	}
+
+	@Test
+	fun `the toggle hides what does nothing here`() = runComposeUiTest {
+		setContent { CheatSheetUi(FakeCheatSheet(sections)) }
+		waitForIdle()
+		val deadShownBefore = shows("Go to Timeline")
+
+		onNodeWithText("Only show what works here").performClick()
+		waitForIdle()
+
+		assertTrue(deadShownBefore)
+		assertFalse(shows("Go to Timeline"))
+		assertTrue(shows("Go to Notes"))
+		assertTrue(shows("Bold"))
 	}
 }

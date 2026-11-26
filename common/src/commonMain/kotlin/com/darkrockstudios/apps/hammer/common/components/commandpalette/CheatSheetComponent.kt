@@ -18,12 +18,14 @@ import org.koin.core.component.inject
 class CheatSheetComponent(
 	componentContext: ComponentContext,
 	private val actions: ActionRegistry,
+	onlyAvailable: Boolean = false,
+	private val onOnlyAvailableChanged: (Boolean) -> Unit = {},
 	private val onClosed: () -> Unit,
 ) : ComponentBase(componentContext), CheatSheet {
 
 	private val strRes: StrRes by inject()
 
-	private val _state = MutableValue(CheatSheet.State())
+	private val _state = MutableValue(CheatSheet.State(onlyAvailable = onlyAvailable))
 	override val state: Value<CheatSheet.State> = _state
 
 	// Taken before the barrier goes up.
@@ -58,6 +60,11 @@ class CheatSheetComponent(
 
 	override fun dismiss() {
 		barrier.close()
+	}
+
+	override fun setOnlyAvailable(only: Boolean) {
+		_state.update { it.copy(onlyAvailable = only) }
+		onOnlyAvailableChanged(only)
 	}
 
 	override fun onDismissed() {

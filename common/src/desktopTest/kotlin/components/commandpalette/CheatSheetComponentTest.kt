@@ -36,7 +36,8 @@ class CheatSheetComponentTest : ComponentTest() {
 		dismissed = 0
 	}
 
-	private fun newCheatSheet() = CheatSheetComponent(context, registry) { dismissed++ }
+	private fun newCheatSheet(onlyAvailable: Boolean = false, onChanged: (Boolean) -> Unit = {}) =
+		CheatSheetComponent(context, registry, onlyAvailable, onChanged) { dismissed++ }
 
 	private fun CheatSheet.row(id: String): CheatSheet.Row =
 		state.value.sections.flatMap { it.rows }.single { it.id.value == id }
@@ -147,5 +148,33 @@ class CheatSheetComponentTest : ComponentTest() {
 		assertEquals(1, dismissed)
 		assertFalse(registry.hasOverlay())
 		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.N)))
+	}
+
+	@Test
+	fun `only available hides dead rows but keeps editor ones`() = runTest(mainTestDispatcher) {
+		registry.register(ActionLayer.Root, mapOf(HammerActions.NavHome.id to ActionHandler {}))
+		var changedTo: Boolean? = null
+		val sheet = newCheatSheet(onChanged = { changedTo = it })
+		context.resume()
+		advanceUntilIdle()
+
+		sheet.setOnlyAvailable(true)
+		val shown = sheet.state.value.shownSections.flatMap { it.rows }.map { it.id.value }
+
+		assertTrue("nav.home" in shown)
+		assertFalse("nav.notes" in shown)
+		assertTrue("edit.bold" in shown)
+		assertTrue(sheet.state.value.shownSections.all { it.rows.isNotEmpty() })
+		assertEquals(true, changedTo)
+	}
+
+	@Test
+	fun `a sheet opened with only available set starts filtered`() = runTest(mainTestDispatcher) {
+		val sheet = newCheatSheet(onlyAvailable = true)
+		context.resume()
+		advanceUntilIdle()
+
+		assertTrue(sheet.state.value.onlyAvailable)
+		assertTrue(sheet.state.value.shownSections.flatMap { it.rows }.none { it.reach == CheatSheet.Reach.Dead })
 	}
 }
