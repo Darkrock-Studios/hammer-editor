@@ -18,13 +18,25 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
+import com.darkrockstudios.apps.hammer.common.compose.focus.escapeTwiceToLeave
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 object HdCreateModalDefaults {
 	val BodyPadding = PaddingValues(horizontal = 28.dp, vertical = 22.dp)
@@ -34,7 +46,7 @@ object HdCreateModalDefaults {
 /**
  * Full-screen create form: a titled hairline sheet whose title collapses while the keyboard is up,
  * and a footer with optional [footerMeta] on the left and [actions] on the right. [content] lays out
- * its own body, padded with [HdCreateModalDefaults].
+ * its own body, padded with [HdCreateModalDefaults]. Esc twice in a row leaves the form.
  */
 @Composable
 fun HdCreateModal(
@@ -49,7 +61,10 @@ fun HdCreateModal(
 		contentAlignment = Alignment.Center,
 	) {
 		Column(
-			modifier = modifier
+			// Ahead of the caller's modifier, so a pane container focused there sees Esc too.
+			modifier = Modifier
+				.escapeTwiceToLeave()
+				.then(modifier)
 				.widthIn(max = Ui.MaxWidth.Modal)
 				.fillMaxWidth()
 				.background(MaterialTheme.colorScheme.surface, RectangleShape)
@@ -84,4 +99,39 @@ fun HdCreateModal(
 			}
 		}
 	}
+}
+
+/**
+ * A create form's Create step: runs [create] on Mod+Enter (while [isEnabled]) and on the returned
+ * trigger, which the Create button calls too. One create runs at a time, as a held Mod+Enter
+ * repeats and a double click would save twice.
+ */
+@Composable
+fun rememberCreateAction(
+	scope: CoroutineScope,
+	isEnabled: () -> Boolean = { true },
+	create: suspend () -> Unit,
+): () -> Unit {
+	val latestCreate by rememberUpdatedState(create)
+	val latestIsEnabled by rememberUpdatedState(isEnabled)
+	var creating by remember { mutableStateOf(false) }
+	val trigger: () -> Unit = remember(scope) {
+		{
+			if (!creating) {
+				creating = true
+				scope.launch {
+					try {
+						latestCreate()
+					} finally {
+						creating = false
+					}
+				}
+			}
+		}
+	}
+	val handlers = remember(trigger) {
+		mapOf(HammerActions.ItemCreate.id to ActionHandler(isEnabled = { latestIsEnabled() }) { trigger() })
+	}
+	RegisterActions(ActionLayer.Item, handlers)
+	return trigger
 }

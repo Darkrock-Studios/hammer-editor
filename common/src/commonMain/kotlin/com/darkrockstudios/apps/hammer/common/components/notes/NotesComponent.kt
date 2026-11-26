@@ -9,7 +9,10 @@ import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.neighbour
 import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
+import com.darkrockstudios.apps.hammer.common.components.actions.stepAction
+import com.darkrockstudios.apps.hammer.common.components.replaceTop
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
@@ -132,23 +135,15 @@ class NotesComponent(
 	 * Steps the open note by [offset] in the list's order. Not live over a dirty edit: replacing
 	 * the view would drop its draft.
 	 */
-	private fun noteStep(offset: Int): ActionHandler {
-		fun target(): Int? {
-			val view = stack.value.active.instance as? Notes.Destination.ViewNoteDestination ?: return null
-			if (view.component.isEditingAndDirty()) return null
+	private fun noteStep(offset: Int): ActionHandler = stepAction(
+		target = target@{
+			val view = stack.value.active.instance as? Notes.Destination.ViewNoteDestination ?: return@target null
+			if (view.component.isEditingAndDirty()) return@target null
 			val open = (stack.value.active.configuration as Notes.Config.ViewNoteConfig).noteId
-			val order = browse?.visibleOrder ?: return null
-			val index = order.indexOf(open)
-			if (index < 0) return null
-			return order.getOrNull(index + offset)
-		}
-		return ActionHandler(isEnabled = { target() != null }) {
-			target()?.let { id ->
-				val config = Notes.Config.ViewNoteConfig(id)
-				navigation.navigate { configs -> configs.dropLast(1).filter { it != config } + config }
-			}
-		}
-	}
+			browse?.visibleOrder?.neighbour(offset) { it == open }
+		},
+		go = { id -> navigation.replaceTop(Notes.Config.ViewNoteConfig(id)) },
+	)
 
 	init {
 		actions.registerWhileStarted(

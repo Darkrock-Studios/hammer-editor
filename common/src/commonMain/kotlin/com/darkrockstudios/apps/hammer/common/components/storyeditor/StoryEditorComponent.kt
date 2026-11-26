@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.actions.registerOverlayWhile
 import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
+import com.darkrockstudios.apps.hammer.common.components.actions.stepAction
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -135,13 +136,14 @@ class StoryEditorComponent(
 	}
 
 	/** Moves from the open scene editor to the scene [target] picks; not live without one to move to. */
-	private fun sceneStep(target: ImmutableTree<SceneItem>.(sceneId: Int) -> SceneItem?): ActionHandler {
-		fun next(): SceneItem? {
-			val open = detailsRouter.state.value.active.configuration as? DetailsRouter.Config.SceneEditor ?: return null
-			return sceneEditor.getSceneTree().target(open.sceneDef.id)
-		}
-		return ActionHandler(isEnabled = { next() != null }) { next()?.let(::showScene) }
-	}
+	private fun sceneStep(target: ImmutableTree<SceneItem>.(sceneId: Int) -> SceneItem?): ActionHandler = stepAction(
+		target = next@{
+			val open = detailsRouter.state.value.active.configuration as? DetailsRouter.Config.SceneEditor
+				?: return@next null
+			sceneEditor.getSceneTree().target(open.sceneDef.id)
+		},
+		go = ::showScene,
+	)
 
 	private fun toggleOutlineOverview() {
 		if (dialogState.value.child?.instance is StoryEditor.ChildDestination.DialogDestination.OutlineDestination) {

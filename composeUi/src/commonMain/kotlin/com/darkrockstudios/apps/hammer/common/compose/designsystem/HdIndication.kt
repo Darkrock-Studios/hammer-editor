@@ -28,12 +28,6 @@ import kotlinx.coroutines.launch
 private val FocusFrameWidth = 1.dp
 
 /**
- * The theme's indication: the Material ripple, plus an ink frame just inside the control while
- * it holds focus in keyboard input mode, so Tab shows where it landed. A mouse press switches to
- * touch mode, so clicking never shows the frame. Every `clickable` that takes the default
- * indication gets it, which is every Hd control.
- */
-/**
  * Provides [HdIndication] in the current color scheme. Call it inside every `MaterialTheme`,
  * which otherwise resets `LocalIndication` to the plain ripple.
  */
@@ -42,6 +36,12 @@ fun ProvideHdIndication(content: @Composable () -> Unit) {
 	CompositionLocalProvider(LocalIndication provides HdIndication(MaterialTheme.colorScheme.onSurface), content = content)
 }
 
+/**
+ * The theme's indication: the Material ripple, plus an ink frame just inside the control while
+ * it holds focus in keyboard input mode, so Tab shows where it landed. A mouse press switches to
+ * touch mode, so clicking never shows the frame. Every `clickable` that takes the default
+ * indication gets it, which is every Hd control.
+ */
 internal data class HdIndication(val frameColor: Color) : IndicationNodeFactory {
 	override fun create(interactionSource: InteractionSource): DelegatableNode =
 		HdIndicationNode(interactionSource, frameColor)
@@ -79,9 +79,8 @@ private class HdIndicationNode(
 
 	override fun ContentDrawScope.draw() {
 		drawContent()
-		// Read here so a change of input mode redraws.
-		val keyboard = currentValueOf(LocalInputModeManager).inputMode == InputMode.Keyboard
-		if (focused && keyboard) {
+		// Read here so a change of input mode redraws; only once focused, so other nodes never do.
+		if (focused && currentValueOf(LocalInputModeManager).inputMode == InputMode.Keyboard) {
 			// Inside the control's own hairline border, which draws over this one.
 			val width = FocusFrameWidth.toPx()
 			val inset = 1f + width / 2

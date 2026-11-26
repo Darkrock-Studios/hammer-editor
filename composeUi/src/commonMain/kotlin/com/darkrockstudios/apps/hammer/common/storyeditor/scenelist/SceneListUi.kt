@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -49,7 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -325,8 +324,7 @@ fun SceneListUi(
 									tint = MaterialTheme.colorScheme.onSurfaceVariant,
 								)
 							}
-							MenuOverlay(addMenuOpen) { addMenuOpen = false }
-							DropdownMenu(
+							HdDropdownMenu(
 								expanded = addMenuOpen,
 								onDismissRequest = { addMenuOpen = false },
 							) {
@@ -548,8 +546,7 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 			)
 		}
 
-		MenuOverlay(menuOpen) { menuOpen = false }
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = menuOpen,
 			onDismissRequest = { menuOpen = false },
 		) {

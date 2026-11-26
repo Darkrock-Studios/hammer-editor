@@ -36,7 +36,6 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.focus.FocusFirstPaneOnArrival
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
-import com.darkrockstudios.apps.hammer.common.compose.focus.escapeTwiceToLeave
 import com.darkrockstudios.apps.hammer.common.compose.focus.escapeToContainer
 import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -127,7 +126,6 @@ fun TimeLineUi(
 							component = dest.component,
 							scope = scope,
 							modifier = Modifier.align(Alignment.TopCenter)
-								.escapeTwiceToLeave()
 								.focusPane(PaneId.Detail),
 							rootSnackbar = rootSnackbar,
 						)

@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
-import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -96,8 +94,7 @@ fun HdSplitButton(
 			) {
 				Icon(Icons.Filled.ArrowDropDown, contentDescription = menuContentDescription, tint = content)
 			}
-			MenuOverlay(expanded) { expanded = false }
-			DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+			HdDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 				menuItems.forEach { item ->
 					DropdownMenuItem(
 						text = { Text(item.label) },

@@ -79,9 +79,9 @@ class PaneFocusState {
 	 */
 	fun focus(id: PaneId, reveal: Boolean = false): Boolean {
 		val target = pane(id) ?: return false
-		if (reveal) reveals[id] = revealRequests(id) + 1
+		if (reveal) bumpReveal(id)
 		if (target.content.restoreFocusedChild()) return true
-		val entry = entries.lastOrNull { it.first == id }?.second
+		val entry = entryOf(id)
 		if (entry != null && entry.requestFocus()) return true
 		return target.content.requestFocus() || focusContainer(target)
 	}
@@ -95,8 +95,8 @@ class PaneFocusState {
 	 */
 	fun escapeToList(): Boolean {
 		if (pane(PaneId.List) == null) return false
-		reveals[PaneId.List] = revealRequests(PaneId.List) + 1
-		val entry = entries.lastOrNull { it.first == PaneId.List }?.second
+		bumpReveal(PaneId.List)
+		val entry = entryOf(PaneId.List)
 		return entry?.requestFocus() == true || focus(PaneId.List)
 	}
 
@@ -149,6 +149,12 @@ class PaneFocusState {
 
 	/** Bumped by `focus(id, reveal = true)`, so the pane can bring its current item into view. */
 	fun revealRequests(id: PaneId): Int = reveals[id] ?: 0
+
+	private fun bumpReveal(id: PaneId) {
+		reveals[id] = revealRequests(id) + 1
+	}
+
+	private fun entryOf(id: PaneId): FocusRequester? = entries.lastOrNull { it.first == id }?.second
 
 	internal fun attach(pane: Pane) {
 		panes += pane

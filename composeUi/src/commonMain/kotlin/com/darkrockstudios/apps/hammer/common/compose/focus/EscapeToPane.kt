@@ -11,9 +11,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalInputModeManager
 import com.darkrockstudios.apps.hammer.common.compose.actions.LocalActionDispatcher
 
@@ -53,19 +50,18 @@ fun Modifier.escapeToContainer(id: PaneId): Modifier {
  */
 @Composable
 fun Modifier.escapeTwiceToLeave(): Modifier {
-	val armed = remember { BooleanArray(1) }
-	return pointerInput(armed) {
-		awaitPointerEventScope {
-			while (true) {
-				if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) armed[0] = false
-			}
+	val arm = remember { EscapeArm() }
+	return onAnyPointerPress(arm) { arm.armed = false }
+		.onPreviewKeyEvent { event ->
+			if (event.type == KeyEventType.KeyDown && event.key != Key.Escape) arm.armed = false
+			false
+		}.escapeToPane {
+			val second = arm.armed
+			arm.armed = !second
+			!second
 		}
-	}.onPreviewKeyEvent { event ->
-		if (event.type == KeyEventType.KeyDown && event.key != Key.Escape) armed[0] = false
-		false
-	}.escapeToPane {
-		val second = armed[0]
-		armed[0] = !second
-		!second
-	}
+}
+
+private class EscapeArm {
+	var armed = false
 }

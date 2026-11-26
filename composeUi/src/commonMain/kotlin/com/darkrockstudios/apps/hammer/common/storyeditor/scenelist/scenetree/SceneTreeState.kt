@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.layout.LayoutCoordinates
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
@@ -24,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorStep
 import com.darkrockstudios.apps.hammer.common.compose.focus.revealItem
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import kotlinx.coroutines.CoroutineScope
@@ -320,21 +322,16 @@ class SceneTreeState(
 		coroutineScope.launch { listState.revealItem(index, key = node.value.id) }
 	}
 
-	/** Over the visible rows, clamped at the ends. With no cursor yet, any move lands on the first row. */
-	fun moveCursor(delta: Int) {
-		if (visibleNodes.isEmpty()) return
-		val current = cursorIndex()
-		val target = if (current < 0) 0 else (current + delta).coerceIn(0, visibleNodes.lastIndex)
-		setCursorIndex(target)
+	/** Up, Down, Home or End over the visible rows, as [listCursorStep] moves a list's cursor. */
+	fun stepCursor(key: Key) {
+		listCursorStep(cursorIndex(), visibleNodes.size, key)?.let(::setCursorIndex)
 	}
 
 	fun cursorToStart() = setCursorIndex(0)
 
-	fun cursorToEnd() = setCursorIndex(visibleNodes.lastIndex)
-
 	/** A collapsed group expands; an expanded group steps into its first child; a scene stays. */
 	fun cursorRight() {
-		val node = cursorNode() ?: return moveCursor(0)
+		val node = cursorNode() ?: return cursorToStart()
 		if (!node.value.type.isCollection) return
 		if (collapsedNodes[node.value.id] == true) {
 			collapsedNodes[node.value.id] = false
@@ -347,7 +344,7 @@ class SceneTreeState(
 
 	/** An expanded group collapses; anything else steps out to its parent, never to the root. */
 	fun cursorLeft() {
-		val node = cursorNode() ?: return moveCursor(0)
+		val node = cursorNode() ?: return cursorToStart()
 		if (node.value.type.isCollection && collapsedNodes[node.value.id] != true) {
 			collapsedNodes[node.value.id] = true
 			cursorId = node.value.id

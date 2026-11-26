@@ -4,7 +4,6 @@ import android.view.KeyEvent
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionDispatcher
 import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
 import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
-import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 
 /**
@@ -42,7 +41,7 @@ fun feedDoubleShift(
 		else -> return
 	}
 	val isShift = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT
-	if (detector.onKey(isShift, isDown, eventTimeMs)) actions?.invoke(HammerActions.PaletteOpen.id)
+	detector.feed(isShift, isDown, eventTimeMs, actions)
 }
 
 private fun ChordKey.through(last: ChordKey): List<ChordKey> = ChordKey.entries.subList(ordinal, last.ordinal + 1)

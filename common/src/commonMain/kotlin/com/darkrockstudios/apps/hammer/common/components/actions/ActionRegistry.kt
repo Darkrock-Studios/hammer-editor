@@ -62,7 +62,6 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 
 	private class Registration(
 		val layer: ActionLayer,
-		val seq: Long,
 		val blocksBelow: Boolean,
 		val handlers: Map<ActionId, ActionHandler>,
 		val onDismiss: (() -> Unit)?,
@@ -71,8 +70,8 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 		val isOverlay: Boolean get() = layer == ActionLayer.Overlay && blocksBelow
 	}
 
+	/** In answering order: highest layer first, then newest first within a layer. */
 	private val registrations = mutableListOf<Registration>()
-	private var nextSeq = 0L
 
 	override fun register(
 		layer: ActionLayer,
@@ -81,8 +80,9 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 		onDismiss: (() -> Unit)?,
 		isActive: () -> Boolean,
 	): ActionRegistration {
-		val registration = Registration(layer, nextSeq++, blocksBelow, handlers, onDismiss, isActive)
-		registrations += registration
+		val registration = Registration(layer, blocksBelow, handlers, onDismiss, isActive)
+		val at = registrations.indexOfFirst { it.layer.ordinal <= layer.ordinal }
+		registrations.add(if (at < 0) registrations.size else at, registration)
 		return ActionRegistration { registrations.remove(registration) }
 	}
 
@@ -105,7 +105,7 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 	override fun hasOverlay(): Boolean = registrations.any { it.isOverlay && it.isActive() }
 
 	override fun dismissTopOverlay(): Boolean {
-		val top = registrations.filter { it.isOverlay && it.isActive() }.maxByOrNull { it.seq } ?: return false
+		val top = registrations.firstOrNull { it.isOverlay && it.isActive() } ?: return false
 		val dismiss = top.onDismiss ?: return false
 		dismiss()
 		return true
@@ -113,18 +113,16 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 
 	private fun resolve(id: ActionId): ActionHandler? {
 		val def = HammerActions.byId(id) ?: return null
-		val ordered = registrations.filter { it.isActive() }.sortedWith(
-			compareByDescending<Registration> { it.layer.ordinal }.thenByDescending { it.seq }
-		)
 		var blocked = false
 		var guard: Registration? = null
-		for ((index, reg) in ordered.withIndex()) {
+		for ((index, reg) in registrations.withIndex()) {
+			if (!reg.isActive()) continue
 			if (!blocked || def.global || reg === guard) {
 				reg.handlers[id]?.takeIf { it.isEnabled() }?.let { return it }
 			}
 			if (reg.blocksBelow && !blocked) {
 				blocked = true
-				guard = guardUnder(reg, ordered.subList(index + 1, ordered.size))
+				guard = guardUnder(reg, registrations.subList(index + 1, registrations.size))
 			}
 		}
 		return null
@@ -133,7 +131,7 @@ class ActionRegistry(override val keymap: Keymap = Keymap.Default) : ActionRegis
 	/** The component guard [shell] sits on, if [shell] is a dialog shell right over one. */
 	private fun guardUnder(shell: Registration, below: List<Registration>): Registration? {
 		if (!shell.isOverlay || shell.onDismiss == null) return null
-		return below.firstOrNull { it.isOverlay }?.takeIf { it.onDismiss == null }
+		return below.firstOrNull { it.isOverlay && it.isActive() }?.takeIf { it.onDismiss == null }
 	}
 }
 

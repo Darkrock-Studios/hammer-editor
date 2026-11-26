@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
-import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -81,8 +79,7 @@ fun <T> HdHairlineDropdown(
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
-			MenuOverlay(expanded && enabled) { expanded = false }
-			DropdownMenu(
+			HdDropdownMenu(
 				expanded = expanded && enabled,
 				onDismissRequest = { expanded = false },
 			) {

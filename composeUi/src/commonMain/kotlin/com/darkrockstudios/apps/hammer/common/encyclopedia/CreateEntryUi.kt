@@ -39,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineIma
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTypePicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberCreateAction
 import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
 import com.darkrockstudios.apps.hammer.common.compose.images.imageAddResultMessage
 import com.darkrockstudios.apps.hammer.common.compose.images.pickImageFile
@@ -127,62 +128,51 @@ internal fun CreateEntryUi(
 		}
 	}
 
-	// One at a time: a held Mod+Enter repeats, and a double click on Create would save it twice.
-	var creating by remember { mutableStateOf(false) }
-	val create: () -> Unit = create@{
-		if (creating) return@create
-		creating = true
-		scope.launch {
-			val message = try {
-				val result = component.createEntry(
-					name = name,
-					type = selectedType,
-					text = description,
-					tags = tags.toSet(),
-					imagePath = imagePath,
-					excludeFromDictionary = excludeFromDictionary,
-				)
-				when (result.error) {
-					EntryError.NAME_TOO_LONG -> strRes.get(
-						Res.string.encyclopedia_create_entry_toast_too_long,
-						EncyclopediaRepository.MAX_NAME_SIZE,
-					)
+	val create = rememberCreateAction(scope) {
+		val result = component.createEntry(
+			name = name,
+			type = selectedType,
+			text = description,
+			tags = tags.toSet(),
+			imagePath = imagePath,
+			excludeFromDictionary = excludeFromDictionary,
+		)
+		val message = when (result.error) {
+			EntryError.NAME_TOO_LONG -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_too_long,
+				EncyclopediaRepository.MAX_NAME_SIZE,
+			)
 
-					EntryError.NAME_INVALID_CHARACTERS -> strRes.get(
-						Res.string.encyclopedia_create_entry_toast_invalid_name
-					)
+			EntryError.NAME_INVALID_CHARACTERS -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_invalid_name
+			)
 
-					EntryError.TAG_TOO_LONG -> strRes.get(
-						Res.string.encyclopedia_create_entry_toast_tag_too_long,
-						EncyclopediaRepository.MAX_TAG_SIZE,
-					)
+			EntryError.TAG_TOO_LONG -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_tag_too_long,
+				EncyclopediaRepository.MAX_TAG_SIZE,
+			)
 
-					EntryError.NAME_TOO_SHORT -> strRes.get(
-						Res.string.encyclopedia_create_entry_toast_name_too_short
-					)
+			EntryError.NAME_TOO_SHORT -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_name_too_short
+			)
 
-					EntryError.ALIAS_TOO_LONG -> strRes.get(
-						Res.string.encyclopedia_create_entry_toast_alias_too_long,
-						EncyclopediaRepository.MAX_NAME_SIZE,
-					)
+			EntryError.ALIAS_TOO_LONG -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_alias_too_long,
+				EncyclopediaRepository.MAX_NAME_SIZE,
+			)
 
-					EntryError.NONE -> {
-						name = ""
-						description = ""
-						tags.clear()
-						imagePath = null
-						close()
-						strRes.get(Res.string.encyclopedia_create_entry_toast_success)
-					}
-				}
-			} finally {
-				creating = false
+			EntryError.NONE -> {
+				name = ""
+				description = ""
+				tags.clear()
+				imagePath = null
+				close()
+				strRes.get(Res.string.encyclopedia_create_entry_toast_success)
 			}
-			rootSnackbar.showSnackbar(message)
 		}
+		// Outside the create, so the next one need not wait for the snackbar.
+		scope.launch { rootSnackbar.showSnackbar(message) }
 	}
-
-	RegisterActions(ActionLayer.Item, mapOf(HammerActions.ItemCreate.id to ActionHandler { create() }))
 
 	HdCreateModal(
 		title = Res.string.encyclopedia_create_entry_header.get(),

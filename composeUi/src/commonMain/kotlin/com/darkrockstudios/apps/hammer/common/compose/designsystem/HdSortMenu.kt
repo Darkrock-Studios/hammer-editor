@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
-import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Icon
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -65,8 +63,7 @@ fun <T : HdSortOption> HdSortMenu(
 			value = selected.glyphRes.get(),
 			onClick = { expanded = true },
 		)
-		MenuOverlay(expanded) { expanded = false }
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
 		) {
@@ -172,8 +169,7 @@ fun <T : HdSortOption> HdQuietSortMenu(
 				trailingIcon = Icons.Filled.ArrowDropDown,
 			)
 		}
-		MenuOverlay(expanded) { expanded = false }
-		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+		HdDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 			options.forEach { option ->
 				DropdownMenuItem(
 					text = {

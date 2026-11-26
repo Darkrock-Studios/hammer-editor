@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +37,8 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelect
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
@@ -159,8 +158,7 @@ internal fun TimelineSwitcherHeader(
 			modifier = Modifier.testTag(TIME_LINE_SWITCHER_TAG),
 			trailing = trailing,
 		)
-		MenuOverlay(expanded) { expanded = false }
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
 			modifier = Modifier.widthIn(min = 240.dp, max = 360.dp),
@@ -304,8 +302,7 @@ internal fun DeletedTimelineNotice(
 		)
 		// Anchors the target menu under the actions, at the strip's end.
 		Box(modifier = Modifier.align(Alignment.BottomEnd)) {
-			MenuOverlay(picking) { picking = false }
-			DropdownMenu(expanded = picking, onDismissRequest = { picking = false }) {
+			HdDropdownMenu(expanded = picking, onDismissRequest = { picking = false }) {
 				MenuSection(Res.string.timeline_switcher_section.get())
 				state.timelines.forEach { summary ->
 					SwitcherRow(

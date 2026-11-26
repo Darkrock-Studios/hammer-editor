@@ -12,32 +12,31 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 private fun ImmutableTree<SceneItem>.scenesInOrder(): List<TreeValue<SceneItem>> =
 	filter { it.value.type == SceneItem.Type.Scene }
 
-internal fun ImmutableTree<SceneItem>.sceneAfter(sceneId: Int): SceneItem? {
+/** The scenes in reading order and where [sceneId] falls among them, or null when it is no scene here. */
+private fun ImmutableTree<SceneItem>.locate(sceneId: Int): Pair<List<TreeValue<SceneItem>>, Int>? {
 	val scenes = scenesInOrder()
 	val at = scenes.indexOfFirst { it.value.id == sceneId }
-	if (at < 0) return null
-	return scenes.getOrNull(at + 1)?.value
+	return if (at < 0) null else scenes to at
 }
 
-internal fun ImmutableTree<SceneItem>.sceneBefore(sceneId: Int): SceneItem? {
-	val scenes = scenesInOrder()
-	val at = scenes.indexOfFirst { it.value.id == sceneId }
-	if (at < 0) return null
-	return scenes.getOrNull(at - 1)?.value
+/** The scene [offset] places from [sceneId] in reading order. */
+internal fun ImmutableTree<SceneItem>.sceneAt(sceneId: Int, offset: Int): SceneItem? {
+	val (scenes, at) = locate(sceneId) ?: return null
+	return scenes.getOrNull(at + offset)?.value
 }
+
+internal fun ImmutableTree<SceneItem>.sceneAfter(sceneId: Int): SceneItem? = sceneAt(sceneId, 1)
+
+internal fun ImmutableTree<SceneItem>.sceneBefore(sceneId: Int): SceneItem? = sceneAt(sceneId, -1)
 
 internal fun ImmutableTree<SceneItem>.firstSceneOfNextGroup(sceneId: Int): SceneItem? {
-	val scenes = scenesInOrder()
-	val at = scenes.indexOfFirst { it.value.id == sceneId }
-	if (at < 0) return null
+	val (scenes, at) = locate(sceneId) ?: return null
 	val parent = scenes[at].parent
 	return scenes.drop(at + 1).firstOrNull { it.parent != parent }?.value
 }
 
 internal fun ImmutableTree<SceneItem>.firstSceneOfPreviousGroup(sceneId: Int): SceneItem? {
-	val scenes = scenesInOrder()
-	val at = scenes.indexOfFirst { it.value.id == sceneId }
-	if (at < 0) return null
+	val (scenes, at) = locate(sceneId) ?: return null
 	var i = at - 1
 	while (i >= 0 && scenes[i].parent == scenes[at].parent) i--
 	if (i < 0) return null

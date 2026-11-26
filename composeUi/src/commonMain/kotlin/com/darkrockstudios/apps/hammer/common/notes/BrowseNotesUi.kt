@@ -185,7 +185,8 @@ fun BrowseNotesUi(
 		}
 		applySort(byTags, sortMode)
 	}
-	LaunchedEffect(visibleNotes) { component.onVisibleOrderChanged(visibleNotes.map { it.id }) }
+	val noteKeys = remember(visibleNotes) { visibleNotes.map { it.id } }
+	LaunchedEffect(visibleNotes) { component.onVisibleOrderChanged(noteKeys) }
 
 	val toggleTag: (String) -> Unit = { tag ->
 		activeTags = if (tag in activeTags) activeTags - tag else activeTags + tag
@@ -333,7 +334,6 @@ fun BrowseNotesUi(
 		}
 
 		val gridState = rememberLazyStaggeredGridState()
-		val noteKeys = remember(visibleNotes) { visibleNotes.map { it.id } }
 		Box(modifier = Modifier.weight(1f)) {
 			LazyVerticalStaggeredGrid(
 				state = gridState,

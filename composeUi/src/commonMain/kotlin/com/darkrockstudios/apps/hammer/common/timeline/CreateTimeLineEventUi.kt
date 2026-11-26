@@ -1,9 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
-import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
-import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
-import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
-import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -96,34 +92,20 @@ fun CreateTimeLineEventUi(
 	val isEvent = state.kind == TimelineKind.EVENT
 	val canCreate = state.canCreate
 
-	// One at a time: a held Mod+Enter repeats, and a double click on Create would save it twice.
-	var creating by remember { mutableStateOf(false) }
-	val create: () -> Unit = create@{
-		if (creating) return@create
-		creating = true
-		scope.launch {
-			try {
-				val error = component.create(dateText, contentText.value, tags.toSet())
-				if (error == TimeLineEventError.NONE) {
-					launch {
-						rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
-					}
-					dateText = ""
-					tags.clear()
-					resetVersion++
-					component.closeCreation()
-				} else {
-					error.toastText(strRes)?.let { launch { rootSnackbar.showSnackbar(it) } }
-				}
-			} finally {
-				creating = false
+	val create = rememberCreateAction(scope, isEnabled = { canCreate }) {
+		val error = component.create(dateText, contentText.value, tags.toSet())
+		if (error == TimeLineEventError.NONE) {
+			scope.launch {
+				rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
 			}
+			dateText = ""
+			tags.clear()
+			resetVersion++
+			component.closeCreation()
+		} else {
+			error.toastText(strRes)?.let { scope.launch { rootSnackbar.showSnackbar(it) } }
 		}
 	}
-	RegisterActions(
-		ActionLayer.Item,
-		mapOf(HammerActions.ItemCreate.id to ActionHandler(isEnabled = { canCreate }) { create() }),
-	)
 
 	HdCreateModal(
 		title = Res.string.timeline_create_header.get(),

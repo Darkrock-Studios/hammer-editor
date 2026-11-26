@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TableChart
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -54,8 +53,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
-import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.boldShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.icons.EditorIcons
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconBold
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconItalic
@@ -399,8 +398,7 @@ private fun TableMenu(state: TextEditorState, tableLine: Int?) {
 			}
 		}
 		// Not focusable, so the editor keeps focus and typing goes on in the table.
-		MenuOverlay(open) { open = false }
-		DropdownMenu(expanded = open, onDismissRequest = { open = false }, properties = PopupProperties(focusable = false)) {
+		HdDropdownMenu(expanded = open, onDismissRequest = { open = false }, properties = PopupProperties(focusable = false)) {
 			@Composable
 			fun item(label: String, action: () -> Unit) = DropdownMenuItem(text = { Text(label) }, onClick = {
 				open = false
@@ -490,8 +488,7 @@ private fun HistoryAndOverflow(
 				menuExpanded = true
 			}
 		}
-		MenuOverlay(menuExpanded) { menuExpanded = false }
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = menuExpanded,
 			onDismissRequest = { menuExpanded = false },
 		) {

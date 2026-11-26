@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
-import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -15,6 +14,7 @@ import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.menu.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.compose.actions.ChordLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.more_menu_button
 
@@ -38,8 +38,7 @@ fun TopAppBarDropdownMenu(
 			)
 		}
 
-		MenuOverlay(expanded) { expanded = false }
-		DropdownMenu(
+		HdDropdownMenu(
 			modifier = Modifier.align(TopEnd),
 			expanded = expanded,
 			onDismissRequest = { expanded = false },

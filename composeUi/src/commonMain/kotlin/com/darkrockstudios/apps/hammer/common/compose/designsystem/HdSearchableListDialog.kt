@@ -13,15 +13,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isAltPressed
-import androidx.compose.ui.input.key.isCtrlPressed
-import androidx.compose.ui.input.key.isMetaPressed
-import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -45,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.focus.isBareKeyDown
 
 /**
  * Hairline dialog for picking one item from a long list, narrowed by a search field.
@@ -199,7 +193,7 @@ internal fun <T> HdSearchableListDialogContent(
 				.then(
 					if (keyboardSelection) {
 						Modifier.onPreviewKeyEvent { event ->
-							if (event.type != KeyEventType.KeyDown || event.hasModifier()) return@onPreviewKeyEvent false
+							if (!event.isBareKeyDown()) return@onPreviewKeyEvent false
 							when (event.key) {
 								Key.DirectionDown -> {
 									highlighted = (highlighted + 1).coerceAtMost(filtered.lastIndex.coerceAtLeast(0))
@@ -294,7 +288,10 @@ internal fun <T> HdSearchableListDialogContent(
 	}
 }
 
-/** Scrolls the least that shows all of row [index]. */
+/**
+ * Scrolls the least that shows all of row [index]. Unlike the lists' `revealItem`, a row off
+ * screen below lands at the bottom, so stepping down past the edge scrolls one row, not a page.
+ */
 private suspend fun LazyListState.reveal(index: Int) {
 	val info = layoutInfo
 	val row = info.visibleItemsInfo.firstOrNull { it.index == index }
@@ -306,8 +303,6 @@ private suspend fun LazyListState.reveal(index: Int) {
 			scrollBy((row.offset + row.size - info.viewportEndOffset).toFloat())
 	}
 }
-
-private fun KeyEvent.hasModifier(): Boolean = isCtrlPressed || isMetaPressed || isAltPressed || isShiftPressed
 
 @Composable
 private fun PickerRow(

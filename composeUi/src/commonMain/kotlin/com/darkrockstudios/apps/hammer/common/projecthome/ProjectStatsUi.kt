@@ -33,7 +33,6 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.TagBreakdow
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
-import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.images.COVER_ASPECT_RATIO
 import com.darkrockstudios.apps.hammer.common.compose.images.CoverThumbnail
@@ -1366,8 +1365,7 @@ private fun ProjectHomeMenu(
 			)
 		}
 
-		MenuOverlay(expanded) { expanded = false }
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
 		) {

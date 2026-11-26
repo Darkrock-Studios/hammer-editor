@@ -9,7 +9,10 @@ import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.neighbour
 import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
+import com.darkrockstudios.apps.hammer.common.components.actions.stepAction
+import com.darkrockstudios.apps.hammer.common.components.replaceTop
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -139,23 +142,15 @@ class EncyclopediaComponent(
 	 * Steps the open entry by [offset] through the filtered list. Not live during an edit: the
 	 * edit buffer lives in the UI, so replacing the view would drop it unasked.
 	 */
-	private fun entryStep(offset: Int): ActionHandler {
-		fun target(): EntryDef? {
-			val view = stack.value.active.instance as? Encyclopedia.Destination.ViewEntryDestination ?: return null
-			if (isEditing(view.component)) return null
+	private fun entryStep(offset: Int): ActionHandler = stepAction(
+		target = target@{
+			val view = stack.value.active.instance as? Encyclopedia.Destination.ViewEntryDestination ?: return@target null
+			if (isEditing(view.component)) return@target null
 			val open = (stack.value.active.configuration as Encyclopedia.Config.ViewEntryConfig).entryDef
-			val order = browse?.getFilteredEntries() ?: return null
-			val index = order.indexOfFirst { it.id == open.id }
-			if (index < 0) return null
-			return order.getOrNull(index + offset)
-		}
-		return ActionHandler(isEnabled = { target() != null }) {
-			target()?.let { entry ->
-				val config = Encyclopedia.Config.ViewEntryConfig(entry)
-				navigation.navigate { configs -> configs.dropLast(1).filter { it != config } + config }
-			}
-		}
-	}
+			browse?.getFilteredEntries()?.neighbour(offset) { it.id == open.id }
+		},
+		go = { entry -> navigation.replaceTop(Encyclopedia.Config.ViewEntryConfig(entry)) },
+	)
 
 	init {
 		actions.registerWhileStarted(

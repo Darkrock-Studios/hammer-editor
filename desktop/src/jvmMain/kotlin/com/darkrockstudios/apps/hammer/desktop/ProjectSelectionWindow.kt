@@ -19,12 +19,17 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.account_window_title
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
 import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.toKeyChord
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -75,7 +80,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		)
 	}
 	LifecycleController(lifecycle, windowState)
-	// No actions of its own: the registry holds the overlays its dialogs and menus register.
+	// Its one action is Quit; otherwise the registry holds the overlays its dialogs and menus register.
 	val actions = remember { ActionRegistry() }
 	val escapes = remember { EscapeRouter(actions, backDispatcher::back) }
 
@@ -85,18 +90,10 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 		icon = painterResource(Res.drawable.hammer_icon),
-		onPreviewKeyEvent = escapes::onPreviewKeyEvent,
-		onKeyEvent = { event ->
-			when {
-				escapes.onKeyEvent(event) -> true
-				event.isProjectSelectionQuit() -> {
-					exitApplication()
-					true
-				}
-
-				else -> false
-			}
-		}
+		onPreviewKeyEvent = { event ->
+			escapes.onPreviewKeyEvent(event) || event.toKeyChord()?.let(actions::dispatch) ?: false
+		},
+		onKeyEvent = escapes::onKeyEvent,
 	) {
 		RaiseOnRequest(raiseRequests)
 		TitledWindowContent(title) {
@@ -104,6 +101,10 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
 				ProvideActions(actions) {
+					RegisterActions(
+						ActionLayer.Root,
+						mapOf(HammerActions.AppQuit.id to ActionHandler { exitApplication() }),
+					)
 					IntroGate(component) {
 						Content(component)
 					}

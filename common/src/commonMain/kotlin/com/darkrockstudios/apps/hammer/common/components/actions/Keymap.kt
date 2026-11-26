@@ -14,8 +14,6 @@ class Keymap(private val chords: Map<ActionId, List<KeyChord>>) {
 	fun actionFor(chord: KeyChord): ActionId? = actions[chord]
 
 	companion object {
-		fun defaults(): Keymap = Keymap(HammerActions.all.associate { it.id to it.defaultChords })
-
-		val Default: Keymap by lazy { defaults() }
+		val Default: Keymap by lazy { Keymap(HammerActions.all.associate { it.id to it.defaultChords }) }
 	}
 }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +42,8 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
@@ -48,6 +51,8 @@ import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -178,10 +183,20 @@ fun rememberListCursorState(): ListCursorState {
 	return remember(savedKey, savedIndex) { ListCursorState(savedKey, savedIndex) }
 }
 
-/** Whether the item with [key] draws the cursor: only while the list has keyboard focus. */
+/**
+ * Whether the item with [key] draws the cursor: only while the list has keyboard focus. Derived
+ * per item, so a cursor move recomposes only the items it leaves and lands on.
+ */
 @Composable
-fun ListCursorState.showsCursorOn(key: Any): Boolean =
-	hasFocus && this.key == key && LocalInputModeManager.current.inputMode == InputMode.Keyboard
+fun ListCursorState.showsCursorOn(key: Any): Boolean {
+	val inputModeManager = LocalInputModeManager.current
+	val shown by remember(this, key, inputModeManager) {
+		derivedStateOf {
+			hasFocus && this@showsCursorOn.key == key && inputModeManager.inputMode == InputMode.Keyboard
+		}
+	}
+	return shown
+}
 
 /**
  * Makes the list the single focus stop for its rows: Up/Down, Home and End move [state]'s cursor,
@@ -292,6 +307,16 @@ fun Modifier.onKeyboardPointerPress(onPress: () -> Unit): Modifier {
 	}
 }
 
+/** Calls [onPress] on any pointer press here, seen before the content handles it and never consumed. */
+fun Modifier.onAnyPointerPress(key: Any?, onPress: () -> Unit): Modifier =
+	pointerInput(key) {
+		awaitPointerEventScope {
+			while (true) {
+				if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) onPress()
+			}
+		}
+	}
+
 /**
  * Scrolls the least distance that shows item [index] whole above any end padding. [key] guards
  * against a layout that has not caught up with a change to the list yet. An item off screen is
@@ -312,23 +337,28 @@ internal suspend fun LazyListState.revealItem(index: Int, key: Any? = null) {
 internal suspend fun LazyGridState.revealItem(index: Int) {
 	val info = layoutInfo
 	val item = info.visibleItemsInfo.firstOrNull { it.index == index }
-	if (item == null) {
-		scrollToItem(index)
-		return
-	}
-	val end = info.viewportEndOffset - info.afterContentPadding
-	revealSpan(item.offset.y, item.offset.y + item.size.height, end)
+	revealCell(index, item?.offset, item?.size, info.viewportEndOffset - info.afterContentPadding) { scrollToItem(it) }
 }
 
 internal suspend fun LazyStaggeredGridState.revealItem(index: Int) {
 	val info = layoutInfo
 	val item = info.visibleItemsInfo.firstOrNull { it.index == index }
-	if (item == null) {
+	revealCell(index, item?.offset, item?.size, info.viewportEndOffset - info.afterContentPadding) { scrollToItem(it) }
+}
+
+/** A grid's reveal of the cell at [offset] and [size], both null while it is off screen. */
+private suspend fun ScrollableState.revealCell(
+	index: Int,
+	offset: IntOffset?,
+	size: IntSize?,
+	end: Int,
+	scrollToItem: suspend (Int) -> Unit,
+) {
+	if (offset == null || size == null) {
 		scrollToItem(index)
 		return
 	}
-	val end = info.viewportEndOffset - info.afterContentPadding
-	revealSpan(item.offset.y, item.offset.y + item.size.height, end)
+	revealSpan(offset.y, offset.y + size.height, end)
 }
 
 private suspend fun ScrollableState.revealSpan(top: Int, bottom: Int, end: Int) {

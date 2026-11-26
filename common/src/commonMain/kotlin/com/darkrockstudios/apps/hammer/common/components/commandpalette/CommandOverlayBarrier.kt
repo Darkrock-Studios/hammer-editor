@@ -19,8 +19,7 @@ internal class CommandOverlayBarrier(
 	lifecycle: Lifecycle,
 	private val onClose: () -> Unit,
 ) {
-	var isOpen: Boolean = true
-		private set
+	private var isOpen = true
 
 	private var stepAside = false
 

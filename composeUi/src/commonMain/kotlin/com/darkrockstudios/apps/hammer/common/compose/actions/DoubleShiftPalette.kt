@@ -8,12 +8,9 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionDispatcher
 import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
-import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.compose.focus.onAnyPointerPress
 import kotlin.time.TimeSource
 
 /** Opens the palette on a double tap of Shift. A window host feeds it every key event it previews. */
@@ -31,7 +28,7 @@ class DoubleShiftPalette(
 			else -> return false
 		}
 		val isShift = event.key == Key.ShiftLeft || event.key == Key.ShiftRight
-		if (detector.onKey(isShift, isDown, nowMs())) actions.invoke(HammerActions.PaletteOpen.id)
+		detector.feed(isShift, isDown, nowMs(), actions)
 		return false
 	}
 
@@ -48,18 +45,8 @@ val LocalDoubleShiftPalette = staticCompositionLocalOf<DoubleShiftPalette?> { nu
 @Composable
 fun Modifier.resetsDoubleShift(): Modifier {
 	val palette = LocalDoubleShiftPalette.current ?: return this
-	return resetsDoubleShift(palette)
+	return onAnyPointerPress(palette, palette::onPointerPress)
 }
-
-private fun Modifier.resetsDoubleShift(palette: DoubleShiftPalette): Modifier =
-	pointerInput(palette) {
-		awaitPointerEventScope {
-			while (true) {
-				val event = awaitPointerEvent(PointerEventPass.Initial)
-				if (event.type == PointerEventType.Press) palette.onPointerPress()
-			}
-		}
-	}
 
 private fun monotonicMs(): () -> Long {
 	val start = TimeSource.Monotonic.markNow()

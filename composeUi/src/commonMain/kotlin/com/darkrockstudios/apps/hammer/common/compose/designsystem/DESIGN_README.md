@@ -245,7 +245,7 @@ These set up the page. Use them before reaching for raw `Column` /
   section numbers. `titleMenu = true` makes the title a menu anchor:
   one line, ellipsized before it crowds out the rule, then a `▾`
   chevron, the whole title calling `onTitleClick`. The caller places
-  its `DropdownMenu` beside the header. The timeline masthead's
+  its `HdDropdownMenu` beside the header. The timeline masthead's
   switcher (`§ IV  Before the evening ▾  ───  13 ENTRIES`) uses it.
 - **[`HdHairlineSection`](HdHairlineSection.kt)** —
   `HdSectionHeader` + content with a left-side marginalia rule running
@@ -533,6 +533,9 @@ a sort icon). Control labels are sentence case in the body face.
   `DropdownMenu`. Same signature as `HdHairlineSegmentedPicker`, so
   swapping is one-for-one. Use for enums of 4+ values where a
   segmented row would crowd.
+- **[`HdDropdownMenu`](HdDropdownMenu.kt)**: every menu, in place of
+  Material's `DropdownMenu`. It makes the open menu the topmost
+  overlay, so Esc closes only the menu, not the dialog or screen under it.
 - **[`HdSearchableListDialog`](HdSearchableListDialog.kt)** — hairline
   dialog with an `HdSearchField` over a lazy row list, each row a label
   plus optional mono greeble (`English (United States)     EN-US`).

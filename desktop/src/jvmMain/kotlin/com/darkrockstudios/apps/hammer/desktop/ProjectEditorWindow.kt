@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
 import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
 import com.darkrockstudios.apps.hammer.common.compose.actions.DoubleShiftPalette
 import com.darkrockstudios.apps.hammer.common.compose.actions.LocalDoubleShiftPalette
 import com.darkrockstudios.apps.hammer.common.compose.actions.resetsDoubleShift
@@ -108,8 +109,8 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		val mainDispatcher = rememberMainDispatcher()
 		RaiseOnRequest(app.raiseRequests.value)
 		LaunchedEffect(component) { app.deepLinks.collect { component.navigateToDeepLink(it) } }
-		DisposableEffect(component) {
-			val quit = component.actions.register(
+		ProvideActions(component.actions) {
+			RegisterActions(
 				ActionLayer.Root,
 				mapOf(
 					HammerActions.AppQuit.id to ActionHandler {
@@ -117,7 +118,6 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 					},
 				),
 			)
-			onDispose { quit.unregister() }
 		}
 
 		TitledWindowContent(windowTitle) {

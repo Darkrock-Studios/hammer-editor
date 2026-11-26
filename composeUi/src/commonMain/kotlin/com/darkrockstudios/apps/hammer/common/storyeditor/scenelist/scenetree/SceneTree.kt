@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -122,12 +123,16 @@ fun SceneTree(
 						val id = node.value.id
 
 						DisposableEffect(id) { onDispose { state.removeRowCoordinates(id) } }
+						// Derived per row, so a cursor move recomposes only the rows it leaves and lands on.
+						val cursor by remember(state, id, showCursor) {
+							derivedStateOf { showCursor && id == state.cursorRowId }
+						}
 
 						SceneTreeNode(
 							node = node,
 							nodeCollapsesChildren = nodeCollapsesChildren,
 							selectedId = state.selectedId,
-							cursor = showCursor && id == state.cursorRowId,
+							cursor = cursor,
 							toggleExpanded = state::toggleExpanded,
 							modifier = Modifier.wrapContentHeight()
 								.fillMaxWidth()
@@ -153,10 +158,7 @@ fun SceneTree(
 private fun SceneTreeState.onTreeKey(event: KeyEvent, onOpen: (SceneItem) -> Unit): Boolean {
 	if (!event.isBareKeyDown()) return false
 	when (event.key) {
-		Key.DirectionDown -> moveCursor(1)
-		Key.DirectionUp -> moveCursor(-1)
-		Key.MoveHome -> cursorToStart()
-		Key.MoveEnd -> cursorToEnd()
+		Key.DirectionDown, Key.DirectionUp, Key.MoveHome, Key.MoveEnd -> stepCursor(event.key)
 		Key.DirectionRight -> cursorRight()
 		Key.DirectionLeft -> cursorLeft()
 		Key.Enter, Key.NumPadEnter -> {

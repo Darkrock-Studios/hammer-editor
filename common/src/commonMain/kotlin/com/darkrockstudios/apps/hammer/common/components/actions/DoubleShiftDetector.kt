@@ -6,10 +6,7 @@ package com.darkrockstudios.apps.hammer.common.components.actions
  * so typing capitals or extending a selection never counts. Hosts feed it every key event they
  * see and [reset] it on pointer presses.
  */
-class DoubleShiftDetector(
-	private val maxGapMs: Long = MAX_GAP_MS,
-	private val maxHoldMs: Long = MAX_HOLD_MS,
-) {
+class DoubleShiftDetector {
 	private var downAt: Long? = null
 	private var held = false
 	private var lastTapUpAt: Long? = null
@@ -27,19 +24,24 @@ class DoubleShiftDetector(
 		}
 		val pressedAt = downAt ?: return false
 		downAt = null
-		val wasHeld = held || atMs - pressedAt > maxHoldMs
+		val wasHeld = held || atMs - pressedAt > MAX_HOLD_MS
 		held = false
 		if (wasHeld) {
 			lastTapUpAt = null
 			return false
 		}
 		val previous = lastTapUpAt
-		if (previous != null && pressedAt - previous <= maxGapMs) {
+		if (previous != null && pressedAt - previous <= MAX_GAP_MS) {
 			lastTapUpAt = null
 			return true
 		}
 		lastTapUpAt = atMs
 		return false
+	}
+
+	/** [onKey], opening the palette through [actions] when the event completes a double tap. */
+	fun feed(isShift: Boolean, isDown: Boolean, atMs: Long, actions: ActionDispatcher?) {
+		if (onKey(isShift, isDown, atMs)) actions?.invoke(HammerActions.PaletteOpen.id)
 	}
 
 	fun reset() {
