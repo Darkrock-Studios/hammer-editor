@@ -20,6 +20,7 @@ fun coreOperations(): List<Operation<*, *>> =
 		imageOperations() +
 		ideaOperations() +
 		searchOperations() +
+		textOperations() +
 		statsOperations() +
 		accountOperations() +
 		syncOperations() +
