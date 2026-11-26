@@ -79,6 +79,23 @@ class MarkdownProjectionTest {
 	}
 
 	@Test
+	fun `struck and highlighted text lose their marks`() {
+		assertEquals("struck out and marked", projectMarkdownToPlainText("~~struck~~ out and ==marked=="))
+		assertEquals("a == b and x ~ y", projectMarkdownToPlainText("a == b and x ~ y"))
+		assertEquals("a === b ~~~", projectMarkdownToPlainText("a === b ~~~"))
+		assertEquals("an ~~unclosed aside", projectMarkdownToPlainText("an ~~unclosed aside"))
+		assertEquals("~~kept~~ ==too==", projectMarkdownToPlainText("`~~kept~~ ==too==`"))
+	}
+
+	@Test
+	fun `style tags are dropped`() {
+		assertEquals("an underlined word", projectMarkdownToPlainText("an <u>underlined</u> word"))
+		assertEquals("bold struck said", projectMarkdownToPlainText("<STRONG>bold</STRONG> <del>struck</del> <em>said</em>"))
+		assertEquals("a <b> tag", projectMarkdownToPlainText("a <b> tag"))
+		assertEquals("<u>", projectMarkdownToPlainText("\\<u>"))
+	}
+
+	@Test
 	fun `emphasis markers inside a code span are literal`() {
 		assertEquals("call my_func now", projectMarkdownToPlainText("call `my_func` now"))
 	}
@@ -199,6 +216,13 @@ class MarkdownProjectionTest {
 		assertEquals("A big cat", projectMarkdownToPlainText("![A **big** cat](https://e.com/cat.png \"Title\")"))
 		assertEquals("See [x] here", projectMarkdownToPlainText("See ![\\[x\\]](<https://e.com/x.png>) here"))
 		assertEquals("Cat", projectMarkdownToPlainText("![Cat](hammer://image/12x)", names::get))
+	}
+
+	@Test
+	fun `without alt text, only a project image's name is left`() {
+		val projector = MarkdownProjector(imageName = names::get, imageAltText = false)
+		projector.project("See ![A **big** cat](https://e.com/cat.png) here ![x](hammer://image/3)")
+		assertEquals("See  here Cheshire Cat", projector.projected())
 	}
 
 	@Test

@@ -329,7 +329,7 @@ event that has none.
 | Operation | Access | Notes |
 | --- | --- | --- |
 | `search` | Read | Query plus filter: all, scenes, notes, encyclopedia, timeline |
-| `text.count` | Read | Exact count of each of up to 50 terms in scene text, per scene; whole words and any case by default; skips titles, outlines, notes, and archived scenes |
+| `text.count` | Read | Exact count of each of up to 50 terms in scene text as search reads it, per scene; whole words and any case by default; skips images, titles, outlines, notes, and archived scenes |
 | `text.find` | Read | Every occurrence of a term in scene text, in story order, with its context; matches as `text.count` does, paged by `limit` and `offset` |
 | `tag.list` | Read | Ranked, optional entity type filter |
 | `tag.find` | Read | Every entity carrying a tag |

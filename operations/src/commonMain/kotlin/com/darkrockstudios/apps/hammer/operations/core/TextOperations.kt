@@ -16,8 +16,8 @@ internal fun textOperations(): List<Operation<*, *>> = listOf(
 		name = "text.count",
 		description = "Exact count of each term in scene text, per scene: every occurrence, not one hit per scene as " +
 			"search gives. Matches whole words unless wholeWord is false, where search matches inside words, and " +
-			"ignores case unless caseSensitive. Ignores italics and curly quotes, and skips titles, outlines, notes, " +
-			"and archived scenes.",
+			"ignores case unless caseSensitive. Reads scenes as search does, without their markdown, ignores curly " +
+			"quotes, and skips images, titles, outlines, notes, and archived scenes.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
@@ -28,9 +28,8 @@ internal fun textOperations(): List<Operation<*, *>> = listOf(
 
 		val found = input.terms.map { mutableListOf<TermScene>() }
 		var scanned = 0
-		forEachScene(input.project, input.group, input.ids) { scene, markdown ->
+		forEachScene(input.project, input.group, input.ids) { scene, text ->
 			scanned++
-			val text = normalizeText(markdown)
 			matchers.forEachIndexed { i, matcher ->
 				val count = matcher.count(text)
 				if (count > 0) found[i] += TermScene(scene.id, scene.name, count)
@@ -55,8 +54,7 @@ internal fun textOperations(): List<Operation<*, *>> = listOf(
 		// Every scene is scanned for the total, but only this page's matches are kept.
 		var total = 0
 		val matches = mutableListOf<TextMatch>()
-		forEachScene(input.project, input.group, input.ids) { scene, markdown ->
-			val text = normalizeText(markdown)
+		forEachScene(input.project, input.group, input.ids) { scene, text ->
 			for (start in matcher.matches(text)) {
 				if (total >= input.offset && total - input.offset < input.limit) {
 					matches += TextMatch(scene.id, scene.name, context(text, start, start + matcher.term.length))
@@ -77,7 +75,10 @@ private fun matcher(term: String, name: String, caseSensitive: Boolean, wholeWor
 		if (it.term.isEmpty()) invalidInput("$name is blank")
 	}
 
-/** Runs [action] on the markdown, unsaved edits included, of each scene chosen as scene.read.many chooses them. */
+/**
+ * Runs [action] on the text from [normalizeText] of each scene chosen as scene.read.many chooses them,
+ * unsaved edits included.
+ */
 private suspend fun OperationContext.forEachScene(
 	project: String,
 	group: Int?,
@@ -86,8 +87,9 @@ private suspend fun OperationContext.forEachScene(
 ) {
 	projects.withProject(project) { open ->
 		val content = open.scope.get<SceneContentRepository>()
+		val projector = sceneTextProjector()
 		open.scope.get<SceneEditorService>().storyScenes(group, ids).forEach { (scene) ->
-			action(scene, content.getCurrentSceneContent(scene))
+			action(scene, normalizeText(content.getCurrentSceneContent(scene), projector))
 		}
 	}
 }

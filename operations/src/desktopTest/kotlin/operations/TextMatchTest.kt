@@ -31,10 +31,11 @@ class TextMatchTest {
 	}
 
 	@Test
-	fun `a padded or styled term is still a whole word`() {
+	fun `a padded term is still a whole word, and a term's marks are taken as written`() {
 		val text = "The harbormaster left the harbor."
 		assertEquals(1, count(" harbor ", text))
-		assertEquals(1, count("*harbor*", text))
+		assertEquals(0, count("*harbor*", text))
+		assertEquals(1, count("*harbor*", "a \\*harbor\\* sign"))
 	}
 
 	@Test
@@ -45,11 +46,21 @@ class TextMatchTest {
 	}
 
 	@Test
-	fun `asterisks are dropped from the text and the term`() {
+	fun `emphasis marks are dropped from the text where they pair`() {
 		assertEquals(3, count("E.V.", "*E.V. E.V. E.V.*"))
-		assertEquals(3, count("*E.V.*", "*E.V. E.V. E.V.*"))
 		assertEquals(1, count("the Gull", "the **Gull**"))
+		assertEquals(1, count("the Gull", "the _Gull_"))
 		assertEquals(1, count("Thawmonth", "*Sealed this ninth day of Thawmonth.*"))
+		assertEquals(1, count("2 * 3", "2 * 3 = 6"))
+		assertEquals(1, count("user_name", "user_name"))
+	}
+
+	@Test
+	fun `images count for nothing, alt text and names alike`() {
+		val text = "The harbor slept. ![The harbor at dawn](images/harbor.png) ![harbor](hammer://image/3)"
+		assertEquals(1, count("harbor", text))
+		assertEquals(0, count("dawn", text))
+		assertEquals("The harbor slept.", normalizeText(text))
 	}
 
 	@Test
@@ -157,7 +168,7 @@ class TextMatchTest {
 
 	@Test
 	fun `a blank term matches nothing`() {
-		assertEquals("", TextMatcher(" ** ", caseSensitive = false, wholeWord = true).term)
+		assertEquals("", TextMatcher(" \t\n ", caseSensitive = false, wholeWord = true).term)
 		assertEquals(0, count("**", "a *b* c"))
 	}
 }

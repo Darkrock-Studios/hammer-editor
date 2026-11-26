@@ -47,7 +47,10 @@ class TextOperationsTest : KoinOperationsTest() {
 		ids = onTestThread { seed() }
 	}
 
-	/** In story order: Chapter One (Ashes on the Water, Left-Handed), then The Registry, and an archived scene. */
+	/**
+	 * In story order: Chapter One (Ashes on the Water, Left-Handed), then The Registry, and an archived
+	 * scene. Left-Handed's images name the harbor, which counts for nothing.
+	 */
 	private suspend fun seed(): Seeded {
 		val created = get<ProjectsRepository>().createProject(PROJECT, seedDefaultLanguage = false)
 		val def = (created as ClientResult.Success<ProjectDef>).data
@@ -61,7 +64,10 @@ class TextOperationsTest : KoinOperationsTest() {
 			)
 			scenes.storeMetadata(SceneMetadata(outline = "harbor harbor", notes = "harbor"), ashes.id)
 			val leftHanded = scenes.createScene(chapter, "Left-Handed")!!
-			scenes.storeSceneMarkdownRaw(SceneContent(leftHanded, markdown = "No bells here."))
+			scenes.storeSceneMarkdownRaw(SceneContent(
+					leftHanded,
+					markdown = "No bells here. ![The harbor at dawn](images/harbor.png)\n\n![harbor](hammer://image/1)",
+				))
 			val registry = scenes.createScene(null, "The Registry")!!
 			scenes.storeSceneMarkdownRaw(
 				SceneContent(registry, markdown = "*E.V. E.V. E.V.* Till then, the harbor slept. Teo’s harbor."),
@@ -141,7 +147,7 @@ class TextOperationsTest : KoinOperationsTest() {
 		}
 
 		invalid("terms[1] is blank") { count(TextCountInput(PROJECT, terms = listOf("bell", " "))) }
-		invalid("terms[0] is blank") { count(TextCountInput(PROJECT, terms = listOf("**"))) }
+		invalid("terms[0] is blank") { count(TextCountInput(PROJECT, terms = listOf("\t\n"))) }
 		invalid("terms must hold 1 to 50 terms") { count(TextCountInput(PROJECT, terms = emptyList())) }
 		invalid("terms must hold 1 to 50 terms") { count(TextCountInput(PROJECT, terms = List(51) { "a" })) }
 		invalid("term is blank") { find(TextFindInput(PROJECT, term = "")) }

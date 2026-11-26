@@ -1,42 +1,40 @@
 package com.darkrockstudios.apps.hammer.operations.core
 
-// Exact matching of a term in scene text, for text.count and text.find. Hand rolled rather than a
-// markdown parse, so a term is normalised exactly as the text is, whatever marks it holds.
+import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
+
+// Exact matching of a term in scene text, for text.count and text.find.
 
 /**
- * [text] as terms are matched against it: the marks Hammer writes around styled text dropped, a
- * backslash escape read as the character it escapes, typographic quotes and apostrophes made straight,
- * and each run of whitespace made one space. With [paragraphs], a run holding a paragraph break (a blank
- * line) becomes one line break instead, so each paragraph is one line. Whitespace at either end is
- * dropped.
+ * A projector for [normalizeText], to reuse across every scene in a scan. Inline images project to
+ * nothing, alt text included, as they count for no words.
  */
-internal fun normalizeText(text: String, paragraphs: Boolean = true): String {
-	val out = StringBuilder(text.length)
-	// Whitespace waiting for the next character it separates, with the line breaks in it; marks between
-	// don't end the run.
+internal fun sceneTextProjector() = MarkdownProjector(imageAltText = false)
+
+/**
+ * Scene [markdown] as terms are matched against it: projected to the prose a reader sees, then with
+ * typographic quotes and apostrophes made straight and each run of whitespace made one space. A run
+ * holding a paragraph break (a blank line) becomes one line break instead, so each paragraph is one
+ * line. Whitespace at either end is dropped.
+ */
+internal fun normalizeText(markdown: String, projector: MarkdownProjector = sceneTextProjector()): String {
+	val length = projector.project(markdown)
+	return collapse(length, paragraphs = true) { projector[it] }
+}
+
+/** [term] as it is matched: [normalizeText] without the projection, so its marks are taken as written, on one line. */
+internal fun normalizeTerm(term: String): String = collapse(term.length, paragraphs = false) { term[it] }
+
+private inline fun collapse(length: Int, paragraphs: Boolean, charAt: (Int) -> Char): String {
+	val out = StringBuilder(length)
+	// Whitespace waiting for the next character it separates, with the line breaks in it.
 	var space = false
 	var breaks = 0
-	var i = 0
-	while (i < text.length) {
-		val mark = markLength(text, i)
-		if (mark > 0) {
-			i += mark
-			continue
-		}
-		var c = text[i]
+	for (i in 0 until length) {
+		val c = charAt(i)
 		if (c.isWhitespace()) {
 			space = true
 			if (c == '\n') breaks++
-			i++
 			continue
-		}
-		if (c == '\\' && i + 1 < text.length && text[i + 1] in ASCII_PUNCTUATION) {
-			c = text[++i]
-			// An asterisk in a term can't be told from emphasis, so a literal one is dropped too.
-			if (c == '*') {
-				i++
-				continue
-			}
 		}
 		if (space && out.isNotEmpty()) out.append(if (paragraphs && breaks >= 2) '\n' else ' ')
 		space = false
@@ -48,37 +46,18 @@ internal fun normalizeText(text: String, paragraphs: Boolean = true): String {
 				else -> c
 			},
 		)
-		i++
 	}
 	return out.toString()
 }
 
 /**
- * How long the styling mark at [at] is, or 0 when none starts there: emphasis asterisks, the `~~` of
- * struck text and `==` of highlighted text (exactly two, as a longer run is prose), and an inline
- * styling tag.
- */
-private fun markLength(text: String, at: Int): Int {
-	val c = text[at]
-	return when (c) {
-		'*' -> 1
-		'~', '=' -> {
-			val paired = text.getOrNull(at + 1) == c && text.getOrNull(at - 1) != c && text.getOrNull(at + 2) != c
-			if (paired) 2 else 0
-		}
-		'<' -> STYLE_TAGS.firstOrNull { text.startsWith(it, at, ignoreCase = true) }?.length ?: 0
-		else -> 0
-	}
-}
-
-/**
- * Finds [term] in text from [normalizeText]. The term is normalised the same way, with no paragraph
- * breaks, so a match never spans two paragraphs. Unless [caseSensitive], case is ignored a character at
- * a time. With [wholeWord], a match may not have a letter or digit directly before it when the term
+ * Finds [term] in text from [normalizeText]. The term is normalised by [normalizeTerm], with no
+ * paragraph breaks, so a match never spans two paragraphs. Unless [caseSensitive], case is ignored a
+ * character at a time. With [wholeWord], a match may not have a letter or digit directly before it when the term
  * starts with one, nor directly after it when the term ends with one.
  */
 internal class TextMatcher(term: String, private val caseSensitive: Boolean, wholeWord: Boolean) {
-	val term = normalizeText(term, paragraphs = false)
+	val term = normalizeTerm(term)
 
 	// this.term: the bare name is the constructor's raw term.
 	private val boundedBefore = wholeWord && this.term.isNotEmpty() && isWordChar(this.term.first())
@@ -137,8 +116,6 @@ private fun isWordChar(c: Char): Boolean = c.isLetterOrDigit() || c.category in 
 
 private val MARKS = setOf(CharCategory.NON_SPACING_MARK, CharCategory.COMBINING_SPACING_MARK, CharCategory.ENCLOSING_MARK)
 
-private const val ASCII_PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-private val STYLE_TAGS = listOf("<u>", "</u>", "<em>", "</em>", "<strong>", "</strong>", "<del>", "</del>")
 
 internal const val CONTEXT_REACH = 80
 private const val ELLIPSIS = '…'
