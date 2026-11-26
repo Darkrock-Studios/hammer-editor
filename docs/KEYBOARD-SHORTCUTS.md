@@ -51,6 +51,7 @@ An open dialog or menu is an overlay that blocks everything below it except glob
 | `item.next`    | `Mod+PageDown` | Open the next item                                         |
 | `item.prev`    | `Mod+PageUp`   | Open the previous item                                     |
 | `item.close`   | `Mod+W`        | Close the open item; asks first when it has unsaved edits  |
+| `item.create`  | `Mod+Enter`    | Create the new note, entry or event, from any of its fields |
 | `timeline.new` | (palette only) | New timeline                                               |
 
 Next and previous use PageUp and PageDown because `Ctrl+Shift+Up/Down` is the editor's
@@ -149,6 +150,13 @@ Esc is not in the table. It steps out one level at a time:
 
 To leave the scene editor for the next pane, press `F6`: after Esc, focus is in the tree, so
 Tab moves on from there.
+
+In a new note, entry or event, the first Esc is taken and does nothing else, and the second in a
+row goes back (asking first if anything is filled in). Tab indents in a rich text body, so to
+move on from the body press Esc then Tab, or `Ctrl+Tab`. `Mod+Enter` creates the item from any
+field.
+
+A control focused from the keyboard draws an ink frame just inside its border.
 
 An Esc that closes a dialog, menu, find bar or popup does only that, and never also goes back.
 

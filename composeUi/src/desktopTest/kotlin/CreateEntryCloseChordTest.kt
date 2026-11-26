@@ -41,6 +41,7 @@ class CreateEntryCloseChordTest : BaseTest() {
 	private var closes = 0
 
 	private class FakeCreateEntry : CreateEntry {
+		val created = mutableListOf<String>()
 		private val _state = MutableValue(CreateEntry.State(projectDef = fakeProjectDef()))
 		override val state: Value<CreateEntry.State> = _state
 
@@ -51,7 +52,7 @@ class CreateEntryCloseChordTest : BaseTest() {
 			tags: Set<String>,
 			imagePath: String?,
 			excludeFromDictionary: Boolean,
-		) = EntryResult(EntryError.NONE)
+		) = EntryResult(EntryError.NONE).also { created += name }
 
 		override fun confirmClose() = _state.update { it.copy(showConfirmClose = true) }
 		override fun dismissConfirmClose() = _state.update { it.copy(showConfirmClose = false) }
@@ -119,5 +120,21 @@ class CreateEntryCloseChordTest : BaseTest() {
 		compose.waitForIdle()
 
 		compose.onNodeWithTag(ENCYCLOPEDIA_CREATE_NAME_TAG).assertIsFocused()
+	}
+
+	@Test
+	fun `Mod+Enter creates the entry from any field`() {
+		val component = FakeCreateEntry()
+		show(component)
+		compose.onNodeWithTag(ENCYCLOPEDIA_CREATE_NAME_TAG).performTextInput("Alice")
+		compose.waitForIdle()
+
+		val handled = compose.runOnIdle { registry.dispatch(KeyChord.mod(ChordKey.Enter)) }
+		scope.testScheduler.runCurrent()
+		compose.waitForIdle()
+
+		assertTrue(handled)
+		assertEquals(listOf("Alice"), component.created)
+		assertEquals(1, closes)
 	}
 }

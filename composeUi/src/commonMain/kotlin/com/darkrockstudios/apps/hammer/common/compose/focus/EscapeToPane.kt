@@ -2,12 +2,14 @@ package com.darkrockstudios.apps.hammer.common.compose.focus
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalInputModeManager
 import com.darkrockstudios.apps.hammer.common.compose.actions.LocalActionDispatcher
@@ -39,4 +41,22 @@ fun Modifier.escapeToPane(onEscape: () -> Boolean): Modifier {
 fun Modifier.escapeToContainer(id: PaneId): Modifier {
 	val paneFocus = LocalPaneFocus.current ?: return this
 	return escapeToPane { paneFocus.escapeToContainer(id) }
+}
+
+/**
+ * [escapeToPane] for a form: the first Esc is taken and does nothing more, so focus stays put and a
+ * rich text field's own Esc-then-Tab can move on to the next field. A second Esc in a row goes
+ * back. Any other key between them starts over.
+ */
+@Composable
+fun Modifier.escapeTwiceToLeave(): Modifier {
+	val armed = remember { BooleanArray(1) }
+	return onPreviewKeyEvent { event ->
+		if (event.type == KeyEventType.KeyDown && event.key != Key.Escape) armed[0] = false
+		false
+	}.escapeToPane {
+		val second = armed[0]
+		armed[0] = !second
+		!second
+	}
 }

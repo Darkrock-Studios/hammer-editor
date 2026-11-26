@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.action_edit_text_reset
 import com.darkrockstudios.apps.hammer.action_edit_text_smaller
 import com.darkrockstudios.apps.hammer.action_help_cheat_sheet
 import com.darkrockstudios.apps.hammer.action_item_close
+import com.darkrockstudios.apps.hammer.action_item_create
 import com.darkrockstudios.apps.hammer.action_item_new
 import com.darkrockstudios.apps.hammer.action_item_next
 import com.darkrockstudios.apps.hammer.action_item_prev
@@ -78,6 +79,7 @@ object HammerActions {
 	val ItemNext = action("item.next", Res.string.action_item_next, Items, mod(ChordKey.PageDown))
 	val ItemPrev = action("item.prev", Res.string.action_item_prev, Items, mod(ChordKey.PageUp))
 	val ItemClose = action("item.close", Res.string.action_item_close, Items, mod(ChordKey.W))
+	val ItemCreate = action("item.create", Res.string.action_item_create, Items, mod(ChordKey.Enter))
 	val TimelineNew = action("timeline.new", Res.string.action_timeline_new, Items)
 
 	val StoryNewGroup = action("story.newGroup", Res.string.action_story_new_group, Story, mod(ChordKey.N, shift = true))

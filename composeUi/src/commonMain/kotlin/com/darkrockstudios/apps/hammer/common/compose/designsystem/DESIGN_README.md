@@ -378,6 +378,12 @@ The handwriting of the system. Reach for these instead of styling
 
 ### Buttons & inputs
 
+**Keyboard focus is an ink frame.** `AppTheme` provides `HdIndication`
+as `LocalIndication`: the ripple, plus a 1dp ink frame just inside the
+control's hairline while it holds focus in keyboard input mode. Any
+`clickable` that takes the default indication gets it, so a new control
+needs nothing extra; passing your own `indication` opts out.
+
 Buttons come in three tiers. **In a masthead only the primary action
 is framed**; everything else there is quiet, so the row reads as one
 action plus tools.

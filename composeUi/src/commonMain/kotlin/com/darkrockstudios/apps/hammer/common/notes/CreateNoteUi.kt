@@ -1,5 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +87,11 @@ fun CreateNoteUi(
 			}
 		}
 	}
+
+	RegisterActions(
+		ActionLayer.Item,
+		mapOf(HammerActions.ItemCreate.id to ActionHandler(isEnabled = { canCreate }) { create() }),
+	)
 
 	HdCreateModal(
 		title = Res.string.notes_create_header.get(),

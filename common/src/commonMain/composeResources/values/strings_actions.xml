@@ -17,6 +17,7 @@
 	<string name="action_item_next">Next item</string>
 	<string name="action_item_prev">Previous item</string>
 	<string name="action_item_close">Close item</string>
+	<string name="action_item_create">Create the new item</string>
 	<string name="action_timeline_new">New timeline</string>
 	<string name="action_story_new_group">New group</string>
 	<string name="action_story_next_group">Next group</string>

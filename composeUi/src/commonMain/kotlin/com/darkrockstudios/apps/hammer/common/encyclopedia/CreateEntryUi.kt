@@ -174,6 +174,8 @@ internal fun CreateEntryUi(
 		}
 	}
 
+	RegisterActions(ActionLayer.Item, mapOf(HammerActions.ItemCreate.id to ActionHandler { create() }))
+
 	HdCreateModal(
 		title = Res.string.encyclopedia_create_entry_header.get(),
 		modifier = modifier,

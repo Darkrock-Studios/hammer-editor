@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.focus.FocusFirstPaneOnArrival
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.escapeTwiceToLeave
 import com.darkrockstudios.apps.hammer.common.compose.focus.escapeToContainer
 import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
@@ -76,7 +77,11 @@ fun NotesUi(
 					}
 
 					is Notes.Destination.CreateNoteDestination -> {
-						CreateNoteUi(dest.component, Modifier, rootSnackbar)
+						CreateNoteUi(
+							dest.component,
+							Modifier.escapeTwiceToLeave().focusPane(PaneId.Detail),
+							rootSnackbar,
+						)
 					}
 				}
 			}

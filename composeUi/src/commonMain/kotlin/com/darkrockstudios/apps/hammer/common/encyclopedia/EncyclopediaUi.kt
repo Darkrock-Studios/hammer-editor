@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encycloped
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.focus.FocusFirstPaneOnArrival
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.escapeTwiceToLeave
 import com.darkrockstudios.apps.hammer.common.compose.focus.escapeToContainer
 import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
@@ -84,7 +85,9 @@ fun EncyclopediaUi(
 						CreateEntryUi(
 							component = destination.component,
 							scope = scope,
-							modifier = Modifier.align(Alignment.TopCenter),
+							modifier = Modifier.align(Alignment.TopCenter)
+								.escapeTwiceToLeave()
+								.focusPane(PaneId.Detail),
 							rootSnackbar = rootSnackbar,
 							close = component::showBrowse
 						)
