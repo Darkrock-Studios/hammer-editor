@@ -219,7 +219,7 @@ class MarkdownProjectionTest {
 	}
 
 	@Test
-	fun `without alt text, only a project image's name is left`() {
+	fun `without alt text only a project image's name is left`() {
 		val projector = MarkdownProjector(imageName = names::get, imageAltText = false)
 		projector.project("See ![A **big** cat](https://e.com/cat.png) here ![x](hammer://image/3)")
 		assertEquals("See  here Cheshire Cat", projector.projected())
