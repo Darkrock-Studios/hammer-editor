@@ -114,15 +114,24 @@ class WasmPlugin(
 
 	// Only touched while holding the lock.
 	private var loaded: ExtismPlugin? = null
-	private val module: ExtismPlugin
-		get() = loaded ?: ExtismPlugin(
-			loadModule,
-			listOf(dispatchFunction(), progressFunction(), resourceFunction(), serverRequestFunction()) + cacheFunctions(),
-			log = ::log,
-			maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB,
-			http = pluginHttp(),
-			maxKernelBytes = maxKernelBytes,
-		).also { loaded = it }
+
+	// False once a load ran interpreted or compiled code failed in a call, so a module chasm-jit cannot run
+	// is not compiled again on every reload; only touched while holding the lock.
+	private var compileModule = true
+
+	/** The loaded module, loading it if need be. Hold the lock. */
+	private fun module(): ExtismPlugin = loaded ?: ExtismPlugin(
+		loadModule,
+		listOf(dispatchFunction(), progressFunction(), resourceFunction(), serverRequestFunction()) + cacheFunctions(),
+		log = ::log,
+		maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB,
+		http = pluginHttp(),
+		maxKernelBytes = maxKernelBytes,
+		compiler = platformCompiler.takeIf { compileModule },
+	).also {
+		loaded = it
+		compileModule = it.compiled
+	}
 
 	// The call [interruptibly] is running, if any, which cancelling its caller interrupts. Only touched
 	// while holding interruptLock, which a call clears before the lock can pass to the next.
@@ -239,7 +248,7 @@ class WasmPlugin(
 
 	/** Loads the module now rather than on first use, which surfaces any problem with it as a [PluginException]. */
 	fun instantiate() {
-		lock.withLock { module }
+		lock.withLock { module() }
 	}
 
 	/**
@@ -259,6 +268,8 @@ class WasmPlugin(
 		val work = async(ioDispatcher) {
 			lock.withLock {
 				ensureActive()
+				// Loaded before taking interruptLock, which a cancelled caller waits on.
+				val module = module()
 				val outer = interruptLock.withLock { running.also { running = Running(module).also { mine = it } } }
 				try {
 					// A cancel while the module was loading found no call to interrupt.
@@ -292,11 +303,12 @@ class WasmPlugin(
 		val outer = activeRoute
 		activeRoute = route ?: appRoute
 		try {
-			module.call(function, input, fuelPerCall)
+			module().call(function, input, fuelPerCall)
 		} finally {
 			activeRoute = outer
 			// chasm never gives back the guest heap a call grew, so a module that needed a lot is dropped and
 			// loaded afresh when next used, as is one that ran the host out of memory or was stopped partway.
+			if (loaded?.compiledCodeFailed == true) compileModule = false
 			val drop = loaded?.let { it.outOfMemory || it.stoppedPartway || it.guestHeapBytes > releaseGuestHeapAbove }
 			if (outer == null && drop == true) {
 				loaded = null

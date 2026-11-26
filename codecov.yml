@@ -11,6 +11,7 @@ ignore:
   - "desktop"
   - "common/src/androidMain"
   - "common/src/iosMain"
+  - "plugins/wasmhost/src/androidMain"
   - "server/src/testFixtures"
 
 component_management:

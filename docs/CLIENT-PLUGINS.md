@@ -1192,8 +1192,9 @@ WebAssembly in a sandbox. `WasmPlugin` presents each as a `ClientPlugin`.
 [chasm](https://github.com/CharlieTap/chasm), a WebAssembly interpreter written
 in Kotlin Multiplatform, MIT and Apache licensed. It is published for JVM,
 Android, iOS, macOS, Linux, and Windows, so one host in `commonMain` covers
-every target with no native libraries to package. It never generates code at
-runtime, which iOS forbids. It supports Wasm 3.0 plus GC, exception handling,
+every target with no native libraries to package. It interprets everywhere but
+Android, generating no code at runtime, which iOS forbids; on Android its
+`chasm-jit` compiles each module to DEX (see [Host](#host)). It supports Wasm 3.0 plus GC, exception handling,
 and typed function references (what Kotlin/Wasm output needs), and WASI
 Preview 1 through a companion library. It does not support SIMD or Memory64.
 
@@ -1220,7 +1221,7 @@ reading level report needs 192 MiB on a 100,000-word novel and 384 MiB on a
 300,000-word one, and hammer-plugin-development's Kotlin style report on the
 longer needs 768 MiB with a 22-word vocabulary and over 1 GiB with an
 8,000-word one. chasm's `TRADITIONAL` collector, which runs during a call,
-corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.4.0, the
+corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.5.0, the
 version Hammer pins. The desktop JVM's default heap is a quarter of the machine's
 memory, so an 8 GB machine allows about 1 GiB; Android's app heap, 192 to 512 MB,
 allows 96 to 256 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
@@ -1956,6 +1957,20 @@ cannot load, the command exits with an error rather than reading input.
 - **Execution.** `WasmPlugin.call` runs the module on the IO dispatcher, never
   the UI thread. Export rendering, already on a background dispatcher, calls it
   blocking. An operation the module dispatches blocks its thread until done.
+- **Compiling on Android.** `ExtismPlugin` hands Android modules to `chasm-jit`,
+  which compiles them to DEX that ART runs, and interprets them elsewhere or when
+  asked not to (`compile = false`). The compiled code keeps every limit below:
+  fuel, interrupts, the stack, memory and table caps, and the guest heap. A
+  module chasm-jit cannot compile, such as one with more locals than a DEX
+  method has registers, or whose compiling runs the host out of memory, is
+  interpreted instead in a fresh store, with a warning in the plugin's log, and
+  later loads of it skip compiling. If compiled code fails to load partway
+  through a call, the call fails, and the plugin is loaded afresh and
+  interpreted from then on. Compiling costs load time and wins it back on
+  heavy calls: `harper-grammar` on a Pixel release build loads in 0.57 s rather
+  than 0.37 s, its first 300-paragraph check, which builds the linter, takes
+  5.7 s rather than 33 s, and later ones 0.37 s rather than 3.1 s. Its tests are `androidDeviceTest`s, since only ART runs DEX:
+  `./gradlew :plugins:wasmhost:connectedAndroidDeviceTest`.
 - **Stopping a runaway module.** Each module runs in a chasm store that meters
   fuel: a check at every function entry and loop iteration takes a unit, and
   the call traps when none are left. The host sets the budget before each call;
