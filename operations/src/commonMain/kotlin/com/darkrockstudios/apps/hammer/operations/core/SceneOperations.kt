@@ -65,25 +65,11 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
-		if (input.group != null && input.ids != null) invalidInput("Give group or ids, not both")
 		if (input.maxWords < 1) invalidInput("maxWords must be at least 1")
 		projects.withProject(input.project) { project ->
 			val service = project.scope.get<SceneEditorService>()
 			val content = project.scope.get<SceneContentRepository>()
-			val placed = service.getSceneTree().root.children.flatMap { it.placedScenes(emptyList()) }
-			val chosen = when {
-				input.group != null -> {
-					val group = service.getSceneItemFromId(input.group)
-					if (group == null || group.type != SceneItem.Type.Group) notFound("No group ${input.group}")
-					placed.filter { scene -> scene.groups.any { it.id == input.group } }
-				}
-				input.ids != null -> {
-					val ids = input.ids.toSet()
-					ids.forEach { id -> if (placed.none { it.scene.id == id }) notFound("No scene $id in the story") }
-					placed.filter { it.scene.id in ids }
-				}
-				else -> placed
-			}
+			val chosen = service.storyScenes(input.group, input.ids)
 			val start = if (input.after == null) {
 				0
 			} else {
@@ -201,7 +187,29 @@ private fun TreeValue<SceneItem>.toSceneNode(content: SceneContentRepository): S
 	}
 }
 
-private data class PlacedScene(val scene: SceneItem, val groups: List<SceneItem>)
+internal data class PlacedScene(val scene: SceneItem, val groups: List<SceneItem>)
+
+/**
+ * The story's scenes in order with the groups each sits in: every scene, [group]'s at any depth, or
+ * those in [ids]. Archived scenes are left out.
+ */
+internal fun SceneEditorService.storyScenes(group: Int?, ids: List<Int>?): List<PlacedScene> {
+	if (group != null && ids != null) invalidInput("Give group or ids, not both")
+	val placed = getSceneTree().root.children.flatMap { it.placedScenes(emptyList()) }
+	return when {
+		group != null -> {
+			val item = getSceneItemFromId(group)
+			if (item == null || item.type != SceneItem.Type.Group) notFound("No group $group")
+			placed.filter { scene -> scene.groups.any { it.id == group } }
+		}
+		ids != null -> {
+			val wanted = ids.toSet()
+			wanted.forEach { id -> if (placed.none { it.scene.id == id }) notFound("No scene $id in the story") }
+			placed.filter { it.scene.id in wanted }
+		}
+		else -> placed
+	}
+}
 
 private fun TreeValue<SceneItem>.placedScenes(groups: List<SceneItem>): List<PlacedScene> =
 	if (value.type == SceneItem.Type.Scene) {

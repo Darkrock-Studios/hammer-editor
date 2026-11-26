@@ -25,7 +25,14 @@ internal fun Char.isAsciiPunctuation(): Boolean =
 		this in '['..'`' ||
 		this in '{'..'~'
 
-private fun Char.isDelimiterChar(): Boolean = this == '*' || this == '_' || this == '`'
+private fun Char.isDelimiterChar(): Boolean =
+	this == '*' || this == '_' || this == '`' || this == '~' || this == '='
+
+/** The `~~` of struck text and `==` of highlighted text: exactly two, as a longer or shorter run is prose. */
+private fun Char.isPairedMarkChar(): Boolean = this == '~' || this == '='
+
+/** Inline tags the editor writes around styled text, matched ignoring case. */
+private val STYLE_TAGS = arrayOf("<u>", "</u>", "<em>", "</em>", "<strong>", "</strong>", "<del>", "</del>")
 
 private fun Char.isSpaceOrTabChar(): Boolean = this == ' ' || this == '\t'
 
@@ -36,12 +43,14 @@ private fun Char.isSpaceOrTabChar(): Boolean = this == ' ' || this == '\t'
  * lands in a char buffer that is matched against in place rather than being turned into a String.
  *
  * A project image projects to the name [imageName] gives its id, or to nothing when it gives none.
+ * Any other inline image projects to its alt text, or to nothing without [imageAltText].
  *
  * Not thread safe. A concurrent scan needs its own instance.
  */
 class MarkdownProjector(
 	initialCapacity: Int = INITIAL_OUT,
 	private val imageName: (imageId: Int) -> String? = { null },
+	private val imageAltText: Boolean = true,
 ) : ScanBuffers {
 
 	/**
@@ -306,6 +315,7 @@ class MarkdownProjector(
 			var end = start + 1
 			while (end < length && src[end] == c) end++
 			i = end
+			if (c.isPairedMarkChar() && end - start != 2) continue
 
 			var canOpen = true
 			var canClose = true
@@ -316,7 +326,7 @@ class MarkdownProjector(
 				val nextPunct = isPunctuationAt(end)
 				val leftFlanking = !nextBlank && (!nextPunct || prevBlank || prevPunct)
 				val rightFlanking = !prevBlank && (!prevPunct || nextBlank || nextPunct)
-				if (c == '*') {
+				if (c != '_') {
 					canOpen = leftFlanking
 					canClose = rightFlanking
 				} else {
@@ -473,7 +483,7 @@ class MarkdownProjector(
 
 	/**
 	 * A project image renders as its name, or as nothing. Any other image renders as its alt text: the
-	 * `![` is dropped, and so is everything from the `]` on.
+	 * `![` is dropped, and so is everything from the `]` on. Style tags render as nothing.
 	 */
 	private fun render() {
 		val length = srcLength
@@ -513,8 +523,8 @@ class MarkdownProjector(
 				val end = if (altEnd < 0) -1 else inlineImageDestinationEnd(altEnd, length) { src[it] }
 				if (end > 0) {
 					val imageId = projectImageId(altEnd, end)
-					if (imageId >= 0) {
-						imageName(imageId)?.let(::appendName)
+					if (imageId >= 0 || !imageAltText) {
+						if (imageId >= 0) imageName(imageId)?.let(::appendName)
 						i = end
 						while (r < runCount && runStart[r] < i) r++
 						continue
@@ -522,6 +532,13 @@ class MarkdownProjector(
 					imageAltEnd = altEnd
 					imageEnd = end
 					i += 2
+					continue
+				}
+			}
+			if (c == '<') {
+				val tag = styleTagLength(i)
+				if (tag > 0) {
+					i += tag
 					continue
 				}
 			}
@@ -534,6 +551,17 @@ class MarkdownProjector(
 				i++
 			}
 		}
+	}
+
+	/** The length of the style tag starting at [start], or 0 when none does. */
+	private fun styleTagLength(start: Int): Int {
+		for (tag in STYLE_TAGS) {
+			if (start + tag.length > srcLength) continue
+			var k = 0
+			while (k < tag.length && src[start + k].equals(tag[k], ignoreCase = true)) k++
+			if (k == tag.length) return tag.length
+		}
+		return 0
 	}
 
 	/**

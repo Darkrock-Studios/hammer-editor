@@ -48,6 +48,19 @@ class CliTest {
 	}
 
 	@Test
+	fun `text count and find are commands`() {
+		assertEquals(Cli.EXIT_OK, run("text", "count", "--help"))
+		val count = stdout.readUtf8()
+		assertTrue("--terms <string>, repeatable (required)" in count)
+		assertTrue("--whole-word <boolean>" in count)
+
+		assertEquals(Cli.EXIT_OK, run("text", "find", "--help"))
+		val find = stdout.readUtf8()
+		assertTrue("--term <string> (required)" in find)
+		assertTrue("--offset <integer>" in find)
+	}
+
+	@Test
 	fun `scene text comes from stdin`() {
 		assertEquals(Cli.EXIT_OK, run("scene", "write", "--help"))
 		val help = stdout.readUtf8()
