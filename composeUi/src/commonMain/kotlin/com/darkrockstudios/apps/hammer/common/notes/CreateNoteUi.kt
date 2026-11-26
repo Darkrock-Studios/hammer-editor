@@ -52,38 +52,46 @@ fun CreateNoteUi(
 
 	val canCreate by remember { derivedStateOf { noteText.value.isNotBlank() } }
 
-	val create: () -> Unit = {
+	// One at a time: a held Mod+Enter repeats, and a double click on Create would save it twice.
+	var creating by remember { mutableStateOf(false) }
+	val create: () -> Unit = create@{
+		if (creating) return@create
+		creating = true
 		scope.launch {
-			val result = component.createNote(noteText.value, tags.toSet())
-			newNoteError = !result.isSuccess
-			when (result) {
-				NoteError.TOO_LONG -> scope.launch {
-					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
-				}
+			try {
+				val result = component.createNote(noteText.value, tags.toSet())
+				newNoteError = !result.isSuccess
+				when (result) {
+					NoteError.TOO_LONG -> scope.launch {
+						rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
+					}
 
-				NoteError.EMPTY -> scope.launch {
-					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
-				}
+					NoteError.EMPTY -> scope.launch {
+						rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
+					}
 
-				NoteError.TAG_TOO_LONG -> scope.launch {
-					rootSnackbar.showSnackbar(
-						strRes.get(
-							Res.string.notes_create_toast_tag_too_long,
-							NotesRepository.MAX_TAG_SIZE,
+					NoteError.TAG_TOO_LONG -> scope.launch {
+						rootSnackbar.showSnackbar(
+							strRes.get(
+								Res.string.notes_create_toast_tag_too_long,
+								NotesRepository.MAX_TAG_SIZE,
+							)
 						)
-					)
-				}
+					}
 
-				NoteError.NONE -> {
-					withContext(mainDispatcher) {
-						component.clearText()
-						tags.clear()
-						resetVersion++
-					}
-					scope.launch {
-						rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
+					NoteError.NONE -> {
+						withContext(mainDispatcher) {
+							component.clearText()
+							tags.clear()
+							resetVersion++
+						}
+						scope.launch {
+							rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
+						}
 					}
 				}
+			} finally {
+				creating = false
 			}
 		}
 	}

@@ -11,6 +11,9 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalInputModeManager
 import com.darkrockstudios.apps.hammer.common.compose.actions.LocalActionDispatcher
 
@@ -46,12 +49,18 @@ fun Modifier.escapeToContainer(id: PaneId): Modifier {
 /**
  * [escapeToPane] for a form: the first Esc is taken and does nothing more, so focus stays put and a
  * rich text field's own Esc-then-Tab can move on to the next field. A second Esc in a row goes
- * back. Any other key between them starts over.
+ * back. Any other key, or a click, between them starts over.
  */
 @Composable
 fun Modifier.escapeTwiceToLeave(): Modifier {
 	val armed = remember { BooleanArray(1) }
-	return onPreviewKeyEvent { event ->
+	return pointerInput(armed) {
+		awaitPointerEventScope {
+			while (true) {
+				if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) armed[0] = false
+			}
+		}
+	}.onPreviewKeyEvent { event ->
 		if (event.type == KeyEventType.KeyDown && event.key != Key.Escape) armed[0] = false
 		false
 	}.escapeToPane {

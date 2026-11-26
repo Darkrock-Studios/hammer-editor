@@ -1,3 +1,4 @@
+import kotlinx.coroutines.CompletableDeferred
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.foundation.layout.requiredSize
@@ -42,6 +43,8 @@ class CreateEntryCloseChordTest : BaseTest() {
 
 	private class FakeCreateEntry : CreateEntry {
 		val created = mutableListOf<String>()
+		/** While set, a create waits on it, as a save to disk would. */
+		var gate: CompletableDeferred<Unit>? = null
 		private val _state = MutableValue(CreateEntry.State(projectDef = fakeProjectDef()))
 		override val state: Value<CreateEntry.State> = _state
 
@@ -52,7 +55,10 @@ class CreateEntryCloseChordTest : BaseTest() {
 			tags: Set<String>,
 			imagePath: String?,
 			excludeFromDictionary: Boolean,
-		) = EntryResult(EntryError.NONE).also { created += name }
+		) = EntryResult(EntryError.NONE).also {
+			created += name
+			gate?.await()
+		}
 
 		override fun confirmClose() = _state.update { it.copy(showConfirmClose = true) }
 		override fun dismissConfirmClose() = _state.update { it.copy(showConfirmClose = false) }
@@ -136,5 +142,25 @@ class CreateEntryCloseChordTest : BaseTest() {
 		assertTrue(handled)
 		assertEquals(listOf("Alice"), component.created)
 		assertEquals(1, closes)
+	}
+
+	@Test
+	fun `a repeated Mod+Enter creates the entry once`() {
+		val component = FakeCreateEntry()
+		show(component)
+		compose.onNodeWithTag(ENCYCLOPEDIA_CREATE_NAME_TAG).performTextInput("Alice")
+		compose.waitForIdle()
+
+		component.gate = CompletableDeferred()
+
+		compose.runOnIdle { registry.dispatch(KeyChord.mod(ChordKey.Enter)) }
+		scope.testScheduler.runCurrent()
+		compose.runOnIdle { registry.dispatch(KeyChord.mod(ChordKey.Enter)) }
+		scope.testScheduler.runCurrent()
+		component.gate?.complete(Unit)
+		scope.testScheduler.runCurrent()
+		compose.waitForIdle()
+
+		assertEquals(listOf("Alice"), component.created)
 	}
 }

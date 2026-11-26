@@ -24,6 +24,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.resetsDoubleShift
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -121,7 +122,7 @@ internal fun AnimatedDialogContainer(
 		}
 
 		Box(
-			modifier = Modifier.fillMaxSize().belowWindowChrome(),
+			modifier = Modifier.fillMaxSize().belowWindowChrome().resetsDoubleShift(),
 			contentAlignment = Alignment.Center,
 		) {
 			AnimatedVisibility(

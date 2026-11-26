@@ -96,19 +96,27 @@ fun CreateTimeLineEventUi(
 	val isEvent = state.kind == TimelineKind.EVENT
 	val canCreate = state.canCreate
 
-	val create: () -> Unit = {
+	// One at a time: a held Mod+Enter repeats, and a double click on Create would save it twice.
+	var creating by remember { mutableStateOf(false) }
+	val create: () -> Unit = create@{
+		if (creating) return@create
+		creating = true
 		scope.launch {
-			val error = component.create(dateText, contentText.value, tags.toSet())
-			if (error == TimeLineEventError.NONE) {
-				launch {
-					rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
+			try {
+				val error = component.create(dateText, contentText.value, tags.toSet())
+				if (error == TimeLineEventError.NONE) {
+					launch {
+						rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
+					}
+					dateText = ""
+					tags.clear()
+					resetVersion++
+					component.closeCreation()
+				} else {
+					error.toastText(strRes)?.let { launch { rootSnackbar.showSnackbar(it) } }
 				}
-				dateText = ""
-				tags.clear()
-				resetVersion++
-				component.closeCreation()
-			} else {
-				error.toastText(strRes)?.let { launch { rootSnackbar.showSnackbar(it) } }
+			} finally {
+				creating = false
 			}
 		}
 	}

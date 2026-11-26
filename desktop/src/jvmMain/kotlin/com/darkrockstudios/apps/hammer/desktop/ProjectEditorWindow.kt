@@ -10,6 +10,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
 import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
 import com.darkrockstudios.apps.hammer.common.compose.actions.DoubleShiftPalette
+import com.darkrockstudios.apps.hammer.common.compose.actions.LocalDoubleShiftPalette
 import com.darkrockstudios.apps.hammer.common.compose.actions.resetsDoubleShift
 import com.darkrockstudios.apps.hammer.common.compose.actions.toKeyChord
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
@@ -122,8 +124,10 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 			// Tao windows are their own ComposeScene: locals provided outside the
 			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
-				Box(Modifier.fillMaxSize().resetsDoubleShift(doubleShift), propagateMinConstraints = true) {
-					AppContent(component)
+				CompositionLocalProvider(LocalDoubleShiftPalette provides doubleShift) {
+					Box(Modifier.fillMaxSize().resetsDoubleShift(), propagateMinConstraints = true) {
+						AppContent(component)
+					}
 				}
 
 				LaunchedEffect(closeRequest) {

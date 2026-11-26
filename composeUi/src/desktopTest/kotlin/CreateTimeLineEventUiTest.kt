@@ -1,3 +1,9 @@
+import kotlinx.coroutines.CompletableDeferred
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
+import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
+import kotlin.test.assertFalse
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.foundation.layout.requiredSize
@@ -58,12 +64,21 @@ class CreateTimeLineEventUiTest : BaseTest() {
 
 	private val projectDef = fakeProjectDef()
 
+	private val registry = ActionRegistry()
+
 	private class FakeCreate(initial: CreateTimeLineEvent.State) : CreateTimeLineEvent {
+		var creates = 0
+		/** While set, a create waits on it, as a save to disk would. */
+		var gate: CompletableDeferred<Unit>? = null
 		private val _state = MutableValue(initial)
 		override val state: Value<CreateTimeLineEvent.State> = _state
 		override val contentText: Value<String> = MutableValue("")
 
-		override suspend fun create(label: String?, content: String, tags: Set<String>) = TimeLineEventError.NONE
+		override suspend fun create(label: String?, content: String, tags: Set<String>) =
+			TimeLineEventError.NONE.also {
+				creates++
+				gate?.await()
+			}
 
 		override fun setKind(kind: TimelineKind) {
 			_state.value = _state.value.copy(kind = kind, subject = null)
@@ -103,13 +118,15 @@ class CreateTimeLineEventUiTest : BaseTest() {
 	private fun show(component: CreateTimeLineEvent, size: DpSize? = null) {
 		compose.setContent {
 			KoinApplicationPreview {
-				Box(modifier = if (size != null) Modifier.requiredSize(size).testTag(WINDOW_TAG) else Modifier) {
-					CreateTimeLineEventUi(
-						component = component,
-						scope = scope,
-						modifier = Modifier,
-						rootSnackbar = rememberRootSnackbarHostState(),
-					)
+				ProvideActions(registry) {
+					Box(modifier = if (size != null) Modifier.requiredSize(size).testTag(WINDOW_TAG) else Modifier) {
+						CreateTimeLineEventUi(
+							component = component,
+							scope = scope,
+							modifier = Modifier,
+							rootSnackbar = rememberRootSnackbarHostState(),
+						)
+					}
 				}
 			}
 		}
@@ -285,5 +302,38 @@ class CreateTimeLineEventUiTest : BaseTest() {
 		compose.waitForIdle()
 
 		compose.onNodeWithTag(TIME_LINE_CREATE_TITLE_TAG).assertIsFocused()
+	}
+
+	private fun pressModEnter(): Boolean = compose.runOnIdle { registry.dispatch(KeyChord.mod(ChordKey.Enter)) }
+
+	@Test
+	fun `Mod+Enter does nothing while Create is disabled`() {
+		val component = datedEvent()
+		show(component)
+
+		val handled = pressModEnter()
+		scope.testScheduler.runCurrent()
+
+		assertFalse(handled)
+		assertEquals(0, component.creates)
+	}
+
+	@Test
+	fun `a repeated Mod+Enter creates the event once`() {
+		val component = datedEvent()
+		component.setStart(StoryDate(mapOf("year" to 1L)))
+		show(component)
+
+		component.gate = CompletableDeferred()
+
+		pressModEnter()
+		scope.testScheduler.runCurrent()
+		pressModEnter()
+		scope.testScheduler.runCurrent()
+		component.gate?.complete(Unit)
+		scope.testScheduler.runCurrent()
+		compose.waitForIdle()
+
+		assertEquals(1, component.creates)
 	}
 }

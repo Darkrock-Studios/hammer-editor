@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
@@ -18,10 +19,13 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.runComposeUiTest
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 
 @OptIn(ExperimentalTestApi::class)
@@ -72,5 +76,20 @@ class HdIndicationTest {
 
 		assertNotEquals(ink, leftEdge("cancel"))
 		assertNotEquals(ink, leftEdge("create"))
+	}
+
+	@Test
+	fun `a project colour theme keeps the focus frame`() = runComposeUiTest {
+		var indication: Any? = null
+		setContent {
+			AppTheme(globalSettingsPreview, useDarkTheme = false) {
+				ProjectThemeOverride(ProjectTheme(primary = "#FF112233", secondary = "#FFAABBCC")) {
+					indication = LocalIndication.current
+				}
+			}
+		}
+		waitForIdle()
+
+		assertIs<HdIndication>(indication)
 	}
 }

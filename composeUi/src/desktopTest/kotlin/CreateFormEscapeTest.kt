@@ -14,8 +14,9 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
@@ -64,10 +65,11 @@ class CreateFormEscapeTest {
 		waitForIdle()
 	}
 
+	/** Sent through the form's window; it reaches whatever is focused there. */
 	private fun ComposeUiTest.tap(key: Key) {
-		onRoot().performKeyPress(KeyEvent(key = key, type = KeyEventType.KeyDown))
+		onNodeWithTag(BUTTON).performKeyPress(KeyEvent(key = key, type = KeyEventType.KeyDown))
 		waitForIdle()
-		onRoot().performKeyPress(KeyEvent(key = key, type = KeyEventType.KeyUp))
+		onNodeWithTag(BUTTON).performKeyPress(KeyEvent(key = key, type = KeyEventType.KeyUp))
 		waitForIdle()
 	}
 
@@ -109,6 +111,18 @@ class CreateFormEscapeTest {
 
 		tap(Key.Escape)
 		tap(Key.A)
+		tap(Key.Escape)
+
+		assertEquals(0, backs)
+	}
+
+	@Test
+	fun `a click between the two starts over`() = runComposeUiTest {
+		showForm()
+
+		tap(Key.Escape)
+		onNodeWithTag(BUTTON).performMouseInput { click() }
+		waitForIdle()
 		tap(Key.Escape)
 
 		assertEquals(0, backs)

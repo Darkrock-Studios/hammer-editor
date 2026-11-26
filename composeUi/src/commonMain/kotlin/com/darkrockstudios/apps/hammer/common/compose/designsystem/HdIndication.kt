@@ -1,9 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
 import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ripple
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -29,6 +33,15 @@ private val FocusFrameWidth = 1.dp
  * touch mode, so clicking never shows the frame. Every `clickable` that takes the default
  * indication gets it, which is every Hd control.
  */
+/**
+ * Provides [HdIndication] in the current color scheme. Call it inside every `MaterialTheme`,
+ * which otherwise resets `LocalIndication` to the plain ripple.
+ */
+@Composable
+fun ProvideHdIndication(content: @Composable () -> Unit) {
+	CompositionLocalProvider(LocalIndication provides HdIndication(MaterialTheme.colorScheme.onSurface), content = content)
+}
+
 internal data class HdIndication(val frameColor: Color) : IndicationNodeFactory {
 	override fun create(interactionSource: InteractionSource): DelegatableNode =
 		HdIndicationNode(interactionSource, frameColor)

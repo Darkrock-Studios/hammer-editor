@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose.actions
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -36,8 +38,20 @@ class DoubleShiftPalette(
 	fun onPointerPress() = detector.reset()
 }
 
-/** Resets [palette] on any pointer press inside, so Shift+click twice never opens it. */
-fun Modifier.resetsDoubleShift(palette: DoubleShiftPalette): Modifier =
+/** The window's [DoubleShiftPalette], for content in a dialog layer the window's root never sees. */
+val LocalDoubleShiftPalette = staticCompositionLocalOf<DoubleShiftPalette?> { null }
+
+/**
+ * Resets the window's [LocalDoubleShiftPalette] on any pointer press inside, so Shift+click twice
+ * never opens it. Dialogs are their own layer, so their shells apply this as well as the window.
+ */
+@Composable
+fun Modifier.resetsDoubleShift(): Modifier {
+	val palette = LocalDoubleShiftPalette.current ?: return this
+	return resetsDoubleShift(palette)
+}
+
+private fun Modifier.resetsDoubleShift(palette: DoubleShiftPalette): Modifier =
 	pointerInput(palette) {
 		awaitPointerEventScope {
 			while (true) {

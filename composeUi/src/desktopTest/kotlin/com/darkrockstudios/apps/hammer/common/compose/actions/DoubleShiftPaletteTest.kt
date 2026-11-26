@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose.actions
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -76,7 +77,11 @@ class DoubleShiftPaletteTest {
 
 	@Test
 	fun `a click between the taps does not open it`() = runComposeUiTest {
-		setContent { Box(Modifier.size(100.dp).testTag("content").resetsDoubleShift(palette)) }
+		setContent {
+			CompositionLocalProvider(LocalDoubleShiftPalette provides palette) {
+				Box(Modifier.size(100.dp).testTag("content").resetsDoubleShift())
+			}
+		}
 		tap(Key.ShiftLeft, 0)
 
 		onNodeWithTag("content").performClick()
