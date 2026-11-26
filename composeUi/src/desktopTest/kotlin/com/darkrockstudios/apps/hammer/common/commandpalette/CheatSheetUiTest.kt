@@ -1,7 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.commandpalette
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.runComposeUiTest
 import com.arkivanov.decompose.value.MutableValue
@@ -79,5 +88,42 @@ class CheatSheetUiTest {
 		assertEquals(0, exitsDuringExit)
 		assertEquals(1, fake.exits)
 		assertFalse(shows("Keyboard shortcuts"))
+	}
+
+	private val longSheet = listOf(
+		CheatSheet.Section(
+			"Navigation",
+			(0 until 60).map { i ->
+				CheatSheet.Row(ActionId("row.$i"), "Row $i", listOf(KeyChord.mod(ChordKey.Digit3)), CheatSheet.Reach.Live)
+			},
+		),
+	)
+
+	@Test
+	fun `the sheet takes focus and the arrows scroll it`() = runComposeUiTest {
+		setContent { CheatSheetUi(FakeCheatSheet(longSheet)) }
+		waitForIdle()
+		val topBefore = onNodeWithText("Row 0").getUnclippedBoundsInRoot().top
+
+		onNodeWithTag(CHEAT_SHEET_SCROLL_TAG).assertIsFocused()
+		onNodeWithTag(CHEAT_SHEET_SCROLL_TAG).performKeyInput { pressKey(Key.DirectionDown) }
+		waitForIdle()
+
+		assertTrue(onNodeWithText("Row 0").getUnclippedBoundsInRoot().top < topBefore)
+	}
+
+	@Test
+	fun `End scrolls to the last row and Home back to the first`() = runComposeUiTest {
+		setContent { CheatSheetUi(FakeCheatSheet(longSheet)) }
+		waitForIdle()
+		onNodeWithText("Row 59").assertIsNotDisplayed()
+
+		onNodeWithTag(CHEAT_SHEET_SCROLL_TAG).performKeyInput { pressKey(Key.MoveEnd) }
+		waitForIdle()
+		onNodeWithText("Row 59").assertIsDisplayed()
+
+		onNodeWithTag(CHEAT_SHEET_SCROLL_TAG).performKeyInput { pressKey(Key.MoveHome) }
+		waitForIdle()
+		onNodeWithText("Row 0").assertIsDisplayed()
 	}
 }

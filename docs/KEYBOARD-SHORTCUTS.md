@@ -88,6 +88,8 @@ paragraph selection.
 | `palette.open`    | `Mod+K` | Command palette          |
 | `help.cheatSheet` | `F1`    | Keyboard shortcuts sheet |
 
+The arrows, `PageUp`/`PageDown`, `Home` and `End` scroll the shortcuts sheet.
+
 Global actions (`project.saveAll`, `project.sync`, `palette.open`, `help.cheatSheet`,
 `app.quit`) work behind dialogs and over focus mode.
 

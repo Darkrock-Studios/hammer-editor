@@ -11,10 +11,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -26,10 +30,12 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardScroll
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 private const val DEAD_ROW_ALPHA = 0.5f
 private val CheatSheetMaxHeight = 640.dp
+internal const val CHEAT_SHEET_SCROLL_TAG = "cheat-sheet-scroll"
 
 @Composable
 fun CheatSheetUi(component: CheatSheet) {
@@ -47,10 +53,15 @@ fun CheatSheetUi(component: CheatSheet) {
 			title = Res.string.cheat_sheet_title.get(),
 			onClose = { requestDismiss() },
 		) {
+			val scrollState = rememberScrollState()
+			val focusRequester = remember { FocusRequester() }
+			LaunchedEffect(Unit) { focusRequester.requestFocus() }
 			Column(
 				modifier = Modifier
 					.heightIn(max = CheatSheetMaxHeight)
-					.verticalScroll(rememberScrollState()),
+					.testTag(CHEAT_SHEET_SCROLL_TAG)
+					.keyboardScroll(scrollState, focusRequester)
+					.verticalScroll(scrollState),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 			) {
 				if (state.loaded) state.sections.forEachIndexed { index, section ->
