@@ -1236,11 +1236,10 @@ strips what crates written for the browser leave behind (wasm-bindgen's
 exports, and a trap in place of any of its imports still reachable) and fails
 the build if the module imports anything Hammer does not offer.
 
-`harper-grammar` was once pre-initialized at build time with
-[Wizer](https://github.com/bytecodealliance/wizer), which saved its first check
-building the linter, about 16 s on desktop. It is no longer: the module grew to
-117 MB, too large to load interpreted on a phone, and compiling on Android
-starts it quickly without it.
+`harper-grammar` builds its linter on its first check, about 16 s on desktop,
+rather than at build time under
+[Wizer](https://github.com/bytecodealliance/wizer): pre-initialized, its module
+is 117 MB, too large to load interpreted on a phone.
 
 The C kit (`c/include`) builds freestanding (`--target=wasm32-unknown-unknown
 -nostdlib`), so a C plugin imports nothing but Extism and Hammer functions.
