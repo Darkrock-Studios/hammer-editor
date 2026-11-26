@@ -12,6 +12,7 @@ import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.html.SimpleTagProvider
 import org.intellij.markdown.html.TrimmingInlineHolderProvider
 import org.intellij.markdown.parser.LinkMap
+import org.intellij.markdown.parser.MarkdownParser
 
 /**
  * How a story's markdown becomes HTML, shared by every surface that renders prose for a reader: the
@@ -24,6 +25,9 @@ import org.intellij.markdown.parser.LinkMap
  *
  * Only prose is touched. Lists, tables, code and headings keep markdown's own layout, and blank
  * lines next to them add nothing — those blocks carry their own spacing already.
+ *
+ * An aligned paragraph or heading (see [stripAlignmentWrappers]) carries its alignment as a class,
+ * [ProseAlign.htmlClass], for the page's stylesheet to set `text-align` by.
  */
 object ProseHtml {
 
@@ -39,12 +43,49 @@ object ProseHtml {
 		flavour: MarkdownFlavourDescriptor,
 		linkMap: LinkMap,
 		keepBlankLines: Boolean = true,
-	): Map<IElementType, GeneratingProvider> =
-		flavour.createHtmlGeneratingProviders(linkMap, null) + mapOf(
-			MarkdownElementTypes.PARAGRAPH to ProseParagraphProvider,
+		alignments: AlignedProse? = null,
+	): Map<IElementType, GeneratingProvider> {
+		val aligned = alignments?.takeIf { it.hasAlignments }
+		return flavour.createHtmlGeneratingProviders(linkMap, null) + mapOf(
+			MarkdownElementTypes.PARAGRAPH to ProseParagraphProvider(aligned),
 			MarkdownElementTypes.MARKDOWN_FILE to ProseContainerProvider("body", keepBlankLines),
 			MarkdownElementTypes.BLOCK_QUOTE to ProseContainerProvider("blockquote", keepBlankLines),
-		)
+		) + alignedHeadingProviders(aligned)
+	}
+
+	/**
+	 * [markdown] as HTML laid out by [providers], its alignment wrappers read into the classes of
+	 * the paragraphs and headings they align. [extraProviders] adds to or overrides those providers.
+	 */
+	fun toHtml(
+		markdown: String,
+		flavour: MarkdownFlavourDescriptor,
+		keepBlankLines: Boolean = true,
+		extraProviders: (LinkMap) -> Map<IElementType, GeneratingProvider> = { emptyMap() },
+	): String {
+		val aligned = stripAlignmentWrappers(normalizeLineEndings(markdown))
+		val source = aligned.markdown
+		val tree = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
+		val linkMap = LinkMap.buildLinkMap(tree, source)
+		val providers = providers(flavour, linkMap, keepBlankLines, aligned) + extraProviders(linkMap)
+		return HtmlGenerator(source, tree, providers).generateHtml()
+	}
+
+	private fun alignedHeadingProviders(alignments: AlignedProse?): Map<IElementType, GeneratingProvider> {
+		if (alignments == null) return emptyMap()
+		return HEADING_TAGS.mapValues { (_, tag) -> AlignedHeadingProvider(tag, alignments) }
+	}
+
+	private val HEADING_TAGS: Map<IElementType, String> = mapOf(
+		MarkdownElementTypes.ATX_1 to "h1",
+		MarkdownElementTypes.ATX_2 to "h2",
+		MarkdownElementTypes.ATX_3 to "h3",
+		MarkdownElementTypes.ATX_4 to "h4",
+		MarkdownElementTypes.ATX_5 to "h5",
+		MarkdownElementTypes.ATX_6 to "h6",
+		MarkdownElementTypes.SETEXT_1 to "h1",
+		MarkdownElementTypes.SETEXT_2 to "h2",
+	)
 
 	/**
 	 * The parser only ends a line on `\n`. Content written on Windows, or imported from a file that
@@ -62,7 +103,7 @@ object ProseHtml {
  * consecutive lines sit directly under one another and each picks up the first-line indent, exactly
  * as the editor draws them.
  */
-private object ProseParagraphProvider : TrimmingInlineHolderProvider() {
+private class ProseParagraphProvider(private val alignments: AlignedProse?) : TrimmingInlineHolderProvider() {
 	override fun openTag(visitor: HtmlGenerator.HtmlGeneratingVisitor, text: String, node: ASTNode) {
 		visitor.consumeTagOpen(node, "p")
 	}
@@ -71,13 +112,19 @@ private object ProseParagraphProvider : TrimmingInlineHolderProvider() {
 		visitor.consumeTagClose("p")
 	}
 
+	/** Opens the paragraph of the line holding [offset], with its alignment's class when it has one. */
+	private fun openLine(visitor: HtmlGenerator.HtmlGeneratingVisitor, node: ASTNode, offset: Int) {
+		val align = alignments?.alignmentAt(offset)
+		if (align == null) visitor.consumeTagOpen(node, "p") else visitor.consumeTagOpen(node, "p", align.classAttribute)
+	}
+
 	override fun processNode(
 		visitor: HtmlGenerator.HtmlGeneratingVisitor,
 		text: String,
 		node: ASTNode,
 	) {
 		val children = childrenToRender(node)
-		openTag(visitor, text, node)
+		openLine(visitor, node, children.firstOrNull { it.type != MarkdownTokenTypes.EOL }?.startOffset ?: node.startOffset)
 
 		children.forEachIndexed { index, child ->
 			when {
@@ -85,7 +132,7 @@ private object ProseParagraphProvider : TrimmingInlineHolderProvider() {
 				child.type == MarkdownTokenTypes.EOL -> {
 					if (index != 0 && index != children.lastIndex) {
 						closeTag(visitor, text, node)
-						openTag(visitor, text, node)
+						openLine(visitor, node, children[index + 1].startOffset)
 					}
 				}
 
@@ -100,6 +147,16 @@ private object ProseParagraphProvider : TrimmingInlineHolderProvider() {
 		closeTag(visitor, text, node)
 	}
 }
+
+/** A heading, with its alignment's class when its line has one. */
+private class AlignedHeadingProvider(tag: String, private val alignments: AlignedProse) : SimpleTagProvider(tag) {
+	override fun openTag(visitor: HtmlGenerator.HtmlGeneratingVisitor, text: String, node: ASTNode) {
+		val align = alignments.alignmentAt(node.startOffset)
+		if (align == null) super.openTag(visitor, text, node) else visitor.consumeTagOpen(node, tagName, align.classAttribute)
+	}
+}
+
+private val ProseAlign.classAttribute: String get() = "class=\"$htmlClass\""
 
 /** Emits a break for each blank line the author left between two paragraphs. */
 private class ProseContainerProvider(

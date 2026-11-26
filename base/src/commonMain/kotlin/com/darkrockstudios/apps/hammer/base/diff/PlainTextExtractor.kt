@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.base.diff
 
+import com.darkrockstudios.apps.hammer.base.markdown.alignmentTagRanges
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.MarkdownTokenTypes
 import org.intellij.markdown.ast.ASTNode
@@ -101,16 +102,26 @@ internal fun identityPlainText(text: String): PlainTextResult {
  * blockquotes. Links and images contribute their visible text only. Code blocks contribute
  * their inner content.
  *
- * Known limitations: HTML blocks are dropped entirely. Reference link definitions are dropped.
- * These are exceedingly rare in fiction drafts.
+ * The tags of alignment wrappers are blanked to spaces before parsing, so the text they wrap reads
+ * as prose and keeps its offsets. Other HTML blocks are dropped entirely, as are reference link
+ * definitions; these are exceedingly rare in fiction drafts.
  */
 internal fun extractPlainText(markdown: String): PlainTextResult {
 	if (markdown.isEmpty()) return PlainTextResult("", emptyList())
-	val tree = parser.buildMarkdownTreeFromString(markdown)
-	val plain = StringBuilder(markdown.length)
+	val source = blankAlignmentTags(markdown)
+	val tree = parser.buildMarkdownTreeFromString(source)
+	val plain = StringBuilder(source.length)
 	val segments = ArrayList<PlainSegment>()
-	walk(tree, markdown, plain, segments)
+	walk(tree, source, plain, segments)
 	return PlainTextResult(plain.toString(), segments)
+}
+
+private fun blankAlignmentTags(markdown: String): String {
+	val tags = alignmentTagRanges(markdown)
+	if (tags.isEmpty()) return markdown
+	val chars = markdown.toCharArray()
+	for (range in tags) for (i in range) chars[i] = ' '
+	return chars.concatToString()
 }
 
 private val flavour = CommonMarkFlavourDescriptor()

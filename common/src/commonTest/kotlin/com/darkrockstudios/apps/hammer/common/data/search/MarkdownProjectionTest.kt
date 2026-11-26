@@ -224,4 +224,12 @@ class MarkdownProjectionTest {
 		assertEquals("", markdownTitleLine("![image](hammer://image/3)"))
 		assertEquals("", markdownTitleLine("\n![image](hammer://image/3)\n", { id -> if (id == 4) "Dog" else null }))
 	}
+
+	@Test
+	fun `an alignment wrapper's tags are not prose`() {
+		assertEquals(
+			"before\nCentred *line*".replace("*", ""),
+			projectMarkdownToPlainText("before\n<div align=\"center\">\n\nCentred *line*\n\n</div>"),
+		)
+	}
 }

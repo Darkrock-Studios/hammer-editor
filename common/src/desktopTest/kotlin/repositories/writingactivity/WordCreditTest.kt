@@ -107,6 +107,11 @@ class WordCreditTest {
 	}
 
 	@Test
+	fun `aligning a paragraph credits nothing`() {
+		assertEquals(0, credit("A day\nB night", "A day\n<div align=\"center\">\n\nB night\n\n</div>"))
+	}
+
+	@Test
 	fun `moving a short paragraph credits nothing`() {
 		assertEquals(0, credit("Alpha beta gamma.\n\nDelta epsilon.", "Delta epsilon.\n\nAlpha beta gamma."))
 	}

@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.common.data.search
 import com.darkrockstudios.apps.hammer.base.markdown.inlineImageAltEnd
 import com.darkrockstudios.apps.hammer.base.markdown.inlineImageDestinationEnd
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
+import com.darkrockstudios.apps.hammer.base.markdown.mayHaveAlignmentWrapper
+import com.darkrockstudios.apps.hammer.base.markdown.stripAlignmentWrappers
 import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 
 private const val FLAG_CAN_OPEN = 1
@@ -114,9 +116,12 @@ class MarkdownProjector(
 		return rawBytes
 	}
 
-	/** Projects the first [length] characters already sitting in [sourceBuffer]. */
+	/**
+	 * Projects the first [length] characters already sitting in [sourceBuffer]. A scene's alignment
+	 * wrappers ([stripAlignmentWrappers]) are taken out first: their tags are not prose.
+	 */
 	fun projectSource(length: Int): Int {
-		srcLength = length
+		srcLength = withoutAlignmentWrappers(length)
 		outLength = 0
 		namesLength = 0
 		ensureOut(length)
@@ -125,6 +130,18 @@ class MarkdownProjector(
 		resolveEmphasis()
 		render()
 		return outLength
+	}
+
+	/**
+	 * Takes the alignment wrappers out of the first [length] characters of [src] and returns the
+	 * length left. Only a document with a line opening on `<div` or `<p` builds a string to do it.
+	 */
+	private fun withoutAlignmentWrappers(length: Int): Int {
+		if (!mayHaveAlignmentWrapper(length) { src[it] }) return length
+		val stripped = stripAlignmentWrappers(src.concatToString(0, length)).markdown
+		if (stripped.length == length) return length
+		stripped.toCharArray(src, 0, 0, stripped.length)
+		return stripped.length
 	}
 
 	/**

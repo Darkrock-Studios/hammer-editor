@@ -9,11 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
-import androidx.compose.foundation.gestures.horizontalDrag
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -23,19 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.input.pointer.isShiftPressed
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 /**
  * The tag-count filter row of a browse screen: an "all" cell, a hairline separator, then one
@@ -115,43 +102,6 @@ fun HdTagFilterBar(
 
 private const val SCROLLING_LEADING_KEY = "scrolling-leading"
 private const val SCROLLING_LEADING_RULE_KEY = "scrolling-leading-rule"
-
-/**
- * Lets a mouse reach chips past the edge: the vertical wheel scrolls the row sideways, and a drag pans
- * it. Touch and horizontal wheels already scroll a LazyRow.
- */
-private fun Modifier.mouseScrollsSideways(state: LazyListState): Modifier = pointerInput(state) {
-	val wheelStep = WHEEL_STEP.toPx()
-	coroutineScope {
-		launch {
-			awaitPointerEventScope {
-				while (true) {
-					val event = awaitPointerEvent()
-					if (event.type != PointerEventType.Scroll || event.keyboardModifiers.isShiftPressed) continue
-					val change = event.changes.firstOrNull() ?: continue
-					val delta = change.scrollDelta
-					if (delta.y == 0f || abs(delta.x) >= abs(delta.y)) continue
-					if (state.dispatchRawDelta(delta.y * wheelStep) != 0f) change.consume()
-				}
-			}
-		}
-		launch {
-			awaitEachGesture {
-				val down = awaitFirstDown(requireUnconsumed = false)
-				if (down.type != PointerType.Mouse) return@awaitEachGesture
-				val start = awaitHorizontalTouchSlopOrCancellation(down.id) { change, _ -> change.consume() }
-					?: return@awaitEachGesture
-				state.dispatchRawDelta(down.position.x - start.position.x)
-				horizontalDrag(start.id) { change ->
-					state.dispatchRawDelta(-change.positionChange().x)
-					change.consume()
-				}
-			}
-		}
-	}
-}
-
-private val WHEEL_STEP = 48.dp
 
 @Composable
 private fun VerticalHairline(modifier: Modifier = Modifier) {
