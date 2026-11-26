@@ -21,7 +21,7 @@ class CommandOverlayRouter(
 	private val navigation = SlotNavigation<Config>()
 
 	// Kept for as long as the project is open, not saved.
-	private var cheatSheetOnlyAvailable = false
+	private var cheatSheetShowAll = true
 
 	val state: Value<ChildSlot<Config, ProjectRoot.CommandOverlay>> =
 		componentContext.childSlot(
@@ -56,8 +56,8 @@ class CommandOverlayRouter(
 				CheatSheetComponent(
 					componentContext,
 					actions,
-					onlyAvailable = cheatSheetOnlyAvailable,
-					onOnlyAvailableChanged = { cheatSheetOnlyAvailable = it },
+					showAll = cheatSheetShowAll,
+					onShowAllChanged = { cheatSheetShowAll = it },
 					onClosed = ::clear,
 				)
 			)

@@ -14,8 +14,8 @@ interface CheatSheet {
 	/** The exit has played; the sheet leaves. */
 	fun onDismissed()
 
-	/** Hides the rows that do nothing where the sheet opened. */
-	fun setOnlyAvailable(only: Boolean)
+	/** Off hides the rows that do nothing where the sheet opened. */
+	fun setShowAll(showAll: Boolean)
 
 	/**
 	 * [Reach.Editor] marks a chord the focused text editor handles: the registry cannot see
@@ -31,11 +31,11 @@ interface CheatSheet {
 		val sections: List<Section> = emptyList(),
 		val loaded: Boolean = false,
 		val open: Boolean = true,
-		val onlyAvailable: Boolean = false,
+		val showAll: Boolean = true,
 	) {
-		/** [sections] less the [Reach.Dead] rows while [onlyAvailable], and any section left empty. */
+		/** [sections], less the [Reach.Dead] rows and any section left empty unless [showAll]. */
 		val shownSections: List<Section>
-			get() = if (!onlyAvailable) sections else sections.mapNotNull { section ->
+			get() = if (showAll) sections else sections.mapNotNull { section ->
 				val rows = section.rows.filter { it.reach != Reach.Dead }
 				if (rows.isEmpty()) null else section.copy(rows = rows)
 			}

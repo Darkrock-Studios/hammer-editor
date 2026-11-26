@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.cheat_sheet_editor_hint
-import com.darkrockstudios.apps.hammer.cheat_sheet_only_available
+import com.darkrockstudios.apps.hammer.cheat_sheet_show_all
 import com.darkrockstudios.apps.hammer.cheat_sheet_title
 import com.darkrockstudios.apps.hammer.common.components.commandpalette.CheatSheet
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
@@ -59,9 +59,9 @@ fun CheatSheetUi(component: CheatSheet) {
 			val focusRequester = remember { FocusRequester() }
 			LaunchedEffect(Unit) { focusRequester.requestFocus() }
 			HdHairlineToggleRow(
-				checked = state.onlyAvailable,
-				onCheckedChange = component::setOnlyAvailable,
-				label = Res.string.cheat_sheet_only_available.get(),
+				checked = state.showAll,
+				onCheckedChange = component::setShowAll,
+				label = Res.string.cheat_sheet_show_all.get(),
 				modifier = Modifier.padding(bottom = Ui.Padding.L),
 			)
 			Column(

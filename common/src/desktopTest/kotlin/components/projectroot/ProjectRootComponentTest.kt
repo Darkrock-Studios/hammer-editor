@@ -1094,20 +1094,20 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `the cheat sheet remembers only available between openings`() = runTest(mainTestDispatcher) {
+	fun `the cheat sheet remembers Show all between openings`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
 		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
 		advanceUntilIdle()
-		comp.cheatSheet().setOnlyAvailable(true)
+		comp.cheatSheet().setShowAll(false)
 		comp.dismissCommandOverlay()
 		comp.finishCommandOverlayExit()
 
 		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
 		advanceUntilIdle()
 
-		assertTrue(comp.cheatSheet().state.value.onlyAvailable)
+		assertFalse(comp.cheatSheet().state.value.showAll)
 	}
 
 	@Test

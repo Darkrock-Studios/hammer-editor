@@ -8,6 +8,8 @@ import android.view.KeyEvent.KEYCODE_NUMPAD_3
 import android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
 import android.view.KeyEvent.KEYCODE_Q
 import android.view.KeyEvent.KEYCODE_S
+import android.view.KeyEvent.KEYCODE_SHIFT_LEFT
+import android.view.KeyEvent.KEYCODE_SHIFT_RIGHT
 import android.view.KeyEvent.KEYCODE_TAB
 import android.view.KeyEvent.META_ALT_ON
 import android.view.KeyEvent.META_ALT_RIGHT_ON
@@ -21,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -104,4 +107,19 @@ class AndroidChordTest {
 	@Test
 	fun `no project means no key is consumed`() =
 		assertFalse(dispatchProjectKey(null, ACTION_DOWN, KEYCODE_F3, 0))
+
+	@Test
+	fun `a double Shift opens the palette`() {
+		val registry = ActionRegistry()
+		var opened = 0
+		registry.register(ActionLayer.Root, mapOf(HammerActions.PaletteOpen.id to ActionHandler { opened++ }))
+		val detector = DoubleShiftDetector()
+
+		feedDoubleShift(detector, registry, ACTION_DOWN, KEYCODE_SHIFT_LEFT, 0)
+		feedDoubleShift(detector, registry, ACTION_UP, KEYCODE_SHIFT_LEFT, 80)
+		feedDoubleShift(detector, registry, ACTION_DOWN, KEYCODE_SHIFT_RIGHT, 200)
+		feedDoubleShift(detector, registry, ACTION_UP, KEYCODE_SHIFT_RIGHT, 280)
+
+		assertEquals(1, opened)
+	}
 }

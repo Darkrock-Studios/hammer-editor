@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.android
 import android.view.KeyEvent
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionDispatcher
 import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 
 /**
@@ -24,6 +26,23 @@ fun dispatchProjectKey(actions: ActionDispatcher?, action: Int, keyCode: Int, me
 	if (actions == null || action != KeyEvent.ACTION_DOWN) return false
 	val chord = androidChord(keyCode, metaState) ?: return false
 	return actions.dispatch(chord)
+}
+
+/** Feeds [detector] one key event and opens the palette on a double Shift. Never consumes it. */
+fun feedDoubleShift(
+	detector: DoubleShiftDetector,
+	actions: ActionDispatcher?,
+	action: Int,
+	keyCode: Int,
+	eventTimeMs: Long,
+) {
+	val isDown = when (action) {
+		KeyEvent.ACTION_DOWN -> true
+		KeyEvent.ACTION_UP -> false
+		else -> return
+	}
+	val isShift = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT
+	if (detector.onKey(isShift, isDown, eventTimeMs)) actions?.invoke(HammerActions.PaletteOpen.id)
 }
 
 private fun ChordKey.through(last: ChordKey): List<ChordKey> = ChordKey.entries.subList(ordinal, last.ordinal + 1)

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -27,6 +28,7 @@ import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
+import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.confirmingProjectRootComponent
@@ -69,6 +71,7 @@ class ProjectRootActivity : AppCompatActivity() {
 	private val viewModel: ProjectRootViewModel by viewModels()
 
 	private var projectRoot: ProjectRoot? = null
+	private val doubleShift = DoubleShiftDetector()
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -177,9 +180,17 @@ class ProjectRootActivity : AppCompatActivity() {
 	}
 
 	// Ahead of Compose focus, so project chords work with nothing focused.
-	override fun dispatchKeyEvent(event: KeyEvent): Boolean =
-		dispatchProjectKey(projectRoot?.actions, event.action, event.keyCode, event.metaState) ||
+	override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+		feedDoubleShift(doubleShift, projectRoot?.actions, event.action, event.keyCode, event.eventTime)
+		return dispatchProjectKey(projectRoot?.actions, event.action, event.keyCode, event.metaState) ||
 			super.dispatchKeyEvent(event)
+	}
+
+	// A tap or click between two Shift taps (Shift+click) must not open the palette.
+	override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+		if (event.actionMasked == MotionEvent.ACTION_DOWN) doubleShift.reset()
+		return super.dispatchTouchEvent(event)
+	}
 
 	@Composable
 	private fun Content(

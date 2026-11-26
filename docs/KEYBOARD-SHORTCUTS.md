@@ -88,8 +88,10 @@ paragraph selection.
 | `palette.open`    | `Mod+K` | Command palette          |
 | `help.cheatSheet` | `F1`    | Keyboard shortcuts sheet |
 
-The arrows, `PageUp`/`PageDown`, `Home` and `End` scroll the shortcuts sheet. Its "Only show what
-works here" toggle hides the dimmed rows and is remembered while the project is open.
+Tapping `Shift` twice quickly also opens the command palette (desktop and Android).
+
+The arrows, `PageUp`/`PageDown`, `Home` and `End` scroll the shortcuts sheet. Unticking its "Show
+all" box hides the dimmed rows; the choice is remembered while the project is open.
 
 Global actions (`project.saveAll`, `project.sync`, `palette.open`, `help.cheatSheet`,
 `app.quit`) work behind dialogs and over focus mode.

@@ -30,6 +30,8 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
 import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.DoubleShiftPalette
+import com.darkrockstudios.apps.hammer.common.compose.actions.resetsDoubleShift
 import com.darkrockstudios.apps.hammer.common.compose.actions.toKeyChord
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
@@ -78,6 +80,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 
 	val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 	val escapes = remember(component) { EscapeRouter(component.actions, backDispatcher::back) }
+	val doubleShift = remember(component) { DoubleShiftPalette(component.actions) }
 
 	LifecycleController(lifecycle, windowState)
 
@@ -94,7 +97,8 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		icon = painterResource(Res.drawable.hammer_icon),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
 		onPreviewKeyEvent = { event ->
-			escapes.onPreviewKeyEvent(event) || event.toKeyChord()?.let(component.actions::dispatch) ?: false
+			doubleShift.onPreviewKeyEvent(event) ||
+				escapes.onPreviewKeyEvent(event) || event.toKeyChord()?.let(component.actions::dispatch) ?: false
 		},
 		onKeyEvent = escapes::onKeyEvent,
 	) {
@@ -118,7 +122,9 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 			// Tao windows are their own ComposeScene: locals provided outside the
 			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
-				AppContent(component)
+				Box(Modifier.fillMaxSize().resetsDoubleShift(doubleShift), propagateMinConstraints = true) {
+					AppContent(component)
+				}
 
 				LaunchedEffect(closeRequest) {
 					if (closeRequest != ApplicationState.CloseType.None) {

@@ -36,8 +36,8 @@ private class FakeCheatSheet(sections: List<CheatSheet.Section>, loaded: Boolean
 		exits++
 	}
 
-	override fun setOnlyAvailable(only: Boolean) {
-		state.value = state.value.copy(onlyAvailable = only)
+	override fun setShowAll(showAll: Boolean) {
+		state.value = state.value.copy(showAll = showAll)
 	}
 }
 
@@ -136,12 +136,12 @@ class CheatSheetUiTest {
 	}
 
 	@Test
-	fun `the toggle hides what does nothing here`() = runComposeUiTest {
+	fun `unticking Show all hides what does nothing here`() = runComposeUiTest {
 		setContent { CheatSheetUi(FakeCheatSheet(sections)) }
 		waitForIdle()
 		val deadShownBefore = shows("Go to Timeline")
 
-		onNodeWithText("Only show what works here").performClick()
+		onNodeWithText("Show all").performClick()
 		waitForIdle()
 
 		assertTrue(deadShownBefore)

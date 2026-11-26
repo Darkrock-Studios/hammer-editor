@@ -36,8 +36,8 @@ class CheatSheetComponentTest : ComponentTest() {
 		dismissed = 0
 	}
 
-	private fun newCheatSheet(onlyAvailable: Boolean = false, onChanged: (Boolean) -> Unit = {}) =
-		CheatSheetComponent(context, registry, onlyAvailable, onChanged) { dismissed++ }
+	private fun newCheatSheet(showAll: Boolean = true, onChanged: (Boolean) -> Unit = {}) =
+		CheatSheetComponent(context, registry, showAll, onChanged) { dismissed++ }
 
 	private fun CheatSheet.row(id: String): CheatSheet.Row =
 		state.value.sections.flatMap { it.rows }.single { it.id.value == id }
@@ -151,30 +151,40 @@ class CheatSheetComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `only available hides dead rows but keeps editor ones`() = runTest(mainTestDispatcher) {
+	fun `unticking show all hides dead rows but keeps editor ones`() = runTest(mainTestDispatcher) {
 		registry.register(ActionLayer.Root, mapOf(HammerActions.NavHome.id to ActionHandler {}))
 		var changedTo: Boolean? = null
 		val sheet = newCheatSheet(onChanged = { changedTo = it })
 		context.resume()
 		advanceUntilIdle()
 
-		sheet.setOnlyAvailable(true)
+		sheet.setShowAll(false)
 		val shown = sheet.state.value.shownSections.flatMap { it.rows }.map { it.id.value }
 
 		assertTrue("nav.home" in shown)
 		assertFalse("nav.notes" in shown)
 		assertTrue("edit.bold" in shown)
 		assertTrue(sheet.state.value.shownSections.all { it.rows.isNotEmpty() })
-		assertEquals(true, changedTo)
+		assertEquals(false, changedTo)
 	}
 
 	@Test
-	fun `a sheet opened with only available set starts filtered`() = runTest(mainTestDispatcher) {
-		val sheet = newCheatSheet(onlyAvailable = true)
+	fun `a sheet opened without show all starts filtered`() = runTest(mainTestDispatcher) {
+		val sheet = newCheatSheet(showAll = false)
 		context.resume()
 		advanceUntilIdle()
 
-		assertTrue(sheet.state.value.onlyAvailable)
+		assertFalse(sheet.state.value.showAll)
 		assertTrue(sheet.state.value.shownSections.flatMap { it.rows }.none { it.reach == CheatSheet.Reach.Dead })
+	}
+
+	@Test
+	fun `a new sheet shows all by default`() = runTest(mainTestDispatcher) {
+		val sheet = newCheatSheet()
+		context.resume()
+		advanceUntilIdle()
+
+		assertTrue(sheet.state.value.showAll)
+		assertTrue(sheet.state.value.shownSections.flatMap { it.rows }.any { it.reach == CheatSheet.Reach.Dead })
 	}
 }
