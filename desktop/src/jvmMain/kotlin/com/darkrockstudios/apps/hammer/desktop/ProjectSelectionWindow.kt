@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
+import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -74,8 +75,9 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		)
 	}
 	LifecycleController(lifecycle, windowState)
-	// No actions here, so no overlays: the router only keeps a stray release from stepping back.
-	val escapes = remember { EscapeRouter(ActionRegistry(), backDispatcher::back) }
+	// No actions of its own: the registry holds the overlays its dialogs and menus register.
+	val actions = remember { ActionRegistry() }
+	val escapes = remember { EscapeRouter(actions, backDispatcher::back) }
 
 	val title = Res.string.account_window_title.get()
 	MaterialDecoratedWindow(
@@ -101,8 +103,10 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 			// Tao windows are their own ComposeScene: locals provided outside the
 			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
-				IntroGate(component) {
-					Content(component)
+				ProvideActions(actions) {
+					IntroGate(component) {
+						Content(component)
+					}
 				}
 			}
 		}

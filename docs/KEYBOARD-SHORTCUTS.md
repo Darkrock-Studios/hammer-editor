@@ -142,12 +142,15 @@ Esc is not in the table. It steps out one level at a time:
    cursor on the item just closed.
 3. Further Esc presses go back as before, up to Home.
 
-An Esc that closes a dialog, menu, find bar or popup does only that. The window acts on the
-press: with an overlay up it closes the topmost one, and its release never goes back.
-`EscapeRouter` does this for both desktop windows; `escapeToPane` (`EscapeToPane.kt`) takes
-the first step inside a pane.
+To leave the scene editor for the next pane, press `F6`: after Esc, focus is in the tree, so
+Tab moves on from there.
+
+An Esc that closes a dialog, menu, find bar or popup does only that, and never also goes back.
 
 On Android and iOS, system back is unchanged.
+
+For developers: `EscapeRouter` handles Esc for both desktop windows, and `escapeToPane`
+(`EscapeToPane.kt`) takes the first step inside a pane.
 
 ## Image viewer
 

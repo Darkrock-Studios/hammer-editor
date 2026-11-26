@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.stampDate
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -360,6 +361,7 @@ fun ProjectOptionsMenu(
 			)
 		}
 
+		MenuOverlay(expanded) { expanded = false }
 		DropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false }

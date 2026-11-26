@@ -3,6 +3,10 @@ package com.darkrockstudios.apps.hammer.common.compose.actions
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.performClick
@@ -25,11 +29,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, InternalComposeUiApi::class)
 class DialogBarrierTest {
 
 	private val modN = KeyChord.mod(ChordKey.N)
 	private val modShiftO = KeyChord.mod(ChordKey.O, shift = true)
+	private val escPress = KeyEvent(key = Key.Escape, type = KeyEventType.KeyDown)
+	private val escRelease = KeyEvent(key = Key.Escape, type = KeyEventType.KeyUp)
 
 	private fun registryWithItemNew() = ActionRegistry().apply {
 		register(ActionLayer.Module, mapOf(HammerActions.ItemNew.id to ActionHandler {}))
@@ -196,6 +202,29 @@ class DialogBarrierTest {
 
 		assertTrue(dismissed)
 		assertEquals(listOf("keep"), chosen)
+	}
+
+	@Test
+	fun `a window's Esc closes a dialog in its provided registry and never steps back`() = runComposeUiTest {
+		val registry = ActionRegistry()
+		var backs = 0
+		val router = EscapeRouter(registry) { backs++; true }
+		var visible by mutableStateOf(true)
+		setContent {
+			ProvideActions(registry) {
+				AnimatedDialog(visible = visible, onCloseRequest = { visible = false }) {}
+			}
+		}
+		waitForIdle()
+
+		for (event in listOf(escPress, escRelease)) {
+			router.onPreviewKeyEvent(event)
+			router.onKeyEvent(event)
+			waitForIdle()
+		}
+
+		assertFalse(visible)
+		assertEquals(0, backs)
 	}
 
 	@Test

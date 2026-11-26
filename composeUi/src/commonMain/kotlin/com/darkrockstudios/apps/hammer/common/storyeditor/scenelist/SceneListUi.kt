@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -324,6 +325,7 @@ fun SceneListUi(
 									tint = MaterialTheme.colorScheme.onSurfaceVariant,
 								)
 							}
+							MenuOverlay(addMenuOpen) { addMenuOpen = false }
 							DropdownMenu(
 								expanded = addMenuOpen,
 								onDismissRequest = { addMenuOpen = false },
@@ -546,6 +548,7 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 			)
 		}
 
+		MenuOverlay(menuOpen) { menuOpen = false }
 		DropdownMenu(
 			expanded = menuOpen,
 			onDismissRequest = { menuOpen = false },

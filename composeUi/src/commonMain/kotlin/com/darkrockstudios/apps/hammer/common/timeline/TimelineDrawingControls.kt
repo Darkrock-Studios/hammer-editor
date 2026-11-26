@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdClearGlyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortPill
@@ -170,6 +171,7 @@ internal fun DrawingMenu(
 					.then(if (bandDescription != null) Modifier.semantics { contentDescription = bandDescription } else Modifier),
 			)
 		}
+		MenuOverlay(expanded) { expanded = false }
 		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 			MenuSection(Res.string.timeline_drawing_menu_view.get())
 			TimelineView.entries.forEach { view ->

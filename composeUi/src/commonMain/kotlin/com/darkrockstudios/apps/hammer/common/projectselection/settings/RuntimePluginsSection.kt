@@ -58,6 +58,7 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
@@ -413,6 +414,7 @@ private fun PluginRowMenu(name: String, onDetails: (() -> Unit)?, onUninstall: (
 				tint = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
+		MenuOverlay(expanded) { expanded = false }
 		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 			onDetails?.let {
 				DropdownMenuItem(

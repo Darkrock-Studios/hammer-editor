@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.boldShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.icons.EditorIcons
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconBold
@@ -127,6 +128,7 @@ import com.darkrockstudios.texteditor.state.tableCellAt
 import com.darkrockstudios.texteditor.state.toggleSpanStyle
 
 const val MARKDOWN_FORMAT_BAR_INSERT_IMAGE_TAG = "markdown-format-bar-insert-image"
+const val MARKDOWN_FORMAT_BAR_TABLE_TAG = "markdown-format-bar-table"
 
 /**
  * The editor's format bar. [extended] adds highlight, task lists and tables, which the
@@ -387,14 +389,17 @@ private fun TableMenu(state: TextEditorState, tableLine: Int?) {
 	var open by remember { mutableStateOf(false) }
 	Box {
 		EditorTooltip(Res.string.markdown_format_bar_table.get()) {
-			EditorAction(
-				icon = Icons.Default.TableChart,
-				active = tableLine != null,
-			) {
-				open = true
+			Box(modifier = Modifier.testTag(MARKDOWN_FORMAT_BAR_TABLE_TAG)) {
+				EditorAction(
+					icon = Icons.Default.TableChart,
+					active = tableLine != null,
+				) {
+					open = true
+				}
 			}
 		}
 		// Not focusable, so the editor keeps focus and typing goes on in the table.
+		MenuOverlay(open) { open = false }
 		DropdownMenu(expanded = open, onDismissRequest = { open = false }, properties = PopupProperties(focusable = false)) {
 			@Composable
 			fun item(label: String, action: () -> Unit) = DropdownMenuItem(text = { Text(label) }, onClick = {
@@ -485,6 +490,7 @@ private fun HistoryAndOverflow(
 				menuExpanded = true
 			}
 		}
+		MenuOverlay(menuExpanded) { menuExpanded = false }
 		DropdownMenu(
 			expanded = menuExpanded,
 			onDismissRequest = { menuExpanded = false },

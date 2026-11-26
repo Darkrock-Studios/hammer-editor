@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings.backups
 
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import com.darkrockstudios.apps.hammer.common.compose.stampDateTime
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogFrame
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogTitleRow
@@ -264,6 +265,7 @@ private fun HairlinePicker(
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
+		MenuOverlay(expanded) { expanded = false }
 		DropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
@@ -401,6 +403,7 @@ private fun BackupRowMenu(date: String, onExport: () -> Unit, onDelete: () -> Un
 				tint = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
+		MenuOverlay(expanded) { expanded = false }
 		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 			exportLabel?.let { label ->
 				DropdownMenuItem(
