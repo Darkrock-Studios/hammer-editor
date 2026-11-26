@@ -1,4 +1,5 @@
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -110,5 +111,13 @@ class CreateEntryCloseChordTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertFalse(registry.isLive(HammerActions.ItemClose.id))
+	}
+
+	@Test
+	fun `a new entry opens with the caret in its name`() {
+		show(FakeCreateEntry())
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(ENCYCLOPEDIA_CREATE_NAME_TAG).assertIsFocused()
 	}
 }

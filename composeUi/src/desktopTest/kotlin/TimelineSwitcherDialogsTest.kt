@@ -1,4 +1,5 @@
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
@@ -152,5 +153,13 @@ class TimelineSwitcherDialogsTest : BaseTest() {
 
 		assertEquals(1, dismissed)
 		compose.onNodeWithText("Rename “Backstory”").assertDoesNotExist()
+	}
+
+	@Test
+	fun `A new timeline opens with the caret in its name`() {
+		show(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create()))
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TIME_LINE_NEW_NAME_TAG).assertIsFocused()
 	}
 }

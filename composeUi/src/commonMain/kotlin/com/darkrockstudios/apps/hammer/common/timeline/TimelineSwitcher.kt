@@ -436,6 +436,7 @@ private fun CreateFields(
 		value = name,
 		onValueChange = { name = it },
 		error = errorText(error),
+		autoFocus = true,
 		testTag = TIME_LINE_NEW_NAME_TAG,
 	)
 	HdHairlineSegmentedPicker(
@@ -478,6 +479,7 @@ private fun RenameFields(
 		value = name,
 		onValueChange = { name = it },
 		error = errorText(error),
+		autoFocus = true,
 		testTag = TIME_LINE_RENAME_NAME_TAG,
 	)
 	DialogButtons(

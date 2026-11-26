@@ -162,6 +162,7 @@ fun CreateTimeLineEventUi(
 							optional = true,
 							placeholder = Res.string.timeline_title_placeholder.get(),
 							onFocusChanged = { titleFocused = it },
+							autoFocus = true,
 							testTag = TIME_LINE_CREATE_TITLE_TAG,
 						)
 					}

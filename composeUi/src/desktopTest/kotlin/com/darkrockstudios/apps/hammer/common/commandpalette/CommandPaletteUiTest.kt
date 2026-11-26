@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isFocused
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
@@ -26,6 +27,10 @@ import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 import com.darkrockstudios.apps.hammer.common.components.actions.PaletteEntry
 import com.darkrockstudios.apps.hammer.common.components.commandpalette.CommandPalette
 import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -239,5 +244,27 @@ class CommandPaletteUiTest {
 		waitForIdle()
 
 		assertEquals(1, created)
+	}
+
+	@Test
+	fun `a field the action opens takes focus from the closing palette`() = runComposeUiTest {
+		val registry = ActionRegistry()
+		var creating by mutableStateOf(false)
+		registry.register(ActionLayer.Module, mapOf(ActionId("item.new") to ActionHandler { creating = true }))
+		val fake = FakeCommandPalette(listOf(entries[1]), registry)
+		setContent {
+			if (creating) {
+				HdHairlineField(label = "Name", value = "", onValueChange = {}, autoFocus = true, testTag = "created-name")
+			}
+			CommandPaletteUi(fake)
+		}
+		waitForIdle()
+
+		searchField().performKeyInput { pressKey(Key.Enter) }
+		waitForIdle()
+		fake.onDismissed()
+		waitForIdle()
+
+		onNodeWithTag("created-name", useUnmergedTree = true).assertIsFocused()
 	}
 }

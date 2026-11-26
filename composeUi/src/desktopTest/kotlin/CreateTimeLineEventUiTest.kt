@@ -1,4 +1,5 @@
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -276,5 +277,13 @@ class CreateTimeLineEventUiTest : BaseTest() {
 		compose.onNodeWithTag(TIME_LINE_CREATE_ADD_END_TAG).performClick()
 		compose.waitForIdle()
 		compose.onNodeWithTag("$TIME_LINE_CREATE_END_TAG-year").assertExists()
+	}
+
+	@Test
+	fun `A new event opens with the caret in its title`() {
+		show(datedEvent())
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TIME_LINE_CREATE_TITLE_TAG).assertIsFocused()
 	}
 }

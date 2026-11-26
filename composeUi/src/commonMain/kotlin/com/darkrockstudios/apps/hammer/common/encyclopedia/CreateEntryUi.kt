@@ -204,6 +204,7 @@ internal fun CreateEntryUi(
 				onValueChange = { name = it.take(EncyclopediaRepository.MAX_NAME_SIZE) },
 				placeholder = Res.string.encyclopedia_create_entry_name_placeholder.get(),
 				counter = "${name.length}/${EncyclopediaRepository.MAX_NAME_SIZE}",
+				autoFocus = true,
 				testTag = ENCYCLOPEDIA_CREATE_NAME_TAG,
 			)
 
