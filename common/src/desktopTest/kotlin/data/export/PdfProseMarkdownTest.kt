@@ -5,6 +5,9 @@ import com.darkrockstudios.apps.hammer.common.data.export.ProseBlock
 import com.darkrockstudios.apps.hammer.common.data.export.ProseSpan
 import com.darkrockstudios.apps.hammer.common.data.export.argbHexToPdfColor
 import com.darkrockstudios.apps.hammer.common.data.export.parseProseMarkdown
+import com.darkrockstudios.apps.hammer.common.data.export.pdfAlign
+import com.conamobile.pdfkmp.style.TextAlign
+import com.conamobile.pdfkmp.style.TextDirection
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -344,5 +347,14 @@ class PdfProseMarkdownTest {
 		assertEquals(ProseAlign.CENTER, paragraph(wrapped.first { it is ProseBlock.Paragraph && it.spans.plain() == "centred" }).align)
 		assertNull(paragraph(wrapped.first()).align)
 		assertNull(paragraph(wrapped.last()).align)
+	}
+
+	@Test
+	fun `left and right stay on their side in a right-to-left paragraph`() {
+		assertEquals(TextAlign.End, ProseAlign.RIGHT.pdfAlign { TextDirection.Ltr })
+		assertEquals(TextAlign.Start, ProseAlign.RIGHT.pdfAlign { TextDirection.Rtl })
+		assertEquals(TextAlign.Start, ProseAlign.LEFT.pdfAlign { TextDirection.Ltr })
+		assertEquals(TextAlign.End, ProseAlign.LEFT.pdfAlign { TextDirection.Rtl })
+		assertEquals(TextAlign.Start, null.pdfAlign { TextDirection.Rtl })
 	}
 }

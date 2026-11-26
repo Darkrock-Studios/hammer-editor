@@ -11,7 +11,6 @@ import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import okio.BufferedSink
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
-import com.darkrockstudios.apps.hammer.base.markdown.stripAlignmentWrappers
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.ast.ASTNode
@@ -19,7 +18,6 @@ import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.html.ImageGeneratingProvider
 import org.intellij.markdown.parser.LinkMap
-import org.intellij.markdown.parser.MarkdownParser
 
 private data class TocEntry(val title: String, val href: String)
 
@@ -249,14 +247,9 @@ private fun BODY.chapterBody(
 	imageNames: Map<Int, String>,
 ) {
 	h1(classes = "chapter-title") { +chapterTitle }
-	val flavour = GFMFlavourDescriptor()
-	val aligned = stripAlignmentWrappers(ProseHtml.normalizeLineEndings(markdown))
-	val source = aligned.markdown
-	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
-	val linkMap = LinkMap.buildLinkMap(parsed, source)
-	val providers = ProseHtml.providers(flavour, linkMap, keepBlankLines, aligned) +
-		(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images, imageNames))
-	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
+	val htmlBody = ProseHtml.toHtml(markdown, GFMFlavourDescriptor(), keepBlankLines) { linkMap ->
+		mapOf(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images, imageNames))
+	}
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
 	unsafe { +xhtmlBody }
 }

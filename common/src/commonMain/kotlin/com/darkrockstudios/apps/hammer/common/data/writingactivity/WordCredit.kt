@@ -1,11 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.writingactivity
 
+import com.darkrockstudios.apps.hammer.base.markdown.countedProse
 import com.darkrockstudios.apps.hammer.base.markdown.countedWordSpans
 import io.github.petertrr.diffutils.algorithm.myers.MyersDiffWithLinearSpace
 
 /**
  * A text's words as writing activity compares them: the words the word count counts
- * ([countedWordSpans]), lowercased, each knowing the line it sits on.
+ * ([countedWordSpans] of the [countedProse]), lowercased, each knowing the line it sits on.
  */
 class ActivityWords private constructor(
 	val words: List<String>,
@@ -54,7 +55,8 @@ class ActivityWords private constructor(
 		private const val LINE_SEED = 0x1f3d5b79a2c4e6f8L
 		private const val FNV_PRIME = 0x100000001b3L
 
-		fun of(text: String): ActivityWords {
+		fun of(source: String): ActivityWords {
+			val text = countedProse(source)
 			val words = ArrayList<String>()
 			val lines = ArrayList<Int>()
 			var line = 0

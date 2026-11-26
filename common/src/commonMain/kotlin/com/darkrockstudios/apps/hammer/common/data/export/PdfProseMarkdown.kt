@@ -19,12 +19,15 @@ import com.conamobile.pdfkmp.style.PdfColor
 import com.conamobile.pdfkmp.style.TableBorder
 import com.conamobile.pdfkmp.style.TableColumn
 import com.conamobile.pdfkmp.style.TextAlign
+import com.conamobile.pdfkmp.style.TextDirection
+import com.conamobile.pdfkmp.style.resolve
 import com.conamobile.pdfkmp.style.TextStyle
 import com.conamobile.pdfkmp.unit.Dp
 import com.conamobile.pdfkmp.unit.Sp
 import com.conamobile.pdfkmp.vector.VectorImage
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.base.markdown.ProseAlign
+import com.darkrockstudios.apps.hammer.base.markdown.keepsFirstLineIndent
 
 /** Theme accents for prose rendering; null falls back to neutral defaults. */
 internal data class ProseColors(
@@ -80,7 +83,7 @@ internal class PreparedProse(
 
 /** The measured part of one [ProseBlock]. */
 internal sealed interface ProseLayout {
-	data class Paragraph(val lines: List<RichLine>) : ProseLayout
+	data class Paragraph(val lines: List<RichLine>, val align: TextAlign) : ProseLayout
 
 	/** One list of lines per list item. */
 	data class Listing(val items: List<List<RichLine>>) : ProseLayout
@@ -151,8 +154,13 @@ internal fun prepareProse(
 	val layouts = blocks.map { block ->
 		when (block) {
 			is ProseBlock.Paragraph ->
-				if (block.isStandaloneLink) null
-				else ProseLayout.Paragraph(wrap(block.spans, BODY_STYLE.copy(align = block.align.pdfAlign), width, indent = true))
+				if (block.isStandaloneLink) {
+					null
+				} else {
+					val align = block.align.pdfAlign { block.spans.direction() }
+					val style = BODY_STYLE.copy(align = align)
+					ProseLayout.Paragraph(wrap(block.spans, style, width, indent = block.align.keepsFirstLineIndent), align)
+				}
 
 			is ProseBlock.Listing -> {
 				val textWidth = width - block.markerWidth.value
@@ -367,7 +375,7 @@ private fun ContainerScope.renderParagraph(
 		}
 		return
 	}
-	breakableLines(layout.lines.size) { proseLine(layout.lines[it], align = block.align.pdfAlign) }
+	breakableLines(layout.lines.size) { proseLine(layout.lines[it], align = layout.align) }
 }
 
 private fun ContainerScope.renderHeading(block: ProseBlock.Heading, base: TextStyle, colors: ProseColors) {
@@ -385,7 +393,7 @@ private fun ContainerScope.renderHeading(block: ProseBlock.Heading, base: TextSt
 			color = accent ?: base.color,
 		)
 		lineHeight = Sp(size * HEADING_LEADING)
-		align = block.align.pdfAlign
+		align = block.align.pdfAlign { block.spans.direction() }
 		for (s in block.spans) span(s.text) { applyFlags(s, colors) }
 	}
 }
@@ -537,13 +545,19 @@ private fun TextScope.applyFlags(s: ProseSpan, colors: ProseColors) {
 }
 
 /**
- * The PDF alignment of a paragraph's or heading's [ProseAlign]; prose is laid out left to right.
- * Each wrapped line is drawn on its own, which leaves no line to justify, so a justified paragraph
- * lies flush at the start.
+ * The PDF alignment of a paragraph's or heading's [ProseAlign] in a paragraph of [direction]
+ * (resolved only for left and right):
+ * pdfkmp's Start and End follow the direction, while left and right are fixed sides. Each wrapped
+ * line is drawn on its own, which leaves no line to justify, so a justified paragraph lies flush at
+ * the start.
  */
-private val ProseAlign?.pdfAlign: TextAlign
-	get() = when (this) {
-		null, ProseAlign.LEFT, ProseAlign.JUSTIFY -> TextAlign.Start
-		ProseAlign.CENTER -> TextAlign.Center
-		ProseAlign.RIGHT -> TextAlign.End
-	}
+internal inline fun ProseAlign?.pdfAlign(direction: () -> TextDirection): TextAlign = when (this) {
+	null, ProseAlign.JUSTIFY -> TextAlign.Start
+	ProseAlign.LEFT -> if (direction() == TextDirection.Rtl) TextAlign.End else TextAlign.Start
+	ProseAlign.CENTER -> TextAlign.Center
+	ProseAlign.RIGHT -> if (direction() == TextDirection.Rtl) TextAlign.Start else TextAlign.End
+}
+
+/** The base direction pdfkmp resolves for a paragraph of these spans. */
+private fun List<ProseSpan>.direction(): TextDirection =
+	TextDirection.Auto.resolve(joinToString("") { it.text })

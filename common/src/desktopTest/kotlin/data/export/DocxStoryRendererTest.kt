@@ -1142,4 +1142,13 @@ class DocxStoryRendererTest {
 		assertEquals(ParagraphAlignment.BOTH, assertNotNull(byText["justified"]).alignment)
 		assertTrue(byText.keys.none { "div" in it }, byText.keys.toString())
 	}
+
+	@Test
+	fun `a centred paragraph drops the body's first-line indent`() {
+		val markdown = "plain\n<div align=\"center\">\n\ncentred\n\n</div>"
+		val byText = render(listOf(StoryChapter("Alpha", markdown))).bodyParagraphs().associateBy { it.text }
+
+		assertEquals(0, assertNotNull(byText["centred"]).indentationFirstLine)
+		assertEquals(-1, assertNotNull(byText["plain"]).indentationFirstLine)
+	}
 }

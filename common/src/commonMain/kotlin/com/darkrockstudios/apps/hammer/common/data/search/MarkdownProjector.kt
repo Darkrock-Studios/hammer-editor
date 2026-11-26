@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.search
 import com.darkrockstudios.apps.hammer.base.markdown.inlineImageAltEnd
 import com.darkrockstudios.apps.hammer.base.markdown.inlineImageDestinationEnd
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
+import com.darkrockstudios.apps.hammer.base.markdown.mayHaveAlignmentWrapper
 import com.darkrockstudios.apps.hammer.base.markdown.stripAlignmentWrappers
 import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 
@@ -136,23 +137,11 @@ class MarkdownProjector(
 	 * length left. Only a document with a line opening on `<div` or `<p` builds a string to do it.
 	 */
 	private fun withoutAlignmentWrappers(length: Int): Int {
-		if (!hasWrapperCandidate(length)) return length
+		if (!mayHaveAlignmentWrapper(length) { src[it] }) return length
 		val stripped = stripAlignmentWrappers(src.concatToString(0, length)).markdown
 		if (stripped.length == length) return length
-		for (i in stripped.indices) src[i] = stripped[i]
+		stripped.toCharArray(src, 0, 0, stripped.length)
 		return stripped.length
-	}
-
-	private fun hasWrapperCandidate(length: Int): Boolean {
-		var i = 0
-		while (i < length - 1) {
-			if (src[i] == '<' && (i == 0 || src[i - 1] == '\n')) {
-				val next = src[i + 1].lowercaseChar()
-				if (next == 'd' || next == 'p') return true
-			}
-			i++
-		}
-		return false
 	}
 
 	/**

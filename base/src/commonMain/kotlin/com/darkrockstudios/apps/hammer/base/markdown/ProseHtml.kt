@@ -44,27 +44,35 @@ object ProseHtml {
 		linkMap: LinkMap,
 		keepBlankLines: Boolean = true,
 		alignments: AlignedProse? = null,
-	): Map<IElementType, GeneratingProvider> =
-		flavour.createHtmlGeneratingProviders(linkMap, null) + mapOf(
-			MarkdownElementTypes.PARAGRAPH to ProseParagraphProvider(alignments?.takeIf { it.hasAlignments }),
+	): Map<IElementType, GeneratingProvider> {
+		val aligned = alignments?.takeIf { it.hasAlignments }
+		return flavour.createHtmlGeneratingProviders(linkMap, null) + mapOf(
+			MarkdownElementTypes.PARAGRAPH to ProseParagraphProvider(aligned),
 			MarkdownElementTypes.MARKDOWN_FILE to ProseContainerProvider("body", keepBlankLines),
 			MarkdownElementTypes.BLOCK_QUOTE to ProseContainerProvider("blockquote", keepBlankLines),
-		) + alignedHeadingProviders(alignments)
+		) + alignedHeadingProviders(aligned)
+	}
 
 	/**
 	 * [markdown] as HTML laid out by [providers], its alignment wrappers read into the classes of
-	 * the paragraphs and headings they align.
+	 * the paragraphs and headings they align. [extraProviders] adds to or overrides those providers.
 	 */
-	fun toHtml(markdown: String, flavour: MarkdownFlavourDescriptor, keepBlankLines: Boolean = true): String {
+	fun toHtml(
+		markdown: String,
+		flavour: MarkdownFlavourDescriptor,
+		keepBlankLines: Boolean = true,
+		extraProviders: (LinkMap) -> Map<IElementType, GeneratingProvider> = { emptyMap() },
+	): String {
 		val aligned = stripAlignmentWrappers(normalizeLineEndings(markdown))
 		val source = aligned.markdown
 		val tree = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
-		val providers = providers(flavour, LinkMap.buildLinkMap(tree, source), keepBlankLines, aligned)
+		val linkMap = LinkMap.buildLinkMap(tree, source)
+		val providers = providers(flavour, linkMap, keepBlankLines, aligned) + extraProviders(linkMap)
 		return HtmlGenerator(source, tree, providers).generateHtml()
 	}
 
 	private fun alignedHeadingProviders(alignments: AlignedProse?): Map<IElementType, GeneratingProvider> {
-		if (alignments == null || !alignments.hasAlignments) return emptyMap()
+		if (alignments == null) return emptyMap()
 		return HEADING_TAGS.mapValues { (_, tag) -> AlignedHeadingProvider(tag, alignments) }
 	}
 

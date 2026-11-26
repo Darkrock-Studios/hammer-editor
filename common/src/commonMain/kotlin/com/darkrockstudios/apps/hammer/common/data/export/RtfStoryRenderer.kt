@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.markdown.ProseAlign
+import com.darkrockstudios.apps.hammer.base.markdown.keepsFirstLineIndent
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
@@ -284,7 +285,7 @@ private fun bodyParagraph(
 ): RtfParagraph = RtfParagraph(
 	content = coalesceRuns(spansToInlines(spans, RtfSpanStyle.Default, primary)),
 	style = RtfParagraphStyle(
-		firstLineIndentTwips = BODY_FIRST_LINE_INDENT,
+		firstLineIndentTwips = if (align.keepsFirstLineIndent) BODY_FIRST_LINE_INDENT else 0,
 		spaceAfterTwips = spaceAfterTwips,
 	).aligned(align),
 )

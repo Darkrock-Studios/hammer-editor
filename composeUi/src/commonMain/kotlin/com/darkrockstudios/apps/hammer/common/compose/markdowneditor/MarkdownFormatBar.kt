@@ -1,9 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
-import kotlin.math.abs
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -59,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.mouseScrollsSideways
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.boldShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.icons.EditorIcons
@@ -183,8 +180,9 @@ fun MarkdownFormatBar(
 		blocksRefused = state.isInlineOnlyLine(line)
 		ruleRefused = blocksRefused || selection != null && (state.isTableCell(selection.start.line) || state.isTableCell(selection.end.line))
 		// Markdown saves the alignment of paragraphs and headings alone; a table cell aligns by its column.
-		alignmentRefused = alignableLines(state, line, selection).isEmpty()
-		currentAlignment = state.paragraphFormat(line)?.textAlign
+		alignmentRefused = selectedLines(line, selection).none { state.markdownKeepsAlignment(it) }
+		// A foreign `align="left"` reads as Left, which the menu offers as the default.
+		currentAlignment = state.paragraphFormat(line)?.textAlign?.takeUnless { it == TextAlign.Left }
 	}
 
 	LaunchedEffect(Unit) {
@@ -229,7 +227,7 @@ fun MarkdownFormatBar(
 	Row(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerLow).fillMaxWidth()) {
 		// The format buttons scroll in the space left; history and the overflow menu stay in reach.
 		val scroll = rememberScrollState()
-		Row(modifier = Modifier.weight(1f).wheelScrollsSideways(scroll).horizontalScroll(scroll)) {
+		Row(modifier = Modifier.weight(1f).mouseScrollsSideways(scroll).horizontalScroll(scroll)) {
 			FormatButtons(
 				state = state,
 				isBoldActive = isBoldActive,
@@ -267,25 +265,6 @@ fun MarkdownFormatBar(
 		)
 	}
 }
-
-/**
- * A mouse wheel turned up or down scrolls [state] sideways: a horizontal scroll alone takes only a
- * sideways wheel or trackpad swipe, which most mice don't have.
- */
-private fun Modifier.wheelScrollsSideways(state: ScrollState): Modifier = pointerInput(state) {
-	awaitPointerEventScope {
-		while (true) {
-			val event = awaitPointerEvent(PointerEventPass.Initial)
-			if (event.type != PointerEventType.Scroll) continue
-			val change = event.changes.firstOrNull() ?: continue
-			val delta = change.scrollDelta
-			if (abs(delta.y) <= abs(delta.x)) continue
-			if (state.dispatchRawDelta(delta.y * WHEEL_STEP.toPx()) != 0f) change.consume()
-		}
-	}
-}
-
-private val WHEEL_STEP = 64.dp
 
 @Composable
 private fun RowScope.FormatButtons(
@@ -528,11 +507,15 @@ private fun AlignmentMenu(
 	}
 }
 
+/** The lines of [selection], or the caret's [line]. A selection ending at the very start of a line does not reach into it. */
+private fun selectedLines(line: Int, selection: TextEditorRange?): IntRange = selection?.let {
+	val last = if (it.end.char == 0 && it.end.line > it.start.line) it.end.line - 1 else it.end.line
+	it.start.line..last
+} ?: line..line
+
 /** The lines of [selection], or the caret's [line], whose alignment markdown saves. */
-private fun alignableLines(state: TextEditorState, line: Int, selection: TextEditorRange?): List<Int> {
-	val lines = selection?.let { it.start.line..it.end.line } ?: line..line
-	return lines.filter { state.markdownKeepsAlignment(it) }
-}
+private fun alignableLines(state: TextEditorState, line: Int, selection: TextEditorRange?): List<Int> =
+	selectedLines(line, selection).filter { state.markdownKeepsAlignment(it) }
 
 /** Gives the alignable lines under the caret or selection [align], as one undo step. */
 internal fun alignParagraphs(state: TextEditorState, align: TextAlign?) {

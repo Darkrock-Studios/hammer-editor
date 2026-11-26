@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.markdown.ProseAlign
+import com.darkrockstudios.apps.hammer.base.markdown.keepsFirstLineIndent
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
@@ -887,6 +888,9 @@ private class MarkdownDocxWriter(
 							wVal("ilvl", ilvl.toString())
 							wVal("numId", numId.toString())
 						}
+					}
+					if (effectiveStyle == "BodyText" && !align.keepsFirstLineIndent) {
+						w("ind") { wAttr("firstLine", "0") }
 					}
 					align?.let { wVal("jc", it.docxJustification) }
 				}

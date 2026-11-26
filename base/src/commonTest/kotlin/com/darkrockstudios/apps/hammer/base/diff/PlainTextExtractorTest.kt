@@ -90,4 +90,16 @@ class PlainTextExtractorTest {
 		assertTrue("before" in result.plain && "after" in result.plain, result.plain)
 		assertTrue("div" !in result.plain, result.plain)
 	}
+
+	@Test
+	fun `text sharing a line with its alignment tags survives them`() {
+		val oneLine = extractPlainText("before\n\n<div align=\"center\">Centred</div>\n\nafter")
+		assertTrue("Centred" in oneLine.plain && "div" !in oneLine.plain, oneLine.plain)
+
+		val source = "<div align=\"right\">first\nmiddle\nlast</div>"
+		val shared = extractPlainText(source)
+		assertTrue(listOf("first", "middle", "last").all { it in shared.plain } && "div" !in shared.plain, shared.plain)
+		val at = shared.plain.indexOf("last")
+		assertEquals(source.indexOf("last"), shared.plainOffsetToSource(at))
+	}
 }

@@ -1454,7 +1454,9 @@ The Hammer-specific parts:
   sets `input = "prose"` gets each scene in `prose` instead of `scenes`: the
   host's own parse of its markdown, the one the built-in formats render from,
   as blocks (`paragraph`, `blank`, `image`, `heading`, `list`, `quote`,
-  `code`, `rule`, `table`) of styled spans. A project image is its name as
+  `code`, `rule`, `table`) of styled spans. A paragraph or heading the author
+  aligned carries `"align"`: `left`, `center`, `right` or `justify`; one at
+  the default has none. A project image is its name as
   text, except that for an exporter with `images = true` a line holding only
   the image is an `image` block, `{"type": "image", "id", "name"}`, whose
   `id` is always one in `images`. A plugin then needs no markdown parser, and

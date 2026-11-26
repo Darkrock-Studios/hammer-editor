@@ -32,6 +32,15 @@ class ExportProseTest {
 	}
 
 	@Test
+	fun `an aligned paragraph or heading carries its alignment`() {
+		assertEquals(
+			"""[{"type":"heading","level":1,"spans":[{"text":"Title"}],"align":"center"},""" +
+				"""{"type":"paragraph","spans":[{"text":"Right"}],"align":"right"},{"type":"paragraph","spans":[{"text":"Plain"}]}]""",
+			json("<div align=\"center\">\n\n# Title\n\n</div>\n\n<div align=\"right\">\n\nRight\n\n</div>\n\nPlain"),
+		)
+	}
+
+	@Test
 	fun `a project image arrives as its current name`() {
 		val prose = proseOf("![image](hammer://image/3)") { id -> if (id == 3) "Cheshire Cat" else null }
 		assertEquals(

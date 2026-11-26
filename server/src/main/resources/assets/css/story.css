@@ -286,10 +286,12 @@
 
 .story-content .align-center {
 	text-align: center;
+	text-indent: 0;
 }
 
 .story-content .align-right {
 	text-align: right;
+	text-indent: 0;
 }
 
 .story-content .align-justify {

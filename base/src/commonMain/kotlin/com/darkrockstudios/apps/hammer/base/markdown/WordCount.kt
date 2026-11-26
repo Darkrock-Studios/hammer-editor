@@ -7,10 +7,10 @@ package com.darkrockstudios.apps.hammer.base.markdown
  * between images is segmented run by run, so an image also ends the word before it. The tags of
  * an alignment wrapper ([stripAlignmentWrappers]) are not words either.
  */
-fun countWords(text: String): Int {
-	val prose = if (text.contains('<')) stripAlignmentWrappers(text).markdown else text
-	return countedWordSpans(prose).count()
-}
+fun countWords(text: String): Int = countedWordSpans(countedProse(text)).count()
+
+/** [text] without the tags of its alignment wrappers: the prose whose words [countWords] counts. */
+fun countedProse(text: String): String = stripAlignmentWrappers(text).markdown
 
 /**
  * The spans of the words [countWords] counts, as indices into [text]: the [wordSpans] of each run
