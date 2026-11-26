@@ -45,7 +45,7 @@ val LocalDoubleShiftPalette = staticCompositionLocalOf<DoubleShiftPalette?> { nu
 @Composable
 fun Modifier.resetsDoubleShift(): Modifier {
 	val palette = LocalDoubleShiftPalette.current ?: return this
-	return onAnyPointerPress(palette, palette::onPointerPress)
+	return onAnyPointerPress(palette::onPointerPress)
 }
 
 private fun monotonicMs(): () -> Long {

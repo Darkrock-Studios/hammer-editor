@@ -130,7 +130,7 @@ fun rememberCreateAction(
 		}
 	}
 	val handlers = remember(trigger) {
-		mapOf(HammerActions.ItemCreate.id to ActionHandler(isEnabled = { latestIsEnabled() }) { trigger() })
+		mapOf(HammerActions.ItemCreate.id to ActionHandler(isEnabled = { latestIsEnabled() && !creating }) { trigger() })
 	}
 	RegisterActions(ActionLayer.Item, handlers)
 	return trigger

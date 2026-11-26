@@ -51,7 +51,7 @@ fun Modifier.escapeToContainer(id: PaneId): Modifier {
 @Composable
 fun Modifier.escapeTwiceToLeave(): Modifier {
 	val arm = remember { EscapeArm() }
-	return onAnyPointerPress(arm) { arm.armed = false }
+	return onAnyPointerPress { arm.armed = false }
 		.onPreviewKeyEvent { event ->
 			if (event.type == KeyEventType.KeyDown && event.key != Key.Escape) arm.armed = false
 			false

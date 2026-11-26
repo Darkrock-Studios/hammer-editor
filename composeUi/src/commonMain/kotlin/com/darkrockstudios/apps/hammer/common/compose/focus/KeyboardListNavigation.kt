@@ -308,14 +308,17 @@ fun Modifier.onKeyboardPointerPress(onPress: () -> Unit): Modifier {
 }
 
 /** Calls [onPress] on any pointer press here, seen before the content handles it and never consumed. */
-fun Modifier.onAnyPointerPress(key: Any?, onPress: () -> Unit): Modifier =
-	pointerInput(key) {
+@Composable
+fun Modifier.onAnyPointerPress(onPress: () -> Unit): Modifier {
+	val press by rememberUpdatedState(onPress)
+	return pointerInput(Unit) {
 		awaitPointerEventScope {
 			while (true) {
-				if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) onPress()
+				if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) press()
 			}
 		}
 	}
+}
 
 /**
  * Scrolls the least distance that shows item [index] whole above any end padding. [key] guards
