@@ -1,5 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionId
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.ChordLabel
+import com.darkrockstudios.apps.hammer.common.compose.actions.ChordTooltipText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -267,7 +271,7 @@ private fun RowScope.FormatButtons(
 	ruleRefused: Boolean,
 	onInsertImage: (() -> Unit)?,
 ) {
-	EditorTooltip("${Res.string.markdown_format_bar_bold.get()} (${shortcutHint("B")})") {
+	EditorTooltip(Res.string.markdown_format_bar_bold.get(), HammerActions.EditBold.id) {
 		EditorAction(
 			icon = EditorIcons.IconBold,
 			active = isBoldActive,
@@ -275,7 +279,7 @@ private fun RowScope.FormatButtons(
 			state.toggleSpanStyle(state.richTextStyles.boldStyle)
 		}
 	}
-	EditorTooltip("${Res.string.markdown_format_bar_italic.get()} (${shortcutHint("I")})") {
+	EditorTooltip(Res.string.markdown_format_bar_italic.get(), HammerActions.EditItalic.id) {
 		EditorAction(
 			icon = EditorIcons.IconItalic,
 			active = isItalicActive,
@@ -283,14 +287,7 @@ private fun RowScope.FormatButtons(
 			state.toggleSpanStyle(state.richTextStyles.italicStyle)
 		}
 	}
-	EditorTooltip(
-		"${Res.string.markdown_format_bar_strikethrough.get()} (${
-			shortcutHint(
-				"X",
-				shift = true
-			)
-		})"
-	) {
+	EditorTooltip(Res.string.markdown_format_bar_strikethrough.get(), HammerActions.EditStrikethrough.id) {
 		EditorAction(
 			icon = EditorIcons.IconStrikethrough,
 			active = isStrikethroughActive,
@@ -365,7 +362,7 @@ private fun RowScope.FormatButtons(
 		}
 	}
 	if (onInsertImage != null) {
-		EditorTooltip("${Res.string.markdown_format_bar_image.get()} (${shortcutHint("I", shift = true)})") {
+		EditorTooltip(Res.string.markdown_format_bar_image.get(), HammerActions.EditInsertImage.id) {
 			Box(modifier = Modifier.testTag(MARKDOWN_FORMAT_BAR_INSERT_IMAGE_TAG)) {
 				// An image is a block of its own, refused where a rule is.
 				EditorAction(
@@ -432,11 +429,16 @@ private fun TableMenu(state: TextEditorState, tableLine: Int?) {
 @Composable
 private fun EditorTooltip(
 	text: String,
+	action: ActionId? = null,
 	content: @Composable () -> Unit,
 ) {
 	TooltipBox(
 		positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
-		tooltip = { PlainTooltip { Text(text) } },
+		tooltip = {
+			PlainTooltip {
+				if (action != null) ChordTooltipText(text, action) else Text(text)
+			}
+		},
 		state = rememberTooltipState(),
 	) {
 		content()
@@ -496,6 +498,7 @@ private fun HistoryAndOverflow(
 							contentDescription = null,
 						)
 					},
+					trailingIcon = { ChordLabel(HammerActions.EditFind.id) },
 					onClick = {
 						onFindReplace()
 						menuExpanded = false

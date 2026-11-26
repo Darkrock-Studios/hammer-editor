@@ -10,7 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -20,9 +19,11 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.account_window_title
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -52,7 +53,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 	raiseRequests: Int = 0,
 	onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
-	val backDispatcher = BackDispatcher()
+	val backDispatcher = remember { BackDispatcher() }
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle = lifecycle, backHandler = backDispatcher) }
 	val windowState = rememberPersistedWindowState(
@@ -73,6 +74,8 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		)
 	}
 	LifecycleController(lifecycle, windowState)
+	// No actions here, so no overlays: the router only keeps a stray release from stepping back.
+	val escapes = remember { EscapeRouter(ActionRegistry(), backDispatcher::back) }
 
 	val title = Res.string.account_window_title.get()
 	MaterialDecoratedWindow(
@@ -80,19 +83,16 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 		icon = painterResource(Res.drawable.hammer_icon),
+		onPreviewKeyEvent = escapes::onPreviewKeyEvent,
 		onKeyEvent = { event ->
-			when (event.toProjectSelectionShortcut()) {
-				WindowShortcut.Back -> {
-					backDispatcher.back()
-					true
-				}
-
-				WindowShortcut.Quit -> {
+			when {
+				escapes.onKeyEvent(event) -> true
+				event.isProjectSelectionQuit() -> {
 					exitApplication()
 					true
 				}
 
-				null -> false
+				else -> false
 			}
 		}
 	) {

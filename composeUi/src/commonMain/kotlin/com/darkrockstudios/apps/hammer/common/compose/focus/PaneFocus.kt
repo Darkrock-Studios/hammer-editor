@@ -89,6 +89,24 @@ class PaneFocusState {
 	/** Focuses the container of [id], leaving whichever child had focus. */
 	fun focusContainer(id: PaneId): Boolean = pane(id)?.let(::focusContainer) ?: false
 
+	/**
+	 * The Esc ladder's first step from a detail pane beside the list: the list's [paneEntry]
+	 * (the scene tree, not a header button it last had focused), revealing the open item.
+	 */
+	fun escapeToList(): Boolean {
+		if (pane(PaneId.List) == null) return false
+		reveals[PaneId.List] = revealRequests(PaneId.List) + 1
+		val entry = entries.lastOrNull { it.first == PaneId.List }?.second
+		return entry?.requestFocus() == true || focus(PaneId.List)
+	}
+
+	/**
+	 * The Esc ladder's first step in a pane on its own: from a child, focus the container, so the
+	 * text field lets go and editing stays open. False once the container has focus, so the
+	 * next Esc goes back.
+	 */
+	fun escapeToContainer(id: PaneId): Boolean = !isContainerFocused(id) && focusContainer(id)
+
 	private fun focusContainer(pane: Pane): Boolean {
 		pane.containerFocusable = true
 		val granted = pane.container.requestFocus()
@@ -174,14 +192,14 @@ fun ProvidePaneFocus(content: @Composable () -> Unit) {
 /**
  * With a keyboard, focuses the first pane when [destination] changes, unless a pane already has
  * focus. Panes coming and going within a destination (a scene opening beside the tree) never
- * move focus.
+ * move focus. An arrival while not [enabled] leaves focus alone.
  */
 @Composable
-fun FocusFirstPaneOnArrival(destination: Any?) {
+fun FocusFirstPaneOnArrival(destination: Any?, enabled: Boolean = true) {
 	val paneFocus = LocalPaneFocus.current ?: return
 	val keyboard = LocalInputModeManager.current.inputMode == InputMode.Keyboard
 	LaunchedEffect(destination) {
-		if (!keyboard) return@LaunchedEffect
+		if (!keyboard || !enabled) return@LaunchedEffect
 		// A frame later, so the new panes are laid out.
 		withFrameNanos {}
 		paneFocus.focusFirstOnArrival()

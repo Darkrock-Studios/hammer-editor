@@ -78,6 +78,7 @@ import com.darkrockstudios.apps.hammer.notes_search_button
 import com.darkrockstudios.apps.hammer.notes_search_close
 import kotlinx.coroutines.CoroutineScope
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.ListCursorState
 import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardListNavigation
 import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorItem
 import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
@@ -99,6 +100,7 @@ fun BrowseEntriesUi(
 	viewEntry: (EntryDef) -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	cursor: ListCursorState = rememberListCursorState(),
 ) {
 	val state by component.state.subscribeAsState()
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
@@ -230,7 +232,6 @@ fun BrowseEntriesUi(
 		// 3-4 columns and on narrow screens cards stack into a single
 		// column.
 		val gridState = rememberLazyGridState()
-		val cursor = rememberListCursorState()
 		val entryKeys = remember(filteredEntries) { filteredEntries.map { it.id } }
 		Box(modifier = Modifier.weight(1f)) {
 			LazyVerticalGrid(

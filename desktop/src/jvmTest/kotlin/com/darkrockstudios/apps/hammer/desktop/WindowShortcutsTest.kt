@@ -6,8 +6,8 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import com.darkrockstudios.apps.hammer.common.components.actions.ChordPlatform
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(InternalComposeUiApi::class)
 class WindowShortcutsTest {
@@ -29,45 +29,31 @@ class WindowShortcutsTest {
 
 	@Test
 	fun `ctrl Q quits from the project selection window`() {
-		assertEquals(
-			WindowShortcut.Quit,
-			keyDown(Key.Q, ctrl = true).toProjectSelectionShortcut(ChordPlatform.Desktop),
-		)
+		assertTrue(keyDown(Key.Q, ctrl = true).isProjectSelectionQuit(ChordPlatform.Desktop))
 	}
 
 	@Test
 	fun `cmd Q quits from the project selection window`() {
-		assertEquals(
-			WindowShortcut.Quit,
-			keyDown(Key.Q, meta = true).toProjectSelectionShortcut(ChordPlatform.DesktopMac),
-		)
+		assertTrue(keyDown(Key.Q, meta = true).isProjectSelectionQuit(ChordPlatform.DesktopMac))
 	}
 
 	@Test
 	fun `ctrl Q does not quit on macOS`() {
-		assertNull(keyDown(Key.Q, ctrl = true).toProjectSelectionShortcut(ChordPlatform.DesktopMac))
+		assertFalse(keyDown(Key.Q, ctrl = true).isProjectSelectionQuit(ChordPlatform.DesktopMac))
 	}
 
 	@Test
 	fun `AltGr Q types an at sign instead of quitting`() {
-		assertNull(keyDown(Key.Q, ctrl = true, alt = true).toProjectSelectionShortcut(ChordPlatform.Desktop))
-	}
-
-	@Test
-	fun `escape navigates back on key up only`() {
-		val keyUp = KeyEvent(key = Key.Escape, type = KeyEventType.KeyUp)
-
-		assertEquals(WindowShortcut.Back, keyUp.toProjectSelectionShortcut(ChordPlatform.Desktop))
-		assertNull(keyDown(Key.Escape).toProjectSelectionShortcut(ChordPlatform.Desktop))
+		assertFalse(keyDown(Key.Q, ctrl = true, alt = true).isProjectSelectionQuit(ChordPlatform.Desktop))
 	}
 
 	@Test
 	fun `unmodified keys are not shortcuts`() {
-		assertNull(keyDown(Key.Q).toProjectSelectionShortcut(ChordPlatform.Desktop))
+		assertFalse(keyDown(Key.Q).isProjectSelectionQuit(ChordPlatform.Desktop))
 	}
 
 	@Test
 	fun `shift Q does not quit`() {
-		assertNull(keyDown(Key.Q, ctrl = true, shift = true).toProjectSelectionShortcut(ChordPlatform.Desktop))
+		assertFalse(keyDown(Key.Q, ctrl = true, shift = true).isProjectSelectionQuit(ChordPlatform.Desktop))
 	}
 }

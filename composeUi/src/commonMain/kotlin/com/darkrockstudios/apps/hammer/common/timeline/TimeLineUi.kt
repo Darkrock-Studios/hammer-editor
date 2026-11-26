@@ -34,7 +34,9 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.focus.FocusFirstPaneOnArrival
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.escapeToContainer
 import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
@@ -60,6 +62,8 @@ fun TimeLineUi(
 	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
 	val state by component.stack.subscribeAsState()
+	val destination = state.active.configuration
+	FocusFirstPaneOnArrival(destination, enabled = destination is TimeLine.Config.TimeLineOverviewConfig)
 	val dialog by component.eventDialog.subscribeAsState()
 	val selection by component.selection.subscribeAsState()
 	// Outlives the overview while an event or the create screen covers it, but not a switch of
@@ -106,7 +110,9 @@ fun TimeLineUi(
 
 					is TimeLine.Destination.ViewEventDestination -> {
 						ViewTimeLineEventUi(
-							modifier = Modifier.align(Alignment.TopCenter).focusPane(PaneId.Detail),
+							modifier = Modifier.align(Alignment.TopCenter)
+								.escapeToContainer(PaneId.Detail)
+								.focusPane(PaneId.Detail),
 							component = dest.component,
 							scope = scope,
 							rootSnackbar = rootSnackbar,

@@ -97,6 +97,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.ListCursorState
 import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardListNavigation
 import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorItem
 import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
@@ -149,6 +150,7 @@ fun BrowseNotesUi(
 	modifier: Modifier = Modifier,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	cursor: ListCursorState = rememberListCursorState(),
 ) {
 	val state by component.state.subscribeAsState()
 	val tagIndex by component.rankedTags.subscribeAsState()
@@ -331,7 +333,6 @@ fun BrowseNotesUi(
 		}
 
 		val gridState = rememberLazyStaggeredGridState()
-		val cursor = rememberListCursorState()
 		val noteKeys = remember(visibleNotes) { visibleNotes.map { it.id } }
 		Box(modifier = Modifier.weight(1f)) {
 			LazyVerticalStaggeredGrid(

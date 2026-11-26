@@ -154,6 +154,11 @@ class ListCursorState internal constructor(
 		savedIndex.intValue = index
 	}
 
+	/** Puts the cursor on the item with [key], wherever the list shows it. */
+	internal fun placeOn(key: Any) {
+		savedKey.value = key
+	}
+
 	internal fun moveToKey(key: Any) {
 		val index = shownKeys.indexOf(key)
 		if (index >= 0) moveTo(index, shownKeys)
@@ -289,13 +294,15 @@ fun Modifier.onKeyboardPointerPress(onPress: () -> Unit): Modifier {
 
 /**
  * Scrolls the least distance that shows item [index] whole above any end padding. [key] guards
- * against a layout that has not caught up with a change to the list yet.
+ * against a layout that has not caught up with a change to the list yet. An item off screen is
+ * scrolled to on the next measure: scrolling now would measure items whose composition is still
+ * pending (rows a reveal just expanded), which Compose refuses.
  */
 internal suspend fun LazyListState.revealItem(index: Int, key: Any? = null) {
 	val info = layoutInfo
 	val item = info.visibleItemsInfo.firstOrNull { it.index == index && (key == null || it.key == key) }
 	if (item == null) {
-		scrollToItem(index)
+		requestScrollToItem(index)
 		return
 	}
 	val end = info.viewportEndOffset - info.afterContentPadding

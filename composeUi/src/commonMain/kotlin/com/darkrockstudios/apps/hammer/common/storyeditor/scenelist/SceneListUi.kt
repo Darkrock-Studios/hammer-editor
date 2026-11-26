@@ -67,7 +67,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayF
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdCoachMarkAnchor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdCoachMarkAnchors
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
-import com.darkrockstudios.apps.hammer.common.compose.focus.LocalPaneFocus
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
 import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
@@ -141,6 +140,7 @@ fun SceneListUi(
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 	inSplitPane: Boolean = false,
+	cursorOnArrival: Int? = null,
 ) {
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
@@ -170,12 +170,8 @@ fun SceneListUi(
 			treeState.updateSummary(summary)
 		}
 	}
-
-	val revealRequests = LocalPaneFocus.current?.revealRequests(PaneId.List) ?: 0
-	LaunchedEffect(revealRequests) {
-		if (revealRequests > 0) {
-			state.selectedSceneItem?.let { treeState.revealCursor(it.id) }
-		}
+	LaunchedEffect(treeState) {
+		cursorOnArrival?.let(treeState::revealCursor)
 	}
 
 	val footerState = rememberHdScrollAwayFooterState()

@@ -6,8 +6,10 @@ New features
 - Co-authoring: invite another Hammer account by email from the website and they can write in your project, syncing it like another of your devices. Up to five co-authors per project; only the owner can rename, move, delete or share it. Writing statistics show words by author.
 - Sync: a project can be kept on this device only, from its menu on the project list, while the rest of your projects go on syncing.
 - Export: Word export produces Standard Manuscript Format for submitting to editors, agents and publishers. A title page (or a short story first page) with your contact details and word count, double spacing, a running header, and `#` between scenes. Options for the short story layout and Classic (Courier)
+- Keyboard: drive a project without the mouse. Ctrl/Cmd+1 to 5 jump between Home, Story, Notes, Encyclopedia and Timeline, F6 moves between panes, the arrow keys and Enter work in the scene tree and lists, Esc steps out one level at a time, Ctrl/Cmd+K opens a command palette and F1 lists every shortcut. Menus and tooltips show their shortcuts
 
 Improvements
+- Shortcuts: Ctrl/Cmd+W now closes the open scene, note, entry or event; Ctrl/Cmd+Shift+W closes the project. On macOS, project shortcuts use Cmd only, leaving Control for text editing
 - Export: Word files open more reliably in other word processors
 - Writing statistics count each word you type once. Autosaves landing mid-word, fixed typos, undone deletions, moved or pasted-back text and text arriving by sync or a draft restore no longer add words. On a co-authored project, Today, Last 7 days, the streak, the heatmap, goals and words by device show your own words
 

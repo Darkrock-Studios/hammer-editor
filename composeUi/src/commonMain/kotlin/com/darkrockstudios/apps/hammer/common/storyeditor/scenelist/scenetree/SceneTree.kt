@@ -19,8 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -43,6 +45,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.focus.LocalPaneFocus
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
 import com.darkrockstudios.apps.hammer.common.compose.focus.isBareKeyDown
 import com.darkrockstudios.apps.hammer.common.compose.focus.markKeyboardInput
 import com.darkrockstudios.apps.hammer.common.compose.focus.onKeyboardPointerPress
@@ -74,6 +78,15 @@ fun SceneTree(
 	LaunchedEffect(state, openSceneId) {
 		state.setOpenScene(openSceneId)
 		if (treeFocused) state.followOpenScene()
+	}
+	// Only requests made while composed: one from before (the tree came back) is stale.
+	val revealRequests = LocalPaneFocus.current?.revealRequests(PaneId.List) ?: 0
+	var revealsSeen by remember { mutableIntStateOf(revealRequests) }
+	val openScene by rememberUpdatedState(openSceneId)
+	LaunchedEffect(state, revealRequests) {
+		if (revealRequests == revealsSeen) return@LaunchedEffect
+		revealsSeen = revealRequests
+		openScene?.let(state::revealCursor)
 	}
 	Box {
 		Row {
