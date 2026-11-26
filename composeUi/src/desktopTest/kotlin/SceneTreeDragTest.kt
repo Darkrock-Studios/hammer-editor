@@ -93,7 +93,7 @@ class SceneTreeDragTest {
 				SceneTree(
 					state = state,
 					modifier = Modifier.fillMaxSize().testTag(TREE_TAG),
-					itemUi = { node, _, _, draggable, _ ->
+					itemUi = { node, _, _, draggable ->
 						Box(
 							modifier = draggable.fillMaxWidth().height(RowHeight)
 								.testTag(rowTag(node.value.id))

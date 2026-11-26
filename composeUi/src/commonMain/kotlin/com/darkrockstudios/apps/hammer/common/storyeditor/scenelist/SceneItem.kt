@@ -36,8 +36,6 @@ internal fun SceneItem(
 	depth: Int,
 	hasDirtyBuffer: Boolean,
 	isSelected: Boolean,
-	/** Under the tree's keyboard cursor, which takes the tonal step the palette's highlight does. */
-	isCursor: Boolean = false,
 	demonstrateSwipe: Boolean,
 	/** A top-level scene stands alone as a chapter and is styled like a chapter group. */
 	isChapter: Boolean,
@@ -48,11 +46,7 @@ internal fun SceneItem(
 	onSceneMoveRequest: (SceneItem) -> Unit,
 	modifier: Modifier = Modifier,
 ) {
-	val bg = when {
-		isCursor -> MaterialTheme.colorScheme.surfaceContainerHigh
-		isSelected -> MaterialTheme.colorScheme.surfaceContainer
-		else -> Color.Transparent
-	}
+	val bg = if (isSelected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
 	val accent = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
 	val railColor = MaterialTheme.colorScheme.outlineVariant
 

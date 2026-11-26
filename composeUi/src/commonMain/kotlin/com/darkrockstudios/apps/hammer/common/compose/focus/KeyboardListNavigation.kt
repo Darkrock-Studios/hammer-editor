@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.compose.focus
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListState
@@ -21,10 +23,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -35,7 +41,12 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.isPrimaryPressed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -143,7 +154,16 @@ class ListCursorState internal constructor(
 		savedIndex.intValue = index
 	}
 
+	internal fun moveToKey(key: Any) {
+		val index = shownKeys.indexOf(key)
+		if (index >= 0) moveTo(index, shownKeys)
+	}
+
 	internal var hasFocus by mutableStateOf(false)
+
+	internal var shownKeys: List<Any> = emptyList()
+
+	internal val focusRequester = FocusRequester()
 }
 
 @Composable
@@ -176,15 +196,18 @@ fun Modifier.keyboardListNavigation(
 	rowStep: GridRowStep? = null,
 ): Modifier {
 	val scope = rememberCoroutineScope()
+	val inputModeManager = LocalInputModeManager.current
 	val activate by rememberUpdatedState(onActivate)
 	val scroll by rememberUpdatedState(scrollToItem)
 	val currentKeys by rememberUpdatedState(keys)
 	val currentRowStep by rememberUpdatedState(rowStep)
 	LaunchedEffect(state, keys) {
+		state.shownKeys = keys
 		val index = state.indexIn(keys)
 		if (index >= 0) state.moveTo(index, keys)
 	}
 	return this
+		.focusRequester(state.focusRequester)
 		.onFocusChanged { state.hasFocus = it.isFocused }
 		.onKeyEvent { event ->
 			if (!state.hasFocus || !event.isBareKeyDown()) return@onKeyEvent false
@@ -197,6 +220,7 @@ fun Modifier.keyboardListNavigation(
 			}
 			val next = listCursorStep(current, shown.size, event.key, currentRowStep)
 				?: return@onKeyEvent false
+			inputModeManager.markKeyboardInput()
 			state.moveTo(next, shown)
 			scope.launch { scroll(next) }
 			true
@@ -204,13 +228,64 @@ fun Modifier.keyboardListNavigation(
 		.focusable()
 }
 
+/**
+ * Switches to keyboard input mode, which shows the cursor. Compose desktop enters touch mode on
+ * any mouse press and leaves it only for a focus key nothing handled, so a list that handles its
+ * own arrows, or F6, has to say so.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+internal fun InputModeManager.markKeyboardInput() {
+	requestInputMode(InputMode.Keyboard)
+}
+
 internal fun KeyEvent.isBareKeyDown(): Boolean =
 	type == KeyEventType.KeyDown && !isCtrlPressed && !isMetaPressed && !isAltPressed && !isShiftPressed
+
+/** Set on the item drawing [listCursorFrame], so tests can find the cursor without reading pixels. */
+val ListCursorFrame = SemanticsPropertyKey<Unit>("ListCursorFrame")
 
 /** The frame a card under a list cursor draws: a hairline in ink, as a selected cell's. */
 @Composable
 fun Modifier.listCursorFrame(shown: Boolean): Modifier =
-	if (shown) border(Dp.Hairline, MaterialTheme.colorScheme.onSurface, RectangleShape) else this
+	if (shown) {
+		border(Dp.Hairline, MaterialTheme.colorScheme.onSurface, RectangleShape)
+			.semantics { this[ListCursorFrame] = Unit }
+	} else {
+		this
+	}
+
+/**
+ * An item of a [keyboardListNavigation] list: it draws the cursor's frame, and a click on it also
+ * puts the cursor here and focuses the list, so the arrows carry on from the clicked item.
+ */
+@Composable
+fun Modifier.listCursorItem(state: ListCursorState, key: Any): Modifier =
+	listCursorFrame(state.showsCursorOn(key))
+		.onKeyboardPointerPress {
+			state.moveToKey(key)
+			state.focusRequester.requestFocus()
+		}
+
+/**
+ * Calls [onPress] when a mouse's primary button goes down here, or a touch while a hardware
+ * keyboard is attached. A bare touch screen is left alone: touch mode shows no keyboard cursor.
+ * Observes without consuming, so the item's own click and drag handling still run.
+ */
+@Composable
+fun Modifier.onKeyboardPointerPress(onPress: () -> Unit): Modifier {
+	val keyboardAttached by rememberUpdatedState(hasHardwareKeyboard())
+	val press by rememberUpdatedState(onPress)
+	return pointerInput(Unit) {
+		awaitEachGesture {
+			val down = awaitFirstDown(requireUnconsumed = false)
+			val counts = when (down.type) {
+				PointerType.Mouse -> currentEvent.buttons.isPrimaryPressed
+				else -> keyboardAttached
+			}
+			if (counts) press()
+		}
+	}
+}
 
 /**
  * Scrolls the least distance that shows item [index] whole above any end padding. [key] guards

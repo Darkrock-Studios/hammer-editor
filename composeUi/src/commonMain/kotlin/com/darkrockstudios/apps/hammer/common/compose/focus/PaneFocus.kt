@@ -155,11 +155,16 @@ val LocalPaneFocus: ProvidableCompositionLocal<PaneFocusState?> = staticComposit
 @Composable
 fun ProvidePaneFocus(content: @Composable () -> Unit) {
 	val state = remember { PaneFocusState() }
-	val handlers = remember(state) {
+	val inputModeManager = LocalInputModeManager.current
+	val handlers = remember(state, inputModeManager) {
 		val hasPanes = { state.registeredPanes.isNotEmpty() }
+		val cycle = { forward: Boolean ->
+			inputModeManager.markKeyboardInput()
+			state.cycle(forward)
+		}
 		mapOf(
-			HammerActions.PaneNext.id to ActionHandler(isEnabled = hasPanes) { state.cycle(forward = true) },
-			HammerActions.PanePrev.id to ActionHandler(isEnabled = hasPanes) { state.cycle(forward = false) },
+			HammerActions.PaneNext.id to ActionHandler(isEnabled = hasPanes) { cycle(true) },
+			HammerActions.PanePrev.id to ActionHandler(isEnabled = hasPanes) { cycle(false) },
 		)
 	}
 	RegisterActions(ActionLayer.Root, handlers)

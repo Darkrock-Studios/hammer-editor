@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
@@ -22,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageF
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesUi
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRIES_GRID_TAG
+import com.darkrockstudios.apps.hammer.common.encyclopedia.encyclopediaEntryTag
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import org.junit.Rule
@@ -88,6 +92,22 @@ class BrowseEntriesKeyboardTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertEquals(listOf(2), viewed)
+	}
+
+	@Test
+	fun `clicking an entry puts the cursor on it and focuses the grid`() {
+		show()
+
+		compose.onNodeWithTag(encyclopediaEntryTag(2)).performMouseInput { click() }
+		compose.waitForIdle()
+		compose.onNodeWithTag(ENTRIES_GRID_TAG).assertIsFocused()
+		compose.onNodeWithTag(ENTRIES_GRID_TAG).performKeyInput {
+			pressKey(Key.DirectionDown)
+			pressKey(Key.Enter)
+		}
+		compose.waitForIdle()
+
+		assertEquals(listOf(2, 3), viewed)
 	}
 
 	@Test

@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,7 +44,6 @@ internal fun SceneGroupItem(
 	hasDirtyBuffer: Set<Int>,
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
-	isCursor: Boolean = false,
 	demonstrateSwipe: Boolean,
 	isChapter: Boolean,
 	onSceneDeleteRequest: (SceneItem) -> Unit,
@@ -63,7 +61,6 @@ internal fun SceneGroupItem(
 	val groupModifier = draggable
 		.fillMaxWidth()
 		.testTag(sceneGroupTag(scene.id))
-		.then(if (isCursor) Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh) else Modifier)
 		.hdIndentRails(levels = sceneNode.depth - 1, color = railColor)
 		.clickable { toggleExpand(scene.id) }
 

@@ -98,12 +98,11 @@ import org.jetbrains.compose.resources.StringResource
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
 import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardListNavigation
-import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorFrame
+import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorItem
 import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
 import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
 import com.darkrockstudios.apps.hammer.common.compose.focus.revealItem
 import com.darkrockstudios.apps.hammer.common.compose.focus.laneRowStep
-import com.darkrockstudios.apps.hammer.common.compose.focus.showsCursorOn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.help.HelpButton
 import com.darkrockstudios.apps.hammer.common.help.HelpScreen
@@ -366,7 +365,7 @@ fun BrowseNotesUi(
 						sharedTransitionScope = sharedTransitionScope,
 						animatedVisibilityScope = animatedVisibilityScope,
 						modifier = Modifier.padding(bottom = Ui.Padding.L)
-							.listCursorFrame(cursor.showsCursorOn(note.id)),
+							.listCursorItem(cursor, note.id),
 						onClick = { component.viewNote(note.id) },
 					)
 				}

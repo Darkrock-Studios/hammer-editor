@@ -24,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
@@ -42,6 +44,8 @@ import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.focus.isBareKeyDown
+import com.darkrockstudios.apps.hammer.common.compose.focus.markKeyboardInput
+import com.darkrockstudios.apps.hammer.common.compose.focus.onKeyboardPointerPress
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 import com.darkrockstudios.apps.hammer.Res
@@ -64,7 +68,9 @@ fun SceneTree(
 	openSceneId: Int? = null,
 ) {
 	var treeFocused by remember { mutableStateOf(false) }
-	val showCursor = treeFocused && LocalInputModeManager.current.inputMode == InputMode.Keyboard
+	val focusRequester = remember { FocusRequester() }
+	val inputModeManager = LocalInputModeManager.current
+	val showCursor = treeFocused && inputModeManager.inputMode == InputMode.Keyboard
 	LaunchedEffect(state, openSceneId) {
 		state.setOpenScene(openSceneId)
 		if (treeFocused) state.followOpenScene()
@@ -83,7 +89,12 @@ fun SceneTree(
 							treeFocused = it.isFocused
 							if (gained) state.followOpenScene()
 						}
-						.onKeyEvent { event -> treeFocused && state.onTreeKey(event, onOpen) }
+						.onKeyEvent { event ->
+							val handled = treeFocused && state.onTreeKey(event, onOpen)
+							if (handled) inputModeManager.markKeyboardInput()
+							handled
+						}
+						.focusRequester(focusRequester)
 						.focusable()
 						.weight(1f),
 					contentPadding = contentPadding
@@ -103,13 +114,17 @@ fun SceneTree(
 							node = node,
 							nodeCollapsesChildren = nodeCollapsesChildren,
 							selectedId = state.selectedId,
-							cursor = showCursor && id == state.cursorId,
+							cursor = showCursor && id == state.cursorRowId,
 							toggleExpanded = state::toggleExpanded,
 							modifier = Modifier.wrapContentHeight()
 								.fillMaxWidth()
 								.animateItem()
 								.onGloballyPositioned { state.setRowCoordinates(id, it) }
-								.pressCandidate(state, id),
+								.pressCandidate(state, id)
+								.onKeyboardPointerPress {
+									state.cursorFromPointer(id)
+									focusRequester.requestFocus()
+								},
 							itemUi = itemUi
 						)
 					}

@@ -79,12 +79,11 @@ import com.darkrockstudios.apps.hammer.notes_search_close
 import kotlinx.coroutines.CoroutineScope
 import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
 import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardListNavigation
-import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorFrame
+import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorItem
 import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
 import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
 import com.darkrockstudios.apps.hammer.common.compose.focus.revealItem
 import com.darkrockstudios.apps.hammer.common.compose.focus.gridRowStep
-import com.darkrockstudios.apps.hammer.common.compose.focus.showsCursorOn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.help.HelpButton
 import com.darkrockstudios.apps.hammer.common.help.HelpScreen
@@ -255,7 +254,7 @@ fun BrowseEntriesUi(
 				items(filteredEntries, key = { it.id }) { entryDef ->
 					EncyclopediaEntryItem(
 						entryDef = entryDef,
-						modifier = Modifier.listCursorFrame(cursor.showsCursorOn(entryDef.id)),
+						modifier = Modifier.listCursorItem(cursor, entryDef.id),
 						component = component,
 						viewEntry = viewEntry,
 						scope = scope,

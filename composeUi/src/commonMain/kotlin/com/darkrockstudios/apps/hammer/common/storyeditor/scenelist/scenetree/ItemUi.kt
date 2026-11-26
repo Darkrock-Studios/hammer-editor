@@ -10,6 +10,4 @@ typealias ItemUi = @Composable (
 	toggleExpanded: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
 	draggable: Modifier,
-	/** The tree's keyboard cursor is on this row and the tree has keyboard focus. */
-	cursor: Boolean,
 ) -> Unit

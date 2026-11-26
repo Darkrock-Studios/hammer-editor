@@ -17,14 +17,22 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.focus.ListCursorFrame
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
@@ -82,7 +90,7 @@ class SceneTreeKeyboardTest {
 					SceneTree(
 						state = state,
 						modifier = Modifier.fillMaxSize().testTag(TREE),
-						itemUi = { node, _, _, draggable, _ ->
+						itemUi = { node, _, _, draggable ->
 							Box(modifier = draggable.fillMaxWidth().height(30.dp).testTag(row(node.value.id)))
 						},
 						contentPadding = PaddingValues(),
@@ -105,18 +113,30 @@ class SceneTreeKeyboardTest {
 
 	private fun ComposeUiTest.isCollapsed(id: Int): Boolean = runOnIdle { treeState.collapsedNodes[id] == true }
 
+	private val framed = SemanticsMatcher.keyIsDefined(ListCursorFrame)
+
+	private fun ComposeUiTest.assertFrameOn(id: Int) {
+		onAllNodes(framed, useUnmergedTree = true).assertCountEquals(1)
+		onNode(framed and hasAnyDescendant(hasTestTag(row(id))), useUnmergedTree = true).assertExists()
+	}
+
+	private fun ComposeUiTest.clickRow(id: Int) {
+		onNodeWithTag(row(id)).performMouseInput { click() }
+		waitForIdle()
+	}
+
 	@Test
 	fun `Down and Up move the cursor over visible rows`() = runComposeUiTest {
 		showTree()
 		runOnIdle { treeState.toggleExpanded(KeyIds.CH1) }
 
 		keys(listOf(Key.DirectionDown))
-		val first = cursor()
-		keys(listOf(Key.DirectionDown, Key.DirectionDown))
+		val second = cursor()
+		keys(listOf(Key.DirectionDown))
 		val third = cursor()
 		keys(listOf(Key.DirectionUp))
 
-		assertEquals(KeyIds.PREFACE, first)
+		assertEquals(KeyIds.CH1, second)
 		assertEquals(KeyIds.CH2, third, "Collapsed rows are skipped")
 		assertEquals(KeyIds.CH1, cursor())
 	}
@@ -125,7 +145,7 @@ class SceneTreeKeyboardTest {
 	fun `Right expands a collapsed group then enters it`() = runComposeUiTest {
 		showTree()
 		runOnIdle { treeState.toggleExpanded(KeyIds.CH1) }
-		keys(listOf(Key.DirectionDown, Key.DirectionDown))
+		keys(listOf(Key.DirectionDown))
 
 		keys(listOf(Key.DirectionRight))
 		val expanded = !isCollapsed(KeyIds.CH1)
@@ -172,7 +192,7 @@ class SceneTreeKeyboardTest {
 	fun `Enter on a scene opens it`() = runComposeUiTest {
 		showTree()
 
-		keys(listOf(Key.DirectionDown, Key.DirectionDown, Key.DirectionDown, Key.Enter))
+		keys(listOf(Key.DirectionDown, Key.DirectionDown, Key.Enter))
 
 		assertEquals(listOf(KeyIds.DOOR), opened)
 	}
@@ -180,7 +200,7 @@ class SceneTreeKeyboardTest {
 	@Test
 	fun `Enter on a group toggles it`() = runComposeUiTest {
 		showTree()
-		keys(listOf(Key.DirectionDown, Key.DirectionDown))
+		keys(listOf(Key.DirectionDown))
 
 		keys(listOf(Key.Enter))
 		val collapsed = isCollapsed(KeyIds.CH1)
@@ -238,6 +258,103 @@ class SceneTreeKeyboardTest {
 	}
 
 	@Test
+	fun `focusing the tree with no open scene puts the cursor on the first row`() = runComposeUiTest {
+		showTree()
+
+		keys(emptyList())
+
+		assertEquals(KeyIds.PREFACE, cursor())
+		assertFrameOn(KeyIds.PREFACE)
+	}
+
+	@Test
+	fun `focusing the tree frames the open scene`() = runComposeUiTest {
+		openScene = KeyIds.EXPLORATION
+		showTree()
+
+		keys(emptyList())
+
+		assertFrameOn(KeyIds.EXPLORATION)
+	}
+
+	@Test
+	fun `an open scene in a collapsed group frames the group and leaves it collapsed`() = runComposeUiTest {
+		openScene = KeyIds.VACUUM
+		showTree()
+		runOnIdle { treeState.toggleExpanded(KeyIds.PART_A) }
+
+		keys(emptyList())
+
+		assertTrue(isCollapsed(KeyIds.PART_A))
+		assertFrameOn(KeyIds.PART_A)
+	}
+
+	@Test
+	fun `the frame marks a group row`() = runComposeUiTest {
+		showTree()
+
+		keys(listOf(Key.DirectionDown))
+
+		assertFrameOn(KeyIds.CH1)
+	}
+
+	@Test
+	fun `the frame goes when the tree loses focus`() = runComposeUiTest {
+		showTree(withEditor = true)
+		keys(emptyList())
+
+		onNodeWithTag(EDITOR).requestFocus()
+		waitForIdle()
+
+		onAllNodes(framed, useUnmergedTree = true).assertCountEquals(0)
+	}
+
+	@Test
+	fun `clicking a row focuses the tree and puts the cursor on it`() = runComposeUiTest {
+		showTree(withEditor = true)
+		onNodeWithTag(EDITOR).requestFocus()
+
+		clickRow(KeyIds.DOOR)
+		onNodeWithTag(TREE).assertIsFocused()
+		val clicked = cursor()
+		onNodeWithTag(TREE).performKeyInput { pressKey(Key.DirectionDown) }
+		waitForIdle()
+
+		assertEquals(KeyIds.DOOR, clicked)
+		assertEquals(KeyIds.DISCOVERY, cursor())
+		assertFrameOn(KeyIds.DISCOVERY)
+	}
+
+	@Test
+	fun `after a click the frame waits for a key`() = runComposeUiTest {
+		showTree()
+
+		clickRow(KeyIds.DOOR)
+		val framesAfterClick = onAllNodes(framed, useUnmergedTree = true).fetchSemanticsNodes().size
+		onNodeWithTag(TREE).performKeyInput { pressKey(Key.DirectionUp) }
+		waitForIdle()
+
+		assertEquals(0, framesAfterClick, "A mouse click puts Compose in touch mode")
+		assertFrameOn(KeyIds.CH1)
+	}
+
+	@Test
+	fun `clicking a group keeps the cursor on it after a scene opened elsewhere`() = runComposeUiTest {
+		showTree(withEditor = true)
+		onNodeWithTag(EDITOR).requestFocus()
+		openScene = KeyIds.VACUUM
+		waitForIdle()
+
+		clickRow(KeyIds.CH1)
+		val clicked = cursor()
+		onNodeWithTag(TREE).performKeyInput { pressKey(Key.DirectionDown) }
+		waitForIdle()
+
+		assertEquals(KeyIds.CH1, clicked)
+		assertEquals(KeyIds.DOOR, cursor())
+	}
+
+	@Test
 	fun `the cursor moves to a scene opened since it last moved`() = runComposeUiTest {
 		showTree(withEditor = true)
 		keys(listOf(Key.DirectionDown))
@@ -290,7 +407,7 @@ class SceneTreeKeyboardTest {
 		}
 		waitForIdle()
 
-		assertEquals(KeyIds.PREFACE, before)
+		assertEquals(KeyIds.CH1, before)
 		assertEquals(before, cursor())
 		assertNotEquals(KeyIds.OVERVIEW, cursor())
 	}

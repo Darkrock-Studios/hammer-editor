@@ -9,6 +9,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
@@ -22,6 +28,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.focus.GridRowStep
+import com.darkrockstudios.apps.hammer.common.compose.focus.ListCursorFrame
 import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorStep
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
@@ -149,6 +156,26 @@ class BrowseNotesKeyboardTest {
 		keys(listOf(Key.DirectionDown, Key.DirectionDown, Key.Enter))
 
 		assertEquals(listOf(30), component.viewed)
+	}
+
+	@Test
+	fun `clicking a note puts the cursor on it and focuses the grid`() = runComposeUiTest {
+		val component = FakeBrowseNotes(notes)
+		show(component)
+
+		onNodeWithText("Bridge", substring = true).performMouseInput { click() }
+		waitForIdle()
+		onNodeWithTag(NOTES_GRID_TAG).assertIsFocused()
+		onNodeWithTag(NOTES_GRID_TAG).performKeyInput { pressKey(Key.DirectionDown) }
+		waitForIdle()
+		onNode(
+			SemanticsMatcher.keyIsDefined(ListCursorFrame) and hasAnyDescendant(hasText("Cellar", substring = true)),
+			useUnmergedTree = true,
+		).assertExists()
+		onNodeWithTag(NOTES_GRID_TAG).performKeyInput { pressKey(Key.Enter) }
+		waitForIdle()
+
+		assertEquals(listOf(20, 30), component.viewed)
 	}
 
 	@Test

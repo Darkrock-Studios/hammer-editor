@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.testTag
@@ -43,6 +44,7 @@ class PaneCycleTest {
 	private val shiftF6 = KeyChord.bare(ChordKey.F6, shift = true)
 	private val registry = ActionRegistry()
 	private var paneFocus: PaneFocusState? = null
+	private var inputModes: InputModeManager? = null
 
 	@Composable
 	private fun Stop(tag: String) {
@@ -57,6 +59,7 @@ class PaneCycleTest {
 			ProvideActions(registry) {
 				ProvidePaneFocus {
 					paneFocus = LocalPaneFocus.current
+					inputModes = LocalInputModeManager.current
 					Row {
 						Box(Modifier.size(100.dp).focusPane(PaneId.List)) {
 							Column {
@@ -91,6 +94,16 @@ class PaneCycleTest {
 
 		onNodeWithTag("a1").assertIsFocused()
 		assertEquals(PaneId.List, paneFocus?.focusedPane)
+	}
+
+	@Test
+	fun `F6 after mouse use puts the input mode back to keyboard`() = runComposeUiTest {
+		showPanes()
+		runOnIdle { inputModes!!.requestInputMode(InputMode.Touch) }
+
+		press(f6)
+
+		assertEquals(InputMode.Keyboard, runOnIdle { inputModes!!.inputMode })
 	}
 
 	@Test

@@ -311,6 +311,9 @@ class SceneTreeState(
 
 	internal fun cursorNode(): TreeValue<SceneItem>? = visibleNodes.getOrNull(cursorIndex())
 
+	/** The row the cursor stands on, which is the hiding group's when its own row is collapsed away. */
+	val cursorRowId: Int by derivedStateOf { cursorNode()?.value?.id ?: NO_SELECTION }
+
 	private fun setCursorIndex(index: Int) {
 		val node = visibleNodes.getOrNull(index) ?: return
 		cursorId = node.value.id
@@ -373,18 +376,32 @@ class SceneTreeState(
 	}
 
 	/**
-	 * Puts the cursor on the open scene when it has none yet, or when a scene was opened some
-	 * other way (the mouse, a next-scene chord) since. Collapsed groups stay as they are.
+	 * Gives the focused tree a cursor: the open scene when the cursor has none yet, or when a
+	 * scene was opened some other way (a next-scene chord) since; with no open scene and no
+	 * cursor, the first row. Collapsed groups stay as they are.
 	 */
 	internal fun followOpenScene() {
-		val open = openSceneId ?: return
-		val follow = cursorId == NO_SELECTION || openSceneChanged
+		val open = openSceneId
+		val followOpen = open != null && (cursorId == NO_SELECTION || openSceneChanged)
 		openSceneChanged = false
-		if (!follow) return
-		cursorId = open
+		if (followOpen) {
+			cursorId = open
+		} else if (cursorIndex() >= 0) {
+			return
+		}
 		val index = cursorIndex()
-		val node = visibleNodes.getOrNull(index) ?: return
+		if (index < 0) return cursorToStart()
+		val node = visibleNodes[index]
 		coroutineScope.launch { listState.revealItem(index, key = node.value.id) }
+	}
+
+	/**
+	 * A click on row [id] puts the cursor there. A scene opened elsewhere before the click must
+	 * not pull the cursor off the clicked row when the tree takes focus, so that is forgotten.
+	 */
+	internal fun cursorFromPointer(id: Int) {
+		cursorId = id
+		openSceneChanged = false
 	}
 
 	companion object {

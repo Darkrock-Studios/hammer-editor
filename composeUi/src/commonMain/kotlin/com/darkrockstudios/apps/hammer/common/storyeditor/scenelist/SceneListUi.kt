@@ -267,8 +267,7 @@ fun SceneListUi(
 						itemUi = { node: TreeValue<SceneItem>,
 						           toggleExpanded: (nodeId: Int) -> Unit,
 						           collapsed: Boolean,
-						           draggable: Modifier,
-						           cursor: Boolean ->
+						           draggable: Modifier ->
 
 							SceneNode(
 								sceneNode = node,
@@ -278,7 +277,6 @@ fun SceneListUi(
 								component = component,
 								toggleExpand = toggleExpanded,
 								collapsed = collapsed,
-								isCursor = cursor,
 								coachMarkAnchors = coachMarkAnchors,
 								isHintRow = node.value.id == hintRowId,
 								demonstrateSwipe = shownHint == NuxHint.SceneListSwipeMenu && node.value.id == hintRowId,
@@ -611,7 +609,6 @@ private fun SceneNode(
 	component: SceneList,
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
-	isCursor: Boolean,
 	coachMarkAnchors: HdCoachMarkAnchors,
 	isHintRow: Boolean,
 	demonstrateSwipe: Boolean,
@@ -634,7 +631,6 @@ private fun SceneNode(
 			depth = sceneNode.depth,
 			hasDirtyBuffer = summary.hasDirtyBuffer.contains(scene.id),
 			isSelected = isSelected,
-			isCursor = isCursor,
 			demonstrateSwipe = demonstrateSwipe,
 			isChapter = isChapter,
 			onSceneSelected = component::onSceneSelected,
@@ -651,7 +647,6 @@ private fun SceneNode(
 			hasDirtyBuffer = summary.hasDirtyBuffer,
 			toggleExpand = toggleExpand,
 			collapsed = collapsed,
-			isCursor = isCursor,
 			demonstrateSwipe = demonstrateSwipe,
 			isChapter = isChapter,
 			onSceneDeleteRequest = sceneDefDeleteTarget,
