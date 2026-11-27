@@ -1,13 +1,19 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import PROJECT_1_NAME
+import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
+import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
 import kotlinx.coroutines.test.runTest
 import listedProjectId
+import okio.ForwardingFileSystem
+import okio.IOException
+import okio.Path
 import org.junit.jupiter.api.Test
 import repositories.projectsrepository.ProjectsRepositoryBaseTest
 import kotlin.test.assertEquals
@@ -70,6 +76,58 @@ class ProjectBackupRestoreTest : ProjectsRepositoryBaseTest() {
 
 		assertFalse(ffs.exists(laterWork))
 		assertEquals(projectId, repo.listedProjectId(projectDef))
+	}
+
+	@Test
+	fun `Restoring over a project clears its caches`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		val repo = projectsRepository()
+		val backups = backupService(repo)
+		val backup = assertNotNull(backups.createBackup(projectDef))
+		val listed = repo.getProjects().single()
+		val cacheDir = ProjectCachePaths.projectCacheDirectory(ffs, listed)
+		ffs.write(ProjectCachePaths.fileToWrite(ffs, cacheDir, listed, "stats.toml")) { writeUtf8("") }
+
+		assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup))
+
+		assertFalse(ffs.exists(cacheDir))
+	}
+
+	@Test
+	fun `Restoring into another project's folder clears that project's caches`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		val backups = backupService(repo)
+		val backup = assertNotNull(backups.createBackup(projectDef))
+		val destination = repo.getProjects().single { it.name == PROJECT_2_NAME }
+		val cacheDir = ProjectCachePaths.projectCacheDirectory(ffs, destination)
+		ffs.write(ProjectCachePaths.fileToWrite(ffs, cacheDir, destination, "stats.toml")) { writeUtf8("") }
+
+		assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup, destination.path))
+
+		assertFalse(ffs.exists(cacheDir))
+	}
+
+	@Test
+	fun `A restore whose caches cannot be cleared fails and leaves the project untouched`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		val repo = projectsRepository()
+		val backup = assertNotNull(backupService(repo).createBackup(projectDef))
+		val listed = repo.getProjects().single()
+		val cacheDir = ProjectCachePaths.projectCacheDirectory(ffs, listed)
+		ffs.write(ProjectCachePaths.fileToWrite(ffs, cacheDir, listed, "stats.toml")) { writeUtf8("") }
+		ffs.write(laterWork) { writeUtf8("written after the backup") }
+		val lockedCache = object : ForwardingFileSystem(ffs) {
+			override fun delete(path: Path, mustExist: Boolean) {
+				if (path.isWithin(ProjectCachePaths.projectsCacheRoot())) throw IOException("locked")
+				super.delete(path, mustExist)
+			}
+		}
+
+		assertEquals(BackupRestoreResult.Failed, backupService(repo, lockedCache).restoreBackup(backup))
+
+		assertEquals("written after the backup", ffs.read(laterWork) { readUtf8() })
 	}
 
 	@Test

@@ -85,8 +85,6 @@ class ReferenceIndexRepository(
 		_isDirty.value = false
 	}
 
-	fun cacheExists(): Boolean = datasource.exists()
-
 	suspend fun applySceneDelta(sceneId: Int, added: Set<Int>, removed: Set<Int>) {
 		if (added.isEmpty() && removed.isEmpty()) return
 

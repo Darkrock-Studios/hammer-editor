@@ -2,19 +2,15 @@ package com.darkrockstudios.apps.hammer.common.data.references
 
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
-import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import okio.Path
-import okio.Path.Companion.toPath
 
 class ReferenceIndexDatasource(
 	private val fileSystem: FileSystem,
@@ -25,59 +21,27 @@ class ReferenceIndexDatasource(
 	override val projectScope = ProjectDefScope(projectDef)
 	private val dispatcherIo by injectIoDispatcher()
 
+	private val cacheDir by lazy { ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef) }
+
 	suspend fun loadIndex(): ReferenceIndex? = withContext(dispatcherIo) {
-		val file = getIndexPath()
-		return@withContext if (fileSystem.exists(file)) {
-			fileSystem.readTomlOrNull<ReferenceIndex>(file, toml) { e ->
-				Napier.e("Failed to load reference index cache", e)
-			}
-		} else {
-			null
+		val file = ProjectCachePaths.fileToRead(fileSystem, cacheDir, projectDef, FILENAME)
+			?: return@withContext null
+		fileSystem.readTomlOrNull<ReferenceIndex>(file, toml) { e ->
+			Napier.e("Failed to load reference index cache", e)
 		}
 	}
 
 	suspend fun saveIndex(index: ReferenceIndex) = withContext(dispatcherIo) {
-		ensureCacheDirectoryExists()
-		val file = getIndexPath()
-		requireWithinCacheRoot(file)
+		val file = ProjectCachePaths.fileToWrite(fileSystem, cacheDir, projectDef, FILENAME)
 		fileSystem.writeToml(file, toml, index)
 		Napier.d("Reference index saved to cache")
 	}
 
-	fun exists(): Boolean = fileSystem.exists(getIndexPath())
-
 	suspend fun delete() = withContext(dispatcherIo) {
-		val file = getIndexPath()
-		requireWithinCacheRoot(file)
-		if (fileSystem.exists(file)) {
-			fileSystem.delete(file)
-			Napier.d("Reference index cache deleted")
-		}
-	}
-
-	private fun getProjectsCacheRoot(): Path = getCacheDirectory().toPath() / PROJECTS_DIRECTORY
-
-	private fun getProjectCacheDirectory(): Path =
-		getProjectsCacheRoot() / ProjectsRepository.encodeForFilename(projectDef.name)
-
-	private fun getIndexPath(): Path = getProjectCacheDirectory() / FILENAME
-
-	private fun ensureCacheDirectoryExists() {
-		val cacheDir = getProjectCacheDirectory()
-		requireWithinCacheRoot(cacheDir)
-		if (!fileSystem.exists(cacheDir)) {
-			fileSystem.createDirectories(cacheDir)
-		}
-	}
-
-	private fun requireWithinCacheRoot(path: Path) {
-		if (!path.isWithin(getProjectsCacheRoot())) {
-			error("Refusing to access reference index cache outside the cache root: $path")
-		}
+		if (ProjectCachePaths.deleteFile(fileSystem, cacheDir, FILENAME)) Napier.d("Reference index cache deleted")
 	}
 
 	companion object {
-		const val PROJECTS_DIRECTORY = "projects"
 		const val FILENAME = "references.toml"
 	}
 }

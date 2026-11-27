@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.In
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -249,6 +250,19 @@ class ProjectsRepository(
 				)
 			}
 		}
+	}
+
+	/**
+	 * Deletes the caches no current project owns; see [ProjectCachePaths.removeOrphans]. Does nothing
+	 * while the projects directory is missing or holds no project, as when it is on a drive that isn't
+	 * mounted, so those projects keep their caches.
+	 */
+	fun removeOrphanedProjectCaches() {
+		if (!fileSystem.exists(globalSettings.projectsDirectory.toPath())) return
+		val projects = getProjects()
+		if (projects.isEmpty()) return
+		val removed = ProjectCachePaths.removeOrphans(fileSystem, projects)
+		if (removed > 0) Napier.i("Deleted $removed orphaned project cache folder(s)")
 	}
 
 	private fun hasSyncJournal(projectDef: ProjectDef): Boolean =
@@ -977,6 +991,8 @@ class ProjectsRepository(
 	fun deleteProjectContent(projectDef: ProjectDef) {
 		val projectDir = projectDef.path.toOkioPath()
 		if (!fileSystem.exists(projectDir)) return
+		// The same project id comes back with other content, which its caches would not describe.
+		ProjectCachePaths.clear(fileSystem, projectDef.name, projectDef.path)
 		fileSystem.list(projectDir)
 			.filter { it.name != ProjectMetadata.FILENAME }
 			.forEach { entry ->

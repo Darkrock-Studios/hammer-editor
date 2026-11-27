@@ -1,23 +1,23 @@
 package repositories.references
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
-import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import getProject1Def
 import getProjectDef
+import inGroup
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
-import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -45,7 +45,6 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 	fun `Load returns null when cache file is missing`() = runTest(mainTestDispatcher) {
 		val datasource = createDatasource()
 		assertNull(datasource.loadIndex())
-		assertFalse(datasource.exists())
 	}
 
 	@Test
@@ -58,10 +57,47 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 		)
 
 		datasource.saveIndex(original)
-		assertTrue(datasource.exists())
 
-		val loaded = datasource.loadIndex()
-		assertEquals(original, loaded)
+		assertEquals(original, datasource.loadIndex())
+	}
+
+	@Test
+	fun `Load ignores a cache left by another project of the same name`() = runTest(mainTestDispatcher) {
+		val replaced = getProject1Def()
+		createDatasource(replaced).saveIndex(ReferenceIndex(entryToScenes = mapOf(1 to setOf(10))))
+
+		val replacement = replaced.copy(id = ProjectId.randomUUID())
+		val datasource = createDatasource(replacement)
+		assertNull(datasource.loadIndex())
+
+		datasource.saveIndex(ReferenceIndex(entryToScenes = mapOf(2 to setOf(20))))
+		assertEquals(mapOf(2 to setOf(20)), datasource.loadIndex()?.entryToScenes)
+		assertNull(createDatasource(replaced).loadIndex())
+	}
+
+	@Test
+	fun `Projects with the same name in different groups keep separate indexes`() =
+		runTest(mainTestDispatcher) {
+			val topLevel = getProject1Def()
+			val inGroup = topLevel.inGroup("Drafts")
+
+			createDatasource(topLevel).saveIndex(ReferenceIndex(entryToScenes = mapOf(1 to setOf(10))))
+			createDatasource(inGroup).saveIndex(ReferenceIndex(entryToScenes = mapOf(2 to setOf(20))))
+
+			assertEquals(mapOf(1 to setOf(10)), createDatasource(topLevel).loadIndex()?.entryToScenes)
+			assertEquals(mapOf(2 to setOf(20)), createDatasource(inGroup).loadIndex()?.entryToScenes)
+		}
+
+	@Test
+	fun `Load ignores a cache folder that names no project`() = runTest(mainTestDispatcher) {
+		val datasource = createDatasource()
+		val dir = ProjectCachePaths.projectCacheDirectory(ffs, getProject1Def())
+		ffs.createDirectories(dir)
+		ffs.write(dir / ReferenceIndexDatasource.FILENAME) {
+			writeUtf8("schemaVersion = 1\nisDirty = false\n\n[entryToScenes]\n38 = [ 3 ]\n")
+		}
+
+		assertNull(datasource.loadIndex())
 	}
 
 	@Test
@@ -83,8 +119,7 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 
 			datasource.saveIndex(ReferenceIndex())
 
-			val cacheRoot =
-				getCacheDirectory().toPath() / ReferenceIndexDatasource.PROJECTS_DIRECTORY
+			val cacheRoot = ProjectCachePaths.projectsCacheRoot()
 			val written = ffs.allPaths.first { it.name == ReferenceIndexDatasource.FILENAME }
 			assertTrue(
 				written.isWithin(cacheRoot),
@@ -96,9 +131,9 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 	fun `Delete removes the cache file`() = runTest(mainTestDispatcher) {
 		val datasource = createDatasource()
 		datasource.saveIndex(ReferenceIndex())
-		assertTrue(datasource.exists())
 
 		datasource.delete()
-		assertFalse(datasource.exists())
+		assertNull(datasource.loadIndex())
+		assertTrue(ffs.allPaths.none { it.name == ReferenceIndexDatasource.FILENAME })
 	}
 }
