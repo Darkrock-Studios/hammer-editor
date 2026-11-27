@@ -1,5 +1,8 @@
 import android.content.Context
 import android.os.SystemClock
+import android.view.KeyCharacterMap
+import android.view.KeyEvent
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ComposeTimeoutException
@@ -9,6 +12,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
@@ -159,6 +163,10 @@ private const val CLICK_RETRY_INTERVAL_MS = 100L
  * performTextInput can't drive it. Focus and the async edit flow can each still be unready when
  * the keystrokes fire, silently dropping them; re-focus and re-inject until [propagated] confirms
  * the change rather than trusting a single injection.
+ *
+ * Keys go in through Compose, not Instrumentation.sendStringSync: system-injected keys reach
+ * whichever window has focus, and on CI that can be a "System UI isn't responding" dialog, where
+ * a typed space presses "Close app" and kills SystemUI for the rest of the run.
  */
 fun ComposeTestRule.typeIntoEditor(
 	tag: String,
@@ -166,12 +174,16 @@ fun ComposeTestRule.typeIntoEditor(
 	timeoutMillis: Long = 10_000L,
 	propagated: () -> Boolean,
 ) {
-	val instrumentation = InstrumentationRegistry.getInstrumentation()
+	val keyEvents = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD).getEvents(text.toCharArray())
 	val deadline = SystemClock.uptimeMillis() + timeoutMillis
 	while (true) {
 		onNodeWithTag(tag).performClick()
 		waitForIdle()
-		instrumentation.sendStringSync(text)
+		onNodeWithTag(tag).performKeyInput {
+			for (event in keyEvents) {
+				if (event.action == KeyEvent.ACTION_DOWN) keyDown(Key(event.keyCode)) else keyUp(Key(event.keyCode))
+			}
+		}
 		waitForIdle()
 		try {
 			waitUntil(timeoutMillis = 1_000L) { propagated() }

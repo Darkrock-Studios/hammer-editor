@@ -12,5 +12,5 @@
 	<string name="reader_mode_next_chapter">Next chapter →</string>
 	<string name="reader_mode_empty_chapter">This chapter has no scenes yet</string>
 	<string name="reader_mode_empty_story">There is nothing to read yet</string>
-	<string name="reader_mode_end">End of story</string>
+	<string name="reader_mode_end">Кінець історії</string>
 </resources>

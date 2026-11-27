@@ -186,9 +186,13 @@ restriction because they are UUID keyed.
   `LaunchAction`, which is why `CaptureActivity` is exported. Built with ProtoLayout Material 3.
 - **Complication**: SHORT_TEXT and MONOCHROMATIC_IMAGE, showing the unsynced count (or "Note"
   when there is nothing waiting) and tapping through to capture.
+- **Signed out**: capture has nowhere to go, so the tile shows only a sign-in prompt and the
+  complication reads "Sign in"; both open `MainActivity`, which starts on onboarding. Play's Wear
+  quality rules require a signed-out tile to prompt for sign-in (WO-V9).
 - Both are cached by the system and re-read only on their own slow cadence, so anything that
   changes the pending count calls `CaptureSurfaceUpdater`: a capture, and every finished sync.
-  Without it the watch face keeps showing a stale count.
+  `SyncScheduler` does the same whenever the watch signs in or out. Without it the watch
+  face keeps showing a stale count.
 - **Activity**: opens into `RemoteInput` (voice first, keyboard fallback) as soon as it knows a
   capture has somewhere to go, never before: prompting first would take a whole dictated note and
   then throw it away on the "no project" screen. The project defaults to the last one captured to

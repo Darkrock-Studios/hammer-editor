@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.12.3] - 2026-11-27
+
+- Fix WearOS GooglePlay release
+
+
 ## [3.12.2] - 2026-11-21
 
 - Projects with several files claiming the same id now open. Identical copies are merged automatically, and a new dialog lets you choose which of the rest to keep. Sync waits until they are resolved

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.wear.complication
 
 import android.app.PendingIntent
+import android.content.Intent
 import android.graphics.drawable.Icon
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
@@ -11,6 +12,7 @@ import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.darkrockstudios.apps.hammer.wear.CaptureActivity
+import com.darkrockstudios.apps.hammer.wear.MainActivity
 import com.darkrockstudios.apps.hammer.wear.R
 import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileState
@@ -42,20 +44,26 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 
 	private fun complicationData(type: ComplicationType, state: CaptureTileState): ComplicationData? {
 		val description = PlainComplicationText.Builder(getString(R.string.complication_description)).build()
+		// Capture has nowhere to go without an account, so a signed out tap opens onboarding instead.
+		val (label, tapIntent) = if (state.signedIn) {
+			shortText(state) to activityIntent(CaptureActivity.intent(this, Capture.Mode.Note))
+		} else {
+			getString(R.string.sign_in_button) to activityIntent(Intent(this, MainActivity::class.java))
+		}
 		return when (type) {
 			ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
-				text = PlainComplicationText.Builder(shortText(state)).build(),
+				text = PlainComplicationText.Builder(label).build(),
 				contentDescription = description,
 			)
 				.setMonochromaticImage(icon())
-				.setTapAction(captureIntent())
+				.setTapAction(tapIntent)
 				.build()
 
 			ComplicationType.MONOCHROMATIC_IMAGE -> MonochromaticImageComplicationData.Builder(
 				monochromaticImage = icon(),
 				contentDescription = description,
 			)
-				.setTapAction(captureIntent())
+				.setTapAction(tapIntent)
 				.build()
 
 			else -> null
@@ -72,10 +80,10 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 		Icon.createWithResource(this, R.drawable.ic_launcher_monochrome)
 	).build()
 
-	private fun captureIntent(): PendingIntent = PendingIntent.getActivity(
+	private fun activityIntent(intent: Intent): PendingIntent = PendingIntent.getActivity(
 		this,
 		0,
-		CaptureActivity.intent(this, Capture.Mode.Note),
+		intent,
 		PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
 	)
 }

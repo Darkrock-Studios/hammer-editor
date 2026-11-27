@@ -18,12 +18,14 @@ import androidx.wear.protolayout.material3.materialScope
 import androidx.wear.protolayout.material3.primaryLayout
 import androidx.wear.protolayout.material3.text
 import androidx.wear.protolayout.material3.textButton
+import androidx.wear.protolayout.material3.textEdgeButton
 import androidx.wear.protolayout.modifiers.clickable
 import androidx.wear.protolayout.types.LayoutString
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
 import com.darkrockstudios.apps.hammer.wear.CaptureActivity
+import com.darkrockstudios.apps.hammer.wear.MainActivity
 import com.darkrockstudios.apps.hammer.wear.R
 import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileState
@@ -84,6 +86,30 @@ class CaptureTileService : TileService(), KoinComponent {
 			.build()
 
 	private fun layout(state: CaptureTileState, device: DeviceParameters): LayoutElement =
+		if (state.signedIn) captureLayout(state, device) else signInLayout(device)
+
+	/** Capture needs an account to sync to, so a signed out tile only offers the way in. */
+	private fun signInLayout(device: DeviceParameters): LayoutElement =
+		materialScope(this, device) {
+			primaryLayout(
+				titleSlot = { text(LayoutString(getString(R.string.app_name))) },
+				mainSlot = {
+					text(
+						text = LayoutString(getString(R.string.tile_sign_in_prompt)),
+						typography = Typography.BODY_MEDIUM,
+						maxLines = 3,
+					)
+				},
+				bottomSlot = {
+					textEdgeButton(
+						onClick = clickable(action = launchSignIn(), id = "sign_in"),
+						labelContent = { text(LayoutString(getString(R.string.sign_in_button))) },
+					)
+				},
+			)
+		}
+
+	private fun captureLayout(state: CaptureTileState, device: DeviceParameters): LayoutElement =
 		materialScope(this, device) {
 			primaryLayout(
 				// The project sits in the main slot, not the title: the title slot does not
@@ -145,18 +171,28 @@ class CaptureTileService : TileService(), KoinComponent {
 	private fun launchCapture(
 		mode: Capture.Mode,
 		pickProject: Boolean = false,
+	): ActionBuilders.LaunchAction = launchActivity(CaptureActivity::class.java) {
+		addKeyToExtraMapping(CaptureActivity.EXTRA_MODE, ActionBuilders.stringExtra(mode.name))
+		// Thar be dragons: the tile renderer drops an AndroidBooleanExtra, and the whole
+		// launch action goes with it, so this travels as a string.
+		addKeyToExtraMapping(
+			CaptureActivity.EXTRA_PICK_PROJECT,
+			ActionBuilders.stringExtra(pickProject.toString()),
+		)
+	}
+
+	/** The app opens on onboarding whenever no account is signed in. */
+	private fun launchSignIn(): ActionBuilders.LaunchAction = launchActivity(MainActivity::class.java)
+
+	private fun launchActivity(
+		activity: Class<*>,
+		extras: ActionBuilders.AndroidActivity.Builder.() -> Unit = {},
 	): ActionBuilders.LaunchAction = ActionBuilders.LaunchAction.Builder()
 		.setAndroidActivity(
 			ActionBuilders.AndroidActivity.Builder()
 				.setPackageName(packageName)
-				.setClassName(CaptureActivity::class.java.name)
-				.addKeyToExtraMapping(CaptureActivity.EXTRA_MODE, ActionBuilders.stringExtra(mode.name))
-				// Thar be dragons: the tile renderer drops an AndroidBooleanExtra, and the whole
-				// launch action goes with it, so this travels as a string.
-				.addKeyToExtraMapping(
-					CaptureActivity.EXTRA_PICK_PROJECT,
-					ActionBuilders.stringExtra(pickProject.toString()),
-				)
+				.setClassName(activity.name)
+				.apply(extras)
 				.build()
 		)
 		.build()

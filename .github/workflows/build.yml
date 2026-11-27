@@ -1,6 +1,7 @@
 name: Build CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "develop" ]
   pull_request:
@@ -133,6 +134,11 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Compile before the emulator boots. A build running alongside boot can starve SystemUI into
+      # an ANR, and its dialog then holds window focus for the rest of the run.
+      - name: Build app and test APKs
+        run: ./gradlew :android:assembleDebug :android:assembleDebugAndroidTest
+
       # Cache the emulator system image + AVD snapshot so subsequent runs skip the slow cold
       # boot. Keyed on every parameter that defines the AVD - bump the key if any `with:` value
       # below changes, or the cached snapshot won't match.
@@ -184,20 +190,15 @@ jobs:
   # and runs the Kotlin/Native unit tests on the simulator.
   ios-compile:
     name: iOS compile & test
-    runs-on: macos-latest
+    # Same image and Xcode as the App Store publish (publish-ios-app-store.yml).
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
-      - name: Select Xcode 26
-        # macos-latest still defaults to Xcode 16.4 (iOS 18.5 SDK), but linking the
-        # iOS test executable pulls in Compose's ui-uikit, which references symbols
-        # (e.g. UIViewLayoutRegion) that only exist in the iOS 26 SDK. Without this
-        # the link fails non-deterministically depending on the runner image. Glob
-        # keeps us off a pinned patch version that could vanish on a future image.
-        run: |
-          XCODE_APP="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
-          echo "Using $XCODE_APP"
-          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
-          xcodebuild -version
+      - name: Select Xcode 27
+        # Linking the iOS test executable pulls in Compose's ui-uikit, which
+        # references symbols only present in recent iOS SDKs, so the runner's
+        # default Xcode isn't good enough.
+        run: bash .github/scripts/select-xcode.sh 27
       - name: set up JDK 21
         uses: actions/setup-java@v5
         with:
@@ -226,16 +227,12 @@ jobs:
   # --uitesting (see composeUi .../MainViewController.kt and ios/iosUITests).
   ios-ui-tests:
     name: iOS UI tests
-    runs-on: macos-latest
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
-      - name: Select Xcode 26
-        # Match ios-compile: linking Compose's ui-uikit needs the iOS 26 SDK.
-        run: |
-          XCODE_APP="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
-          echo "Using $XCODE_APP"
-          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
-          xcodebuild -version
+      - name: Select Xcode 27
+        # Match ios-compile.
+        run: bash .github/scripts/select-xcode.sh 27
       - name: set up JDK 21
         uses: actions/setup-java@v5
         with:
