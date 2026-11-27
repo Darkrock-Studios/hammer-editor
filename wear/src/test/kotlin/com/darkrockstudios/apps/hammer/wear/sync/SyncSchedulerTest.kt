@@ -1,8 +1,10 @@
-package com.darkrockstudios.apps.hammer.wear.tile
+package com.darkrockstudios.apps.hammer.wear.sync
 
+import androidx.work.WorkManager
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.wear.FakeCaptureSurfaceUpdater
+import com.darkrockstudios.apps.hammer.wear.SignedInSettings
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
 import io.mockk.every
 import io.mockk.mockk
@@ -14,15 +16,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class SignInSurfaceRefresherTest : WearTestBase() {
-
-	private val signedIn = ServerSettings(
-		url = "hammer.ink",
-		email = "writer@example.com",
-		userId = 7,
-		bearerToken = "auth",
-		refreshToken = "refresh",
-	)
+class SyncSchedulerTest : WearTestBase() {
 
 	private lateinit var settingsUpdates: MutableSharedFlow<ServerSettings?>
 	private lateinit var surfaces: FakeCaptureSurfaceUpdater
@@ -31,13 +25,15 @@ class SignInSurfaceRefresherTest : WearTestBase() {
 	@BeforeEach
 	override fun setUp() {
 		super.setUp()
-		settingsUpdates = MutableSharedFlow(extraBufferCapacity = 4)
+		// Replays the current settings to a new collector, like GlobalSettingsStore.
+		settingsUpdates = MutableSharedFlow(replay = 1, extraBufferCapacity = 4)
+		settingsUpdates.tryEmit(null)
 		surfaces = FakeCaptureSurfaceUpdater()
 		scope = CoroutineScope(dispatcher)
 		val store: GlobalSettingsStore = mockk(relaxed = true)
 		every { store.serverSettingsUpdates } returns settingsUpdates
 		every { store.serverSettings } returns null
-		SignInSurfaceRefresher(store, surfaces, scope).start()
+		SyncScheduler(mockk<WorkManager>(relaxed = true), store, surfaces, scope).start()
 		scheduler.advanceUntilIdle()
 	}
 
@@ -49,7 +45,7 @@ class SignInSurfaceRefresherTest : WearTestBase() {
 
 	@Test
 	fun `signing in and out redraws the tile`() {
-		settingsUpdates.tryEmit(signedIn)
+		settingsUpdates.tryEmit(SignedInSettings)
 		scheduler.advanceUntilIdle()
 		settingsUpdates.tryEmit(null)
 		scheduler.advanceUntilIdle()
@@ -59,9 +55,9 @@ class SignInSurfaceRefresherTest : WearTestBase() {
 
 	@Test
 	fun `a token refresh while signed in leaves the tile alone`() {
-		settingsUpdates.tryEmit(signedIn)
+		settingsUpdates.tryEmit(SignedInSettings)
 		scheduler.advanceUntilIdle()
-		settingsUpdates.tryEmit(signedIn.copy(bearerToken = "rotated"))
+		settingsUpdates.tryEmit(SignedInSettings.copy(bearerToken = "rotated"))
 		scheduler.advanceUntilIdle()
 
 		assertEquals(1, surfaces.refreshes)

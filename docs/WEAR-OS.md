@@ -191,7 +191,7 @@ restriction because they are UUID keyed.
   quality rules require a signed-out tile to prompt for sign-in (WO-V9).
 - Both are cached by the system and re-read only on their own slow cadence, so anything that
   changes the pending count calls `CaptureSurfaceUpdater`: a capture, and every finished sync.
-  `SignInSurfaceRefresher` does the same whenever the watch signs in or out. Without it the watch
+  `SyncScheduler` does the same whenever the watch signs in or out. Without it the watch
   face keeps showing a stale count.
 - **Activity**: opens into `RemoteInput` (voice first, keyboard fallback) as soon as it knows a
   capture has somewhere to go, never before: prompting first would take a whole dictated note and

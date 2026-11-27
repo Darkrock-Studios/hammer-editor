@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.wear
 
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -29,6 +30,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import okio.IOException
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
+
+/** Settings [com.darkrockstudios.apps.hammer.wear.data.isSignedIn] accepts. */
+val SignedInSettings = ServerSettings(
+	url = "hammer.ink",
+	email = "writer@example.com",
+	userId = 7,
+	bearerToken = "auth",
+	refreshToken = "refresh",
+)
 
 class FakeWearPrefsDatasource : WearPrefsDatasource {
 	private val ids = MutableStateFlow<Set<String>>(emptySet())

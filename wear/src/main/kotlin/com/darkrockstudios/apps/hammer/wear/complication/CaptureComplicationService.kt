@@ -44,20 +44,26 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 
 	private fun complicationData(type: ComplicationType, state: CaptureTileState): ComplicationData? {
 		val description = PlainComplicationText.Builder(getString(R.string.complication_description)).build()
+		// Capture has nowhere to go without an account, so a signed out tap opens onboarding instead.
+		val (label, tapIntent) = if (state.signedIn) {
+			shortText(state) to activityIntent(CaptureActivity.intent(this, Capture.Mode.Note))
+		} else {
+			getString(R.string.sign_in_button) to activityIntent(Intent(this, MainActivity::class.java))
+		}
 		return when (type) {
 			ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
-				text = PlainComplicationText.Builder(shortText(state)).build(),
+				text = PlainComplicationText.Builder(label).build(),
 				contentDescription = description,
 			)
 				.setMonochromaticImage(icon())
-				.setTapAction(tapIntent(state))
+				.setTapAction(tapIntent)
 				.build()
 
 			ComplicationType.MONOCHROMATIC_IMAGE -> MonochromaticImageComplicationData.Builder(
 				monochromaticImage = icon(),
 				contentDescription = description,
 			)
-				.setTapAction(tapIntent(state))
+				.setTapAction(tapIntent)
 				.build()
 
 			else -> null
@@ -66,7 +72,6 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 
 	/** The count is the useful number; the label is the fallback when there is nothing waiting. */
 	private fun shortText(state: CaptureTileState): String {
-		if (!state.signedIn) return getString(R.string.sign_in_button)
 		val pending = state.pending
 		return if (pending != null && pending > 0) pending.toString() else getString(R.string.tile_note)
 	}
@@ -75,15 +80,10 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 		Icon.createWithResource(this, R.drawable.ic_launcher_monochrome)
 	).build()
 
-	/** Capture has nowhere to go without an account, so a signed out tap opens onboarding instead. */
-	private fun tapIntent(state: CaptureTileState): PendingIntent = PendingIntent.getActivity(
+	private fun activityIntent(intent: Intent): PendingIntent = PendingIntent.getActivity(
 		this,
 		0,
-		if (state.signedIn) {
-			CaptureActivity.intent(this, Capture.Mode.Note)
-		} else {
-			Intent(this, MainActivity::class.java)
-		},
+		intent,
 		PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
 	)
 }

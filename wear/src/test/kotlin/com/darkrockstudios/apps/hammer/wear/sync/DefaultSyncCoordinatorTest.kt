@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.wear.SignedInSettings
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountResult
@@ -42,13 +43,7 @@ class DefaultSyncCoordinatorTest {
 		SyncedProjectDefinition(beta, ProjectId("b")),
 	)
 
-	private val signedIn = ServerSettings(
-		url = "hammer.ink",
-		email = "writer@example.com",
-		userId = 7,
-		bearerToken = "auth",
-		refreshToken = "refresh",
-	)
+	private val signedIn = SignedInSettings
 
 	/** Reports which candidates the filter admits, then runs [behaviour] against the listener. */
 	private inner class FakeAccountSync : AccountSync {

@@ -2,9 +2,9 @@ package com.darkrockstudios.apps.hammer.wear.data
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
+import com.darkrockstudios.apps.hammer.wear.SignedInSettings
 import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
 import io.mockk.every
@@ -34,7 +34,7 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 		val listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions)
 		targets = CaptureTargetsUseCase(listProjects, subscriptions)
 		globalSettingsStore = mockk(relaxed = true)
-		every { globalSettingsStore.serverSettings } returns SIGNED_IN
+		every { globalSettingsStore.serverSettings } returns SignedInSettings
 		useCase = CaptureTileStateUseCase(
 			captureTargets = targets,
 			unsyncedContent = UnsyncedContentUseCase(listProjects, unsynced),
@@ -56,7 +56,7 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `provisional settings from an unfinished sign in still count as signed out`() = runTest(dispatcher) {
-		every { globalSettingsStore.serverSettings } returns SIGNED_IN.copy(userId = -1, bearerToken = null)
+		every { globalSettingsStore.serverSettings } returns SignedInSettings.copy(userId = -1, bearerToken = null)
 
 		assertFalse(useCase.load().signedIn)
 	}
@@ -112,13 +112,4 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 		assertEquals("Alpha", loaded.default?.projectDef?.name)
 	}
 
-	private companion object {
-		val SIGNED_IN = ServerSettings(
-			url = "hammer.ink",
-			email = "writer@example.com",
-			userId = 7,
-			bearerToken = "auth",
-			refreshToken = "refresh",
-		)
-	}
 }

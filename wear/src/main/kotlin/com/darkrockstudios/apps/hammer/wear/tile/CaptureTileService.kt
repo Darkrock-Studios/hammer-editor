@@ -97,7 +97,7 @@ class CaptureTileService : TileService(), KoinComponent {
 					text(
 						text = LayoutString(getString(R.string.tile_sign_in_prompt)),
 						typography = Typography.BODY_MEDIUM,
-						maxLines = SIGN_IN_PROMPT_MAX_LINES,
+						maxLines = 3,
 					)
 				},
 				bottomSlot = {
@@ -171,35 +171,34 @@ class CaptureTileService : TileService(), KoinComponent {
 	private fun launchCapture(
 		mode: Capture.Mode,
 		pickProject: Boolean = false,
+	): ActionBuilders.LaunchAction = launchActivity(CaptureActivity::class.java) {
+		addKeyToExtraMapping(CaptureActivity.EXTRA_MODE, ActionBuilders.stringExtra(mode.name))
+		// Thar be dragons: the tile renderer drops an AndroidBooleanExtra, and the whole
+		// launch action goes with it, so this travels as a string.
+		addKeyToExtraMapping(
+			CaptureActivity.EXTRA_PICK_PROJECT,
+			ActionBuilders.stringExtra(pickProject.toString()),
+		)
+	}
+
+	/** The app opens on onboarding whenever no account is signed in. */
+	private fun launchSignIn(): ActionBuilders.LaunchAction = launchActivity(MainActivity::class.java)
+
+	private fun launchActivity(
+		activity: Class<*>,
+		extras: ActionBuilders.AndroidActivity.Builder.() -> Unit = {},
 	): ActionBuilders.LaunchAction = ActionBuilders.LaunchAction.Builder()
 		.setAndroidActivity(
 			ActionBuilders.AndroidActivity.Builder()
 				.setPackageName(packageName)
-				.setClassName(CaptureActivity::class.java.name)
-				.addKeyToExtraMapping(CaptureActivity.EXTRA_MODE, ActionBuilders.stringExtra(mode.name))
-				// Thar be dragons: the tile renderer drops an AndroidBooleanExtra, and the whole
-				// launch action goes with it, so this travels as a string.
-				.addKeyToExtraMapping(
-					CaptureActivity.EXTRA_PICK_PROJECT,
-					ActionBuilders.stringExtra(pickProject.toString()),
-				)
-				.build()
-		)
-		.build()
-
-	/** The app opens on onboarding whenever no account is signed in. */
-	private fun launchSignIn(): ActionBuilders.LaunchAction = ActionBuilders.LaunchAction.Builder()
-		.setAndroidActivity(
-			ActionBuilders.AndroidActivity.Builder()
-				.setPackageName(packageName)
-				.setClassName(MainActivity::class.java.name)
+				.setClassName(activity.name)
+				.apply(extras)
 				.build()
 		)
 		.build()
 
 	private companion object {
 		const val RESOURCES_VERSION = "1"
-		const val SIGN_IN_PROMPT_MAX_LINES = 3
 		const val FRESHNESS_MINUTES = 15L
 		const val PROJECT_TO_BUTTONS_SPACING_DP = 4f
 	}
