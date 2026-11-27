@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.wear.complication
 
 import android.app.PendingIntent
+import android.content.Intent
 import android.graphics.drawable.Icon
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
@@ -11,6 +12,7 @@ import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.darkrockstudios.apps.hammer.wear.CaptureActivity
+import com.darkrockstudios.apps.hammer.wear.MainActivity
 import com.darkrockstudios.apps.hammer.wear.R
 import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileState
@@ -48,14 +50,14 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 				contentDescription = description,
 			)
 				.setMonochromaticImage(icon())
-				.setTapAction(captureIntent())
+				.setTapAction(tapIntent(state))
 				.build()
 
 			ComplicationType.MONOCHROMATIC_IMAGE -> MonochromaticImageComplicationData.Builder(
 				monochromaticImage = icon(),
 				contentDescription = description,
 			)
-				.setTapAction(captureIntent())
+				.setTapAction(tapIntent(state))
 				.build()
 
 			else -> null
@@ -64,6 +66,7 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 
 	/** The count is the useful number; the label is the fallback when there is nothing waiting. */
 	private fun shortText(state: CaptureTileState): String {
+		if (!state.signedIn) return getString(R.string.sign_in_button)
 		val pending = state.pending
 		return if (pending != null && pending > 0) pending.toString() else getString(R.string.tile_note)
 	}
@@ -72,10 +75,15 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 		Icon.createWithResource(this, R.drawable.ic_launcher_monochrome)
 	).build()
 
-	private fun captureIntent(): PendingIntent = PendingIntent.getActivity(
+	/** Capture has nowhere to go without an account, so a signed out tap opens onboarding instead. */
+	private fun tapIntent(state: CaptureTileState): PendingIntent = PendingIntent.getActivity(
 		this,
 		0,
-		CaptureActivity.intent(this, Capture.Mode.Note),
+		if (state.signedIn) {
+			CaptureActivity.intent(this, Capture.Mode.Note)
+		} else {
+			Intent(this, MainActivity::class.java)
+		},
 		PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
 	)
 }

@@ -18,12 +18,14 @@ import androidx.wear.protolayout.material3.materialScope
 import androidx.wear.protolayout.material3.primaryLayout
 import androidx.wear.protolayout.material3.text
 import androidx.wear.protolayout.material3.textButton
+import androidx.wear.protolayout.material3.textEdgeButton
 import androidx.wear.protolayout.modifiers.clickable
 import androidx.wear.protolayout.types.LayoutString
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
 import com.darkrockstudios.apps.hammer.wear.CaptureActivity
+import com.darkrockstudios.apps.hammer.wear.MainActivity
 import com.darkrockstudios.apps.hammer.wear.R
 import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileState
@@ -84,6 +86,30 @@ class CaptureTileService : TileService(), KoinComponent {
 			.build()
 
 	private fun layout(state: CaptureTileState, device: DeviceParameters): LayoutElement =
+		if (state.signedIn) captureLayout(state, device) else signInLayout(device)
+
+	/** Capture needs an account to sync to, so a signed out tile only offers the way in. */
+	private fun signInLayout(device: DeviceParameters): LayoutElement =
+		materialScope(this, device) {
+			primaryLayout(
+				titleSlot = { text(LayoutString(getString(R.string.app_name))) },
+				mainSlot = {
+					text(
+						text = LayoutString(getString(R.string.tile_sign_in_prompt)),
+						typography = Typography.BODY_MEDIUM,
+						maxLines = SIGN_IN_PROMPT_MAX_LINES,
+					)
+				},
+				bottomSlot = {
+					textEdgeButton(
+						onClick = clickable(action = launchSignIn(), id = "sign_in"),
+						labelContent = { text(LayoutString(getString(R.string.sign_in_button))) },
+					)
+				},
+			)
+		}
+
+	private fun captureLayout(state: CaptureTileState, device: DeviceParameters): LayoutElement =
 		materialScope(this, device) {
 			primaryLayout(
 				// The project sits in the main slot, not the title: the title slot does not
@@ -161,8 +187,19 @@ class CaptureTileService : TileService(), KoinComponent {
 		)
 		.build()
 
+	/** The app opens on onboarding whenever no account is signed in. */
+	private fun launchSignIn(): ActionBuilders.LaunchAction = ActionBuilders.LaunchAction.Builder()
+		.setAndroidActivity(
+			ActionBuilders.AndroidActivity.Builder()
+				.setPackageName(packageName)
+				.setClassName(MainActivity::class.java.name)
+				.build()
+		)
+		.build()
+
 	private companion object {
 		const val RESOURCES_VERSION = "1"
+		const val SIGN_IN_PROMPT_MAX_LINES = 3
 		const val FRESHNESS_MINUTES = 15L
 		const val PROJECT_TO_BUTTONS_SPACING_DP = 4f
 	}

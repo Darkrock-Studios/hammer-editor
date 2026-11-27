@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.wear.sync.DefaultSyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncScheduler
 import com.darkrockstudios.apps.hammer.wear.tile.CaptureSurfaceUpdater
+import com.darkrockstudios.apps.hammer.wear.tile.SignInSurfaceRefresher
 import com.darkrockstudios.apps.hammer.wear.tile.WearCaptureSurfaceUpdater
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
@@ -68,6 +69,13 @@ val wearModule: Module = module {
 		)
 	}
 	single<CaptureSurfaceUpdater> { WearCaptureSurfaceUpdater(context = androidContext()) }
+	single {
+		SignInSurfaceRefresher(
+			globalSettingsStore = get(),
+			surfaces = get(),
+			appScope = get(named(APP_SCOPE)),
+		)
+	}
 	factory {
 		CaptureUseCase(
 			writer = get(),
@@ -77,7 +85,9 @@ val wearModule: Module = module {
 		)
 	}
 	factory { CaptureTargetsUseCase(listProjects = get(), subscriptions = get()) }
-	factory { CaptureTileStateUseCase(captureTargets = get(), unsyncedContent = get()) }
+	factory {
+		CaptureTileStateUseCase(captureTargets = get(), unsyncedContent = get(), globalSettingsStore = get())
+	}
 
 	single<AccountSync> {
 		val syncAccountUseCase: SyncAccountUseCase = get()

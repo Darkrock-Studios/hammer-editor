@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.logStartupBanner
 import com.darkrockstudios.apps.hammer.common.setInternalDirectories
 import com.darkrockstudios.apps.hammer.wear.dependencyinjection.wearModule
 import com.darkrockstudios.apps.hammer.wear.sync.SyncScheduler
+import com.darkrockstudios.apps.hammer.wear.tile.SignInSurfaceRefresher
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,7 @@ class HammerWearApplication : Application() {
 		runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 
 		getKoin().get<SyncScheduler>(SyncScheduler::class).start()
+		getKoin().get<SignInSurfaceRefresher>(SignInSurfaceRefresher::class).start()
 	}
 
 	override fun onTerminate() {

@@ -1,12 +1,17 @@
 package com.darkrockstudios.apps.hammer.wear.data
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -17,6 +22,7 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 	private lateinit var subscriptions: SubscribedProjectsRepository
 	private lateinit var unsynced: FakeUnsyncedContentSource
 	private lateinit var targets: CaptureTargetsUseCase
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private lateinit var useCase: CaptureTileStateUseCase
 
 	@BeforeEach
@@ -27,7 +33,32 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 		unsynced = FakeUnsyncedContentSource()
 		val listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions)
 		targets = CaptureTargetsUseCase(listProjects, subscriptions)
-		useCase = CaptureTileStateUseCase(targets, UnsyncedContentUseCase(listProjects, unsynced))
+		globalSettingsStore = mockk(relaxed = true)
+		every { globalSettingsStore.serverSettings } returns SIGNED_IN
+		useCase = CaptureTileStateUseCase(
+			captureTargets = targets,
+			unsyncedContent = UnsyncedContentUseCase(listProjects, unsynced),
+			globalSettingsStore = globalSettingsStore,
+		)
+	}
+
+	@Test
+	fun `a signed out watch asks for sign in instead of offering capture`() = runTest(dispatcher) {
+		every { globalSettingsStore.serverSettings } returns null
+		projects.create("Alpha", serverId = "a")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+
+		val state = useCase.load()
+
+		assertFalse(state.signedIn)
+		assertNull(state.projectName)
+	}
+
+	@Test
+	fun `provisional settings from an unfinished sign in still count as signed out`() = runTest(dispatcher) {
+		every { globalSettingsStore.serverSettings } returns SIGNED_IN.copy(userId = -1, bearerToken = null)
+
+		assertFalse(useCase.load().signedIn)
 	}
 
 	@Test
@@ -79,5 +110,15 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 
 		assertEquals(listOf("Alpha"), loaded.projects.map { it.projectDef.name })
 		assertEquals("Alpha", loaded.default?.projectDef?.name)
+	}
+
+	private companion object {
+		val SIGNED_IN = ServerSettings(
+			url = "hammer.ink",
+			email = "writer@example.com",
+			userId = 7,
+			bearerToken = "auth",
+			refreshToken = "refresh",
+		)
 	}
 }
