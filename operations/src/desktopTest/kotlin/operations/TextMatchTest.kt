@@ -136,6 +136,9 @@ class TextMatchTest {
 		assertEquals(1, count("море", "синее море."))
 		assertEquals(0, count("cafe", "cafe" + Char(0x0301)))
 		assertEquals(0, count("7", "٣7"))
+		assertEquals(0, count("山", "\uD840\uDC00山"))
+		assertEquals(0, count("\uD840\uDC00", "\uD840\uDC00山"))
+		assertEquals(1, count("山", "\uD83D\uDE00山"))
 	}
 
 	@Test

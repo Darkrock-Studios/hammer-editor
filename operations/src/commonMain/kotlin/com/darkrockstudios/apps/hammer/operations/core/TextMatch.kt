@@ -54,14 +54,15 @@ private inline fun collapse(length: Int, paragraphs: Boolean, charAt: (Int) -> C
  * Finds [term] in text from [normalizeText]. The term is normalised by [normalizeTerm], with no
  * paragraph breaks, so a match never spans two paragraphs. Unless [caseSensitive], case is ignored a
  * character at a time. With [wholeWord], a match may not have a letter or digit directly before it when the term
- * starts with one, nor directly after it when the term ends with one.
+ * starts with one, nor directly after it when the term ends with one. Past U+FFFF only ideographs count
+ * as letters.
  */
 internal class TextMatcher(term: String, private val caseSensitive: Boolean, wholeWord: Boolean) {
 	val term = normalizeTerm(term)
 
 	// this.term: the bare name is the constructor's raw term.
-	private val boundedBefore = wholeWord && this.term.isNotEmpty() && isWordChar(this.term.first())
-	private val boundedAfter = wholeWord && this.term.isNotEmpty() && isWordChar(this.term.last())
+	private val boundedBefore = wholeWord && startsWord(this.term, 0)
+	private val boundedAfter = wholeWord && endsWord(this.term, this.term.length)
 
 	/** Where each match in [text] starts, left to right; matches don't overlap. Each is [term]'s length. */
 	fun matches(text: String): List<Int> {
@@ -72,7 +73,7 @@ internal class TextMatcher(term: String, private val caseSensitive: Boolean, who
 			val at = text.indexOf(term, from, ignoreCase = !caseSensitive)
 			if (at < 0) return starts
 			val end = at + term.length
-			if ((boundedBefore && at > 0 && isWordChar(text[at - 1])) || (boundedAfter && end < text.length && isWordChar(text[end]))) {
+			if ((boundedBefore && endsWord(text, at)) || (boundedAfter && startsWord(text, end))) {
 				from = at + 1
 			} else {
 				starts += at
@@ -110,6 +111,22 @@ internal fun context(text: String, start: Int, end: Int, reach: Int = CONTEXT_RE
 		if (to < paragraphEnd) append(ELLIPSIS)
 	}
 }
+
+/** Whether a word character starts at [at] in [text]. */
+private fun startsWord(text: String, at: Int): Boolean {
+	val c = text.getOrNull(at) ?: return false
+	return if (c.isHighSurrogate()) isIdeographLead(c) else isWordChar(c)
+}
+
+/** Whether a word character ends just before [at] in [text]. */
+private fun endsWord(text: String, at: Int): Boolean {
+	val c = text.getOrNull(at - 1) ?: return false
+	return if (c.isLowSurrogate()) text.getOrNull(at - 2)?.let(::isIdeographLead) == true else isWordChar(c)
+}
+
+// Kotlin has no categories for characters past U+FFFF, so of those only the ideographs of planes 2 and 3
+// count as letters; emoji and the rest don't bound a word.
+private fun isIdeographLead(c: Char): Boolean = c in '\uD840'..'\uD8BF'
 
 /** A letter or digit in any script, or a combining mark on one. */
 private fun isWordChar(c: Char): Boolean = c.isLetterOrDigit() || c.category in MARKS
