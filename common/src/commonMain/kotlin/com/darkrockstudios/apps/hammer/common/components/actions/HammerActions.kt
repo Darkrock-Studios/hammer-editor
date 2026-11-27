@@ -62,7 +62,8 @@ object HammerActions {
 		vararg chords: KeyChord,
 		global: Boolean = false,
 		dispatch: ActionDispatch = ActionDispatch.Host,
-	): ActionDef = ActionDef(ActionId(id), label, category, chords.toList(), global, dispatch).also { table += it }
+		repeats: Boolean = false,
+	): ActionDef = ActionDef(ActionId(id), label, category, chords.toList(), global, dispatch, repeats).also { table += it }
 
 	private fun local(id: String, label: StringResource, vararg chords: KeyChord) =
 		action(id, label, Editing, *chords, dispatch = ActionDispatch.Local)
@@ -72,21 +73,32 @@ object HammerActions {
 	val NavNotes = action("nav.notes", Res.string.action_nav_notes, Navigation, mod(ChordKey.Digit3))
 	val NavEncyclopedia = action("nav.encyclopedia", Res.string.action_nav_encyclopedia, Navigation, mod(ChordKey.Digit4))
 	val NavTimeline = action("nav.timeline", Res.string.action_nav_timeline, Navigation, mod(ChordKey.Digit5))
-	val PaneNext = action("pane.next", Res.string.action_pane_next, Navigation, bare(ChordKey.F6))
-	val PanePrev = action("pane.prev", Res.string.action_pane_prev, Navigation, bare(ChordKey.F6, shift = true))
+	val PaneNext = action("pane.next", Res.string.action_pane_next, Navigation, bare(ChordKey.F6), repeats = true)
+	val PanePrev =
+		action("pane.prev", Res.string.action_pane_prev, Navigation, bare(ChordKey.F6, shift = true), repeats = true)
 
 	val ItemNew = action("item.new", Res.string.action_item_new, Items, mod(ChordKey.N))
-	val ItemNext = action("item.next", Res.string.action_item_next, Items, mod(ChordKey.PageDown))
-	val ItemPrev = action("item.prev", Res.string.action_item_prev, Items, mod(ChordKey.PageUp))
+	val ItemNext = action("item.next", Res.string.action_item_next, Items, mod(ChordKey.PageDown), repeats = true)
+	val ItemPrev = action("item.prev", Res.string.action_item_prev, Items, mod(ChordKey.PageUp), repeats = true)
 	val ItemClose = action("item.close", Res.string.action_item_close, Items, mod(ChordKey.W))
 	val ItemCreate = action("item.create", Res.string.action_item_create, Items, mod(ChordKey.Enter))
 	val TimelineNew = action("timeline.new", Res.string.action_timeline_new, Items)
 
 	val StoryNewGroup = action("story.newGroup", Res.string.action_story_new_group, Story, mod(ChordKey.N, shift = true))
-	val StoryNextGroup =
-		action("story.nextGroup", Res.string.action_story_next_group, Story, mod(ChordKey.PageDown, shift = true))
-	val StoryPrevGroup =
-		action("story.prevGroup", Res.string.action_story_prev_group, Story, mod(ChordKey.PageUp, shift = true))
+	val StoryNextGroup = action(
+		"story.nextGroup",
+		Res.string.action_story_next_group,
+		Story,
+		mod(ChordKey.PageDown, shift = true),
+		repeats = true,
+	)
+	val StoryPrevGroup = action(
+		"story.prevGroup",
+		Res.string.action_story_prev_group,
+		Story,
+		mod(ChordKey.PageUp, shift = true),
+		repeats = true,
+	)
 	val StoryToggleOutline =
 		action("story.toggleOutline", Res.string.action_story_toggle_outline, Story, mod(ChordKey.O, shift = true))
 	val StoryToggleSceneInfo =

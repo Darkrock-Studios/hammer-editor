@@ -29,7 +29,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
 import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
 import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
-import com.darkrockstudios.apps.hammer.common.compose.actions.toKeyChord
+import com.darkrockstudios.apps.hammer.common.compose.actions.WindowChords
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -83,6 +83,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 	// Its one action is Quit; otherwise the registry holds the overlays its dialogs and menus register.
 	val actions = remember { ActionRegistry() }
 	val escapes = remember { EscapeRouter(actions, backDispatcher::back) }
+	val chords = remember { WindowChords(actions) }
 
 	val title = Res.string.account_window_title.get()
 	MaterialDecoratedWindow(
@@ -91,7 +92,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		onCloseRequest = ::exitApplication,
 		icon = painterResource(Res.drawable.hammer_icon),
 		onPreviewKeyEvent = { event ->
-			escapes.onPreviewKeyEvent(event) || event.toKeyChord()?.let(actions::dispatch) ?: false
+			escapes.onPreviewKeyEvent(event) || chords.onPreviewKeyEvent(event)
 		},
 		onKeyEvent = escapes::onKeyEvent,
 	) {

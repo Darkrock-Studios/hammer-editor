@@ -35,7 +35,7 @@ import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
 import com.darkrockstudios.apps.hammer.common.compose.actions.DoubleShiftPalette
 import com.darkrockstudios.apps.hammer.common.compose.actions.LocalDoubleShiftPalette
 import com.darkrockstudios.apps.hammer.common.compose.actions.resetsDoubleShift
-import com.darkrockstudios.apps.hammer.common.compose.actions.toKeyChord
+import com.darkrockstudios.apps.hammer.common.compose.actions.WindowChords
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -84,6 +84,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 	val escapes = remember(component) { EscapeRouter(component.actions, backDispatcher::back) }
 	val doubleShift = remember(component) { DoubleShiftPalette(component.actions) }
+	val chords = remember(component) { WindowChords(component.actions) }
 
 	LifecycleController(lifecycle, windowState)
 
@@ -100,8 +101,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		icon = painterResource(Res.drawable.hammer_icon),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
 		onPreviewKeyEvent = { event ->
-			doubleShift.onPreviewKeyEvent(event) ||
-				escapes.onPreviewKeyEvent(event) || event.toKeyChord()?.let(component.actions::dispatch) ?: false
+			doubleShift.onPreviewKeyEvent(event) || escapes.onPreviewKeyEvent(event) || chords.onPreviewKeyEvent(event)
 		},
 		onKeyEvent = escapes::onKeyEvent,
 	) {

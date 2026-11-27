@@ -3,9 +3,11 @@ package com.darkrockstudios.apps.hammer.android
 import android.view.KeyEvent.ACTION_DOWN
 import android.view.KeyEvent.ACTION_UP
 import android.view.KeyEvent.KEYCODE_F3
+import android.view.KeyEvent.KEYCODE_K
 import android.view.KeyEvent.KEYCODE_N
 import android.view.KeyEvent.KEYCODE_NUMPAD_3
 import android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
+import android.view.KeyEvent.KEYCODE_PAGE_DOWN
 import android.view.KeyEvent.KEYCODE_Q
 import android.view.KeyEvent.KEYCODE_S
 import android.view.KeyEvent.KEYCODE_SHIFT_LEFT
@@ -23,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
 import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordRepeats
 import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
 import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
@@ -77,7 +80,7 @@ class AndroidChordTest {
 			mapOf(HammerActions.ProjectSync.id to ActionHandler(isEnabled = { false }) {}),
 		)
 
-		assertFalse(dispatchProjectKey(actions, ACTION_DOWN, KEYCODE_F3, 0))
+		assertFalse(dispatchProjectKey(actions, ChordRepeats(), ACTION_DOWN, KEYCODE_F3, 0))
 	}
 
 	@Test
@@ -86,7 +89,7 @@ class AndroidChordTest {
 		var syncs = 0
 		actions.register(ActionLayer.Root, mapOf(HammerActions.ProjectSync.id to ActionHandler { syncs++ }))
 
-		val consumed = dispatchProjectKey(actions, ACTION_DOWN, KEYCODE_F3, 0)
+		val consumed = dispatchProjectKey(actions, ChordRepeats(), ACTION_DOWN, KEYCODE_F3, 0)
 
 		assertTrue(consumed)
 		assertEquals(1, syncs)
@@ -98,7 +101,7 @@ class AndroidChordTest {
 		var syncs = 0
 		actions.register(ActionLayer.Root, mapOf(HammerActions.ProjectSync.id to ActionHandler { syncs++ }))
 
-		val consumed = dispatchProjectKey(actions, ACTION_UP, KEYCODE_F3, 0)
+		val consumed = dispatchProjectKey(actions, ChordRepeats(), ACTION_UP, KEYCODE_F3, 0)
 
 		assertFalse(consumed)
 		assertEquals(0, syncs)
@@ -106,7 +109,36 @@ class AndroidChordTest {
 
 	@Test
 	fun `no project means no key is consumed`() =
-		assertFalse(dispatchProjectKey(null, ACTION_DOWN, KEYCODE_F3, 0))
+		assertFalse(dispatchProjectKey(null, ChordRepeats(), ACTION_DOWN, KEYCODE_F3, 0))
+
+	@Test
+	fun `a held Ctrl+K opens the palette once and takes its repeats`() {
+		val actions = ActionRegistry()
+		var toggles = 0
+		actions.register(ActionLayer.Root, mapOf(HammerActions.PaletteOpen.id to ActionHandler { toggles++ }))
+		val repeats = ChordRepeats()
+
+		val taken = (0..3).map { count ->
+			dispatchProjectKey(actions, repeats, ACTION_DOWN, KEYCODE_K, META_CTRL_ON, repeatCount = count)
+		}
+
+		assertEquals(listOf(true, true, true, true), taken)
+		assertEquals(1, toggles)
+	}
+
+	@Test
+	fun `a held Ctrl+PageDown steps on every repeat`() {
+		val actions = ActionRegistry()
+		var steps = 0
+		actions.register(ActionLayer.Module, mapOf(HammerActions.ItemNext.id to ActionHandler { steps++ }))
+		val repeats = ChordRepeats()
+
+		for (count in 0..2) {
+			dispatchProjectKey(actions, repeats, ACTION_DOWN, KEYCODE_PAGE_DOWN, META_CTRL_ON, repeatCount = count)
+		}
+
+		assertEquals(3, steps)
+	}
 
 	@Test
 	fun `a double Shift opens the palette`() {

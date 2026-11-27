@@ -28,7 +28,10 @@ enum class ActionDispatch { Host, Local }
 /** Ordinal is precedence: a higher layer answers before a lower one. */
 enum class ActionLayer { Root, Module, Item, Overlay }
 
-/** [global] actions still answer under an overlay barrier. */
+/**
+ * [global] actions still answer under an overlay barrier. [repeats] actions run again on a held
+ * chord's auto-repeats; any other runs once per press (see [ChordRepeats]).
+ */
 data class ActionDef(
 	val id: ActionId,
 	val label: StringResource,
@@ -36,4 +39,5 @@ data class ActionDef(
 	val defaultChords: List<KeyChord>,
 	val global: Boolean = false,
 	val dispatch: ActionDispatch = ActionDispatch.Host,
+	val repeats: Boolean = false,
 )

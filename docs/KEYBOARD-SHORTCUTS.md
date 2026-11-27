@@ -20,6 +20,10 @@ Table chords are matched before Compose focus, so they work with nothing focused
 turns the key into a `KeyChord` and calls `ActionRegistry.dispatch`; a chord nothing handles
 passes on to the focused widget.
 
+Holding a chord runs it once. Its auto-repeats run again only for the actions marked `repeats`
+(next and previous item or group, `F6`); `ChordRepeats` takes or passes on the others as the
+first press was, so a held toggle never flips back.
+
 | Platform | Host                                                                         |
 |----------|------------------------------------------------------------------------------|
 | Desktop  | `ProjectEditorWindow.kt` window `onPreviewKeyEvent`                          |

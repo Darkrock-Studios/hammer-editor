@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.android
 import android.view.KeyEvent
 import com.darkrockstudios.apps.hammer.common.components.actions.ActionDispatcher
 import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordRepeats
 import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
 import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 
@@ -20,11 +21,20 @@ fun androidChord(keyCode: Int, metaState: Int): KeyChord? {
 	)
 }
 
-/** True when [actions] answered the key press; false means the host passes the event on. */
-fun dispatchProjectKey(actions: ActionDispatcher?, action: Int, keyCode: Int, metaState: Int): Boolean {
+/**
+ * True when [actions] answered the key press; false means the host passes the event on. A press
+ * with a [repeatCount] is a held key's auto-repeat, which [repeats] holds to the first press.
+ */
+fun dispatchProjectKey(
+	actions: ActionDispatcher?,
+	repeats: ChordRepeats,
+	action: Int,
+	keyCode: Int,
+	metaState: Int,
+	repeatCount: Int = 0,
+): Boolean {
 	if (actions == null || action != KeyEvent.ACTION_DOWN) return false
-	val chord = androidChord(keyCode, metaState) ?: return false
-	return actions.dispatch(chord)
+	return repeats.press(actions, keyCode, androidChord(keyCode, metaState), isRepeat = repeatCount > 0)
 }
 
 /** Feeds [detector] one key event and opens the palette on a double Shift. Never consumes it. */

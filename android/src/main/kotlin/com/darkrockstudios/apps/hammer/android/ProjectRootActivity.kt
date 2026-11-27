@@ -28,6 +28,7 @@ import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordRepeats
 import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
@@ -72,6 +73,7 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private var projectRoot: ProjectRoot? = null
 	private val doubleShift = DoubleShiftDetector()
+	private val chordRepeats = ChordRepeats()
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -181,8 +183,9 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	// Ahead of Compose focus, so project chords work with nothing focused.
 	override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-		feedDoubleShift(doubleShift, projectRoot?.actions, event.action, event.keyCode, event.eventTime)
-		return dispatchProjectKey(projectRoot?.actions, event.action, event.keyCode, event.metaState) ||
+		val actions = projectRoot?.actions
+		feedDoubleShift(doubleShift, actions, event.action, event.keyCode, event.eventTime)
+		return dispatchProjectKey(actions, chordRepeats, event.action, event.keyCode, event.metaState, event.repeatCount) ||
 			super.dispatchKeyEvent(event)
 	}
 
