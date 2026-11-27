@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,11 +9,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,9 +25,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.WindowHeightSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.hd_dropdown_no_match
+import com.darkrockstudios.apps.hammer.hd_dropdown_search
 
 /**
  * Generic hairline dropdown — a full-width square-cornered pill showing the
@@ -36,6 +56,10 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  * swapping between them is one-for-one. Use for enums of 4+ values where a
  * segmented row would crowd; the optional [title] renders as an [HdMonoLabel]
  * above the pill with 8dp spacing.
+ *
+ * With more than [SEARCHABLE_ABOVE] options the open menu starts with a field that
+ * narrows them to the labels containing what is typed, whatever its case or accents.
+ * Up and Down move through the matches and Enter takes the one they are on.
  */
 @Composable
 fun <T> HdHairlineDropdown(
@@ -84,28 +108,161 @@ fun <T> HdHairlineDropdown(
 				expanded = expanded && enabled,
 				onDismissRequest = { expanded = false },
 			) {
-				options.forEach { option ->
-					DropdownMenuItem(
-						text = {
-							Text(
-								text = label(option),
-								style = MaterialTheme.typography.bodyMedium,
-								maxLines = 1,
-								overflow = TextOverflow.Ellipsis,
-								color = if (option == selected) {
-									MaterialTheme.colorScheme.onSurface
-								} else {
-									MaterialTheme.colorScheme.onSurfaceVariant
-								},
-							)
-						},
-						onClick = {
-							onSelect(option)
-							expanded = false
-						},
-					)
+				val pick: (T) -> Unit = {
+					onSelect(it)
+					expanded = false
+				}
+				if (options.size > SEARCHABLE_ABOVE) {
+					SearchableOptions(options, selected, label, onPick = pick, onDismiss = { expanded = false })
+				} else {
+					options.forEach { option -> DropdownOption(label(option), option == selected) { pick(option) } }
 				}
 			}
 		}
 	}
 }
+
+/** A search field over the options it narrows. Its state lasts as long as the menu is open. */
+@Composable
+private fun <T> SearchableOptions(
+	options: List<T>,
+	selected: T,
+	label: @Composable (T) -> String,
+	onPick: (T) -> Unit,
+	onDismiss: () -> Unit,
+) {
+	var query by remember { mutableStateOf("") }
+	val labels = options.map { label(it) }
+	val folded = remember(labels) { labels.map { it.folded() } }
+	val needle = remember(query) { query.trim().folded() }
+	// Indices into options.
+	val shown = remember(folded, needle) { options.indices.filter { needle in folded[it] } }
+	// The row Enter takes: the first match while typing; none before that, until an arrow key.
+	var highlight by remember(needle) { mutableStateOf(if (needle.isEmpty()) -1 else 0) }
+
+	val focus = remember { FocusRequester() }
+	if (hdDropdownSearchTakesFocus) {
+		LaunchedEffect(Unit) { focus.requestFocus() }
+	}
+	val hint = Res.string.hd_dropdown_search.get()
+	HdSearchField(
+		value = query,
+		onValueChange = { query = it },
+		placeholder = hint,
+		onSearch = {
+			if (highlight < 0) onDismiss() else shown.getOrNull(highlight)?.let { onPick(options[it]) }
+		},
+		focusRequester = focus,
+		testTag = HD_DROPDOWN_SEARCH_TAG,
+		modifier = Modifier
+			.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M)
+			// Wide enough that the menu doesn't shrink as the options narrow.
+			.widthIn(min = SEARCH_MIN_WIDTH)
+			.fillMaxWidth()
+			.semantics { contentDescription = hint }
+			.onPreviewKeyEvent { event ->
+				val step = when (event.key) {
+					Key.DirectionDown -> 1
+					Key.DirectionUp -> -1
+					else -> 0
+				}
+				val moves = step != 0 && event.type == KeyEventType.KeyDown
+				if (moves && shown.isNotEmpty()) highlight = (highlight + step).coerceIn(0, shown.lastIndex)
+				moves
+			},
+	)
+
+	val revealed = if (highlight >= 0) highlight else options.indexOf(selected)
+	val scroll = rememberScrollState()
+	var rowHeight by remember { mutableStateOf(0) }
+	LaunchedEffect(revealed, needle, rowHeight) {
+		if (revealed < 0 || rowHeight == 0) return@LaunchedEffect
+		val top = revealed * rowHeight
+		val bottom = top + rowHeight
+		if (top < scroll.value) {
+			scroll.scrollTo(top)
+		} else if (bottom > scroll.value + scroll.viewportSize) {
+			scroll.scrollTo(bottom - scroll.viewportSize)
+		}
+	}
+	val compact = LocalScreenCharacteristic.current.windowHeightClass == WindowHeightSizeClass.Compact
+	// The menu scrolls as a whole, so the options scroll on their own to keep the field in view.
+	Column(
+		modifier = Modifier
+			.heightIn(max = if (compact) LIST_MAX_HEIGHT_COMPACT else LIST_MAX_HEIGHT)
+			.verticalScroll(scroll),
+	) {
+		shown.forEachIndexed { row, i ->
+			DropdownOption(
+				text = labels[i],
+				selected = options[i] == selected,
+				highlighted = row == highlight,
+				// Every row is the same height, so the first one's places the rest.
+				modifier = if (row == 0) Modifier.onSizeChanged { rowHeight = it.height } else Modifier,
+			) { onPick(options[i]) }
+		}
+		if (shown.isEmpty()) {
+			Text(
+				text = Res.string.hd_dropdown_no_match.get(),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
+			)
+		}
+	}
+}
+
+@Composable
+private fun DropdownOption(
+	text: String,
+	selected: Boolean,
+	highlighted: Boolean = false,
+	modifier: Modifier = Modifier,
+	onClick: () -> Unit,
+) {
+	DropdownMenuItem(
+		modifier = modifier.then(
+			if (highlighted) Modifier.background(MaterialTheme.colorScheme.onSurface.copy(alpha = HIGHLIGHT_ALPHA)) else Modifier,
+		),
+		text = {
+			Text(
+				text = text,
+				style = MaterialTheme.typography.bodyMedium,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+				color = if (selected) {
+					MaterialTheme.colorScheme.onSurface
+				} else {
+					MaterialTheme.colorScheme.onSurfaceVariant
+				},
+			)
+		},
+		onClick = onClick,
+	)
+}
+
+/** Lower case, with the accents of Latin letters dropped, so "sao" finds "São". */
+private fun String.folded(): String = buildString(length) {
+	for (c in this@folded.lowercase()) {
+		val at = ACCENTED.indexOf(c)
+		append(if (at < 0) c else UNACCENTED[at])
+	}
+}
+
+private const val ACCENTED = "àáâãäåçèéêëìíîïñòóôõöùúûüýÿāăąćĉċčďēĕėęěĝğġģĥĩīĭįĵķĺļľńņňōŏőŕŗřśŝşšţťũūŭůűųŵŷźżžơưǎǐǒǔǖǘǚǜǟǡǧǩǫǭǰǵǹǻȁȃȅȇȉȋȍȏȑȓȕȗșțȟȧȩȫȭȯȱȳøłđıß"
+private const val UNACCENTED = "aaaaaaceeeeiiiinooooouuuuyyaaaccccdeeeeegggghiiiijklllnnnooorrrssssttuuuuuuwyzzzouaiouuuuuaagkoojgnaaaeeiioorruusthaeooooyoldis"
+
+/** A dropdown with more options than this can be searched. */
+private const val SEARCHABLE_ABOVE = 10
+
+private val SEARCH_MIN_WIDTH = 220.dp
+private val LIST_MAX_HEIGHT = 320.dp
+private val LIST_MAX_HEIGHT_COMPACT = 160.dp
+
+/** The pressed tint of [hdInteractiveRow]. */
+private const val HIGHLIGHT_ALPHA = 0.10f
+
+const val HD_DROPDOWN_SEARCH_TAG = "hd-dropdown-search"
+
+/** Whether the search field takes focus as the menu opens. Not where that would raise an on-screen keyboard. */
+internal expect val hdDropdownSearchTakesFocus: Boolean
