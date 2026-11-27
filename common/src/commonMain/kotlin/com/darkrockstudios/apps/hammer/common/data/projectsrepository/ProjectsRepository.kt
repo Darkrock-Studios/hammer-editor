@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.In
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -249,6 +250,12 @@ class ProjectsRepository(
 				)
 			}
 		}
+	}
+
+	/** Deletes the caches no current project owns; see [ProjectCachePaths.removeOrphans]. */
+	fun removeOrphanedProjectCaches() {
+		val removed = ProjectCachePaths.removeOrphans(fileSystem, getProjects())
+		if (removed > 0) Napier.i("Deleted $removed orphaned project cache folder(s)")
 	}
 
 	private fun hasSyncJournal(projectDef: ProjectDef): Boolean =

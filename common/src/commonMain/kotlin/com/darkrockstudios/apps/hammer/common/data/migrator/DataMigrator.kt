@@ -62,6 +62,8 @@ open class DataMigrator(
 		healed.forEach { projectsRepository.resetSyncStateAfterRestore(it, serverKnowsProject = false) }
 
 		projectsRepository.resolveDuplicateProjectIds()
+		// Last, once the steps above have put every project where it stays.
+		projectsRepository.removeOrphanedProjectCaches()
 	}
 
 	fun checkIfMigrationNeeded(): Boolean {

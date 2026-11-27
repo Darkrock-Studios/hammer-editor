@@ -168,6 +168,7 @@ class DataMigratorTest : BaseTest() {
 		verify(exactly = 0) { mockMigrator.migrate(any()) }
 		// Copied project folders are caught even when nothing needs migrating.
 		coVerify(exactly = 1) { projectsRepository.resolveDuplicateProjectIds() }
+		verify(exactly = 1) { projectsRepository.removeOrphanedProjectCaches() }
 		// Entry images a past migration could not move are retried on every launch.
 		verify(exactly = 1) { entryImagePromoter.promote(getProjectDef(PROJECT_1_NAME)) }
 		verify(exactly = 1) { entryImagePromoter.promote(getProjectDef(PROJECT_2_NAME)) }
