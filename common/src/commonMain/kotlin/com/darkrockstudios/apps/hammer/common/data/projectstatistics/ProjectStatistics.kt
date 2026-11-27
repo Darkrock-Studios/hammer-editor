@@ -59,6 +59,8 @@ data class ProjectStatistics(
 	// Bump when the set of computed fields changes, so older caches are discarded
 	// and recalculated rather than displayed with empty defaults.
 	val schemaVersion: Int = 0,
+	// The project these were calculated from: one replaced at the same path reuses the cache folder.
+	val projectId: String? = null,
 ) {
 	companion object {
 		const val CURRENT_SCHEMA_VERSION = 8

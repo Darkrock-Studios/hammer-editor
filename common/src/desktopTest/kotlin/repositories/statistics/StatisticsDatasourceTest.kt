@@ -1,5 +1,6 @@
 package repositories.statistics
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatistics
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsCachePaths
@@ -9,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import getProject1Def
 import getProjectDef
+import inGroup
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
@@ -67,8 +69,30 @@ class StatisticsDatasourceTest : BaseTest() {
 		assertTrue(datasource.exists())
 
 		val loaded = datasource.loadStatistics()
-		assertEquals(original, loaded)
+		assertEquals(original.copy(projectId = getProject1Def().id.id), loaded)
 	}
+
+	@Test
+	fun `Load ignores statistics left by another project at the same path`() = runTest(mainTestDispatcher) {
+		val replaced = getProject1Def()
+		createDatasource(replaced).saveStatistics(stats())
+
+		val replacement = replaced.copy(id = ProjectId.randomUUID())
+		assertNull(createDatasource(replacement).loadStatistics())
+	}
+
+	@Test
+	fun `Projects with the same name in different groups keep separate statistics`() =
+		runTest(mainTestDispatcher) {
+			val topLevel = getProject1Def()
+			val inGroup = topLevel.inGroup("Drafts")
+
+			createDatasource(topLevel).saveStatistics(stats().copy(totalWords = 1))
+			createDatasource(inGroup).saveStatistics(stats().copy(totalWords = 2))
+
+			assertEquals(1, createDatasource(topLevel).loadStatistics()?.totalWords)
+			assertEquals(2, createDatasource(inGroup).loadStatistics()?.totalWords)
+		}
 
 	@Test
 	fun `Save with a traversal project name lands under the cache root`() =

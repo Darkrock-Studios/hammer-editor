@@ -152,3 +152,8 @@ fun verifyCoords(tree: Tree<SceneItem>, coords: NodeCoordinates, id: Int) {
 	val byGlobal = tree[coords.globalIndex]
 	assertEquals(id, byGlobal.value.id, "Global Index did not match")
 }
+/** The same-named project as a different one inside [group]. */
+fun ProjectDef.inGroup(group: String): ProjectDef = copy(
+	id = ProjectId.randomUUID(),
+	path = (getProjectsDirectory() / group / name).toHPath(),
+)

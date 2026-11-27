@@ -2,19 +2,17 @@ package com.darkrockstudios.apps.hammer.common.data.references
 
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
-import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
-import okio.Path.Companion.toPath
 
 class ReferenceIndexDatasource(
 	private val fileSystem: FileSystem,
@@ -59,10 +57,9 @@ class ReferenceIndexDatasource(
 		}
 	}
 
-	private fun getProjectsCacheRoot(): Path = getCacheDirectory().toPath() / PROJECTS_DIRECTORY
+	private fun getProjectsCacheRoot(): Path = ProjectCachePaths.projectsCacheRoot()
 
-	private fun getProjectCacheDirectory(): Path =
-		getProjectsCacheRoot() / ProjectsRepository.encodeForFilename(projectDef.name)
+	private fun getProjectCacheDirectory(): Path = ProjectCachePaths.projectCacheDirectory(projectDef)
 
 	private fun getIndexPath(): Path = getProjectCacheDirectory() / FILENAME
 
@@ -81,7 +78,7 @@ class ReferenceIndexDatasource(
 	}
 
 	companion object {
-		const val PROJECTS_DIRECTORY = "projects"
+		const val PROJECTS_DIRECTORY = ProjectCachePaths.PROJECTS_DIRECTORY
 		const val FILENAME = "references.toml"
 	}
 }

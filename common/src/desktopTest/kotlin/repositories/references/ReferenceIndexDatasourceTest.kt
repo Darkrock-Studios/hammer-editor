@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import getProject1Def
 import getProjectDef
+import inGroup
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
@@ -78,6 +79,19 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 		assertEquals(mapOf(2 to setOf(20)), datasource.loadIndex()?.entryToScenes)
 		assertNull(createDatasource(replaced).loadIndex())
 	}
+
+	@Test
+	fun `Projects with the same name in different groups keep separate indexes`() =
+		runTest(mainTestDispatcher) {
+			val topLevel = getProject1Def()
+			val inGroup = topLevel.inGroup("Drafts")
+
+			createDatasource(topLevel).saveIndex(ReferenceIndex(entryToScenes = mapOf(1 to setOf(10))))
+			createDatasource(inGroup).saveIndex(ReferenceIndex(entryToScenes = mapOf(2 to setOf(20))))
+
+			assertEquals(mapOf(1 to setOf(10)), createDatasource(topLevel).loadIndex()?.entryToScenes)
+			assertEquals(mapOf(2 to setOf(20)), createDatasource(inGroup).loadIndex()?.entryToScenes)
+		}
 
 	@Test
 	fun `Load ignores a cache that names no project`() = runTest(mainTestDispatcher) {

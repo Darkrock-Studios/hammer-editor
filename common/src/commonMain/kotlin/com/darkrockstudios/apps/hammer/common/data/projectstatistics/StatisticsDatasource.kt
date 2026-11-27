@@ -29,7 +29,7 @@ class StatisticsDatasource(
 		ensureCacheDirectoryExists()
 		val file = StatisticsCachePaths.statsFile(projectDef)
 		requireWithinCacheRoot(file)
-		fileSystem.writeToml(file, toml, stats)
+		fileSystem.writeToml(file, toml, stats.copy(projectId = projectDef.id.id))
 		Napier.d("Statistics saved to cache")
 	}
 
@@ -74,7 +74,8 @@ fun readProjectStatistics(
 ): ProjectStatistics? {
 	val file = StatisticsCachePaths.statsFile(projectDef)
 	if (!fileSystem.exists(file)) return null
-	return fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
+	val stats = fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
 		Napier.d("Failed to read statistics cache for ${projectDef.name}", e)
 	}
+	return stats?.takeIf { it.projectId == projectDef.id.id }
 }
