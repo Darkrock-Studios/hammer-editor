@@ -21,14 +21,14 @@ internal fun proseOf(
 	imageName: (imageId: Int) -> String? = { null },
 ): List<ExportBlock> = parseProseMarkdown(markdown, imageName = imageName).map { block ->
 	when (block) {
-		is ProseBlock.Paragraph -> ExportBlock.Paragraph(block.spans.map(::ExportSpan))
+		is ProseBlock.Paragraph -> ExportBlock.Paragraph(block.spans.map(::ExportSpan), block.align?.css)
 		is ProseBlock.Image -> if (block.imageId in delivered) {
 			ExportBlock.Image(block.imageId, block.name)
 		} else {
 			ExportBlock.Paragraph(block.spans.map(::ExportSpan))
 		}
 		ProseBlock.Blank -> ExportBlock.Blank
-		is ProseBlock.Heading -> ExportBlock.Heading(block.level, block.spans.map(::ExportSpan))
+		is ProseBlock.Heading -> ExportBlock.Heading(block.level, block.spans.map(::ExportSpan), block.align?.css)
 		is ProseBlock.Listing -> ExportBlock.Listing(
 			block.ordered,
 			block.items.map { ExportBlock.ListItem(it.level, it.ordered, it.spans.map(::ExportSpan)) },
@@ -43,13 +43,20 @@ internal fun proseOf(
 	}
 }
 
-/** Keyed by `type`: paragraph, blank, image, heading, list, quote, code, rule, or table. */
+/**
+ * Keyed by `type`: paragraph, blank, image, heading, list, quote, code, rule, or table. A paragraph or
+ * heading the author aligned has `align` (left, center, right or justify); one at the default has none.
+ */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 internal sealed interface ExportBlock {
 	/** One line of prose as the author typed it. */
 	@Serializable
 	@SerialName("paragraph")
-	class Paragraph(val spans: List<ExportSpan>) : ExportBlock
+	class Paragraph(
+		val spans: List<ExportSpan>,
+		@EncodeDefault(EncodeDefault.Mode.NEVER) val align: String? = null,
+	) : ExportBlock
 
 	/** A blank line between two passages. */
 	@Serializable
@@ -63,7 +70,11 @@ internal sealed interface ExportBlock {
 
 	@Serializable
 	@SerialName("heading")
-	class Heading(val level: Int, val spans: List<ExportSpan>) : ExportBlock
+	class Heading(
+		val level: Int,
+		val spans: List<ExportSpan>,
+		@EncodeDefault(EncodeDefault.Mode.NEVER) val align: String? = null,
+	) : ExportBlock
 
 	/** Nested items are flattened in reading order, each keeping its own depth and marker kind. */
 	@Serializable

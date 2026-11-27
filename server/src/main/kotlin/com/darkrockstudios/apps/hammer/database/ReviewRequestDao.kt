@@ -85,6 +85,28 @@ class ReviewRequestDao(
 		}
 	}
 
+	suspend fun statusCounts(now: Instant): ReviewStatusCounts = withContext(ioDispatcher) {
+		queries.statusCounts(now).executeAsOne().let {
+			ReviewStatusCounts(
+				total = it.total,
+				waiting = it.waiting,
+				editing = it.editing,
+				expired = it.expired,
+				awaitingAuthor = it.awaiting_author,
+				resolved = it.resolved,
+				canceled = it.canceled,
+				opened = it.opened,
+				returned = it.returned,
+			)
+		}
+	}
+
+	suspend fun lifecycleSince(since: Instant): List<ReviewLifecycle> = withContext(ioDispatcher) {
+		queries.lifecycleSince(since).executeAsList().map {
+			ReviewLifecycle(created = it.created, submittedAt = it.submitted_at, resolvedAt = it.resolved_at)
+		}
+	}
+
 	companion object {
 		/** Statuses the editor is still working in; the only ones activity writes may move. */
 		private val OPEN_STATUSES = listOf(
@@ -94,3 +116,22 @@ class ReviewRequestDao(
 		).map { it.toStringId() }
 	}
 }
+
+/** Every review request bucketed by where it stands now. [opened] and [returned] count milestones ever reached. */
+data class ReviewStatusCounts(
+	val total: Long,
+	val waiting: Long,
+	val editing: Long,
+	val expired: Long,
+	val awaitingAuthor: Long,
+	val resolved: Long,
+	val canceled: Long,
+	val opened: Long,
+	val returned: Long,
+)
+
+data class ReviewLifecycle(
+	val created: Instant,
+	val submittedAt: Instant?,
+	val resolvedAt: Instant?,
+)

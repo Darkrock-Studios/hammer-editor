@@ -285,4 +285,13 @@ class RtfStoryRendererTest {
 			assertFalse(withImage.contains("\\pict"), withImage)
 		}
 	}
+
+	@Test
+	fun `an aligned paragraph carries its alignment`() {
+		val rtf = render(listOf(StoryChapter("Alpha", "plain\n<div align=\"right\">\n\nright side\n\n</div>")))
+		val body = rtf.substring(rtf.indexOf("plain"))
+
+		assertTrue(Regex("""\\qr[^\n]*right side""").containsMatchIn(body), body)
+		assertTrue("div" !in body, body)
+	}
 }

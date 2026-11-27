@@ -60,6 +60,16 @@ class ExtismPluginTest {
 	}
 
 	@Test
+	fun `a trap stops a call partway, and a failure returned does not`() {
+		val plugin = ExtismPlugin(testPlugin("fail"))
+
+		assertThrows<PluginException> { plugin.call("abort", ByteArray(0), FUEL) }
+		assertTrue(plugin.stoppedPartway)
+		assertThrows<PluginException> { plugin.call("run", ByteArray(0), FUEL) }
+		assertFalse(plugin.stoppedPartway)
+	}
+
+	@Test
 	fun `HTTP is refused`() {
 		val plugin = ExtismPlugin(testPlugin("fail"))
 

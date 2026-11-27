@@ -532,15 +532,17 @@ a sort icon). Control labels are sentence case in the body face.
   full-width hairline pill `[ Markdown            ▾ ]` opening a
   `DropdownMenu`. Same signature as `HdHairlineSegmentedPicker`, so
   swapping is one-for-one. Use for enums of 4+ values where a
-  segmented row would crowd.
+  segmented row would crowd. Past ten options the open menu starts
+  with an `HdSearchField` that narrows them as you type, with Up, Down
+  and Enter to pick.
 - **[`HdDropdownMenu`](HdDropdownMenu.kt)**: every menu, in place of
   Material's `DropdownMenu`. It makes the open menu the topmost
   overlay, so Esc closes only the menu, not the dialog or screen under it.
 - **[`HdSearchableListDialog`](HdSearchableListDialog.kt)** — hairline
   dialog with an `HdSearchField` over a lazy row list, each row a label
   plus optional mono greeble (`English (United States)     EN-US`).
-  Use where a dropdown would be unwieldy: dozens to hundreds of
-  options, e.g. every platform locale. Optional muted clear row above
+  Use where even a searchable dropdown would be unwieldy: hundreds of
+  options, or rows that need a greeble, e.g. every platform locale. Optional muted clear row above
   the list resets the selection. The command palette drives it from
   the keyboard: `keyboardSelection` (Up/Down move a tonal highlight,
   Enter picks), `autoFocusSearch`, its own `filter`, and

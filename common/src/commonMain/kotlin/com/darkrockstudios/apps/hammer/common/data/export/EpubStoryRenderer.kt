@@ -18,7 +18,6 @@ import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.html.ImageGeneratingProvider
 import org.intellij.markdown.parser.LinkMap
-import org.intellij.markdown.parser.MarkdownParser
 
 private data class TocEntry(val title: String, val href: String)
 
@@ -129,6 +128,10 @@ private fun buildStylesheet(theme: ProjectTheme?, font: ExportFont): Stylesheet 
 		div.toc li.toc-item a { text-decoration: none; }
 		.user-del { text-decoration: line-through; }
 		img { display: block; max-width: 100%; height: auto; margin: 1em auto; }
+		.align-left { text-align: left; }
+		.align-center { text-align: center; }
+		.align-right { text-align: right; }
+		.align-justify { text-align: justify; }
 		""".trimIndent(),
 	)
 
@@ -244,13 +247,9 @@ private fun BODY.chapterBody(
 	imageNames: Map<Int, String>,
 ) {
 	h1(classes = "chapter-title") { +chapterTitle }
-	val flavour = GFMFlavourDescriptor()
-	val source = ProseHtml.normalizeLineEndings(markdown)
-	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
-	val linkMap = LinkMap.buildLinkMap(parsed, source)
-	val providers = ProseHtml.providers(flavour, linkMap, keepBlankLines) +
-		(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images, imageNames))
-	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
+	val htmlBody = ProseHtml.toHtml(markdown, GFMFlavourDescriptor(), keepBlankLines) { linkMap ->
+		mapOf(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images, imageNames))
+	}
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
 	unsafe { +xhtmlBody }
 }

@@ -329,6 +329,8 @@ event that has none.
 | Operation | Access | Notes |
 | --- | --- | --- |
 | `search` | Read | Query plus filter: all, scenes, notes, encyclopedia, timeline |
+| `text.count` | Read | Exact count of each of up to 50 terms in scene text as search reads it, per scene; whole words and any case by default; skips images, titles, outlines, notes, and archived scenes |
+| `text.find` | Read | Every occurrence of a term in scene text, in story order, with its context; matches as `text.count` does, paged by `limit` and `offset` |
 | `tag.list` | Read | Ranked, optional entity type filter |
 | `tag.find` | Read | Every entity carrying a tag |
 | `ops.list` | Read | Every operation with its input and output JSON schema |
@@ -1126,7 +1128,7 @@ fixtures. Between them they use every slot:
 | `style` | C | A project action whose first page is a `scenes` field, with progress, a document page, the [cache](#cache) keyed by each scene's text, per-language [resources](#resources), and translations |
 | `reading-level` | Kotlin | A project and scene action with a scene picker page of its own, resources, and the cache |
 | `simple-grammar` | C | A text check, with byte offsets the host turns into the editor's UTF-16 ranges, written on the C kit's `hammer_diagnose.h` |
-| `harper-grammar` | Rust | A text check pre-initialized with Wizer: a module of over 100 MB declaring `limits.memory = 256` |
+| `harper-grammar` | Rust | A text check declaring `limits.memory = 256` |
 | `name-checker` | Rust | A text check and a document-page action in one plugin. The check reads the encyclopedia through `entry.list`, using the request's `project` |
 | `languagetool` | Rust | [HTTP](#http) to declared hosts, `userHosts` for a self-hosted server, and `secret` settings for the Premium API key and the server address |
 | `fantasy-names`, `real-names`, `scifi-names` | Kotlin | Action fields remembered for the next run, inline buttons, `state` across calls, and page-level `errors` |
@@ -1192,8 +1194,9 @@ WebAssembly in a sandbox. `WasmPlugin` presents each as a `ClientPlugin`.
 [chasm](https://github.com/CharlieTap/chasm), a WebAssembly interpreter written
 in Kotlin Multiplatform, MIT and Apache licensed. It is published for JVM,
 Android, iOS, macOS, Linux, and Windows, so one host in `commonMain` covers
-every target with no native libraries to package. It never generates code at
-runtime, which iOS forbids. It supports Wasm 3.0 plus GC, exception handling,
+every target with no native libraries to package. It interprets everywhere but
+Android, generating no code at runtime, which iOS forbids; on Android its
+`chasm-jit` compiles each module to DEX (see [Host](#host)). It supports Wasm 3.0 plus GC, exception handling,
 and typed function references (what Kotlin/Wasm output needs), and WASI
 Preview 1 through a companion library. It does not support SIMD or Memory64.
 
@@ -1220,7 +1223,7 @@ reading level report needs 192 MiB on a 100,000-word novel and 384 MiB on a
 300,000-word one, and hammer-plugin-development's Kotlin style report on the
 longer needs 768 MiB with a 22-word vocabulary and over 1 GiB with an
 8,000-word one. chasm's `TRADITIONAL` collector, which runs during a call,
-corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.4.0, the
+corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.5.0, the
 version Hammer pins. The desktop JVM's default heap is a quarter of the machine's
 memory, so an 8 GB machine allows about 1 GiB; Android's app heap, 192 to 512 MB,
 allows 96 to 256 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
@@ -1231,14 +1234,15 @@ never dropped for what it holds there.
 Rust has a kit of its own in `hammer-plugin-sdk` (`rust/hammer`): Hammer's
 imports, operations, and the cache, the `diagnose` request and reply types,
 character to byte offsets, an optional `getrandom` backend on the host's
-`random_get`, panics reported as the call's error, and an allocator that
-zeroes freed memory. Its `tools/finish.py` strips what crates written for
-the browser leave behind (wasm-bindgen's exports, and a trap in place of any of
-its imports still reachable) and fails the build if the module imports
-anything Hammer does not offer. A plugin whose start-up is slow can run it at
-build time under [Wizer](https://github.com/bytecodealliance/wizer), which
-saves the memory start-up leaves into the module; the zeroing allocator keeps
-what start-up threw away out of it.
+`random_get`, and panics reported as the call's error. Its `tools/finish.py`
+strips what crates written for the browser leave behind (wasm-bindgen's
+exports, and a trap in place of any of its imports still reachable) and fails
+the build if the module imports anything Hammer does not offer.
+
+`harper-grammar` builds its linter on its first check, about 16 s on desktop,
+rather than at build time under
+[Wizer](https://github.com/bytecodealliance/wizer): pre-initialized, its module
+is 117 MB, too large to load interpreted on a phone.
 
 The C kit (`c/include`) builds freestanding (`--target=wasm32-unknown-unknown
 -nostdlib`), so a C plugin imports nothing but Extism and Hammer functions.
@@ -1391,8 +1395,8 @@ two or more installed plugins share a kind, the project's settings show a
 dropdown for it, where the user picks one or none. The dropdown shows the first
 translated label among the kind's plugins by plugin id, else the first label.
 
-A module may be as large as its memory limit plus 32 MiB, since a
-pre-initialized module carries its memory's data. The install dialog says when
+A module may be as large as its memory limit plus 32 MiB, since its data
+segments may fill its memory. The install dialog says when
 a plugin asks for more memory than the default.
 
 Each `permissions.operations` entry is an operation's name, or a scope with
@@ -1453,7 +1457,9 @@ The Hammer-specific parts:
   sets `input = "prose"` gets each scene in `prose` instead of `scenes`: the
   host's own parse of its markdown, the one the built-in formats render from,
   as blocks (`paragraph`, `blank`, `image`, `heading`, `list`, `quote`,
-  `code`, `rule`, `table`) of styled spans. A project image is its name as
+  `code`, `rule`, `table`) of styled spans. A paragraph or heading the author
+  aligned carries `"align"`: `left`, `center`, `right` or `justify`; one at
+  the default has none. A project image is its name as
   text, except that for an exporter with `images = true` a line holding only
   the image is an `image` block, `{"type": "image", "id", "name"}`, whose
   `id` is always one in `images`. A plugin then needs no markdown parser, and
@@ -1513,7 +1519,10 @@ The Hammer-specific parts:
   rules, apart from the length and Unicode ones, as each file is added.
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
-  AssemblyScript's `abort` sets one and then traps.
+  AssemblyScript's `abort` sets one and then traps. A trap, running out of fuel
+  and being interrupted included, stops the module partway, with its own state
+  as the trap found it (a Rust `RefCell` still borrowed, say), so the host drops
+  the module and loads it afresh for the next call. Returning non-zero keeps it.
 - `extism:host/env` `http_request(request, body) -> response` and
   `http_status_code()`, Extism's HTTP imports, send a request to a host the
   plugin may reach (see [HTTP](#http)) and return its body and status;
@@ -1953,6 +1962,20 @@ cannot load, the command exits with an error rather than reading input.
 - **Execution.** `WasmPlugin.call` runs the module on the IO dispatcher, never
   the UI thread. Export rendering, already on a background dispatcher, calls it
   blocking. An operation the module dispatches blocks its thread until done.
+- **Compiling on Android.** `ExtismPlugin` hands Android modules to `chasm-jit`,
+  which compiles them to DEX that ART runs, and interprets them elsewhere or when
+  asked not to (`compile = false`). The compiled code keeps every limit below:
+  fuel, interrupts, the stack, memory and table caps, and the guest heap. A
+  module chasm-jit cannot compile, such as one with more locals than a DEX
+  method has registers, or whose compiling runs the host out of memory, is
+  interpreted instead in a fresh store, with a warning in the plugin's log, and
+  later loads of it skip compiling. If compiled code fails to load partway
+  through a call, the call fails, and the plugin is loaded afresh and
+  interpreted from then on. Compiling costs load time and wins it back on
+  heavy calls: `harper-grammar` on a Pixel release build loads in 0.57 s rather
+  than 0.37 s, its first 300-paragraph check, which builds the linter, takes
+  5.7 s rather than 33 s, and later ones 0.37 s rather than 3.1 s. Its tests are `androidDeviceTest`s, since only ART runs DEX:
+  `./gradlew :plugins:wasmhost:connectedAndroidDeviceTest`.
 - **Stopping a runaway module.** Each module runs in a chasm store that meters
   fuel: a check at every function entry and loop iteration takes a unit, and
   the call traps when none are left. The host sets the budget before each call;
@@ -1967,7 +1990,9 @@ cannot load, the command exits with an error rather than reading input.
   stopped action or a text check the editor no longer wants, interrupts the
   module at its next function entry or loop iteration, or once the host
   function it is in returns. chasm makes one check for both, so interrupting
-  adds little to metering, which costs about 20% in tight loops.
+  adds little to metering, which costs about 20% in tight loops. A text check
+  first gets half a second to finish, since an interrupted module is loaded
+  afresh for its next call.
 - **Host memory.** What a plugin can make the host hold is capped per plugin:
   - The kernel (Extism's shared memory, holding a call's input, output, and host
     function results) at 256 MiB, or a sixteenth of the JVM's heap if that is
@@ -1975,7 +2000,8 @@ cannot load, the command exits with an error rather than reading input.
     half as much again, so two plugins growing at once take under a fifth of the
     heap. An allocation past it traps. A call's kernel is released when it ends.
   - Variables (`var_set`) at 1 MiB in all, Extism's own default, and 1,024 of
-    them; a `var_set` past either traps.
+    them; a `var_set` past either traps. They go with the module when it is
+    loaded afresh, as after a trap.
   - Logging at 4 KiB a line, cut short past that, and 64 KiB a call, past which
     the rest of the call's log is dropped with a warning.
   - The guest heap, as under [Languages](#languages).
@@ -1987,11 +2013,9 @@ cannot load, the command exits with an error rather than reading input.
 - **Loading a large module.** Each load reads the module from the package and
   hands the bytes to chasm, which keeps them until the module has started; then
   they are let go, and the decoded module and the module's linear memory remain.
-  So a pre-initialized module needs a JVM heap several times its size while it
-  loads: the 104 MB `harper-grammar` module loads in a 400 MB heap but not in
-  392, and holds about 90 MB once loaded. Short of that, the load fails as out
-  of memory, and a text check it provides leaves the text unmarked. It is
-  untried on Android's app heap.
+  So a large module needs a JVM heap several times its size while it loads.
+  Short of that, the load fails as out of memory, and a text check it provides
+  leaves the text unmarked.
 - **iOS.** Kotlin/Native has no heap limit to read, so the kernel's cap is a fixed
   256 MiB there, and chasm caps a Kotlin/Wasm plugin's guest heap at a fixed
   1 GiB, which the host cannot measure. Most failed allocations abort the process

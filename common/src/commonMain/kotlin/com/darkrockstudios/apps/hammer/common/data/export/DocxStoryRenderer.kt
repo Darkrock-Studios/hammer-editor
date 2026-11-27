@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
+import com.darkrockstudios.apps.hammer.base.markdown.ProseAlign
+import com.darkrockstudios.apps.hammer.base.markdown.keepsFirstLineIndent
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
@@ -781,7 +783,7 @@ private class MarkdownDocxWriter(
 	fun render(blocks: List<ProseBlock>) {
 		blocks.forEach { block ->
 			when (block) {
-				is ProseBlock.Paragraph -> paragraph(style = null, numId = null) { runs(block.spans) }
+				is ProseBlock.Paragraph -> paragraph(style = null, numId = null, align = block.align) { runs(block.spans) }
 
 				is ProseBlock.Image -> {
 					val media = ctx.mediaFor(block.imageId)
@@ -794,7 +796,7 @@ private class MarkdownDocxWriter(
 
 				// The first heading level belongs to chapters.
 				is ProseBlock.Heading ->
-					paragraph(style = "Heading${block.level.coerceAtLeast(2)}", numId = null) { runs(block.spans) }
+					paragraph(style = "Heading${block.level.coerceAtLeast(2)}", numId = null, align = block.align) { runs(block.spans) }
 
 				is ProseBlock.Listing -> {
 					val numbering = DocxListNumbering(ctx)
@@ -872,12 +874,13 @@ private class MarkdownDocxWriter(
 		style: String?,
 		numId: Int?,
 		ilvl: Int = 0,
+		align: ProseAlign? = null,
 		body: () -> Unit,
 	) {
 		// Plain prose gets the first-line-indented body style; numbered paragraphs control their own indent.
 		val effectiveStyle = style ?: if (numId == null) "BodyText" else null
 		writer.w("p") {
-			if (effectiveStyle != null || numId != null) {
+			if (effectiveStyle != null || numId != null || align != null) {
 				w("pPr") {
 					effectiveStyle?.let { wVal("pStyle", it) }
 					if (numId != null) {
@@ -886,6 +889,10 @@ private class MarkdownDocxWriter(
 							wVal("numId", numId.toString())
 						}
 					}
+					if (effectiveStyle == "BodyText" && !align.keepsFirstLineIndent) {
+						w("ind") { wAttr("firstLine", "0") }
+					}
+					align?.let { wVal("jc", it.docxJustification) }
 				}
 			}
 			body()
@@ -1013,3 +1020,12 @@ private class DocxListNumbering(private val ctx: DocxRenderContext) {
 		return numId to level
 	}
 }
+
+/** The `w:jc` value of this alignment; Word's transitional schema calls justified `both`. */
+private val ProseAlign.docxJustification: String
+	get() = when (this) {
+		ProseAlign.LEFT -> "left"
+		ProseAlign.CENTER -> "center"
+		ProseAlign.RIGHT -> "right"
+		ProseAlign.JUSTIFY -> "both"
+	}

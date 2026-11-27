@@ -5,7 +5,8 @@ import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSynt
 /**
  * Flattens stored Markdown into the prose a reader sees. Backslash escapes resolve to their literal
  * character (`well\-known` becomes `well-known`), paired emphasis and code delimiters are dropped
- * (`**Chapter** One` becomes `Chapter One`), and leading blockquote, heading and bullet markers are
+ * (`**Chapter** One` becomes `Chapter One`), as are the paired `~~` and `==` of struck and highlighted
+ * text and the editor's inline style tags (`<u>`, `<em>`, `<strong>`, `<del>`), and leading blockquote, heading and bullet markers are
  * removed from each line. A project image becomes the name [imageName] gives its id, or nothing when
  * it gives none: its alt text carries no meaning. Any other inline image becomes its alt text.
  *
@@ -59,7 +60,7 @@ internal fun containsMarkdownSyntax(text: CharSequence): Boolean {
 	var i = 0
 	while (i < text.length) {
 		val c = text[i]
-		if (c == '*' || c == '_' || c == '`' ||
+		if (c == '*' || c == '_' || c == '`' || c == '~' || c == '=' || c == '<' ||
 			c == '\\' || c == '#' || c == '>' || c == '-' || c == '+' ||
 			c == '!' && i + 1 < text.length && text[i + 1] == '['
 		) {

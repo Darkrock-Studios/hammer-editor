@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
+import com.darkrockstudios.apps.hammer.base.markdown.ProseAlign
+import com.darkrockstudios.apps.hammer.base.markdown.keepsFirstLineIndent
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
@@ -255,7 +257,7 @@ private fun renderMarkdownRtf(
 		val runsOn = parsed.getOrNull(index + 1)?.isProseLine == true
 		val proseSpaceAfter = if (runsOn) 0 else PARAGRAPH_SPACE_AFTER
 		when (block) {
-			is ProseBlock.Paragraph -> blocks += bodyParagraph(block.spans, primary, proseSpaceAfter)
+			is ProseBlock.Paragraph -> blocks += bodyParagraph(block.spans, primary, proseSpaceAfter, block.align)
 			is ProseBlock.Image -> blocks += picture(block.imageId)?.let {
 				pictureBlock(it, previous = parsed.getOrNull(index - 1), next = parsed.getOrNull(index + 1))
 			} ?: bodyParagraph(block.spans, primary, proseSpaceAfter)
@@ -279,12 +281,13 @@ private fun bodyParagraph(
 	spans: List<ProseSpan>,
 	primary: RtfColor?,
 	spaceAfterTwips: Int = PARAGRAPH_SPACE_AFTER,
+	align: ProseAlign? = null,
 ): RtfParagraph = RtfParagraph(
 	content = coalesceRuns(spansToInlines(spans, RtfSpanStyle.Default, primary)),
 	style = RtfParagraphStyle(
-		firstLineIndentTwips = BODY_FIRST_LINE_INDENT,
+		firstLineIndentTwips = if (align.keepsFirstLineIndent) BODY_FIRST_LINE_INDENT else 0,
 		spaceAfterTwips = spaceAfterTwips,
-	),
+	).aligned(align),
 )
 
 /** [images] as [decode] gives them, each decoded at most once however often the story shows it. */
@@ -342,6 +345,14 @@ private fun rtfPicture(
 	)
 }
 
+private fun RtfParagraphStyle.aligned(align: ProseAlign?): RtfParagraphStyle = when (align) {
+	null -> this
+	ProseAlign.LEFT -> copy(alignment = RtfAlignment.Left)
+	ProseAlign.CENTER -> copy(alignment = RtfAlignment.Center)
+	ProseAlign.RIGHT -> copy(alignment = RtfAlignment.Right)
+	ProseAlign.JUSTIFY -> copy(alignment = RtfAlignment.Justify)
+}
+
 private fun headingParagraph(block: ProseBlock.Heading, primary: RtfColor?, secondary: RtfColor?): RtfParagraph {
 	val halfPoints = HEADING_HALF_POINTS[(block.level - 1).coerceIn(0, HEADING_HALF_POINTS.lastIndex)]
 	val color = when (block.level) {
@@ -356,7 +367,7 @@ private fun headingParagraph(block: ProseBlock.Heading, primary: RtfColor?, seco
 			spaceBeforeTwips = HEADING_SPACE_BEFORE,
 			spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
 			keepWithNext = true,
-		),
+		).aligned(block.align),
 	)
 }
 

@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
+import com.darkrockstudios.apps.hammer.base.markdown.AlignedProse
+import com.darkrockstudios.apps.hammer.base.markdown.ProseAlign
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
+import com.darkrockstudios.apps.hammer.base.markdown.stripAlignmentWrappers
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import org.intellij.markdown.IElementType
@@ -38,12 +41,12 @@ data class ProseListItem(
 /** A block-level markdown element, reduced to what the prose layout renders. */
 sealed interface ProseBlock {
 	/** One line of prose as the author typed it. */
-	data class Paragraph(val spans: List<ProseSpan>) : ProseBlock
+	data class Paragraph(val spans: List<ProseSpan>, val align: ProseAlign? = null) : ProseBlock
 
 	/** A blank line the author left between two passages. */
 	data object Blank : ProseBlock
 
-	data class Heading(val level: Int, val spans: List<ProseSpan>) : ProseBlock
+	data class Heading(val level: Int, val spans: List<ProseSpan>, val align: ProseAlign? = null) : ProseBlock
 	data class Listing(val ordered: Boolean, val items: List<ProseListItem>) : ProseBlock
 	data class Quote(val paragraphs: List<List<ProseSpan>>) : ProseBlock
 	data class CodeBlock(val code: String) : ProseBlock
@@ -80,9 +83,10 @@ fun parseProseMarkdown(
 	keepBlankLines: Boolean = true,
 	imageName: (imageId: Int) -> String? = { null },
 ): List<ProseBlock> {
-	val source = ProseHtml.normalizeLineEndings(markdown)
+	val aligned = stripAlignmentWrappers(ProseHtml.normalizeLineEndings(markdown))
+	val source = aligned.markdown
 	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(source)
-	val blocks = ProseWalker(source, imageName).blocks(root)
+	val blocks = ProseWalker(source, aligned, imageName).blocks(root)
 	return if (keepBlankLines) blocks else blocks.withoutParagraphGaps()
 }
 
@@ -122,6 +126,7 @@ private val HEADING_LEVELS: Map<IElementType, Int> = mapOf(
 
 private class ProseWalker(
 	private val source: String,
+	private val alignments: AlignedProse,
 	private val imageName: (imageId: Int) -> String?,
 ) {
 
@@ -187,10 +192,12 @@ private class ProseWalker(
 	/** A paragraph node, split into one block per line the author typed. */
 	private fun paragraphs(node: ASTNode): List<ProseBlock> =
 		if (node.children.isEmpty()) {
-			listOfNotNull(inline(node).ifEmpty { null }?.let { ProseBlock.Paragraph(it) })
+			listOfNotNull(inline(node).ifEmpty { null }?.let { ProseBlock.Paragraph(it, alignments.alignmentAt(node.startOffset)) })
 		} else {
 			lineNodes(node).mapNotNull { line ->
-				imageLine(line) ?: lineSpans(line).ifEmpty { null }?.let { ProseBlock.Paragraph(it) }
+				imageLine(line) ?: lineSpans(line).ifEmpty { null }?.let {
+					ProseBlock.Paragraph(it, line.firstOrNull()?.let { first -> alignments.alignmentAt(first.startOffset) })
+				}
 			}
 		}
 
@@ -250,7 +257,11 @@ private class ProseWalker(
 			?: node.findChildOfType(MarkdownTokenTypes.SETEXT_CONTENT)
 			?: return null
 		val spans = inline(content).ifEmpty { return null }
-		return ProseBlock.Heading(level = HEADING_LEVELS.getValue(node.type), spans = spans)
+		return ProseBlock.Heading(
+			level = HEADING_LEVELS.getValue(node.type),
+			spans = spans,
+			align = alignments.alignmentAt(node.startOffset),
+		)
 	}
 
 	private fun listItems(listNode: ASTNode, level: Int, ordered: Boolean): List<ProseListItem> {

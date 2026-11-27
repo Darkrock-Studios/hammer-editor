@@ -4,9 +4,13 @@ package com.darkrockstudios.apps.hammer.base.markdown
  * Counts the words in [text] by Unicode default word boundaries ([wordSpans]): a word holds at
  * least one letter or digit, so standalone Markdown markers (`---`, `#`, `-`, `>`) are not words.
  * An inline image, alt text and destination alike, is not prose and counts for nothing: the text
- * between images is segmented run by run, so an image also ends the word before it.
+ * between images is segmented run by run, so an image also ends the word before it. The tags of
+ * an alignment wrapper ([stripAlignmentWrappers]) are not words either.
  */
-fun countWords(text: String): Int = countedWordSpans(text).count()
+fun countWords(text: String): Int = countedWordSpans(countedProse(text)).count()
+
+/** [text] without the tags of its alignment wrappers: the prose whose words [countWords] counts. */
+fun countedProse(text: String): String = stripAlignmentWrappers(text).markdown
 
 /**
  * The spans of the words [countWords] counts, as indices into [text]: the [wordSpans] of each run

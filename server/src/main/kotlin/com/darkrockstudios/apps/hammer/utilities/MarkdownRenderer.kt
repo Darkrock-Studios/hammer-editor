@@ -69,6 +69,8 @@ class MarkdownRenderer {
 		// A list that starts at 5 has to say so, or it renders as 1.
 		.allowAttributes("start").matching(ORDERED_LIST_START).onElements("ol")
 		.allowAttributes("align").matching(COLUMN_ALIGNMENT).onElements("th", "td")
+		// An aligned paragraph or heading of story prose (ProseHtml).
+		.allowAttributes("class").matching(PROSE_ALIGNMENT).onElements("p", "h1", "h2", "h3", "h4", "h5", "h6")
 		.requireRelNofollowOnLinks()
 
 	/**
@@ -93,16 +95,14 @@ class MarkdownRenderer {
 	): String {
 		if (markdown.isBlank()) return ""
 
-		val source = ProseHtml.normalizeLineEndings(markdown)
-		val parsedTree = markdownParser.buildMarkdownTreeFromString(source)
-		val linkMap = LinkMap.buildLinkMap(parsedTree, source)
-		val providers = if (preserveLineBreaks) {
-			ProseHtml.providers(markdownFlavour, linkMap)
+		val unsafeHtml = if (preserveLineBreaks) {
+			ProseHtml.toHtml(markdown, markdownFlavour)
 		} else {
-			markdownFlavour.createHtmlGeneratingProviders(linkMap, null)
+			val source = ProseHtml.normalizeLineEndings(markdown)
+			val parsedTree = markdownParser.buildMarkdownTreeFromString(source)
+			val linkMap = LinkMap.buildLinkMap(parsedTree, source)
+			HtmlGenerator(source, parsedTree, markdownFlavour.createHtmlGeneratingProviders(linkMap, null)).generateHtml()
 		}
-
-		val unsafeHtml = HtmlGenerator(source, parsedTree, providers).generateHtml()
 		val policy = if (images) imageSanitizer else sanitizer
 		return policy.sanitize(unsafeHtml.strikethroughAsDel())
 	}
@@ -131,5 +131,6 @@ class MarkdownRenderer {
 		private val REQUIRE_SRC = ElementPolicy { name, attrs ->
 			name.takeIf { (attrs.indices step 2).any { attrs[it] == "src" } }
 		}
+		private val PROSE_ALIGNMENT: Pattern = Pattern.compile("align-(?:left|center|right|justify)")
 	}
 }

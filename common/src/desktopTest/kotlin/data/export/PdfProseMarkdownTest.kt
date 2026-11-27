@@ -1,9 +1,13 @@
 package data.export
 
+import com.darkrockstudios.apps.hammer.base.markdown.ProseAlign
 import com.darkrockstudios.apps.hammer.common.data.export.ProseBlock
 import com.darkrockstudios.apps.hammer.common.data.export.ProseSpan
 import com.darkrockstudios.apps.hammer.common.data.export.argbHexToPdfColor
 import com.darkrockstudios.apps.hammer.common.data.export.parseProseMarkdown
+import com.darkrockstudios.apps.hammer.common.data.export.pdfAlign
+import com.conamobile.pdfkmp.style.TextAlign
+import com.conamobile.pdfkmp.style.TextDirection
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -325,5 +329,32 @@ class PdfProseMarkdownTest {
 			listOf("Before after"),
 			blocks.map { (it as ProseBlock.Paragraph).spans.joinToString("") { span -> span.text } },
 		)
+	}
+
+	@Test
+	fun `an aligned line keeps its alignment and the blocks around it`() {
+		val wrapped = parseProseMarkdown("before\n<div align=\"center\">\n\n# Title\n\ncentred\n\n</div>\n\nafter")
+		val plain = parseProseMarkdown("before\n# Title\n\ncentred\nafter")
+
+		assertEquals(plain, wrapped.map {
+			when (it) {
+				is ProseBlock.Paragraph -> it.copy(align = null)
+				is ProseBlock.Heading -> it.copy(align = null)
+				else -> it
+			}
+		})
+		assertEquals(ProseAlign.CENTER, assertIs<ProseBlock.Heading>(wrapped[1]).align)
+		assertEquals(ProseAlign.CENTER, paragraph(wrapped.first { it is ProseBlock.Paragraph && it.spans.plain() == "centred" }).align)
+		assertNull(paragraph(wrapped.first()).align)
+		assertNull(paragraph(wrapped.last()).align)
+	}
+
+	@Test
+	fun `left and right stay on their side in a right-to-left paragraph`() {
+		assertEquals(TextAlign.End, ProseAlign.RIGHT.pdfAlign { TextDirection.Ltr })
+		assertEquals(TextAlign.Start, ProseAlign.RIGHT.pdfAlign { TextDirection.Rtl })
+		assertEquals(TextAlign.Start, ProseAlign.LEFT.pdfAlign { TextDirection.Ltr })
+		assertEquals(TextAlign.End, ProseAlign.LEFT.pdfAlign { TextDirection.Rtl })
+		assertEquals(TextAlign.Start, null.pdfAlign { TextDirection.Rtl })
 	}
 }

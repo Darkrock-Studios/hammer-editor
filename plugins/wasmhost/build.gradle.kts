@@ -26,6 +26,13 @@ kotlin {
 		compilerOptions {
 			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 		}
+
+		// The JIT compiles to DEX, so it is tested on a device.
+		withDeviceTestBuilder {
+			sourceSetTreeName = "test"
+		}.configure {
+			instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+		}
 	}
 	jvm("desktop") {
 		compilerOptions {
@@ -51,13 +58,30 @@ kotlin {
 		}
 		// One file for both JVM targets, which the default hierarchy gives no source set of their own.
 		getByName("desktopMain") { kotlin.srcDir("src/jvmSharedMain/kotlin") }
-		getByName("androidMain") { kotlin.srcDir("src/jvmSharedMain/kotlin") }
+		getByName("androidMain") {
+			kotlin.srcDir("src/jvmSharedMain/kotlin")
+			dependencies {
+				implementation(libs.chasm.jit)
+				implementation(libs.coroutines.core)
+			}
+		}
+		getByName("androidDeviceTest") {
+			// The same WAT fixtures and loaders the desktop tests use.
+			kotlin.srcDir("src/jvmSharedTest/kotlin")
+			resources.srcDir("src/desktopTest/resources")
+			dependencies {
+				implementation(kotlin("test"))
+				implementation(libs.androidx.runner)
+				implementation(libs.androidx.junit)
+			}
+		}
 		getByName("commonTest") {
 			dependencies {
 				implementation(kotlin("test"))
 			}
 		}
 		getByName("desktopTest") {
+			kotlin.srcDir("src/jvmSharedTest/kotlin")
 			dependencies {
 				implementation(libs.bundles.junit.jupiter)
 				implementation(libs.coroutines.test)

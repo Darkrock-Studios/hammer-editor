@@ -183,4 +183,10 @@ class WordCountTest {
 	fun `counted word spans skip an image inside a code span`() {
 		assertEquals(listOf(10..10), countedWordSpans("`![a](b)` c").toList())
 	}
+
+	@Test
+	fun `an alignment wrapper's tags are not words`() {
+		assertEquals(2, countWords("<div align=\"center\">\n\nTwo words\n\n</div>"))
+		assertEquals(3, countWords("<div align=\"center\">Two words</div> more"))
+	}
 }

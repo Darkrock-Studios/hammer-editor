@@ -47,6 +47,7 @@ fun Route.adminPage(
 	securityRepository: com.darkrockstudios.apps.hammer.monitoring.SecurityRepository,
 	userActivityRepository: com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository,
 	storyReaderRepository: com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository,
+	reviewStatsRepository: com.darkrockstudios.apps.hammer.monitoring.ReviewStatsRepository,
 	recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry,
 	healthService: com.darkrockstudios.apps.hammer.health.HealthService,
 	projectsSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<Long, com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession>,
@@ -60,7 +61,7 @@ fun Route.adminPage(
 			adminSettingsPage(configRepository)
 			adminMonitoringPages(
 				metricsRepository, configRepository, errorRepository, securityRepository,
-				userActivityRepository, storyReaderRepository, recurringTaskRegistry, healthService,
+				userActivityRepository, storyReaderRepository, reviewStatsRepository, recurringTaskRegistry, healthService,
 				projectsSyncManager, projectSyncManager, clock,
 			)
 			adminAllowedUsersPage()
