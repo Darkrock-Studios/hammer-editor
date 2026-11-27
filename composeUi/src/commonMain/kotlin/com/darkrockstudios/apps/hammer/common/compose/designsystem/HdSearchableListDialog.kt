@@ -34,8 +34,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 
 /**
  * Hairline dialog for picking one item from a long list, narrowed by a search field.
- * Use it when a [HdHairlineDropdown] would be unwieldy (dozens to hundreds of options,
- * e.g. every locale the platform knows).
+ * Use it when even a searchable [HdHairlineDropdown] would be unwieldy (hundreds of options,
+ * or rows that need a greeble, e.g. every locale the platform knows).
  *
  *     ┌───────────────────────────────────────────┐
  *     │ Choose a language                       × │

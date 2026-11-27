@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -29,18 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
@@ -79,7 +72,6 @@ fun <T> HdHairlineDropdown(
 	enabled: Boolean = true,
 ) {
 	var expanded by remember { mutableStateOf(false) }
-	var query by remember { mutableStateOf("") }
 	Column(
 		modifier = modifier.alpha(if (enabled) 1f else 0.45f),
 		verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -93,10 +85,7 @@ fun <T> HdHairlineDropdown(
 					.fillMaxWidth()
 					.heightIn(min = 36.dp)
 					.hdControlFrame(MaterialTheme.colorScheme.outlineVariant)
-					.clickable(enabled = enabled) {
-						query = ""
-						expanded = true
-					}
+					.clickable(enabled = enabled) { expanded = true }
 					.padding(horizontal = Ui.Padding.M, vertical = 6.dp),
 				verticalAlignment = Alignment.CenterVertically,
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
@@ -119,67 +108,106 @@ fun <T> HdHairlineDropdown(
 				expanded = expanded && enabled,
 				onDismissRequest = { expanded = false },
 			) {
-				val labelled = options.map { it to label(it) }
-				val needle = query.trim().folded()
-				val shown = if (needle.isEmpty()) labelled else labelled.filter { needle in it.second.folded() }
 				val pick: (T) -> Unit = {
 					onSelect(it)
 					expanded = false
 				}
 				if (options.size > SEARCHABLE_ABOVE) {
-					// The row Enter takes: the first match while typing; none before that, until an arrow key.
-					var highlight by remember(needle) { mutableStateOf(if (needle.isEmpty()) -1 else 0) }
-					DropdownSearch(
-						query = query,
-						onQueryChange = { query = it },
-						onMove = { step -> if (shown.isNotEmpty()) highlight = (highlight + step).coerceIn(0, shown.lastIndex) },
-						onEnter = {
-							val match = shown.getOrNull(highlight)
-							if (match != null) pick(match.first) else if (needle.isEmpty()) expanded = false
-						},
-					)
-					val revealed = if (highlight >= 0 || needle.isNotEmpty()) highlight else shown.indexOfFirst { it.first == selected }
-					val compact = LocalScreenCharacteristic.current.windowHeightClass == WindowHeightSizeClass.Compact
-					val scroll = rememberScrollState()
-					var rowHeight by remember { mutableStateOf(0) }
-					LaunchedEffect(revealed, needle, rowHeight) {
-						if (revealed < 0 || rowHeight == 0) return@LaunchedEffect
-						val top = revealed * rowHeight
-						val bottom = top + rowHeight
-						if (top < scroll.value) {
-							scroll.scrollTo(top)
-						} else if (bottom > scroll.value + scroll.viewportSize) {
-							scroll.scrollTo(bottom - scroll.viewportSize)
-						}
-					}
-					// The menu scrolls as a whole, so the options scroll on their own to keep the field in view.
-					Column(
-						modifier = Modifier
-							.heightIn(max = if (compact) 160.dp else 320.dp)
-							.verticalScroll(scroll),
-					) {
-						shown.forEachIndexed { i, (option, text) ->
-							DropdownOption(
-								text = text,
-								selected = option == selected,
-								highlighted = i == highlight,
-								// Every row is the same height, so the first one's places the rest.
-								modifier = if (i == 0) Modifier.onSizeChanged { rowHeight = it.height } else Modifier,
-							) { pick(option) }
-						}
-						if (shown.isEmpty()) {
-							Text(
-								text = Res.string.hd_dropdown_no_match.get(),
-								style = MaterialTheme.typography.bodyMedium,
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-								modifier = Modifier.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
-							)
-						}
-					}
+					SearchableOptions(options, selected, label, onPick = pick, onDismiss = { expanded = false })
 				} else {
-					shown.forEach { (option, text) -> DropdownOption(text, option == selected) { pick(option) } }
+					options.forEach { option -> DropdownOption(label(option), option == selected) { pick(option) } }
 				}
 			}
+		}
+	}
+}
+
+/** A search field over the options it narrows. Its state lasts as long as the menu is open. */
+@Composable
+private fun <T> SearchableOptions(
+	options: List<T>,
+	selected: T,
+	label: @Composable (T) -> String,
+	onPick: (T) -> Unit,
+	onDismiss: () -> Unit,
+) {
+	var query by remember { mutableStateOf("") }
+	val labels = options.map { label(it) }
+	val folded = remember(labels) { labels.map { it.folded() } }
+	val needle = remember(query) { query.trim().folded() }
+	// Indices into options.
+	val shown = remember(folded, needle) { options.indices.filter { needle in folded[it] } }
+	// The row Enter takes: the first match while typing; none before that, until an arrow key.
+	var highlight by remember(needle) { mutableStateOf(if (needle.isEmpty()) -1 else 0) }
+
+	val focus = remember { FocusRequester() }
+	if (hdDropdownSearchTakesFocus) {
+		LaunchedEffect(Unit) { focus.requestFocus() }
+	}
+	val hint = Res.string.hd_dropdown_search.get()
+	HdSearchField(
+		value = query,
+		onValueChange = { query = it },
+		placeholder = hint,
+		onSearch = {
+			if (highlight < 0) onDismiss() else shown.getOrNull(highlight)?.let { onPick(options[it]) }
+		},
+		focusRequester = focus,
+		testTag = HD_DROPDOWN_SEARCH_TAG,
+		modifier = Modifier
+			.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M)
+			// Wide enough that the menu doesn't shrink as the options narrow.
+			.widthIn(min = SEARCH_MIN_WIDTH)
+			.fillMaxWidth()
+			.semantics { contentDescription = hint }
+			.onPreviewKeyEvent { event ->
+				val step = when (event.key) {
+					Key.DirectionDown -> 1
+					Key.DirectionUp -> -1
+					else -> 0
+				}
+				val moves = step != 0 && event.type == KeyEventType.KeyDown
+				if (moves && shown.isNotEmpty()) highlight = (highlight + step).coerceIn(0, shown.lastIndex)
+				moves
+			},
+	)
+
+	val revealed = if (highlight >= 0) highlight else options.indexOf(selected)
+	val scroll = rememberScrollState()
+	var rowHeight by remember { mutableStateOf(0) }
+	LaunchedEffect(revealed, needle, rowHeight) {
+		if (revealed < 0 || rowHeight == 0) return@LaunchedEffect
+		val top = revealed * rowHeight
+		val bottom = top + rowHeight
+		if (top < scroll.value) {
+			scroll.scrollTo(top)
+		} else if (bottom > scroll.value + scroll.viewportSize) {
+			scroll.scrollTo(bottom - scroll.viewportSize)
+		}
+	}
+	val compact = LocalScreenCharacteristic.current.windowHeightClass == WindowHeightSizeClass.Compact
+	// The menu scrolls as a whole, so the options scroll on their own to keep the field in view.
+	Column(
+		modifier = Modifier
+			.heightIn(max = if (compact) LIST_MAX_HEIGHT_COMPACT else LIST_MAX_HEIGHT)
+			.verticalScroll(scroll),
+	) {
+		shown.forEachIndexed { row, i ->
+			DropdownOption(
+				text = labels[i],
+				selected = options[i] == selected,
+				highlighted = row == highlight,
+				// Every row is the same height, so the first one's places the rest.
+				modifier = if (row == 0) Modifier.onSizeChanged { rowHeight = it.height } else Modifier,
+			) { onPick(options[i]) }
+		}
+		if (shown.isEmpty()) {
+			Text(
+				text = Res.string.hd_dropdown_no_match.get(),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
+			)
 		}
 	}
 }
@@ -193,8 +221,9 @@ private fun DropdownOption(
 	onClick: () -> Unit,
 ) {
 	DropdownMenuItem(
-		modifier = modifier
-			.then(if (highlighted) Modifier.background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)) else Modifier),
+		modifier = modifier.then(
+			if (highlighted) Modifier.background(MaterialTheme.colorScheme.onSurface.copy(alpha = HIGHLIGHT_ALPHA)) else Modifier,
+		),
 		text = {
 			Text(
 				text = text,
@@ -212,58 +241,6 @@ private fun DropdownOption(
 	)
 }
 
-@Composable
-private fun DropdownSearch(
-	query: String,
-	onQueryChange: (String) -> Unit,
-	onMove: (step: Int) -> Unit,
-	onEnter: () -> Unit,
-) {
-	val focus = remember { FocusRequester() }
-	if (hdDropdownSearchTakesFocus) {
-		LaunchedEffect(Unit) { focus.requestFocus() }
-	}
-	val description = Res.string.hd_dropdown_search.get()
-	BasicTextField(
-		value = query,
-		onValueChange = onQueryChange,
-		singleLine = true,
-		textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-		cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-		keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-		keyboardActions = KeyboardActions(onDone = { onEnter() }),
-		modifier = Modifier
-			// Wide enough that the menu doesn't shrink as the options narrow.
-			.widthIn(min = 220.dp)
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M)
-			.focusRequester(focus)
-			.onPreviewKeyEvent { event ->
-				if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-				when (event.key) {
-					Key.DirectionDown -> onMove(1)
-					Key.DirectionUp -> onMove(-1)
-					else -> return@onPreviewKeyEvent false
-				}
-				true
-			}
-			.semantics { contentDescription = description }
-			.testTag(HD_DROPDOWN_SEARCH_TAG),
-		decorationBox = { field ->
-			Box {
-				if (query.isEmpty()) {
-					Text(
-						text = description,
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-				}
-				field()
-			}
-		},
-	)
-}
-
 /** Lower case, with the accents of Latin letters dropped, so "sao" finds "São". */
 private fun String.folded(): String = buildString(length) {
 	for (c in this@folded.lowercase()) {
@@ -277,6 +254,13 @@ private const val UNACCENTED = "aaaaaaceeeeiiiinooooouuuuyyaaaccccdeeeeegggghiii
 
 /** A dropdown with more options than this can be searched. */
 private const val SEARCHABLE_ABOVE = 10
+
+private val SEARCH_MIN_WIDTH = 220.dp
+private val LIST_MAX_HEIGHT = 320.dp
+private val LIST_MAX_HEIGHT_COMPACT = 160.dp
+
+/** The pressed tint of [hdInteractiveRow]. */
+private const val HIGHLIGHT_ALPHA = 0.10f
 
 const val HD_DROPDOWN_SEARCH_TAG = "hd-dropdown-search"
 

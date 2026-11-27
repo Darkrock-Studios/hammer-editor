@@ -2,7 +2,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -35,32 +34,31 @@ class HdHairlineDropdownTest {
 		"American", "Brazilian", "Chinese", "Dutch", "English", "Filipino",
 		"French", "German", "Greek", "Indian", "Iranian", "Irish",
 	)
-	private lateinit var selected: String
+	private var selected by mutableStateOf("")
+	private val search get() = compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG)
 
-	private fun showDropdown(options: List<String>, initial: String = options.first()) {
+	private fun openDropdown(options: List<String>, initial: String = options.first()) {
+		selected = initial
 		compose.setContent {
-			var current by remember { mutableStateOf(initial) }
-			selected = current
 			Box(modifier = Modifier.size(600.dp, 600.dp)) {
-				HdHairlineDropdown(options = options, selected = current, onSelect = { current = it }, label = { it })
+				HdHairlineDropdown(options = options, selected = selected, onSelect = { selected = it }, label = { it })
 			}
 		}
+		compose.onNodeWithText(initial).performClick()
 	}
 
 	@Test
 	fun `a long list opens on a focused search field and still lists everything`() {
-		showDropdown(cultures)
-		compose.onNodeWithText("American").performClick()
+		openDropdown(cultures)
 
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).assertIsFocused()
+		search.assertIsFocused()
 		cultures.drop(1).forEach { compose.onNodeWithText(it).assertExists() }
 	}
 
 	@Test
 	fun `typing narrows the options to the labels containing it, whatever the case`() {
-		showDropdown(cultures)
-		compose.onNodeWithText("American").performClick()
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performTextInput("ira")
+		openDropdown(cultures)
+		search.performTextInput("ira")
 
 		compose.onNodeWithText("Iranian").assertExists()
 		compose.onNodeWithText("Irish").assertDoesNotExist()
@@ -70,55 +68,50 @@ class HdHairlineDropdownTest {
 
 	@Test
 	fun `enter takes the first match`() {
-		showDropdown(cultures)
-		compose.onNodeWithText("American").performClick()
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performTextInput("gr")
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performImeAction()
+		openDropdown(cultures)
+		search.performTextInput("gr")
+		search.performImeAction()
 
 		compose.runOnIdle { assertEquals("Greek", selected) }
 	}
 
 	@Test
 	fun `enter with nothing typed closes the menu and keeps the selection`() {
-		showDropdown(cultures, initial = "Greek")
-		compose.onNodeWithText("Greek").performClick()
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performImeAction()
+		openDropdown(cultures, initial = "Greek")
+		search.performImeAction()
 
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).assertDoesNotExist()
+		search.assertDoesNotExist()
 		compose.runOnIdle { assertEquals("Greek", selected) }
 	}
 
 	@Test
 	fun `the arrow keys move through the matches and enter takes the one they are on`() {
-		showDropdown(cultures)
-		compose.onNodeWithText("American").performClick()
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performTextInput("ir")
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performKeyInput {
+		openDropdown(cultures)
+		search.performTextInput("ir")
+		search.performKeyInput {
 			pressKey(Key.DirectionDown)
 			pressKey(Key.DirectionUp)
 			pressKey(Key.DirectionDown)
 		}
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performImeAction()
+		search.performImeAction()
 
 		compose.runOnIdle { assertEquals("Irish", selected) }
 	}
 
 	@Test
 	fun `an arrow key with nothing typed starts at the first option`() {
-		showDropdown(cultures, initial = "Greek")
-		compose.onNodeWithText("Greek").performClick()
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performKeyInput { pressKey(Key.DirectionDown) }
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performImeAction()
+		openDropdown(cultures, initial = "Greek")
+		search.performKeyInput { pressKey(Key.DirectionDown) }
+		search.performImeAction()
 
 		compose.runOnIdle { assertEquals("American", selected) }
 	}
 
 	@Test
 	fun `nothing matching says so, and enter leaves the menu open`() {
-		showDropdown(cultures)
-		compose.onNodeWithText("American").performClick()
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performTextInput("zz")
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performImeAction()
+		openDropdown(cultures)
+		search.performTextInput("zz")
+		search.performImeAction()
 
 		compose.onNodeWithText("No match").assertExists()
 		compose.runOnIdle { assertEquals("American", selected) }
@@ -126,9 +119,8 @@ class HdHairlineDropdownTest {
 
 	@Test
 	fun `typing without accents finds an accented label`() {
-		showDropdown(cultures + "São Toméan")
-		compose.onNodeWithText("American").performClick()
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performTextInput("sao tome")
+		openDropdown(cultures + "São Toméan")
+		search.performTextInput("sao tome")
 
 		compose.onNodeWithText("São Toméan").assertExists()
 		compose.onNodeWithText("Brazilian").assertDoesNotExist()
@@ -137,17 +129,15 @@ class HdHairlineDropdownTest {
 	@Test
 	fun `the menu opens with the selected option in view`() {
 		val many = (1..40).map { "Option $it" }
-		showDropdown(many, initial = "Option 38")
-		compose.onNodeWithText("Option 38").performClick()
+		openDropdown(many, initial = "Option 38")
 
 		compose.onAllNodesWithText("Option 38")[1].assertIsDisplayed()
 	}
 
 	@Test
 	fun `reopening starts with nothing typed`() {
-		showDropdown(cultures)
-		compose.onNodeWithText("American").performClick()
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).performTextInput("dutch")
+		openDropdown(cultures)
+		search.performTextInput("dutch")
 		compose.onNodeWithText("Dutch").performClick()
 		compose.onNodeWithText("Dutch").performClick()
 
@@ -156,10 +146,9 @@ class HdHairlineDropdownTest {
 
 	@Test
 	fun `a short list has no search field`() {
-		showDropdown(cultures.take(4))
-		compose.onNodeWithText("American").performClick()
+		openDropdown(cultures.take(4))
 
-		compose.onNodeWithTag(HD_DROPDOWN_SEARCH_TAG).assertDoesNotExist()
+		search.assertDoesNotExist()
 		compose.onNodeWithText("Dutch").assertExists()
 	}
 }
