@@ -8,6 +8,7 @@ import java.awt.Component
 import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.Font
+import java.awt.GraphicsEnvironment
 import java.awt.GridLayout
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -218,6 +219,14 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 	val selectedPlatforms: MutableSet<Platform> = mutableSetOf()
 
 	System.setProperty("java.awt.headless", "false")
+	// AWT fixes headless mode the first time anything touches it, so a reused Gradle daemon that
+	// already ran headless work ignores the property above.
+	if (GraphicsEnvironment.isHeadless()) {
+		error(
+			"The release dialog needs a display, but this Gradle process is headless. " +
+				"Run `./gradlew --stop` and try again, or add --no-daemon."
+		)
+	}
 	FlatDarculaLaf.setup()
 
 	SwingUtilities.invokeAndWait {
