@@ -8,7 +8,10 @@ import getProjectDef
 import inGroup
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
@@ -63,6 +66,25 @@ class ProjectCachePathsTest {
 			ProjectCachePaths.cacheId(fileSystem, project),
 			ProjectCachePaths.cacheId(fileSystem, getProjectDef("山".repeat(86))),
 		)
+	}
+
+	@Test
+	fun `A folder is read only by the project that wrote it`() {
+		val project = getProject1Def()
+		val replacement = project.copy(id = ProjectId.randomUUID())
+		val dir = ProjectCachePaths.projectCacheDirectory(fileSystem, project)
+
+		val file = ProjectCachePaths.fileToWrite(fileSystem, dir, project, "a.toml")
+		fileSystem.write(file) { writeUtf8("a") }
+		fileSystem.write(dir / "b.toml") { writeUtf8("b") }
+
+		assertEquals(file, ProjectCachePaths.fileToRead(fileSystem, dir, project, "a.toml"))
+		assertNull(ProjectCachePaths.fileToRead(fileSystem, dir, replacement, "a.toml"))
+
+		ProjectCachePaths.fileToWrite(fileSystem, dir, replacement, "a.toml")
+		assertFalse(fileSystem.exists(dir / "a.toml"))
+		assertFalse(fileSystem.exists(dir / "b.toml"))
+		assertNull(ProjectCachePaths.fileToRead(fileSystem, dir, project, "b.toml"))
 	}
 
 	@Test

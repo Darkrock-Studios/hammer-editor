@@ -91,11 +91,6 @@ class StatisticsRepository(
 		_isDirty.value = false
 	}
 
-	/**
-	 * Check if cache exists.
-	 */
-	fun cacheExists(): Boolean = statisticsDatasource.exists()
-
 	override fun onScopeClose(scope: Scope) {
 		repositoryScope.cancel("StatisticsRepository Closed")
 	}

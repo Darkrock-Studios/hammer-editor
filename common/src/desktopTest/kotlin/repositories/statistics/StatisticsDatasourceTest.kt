@@ -5,24 +5,20 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatistics
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsCachePaths
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
-import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import getProject1Def
 import getProjectDef
 import inGroup
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
-import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -59,7 +55,6 @@ class StatisticsDatasourceTest : BaseTest() {
 	fun `Load returns null when cache file is missing`() = runTest(mainTestDispatcher) {
 		val datasource = createDatasource()
 		assertNull(datasource.loadStatistics())
-		assertFalse(datasource.exists())
 	}
 
 	@Test
@@ -68,10 +63,8 @@ class StatisticsDatasourceTest : BaseTest() {
 		val original = stats()
 
 		datasource.saveStatistics(original)
-		assertTrue(datasource.exists())
 
-		val loaded = datasource.loadStatistics()
-		assertEquals(original.copy(projectId = getProject1Def().id.id), loaded)
+		assertEquals(original, datasource.loadStatistics())
 	}
 
 	@Test
@@ -84,13 +77,12 @@ class StatisticsDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Load ignores statistics that name no project`() = runTest(mainTestDispatcher) {
+	fun `Load ignores statistics in a folder that names no project`() = runTest(mainTestDispatcher) {
 		val datasource = createDatasource()
 		datasource.saveStatistics(stats())
 
-		val cachePath = ffs.allPaths.first { it.name == StatisticsCachePaths.FILENAME }
-		val legacy = ffs.read(cachePath) { readUtf8() }.lines().filterNot { it.startsWith("projectId") }
-		ffs.write(cachePath) { writeUtf8(legacy.joinToString("\n")) }
+		val owner = ffs.allPaths.first { it.name == "project-id" }
+		ffs.delete(owner)
 
 		assertNull(datasource.loadStatistics())
 		assertNull(ProjectStatisticsCacheReader(ffs, toml).loadStatistics(getProject1Def()))
@@ -116,9 +108,8 @@ class StatisticsDatasourceTest : BaseTest() {
 
 			datasource.saveStatistics(stats())
 
-			val cacheRoot =
-				getCacheDirectory().toPath() / ProjectCachePaths.PROJECTS_DIRECTORY
-			val written = ffs.allPaths.first { it.name == StatisticsCachePaths.FILENAME }
+			val cacheRoot = ProjectCachePaths.projectsCacheRoot()
+			val written = ffs.allPaths.first { it.name == StatisticsDatasource.FILENAME }
 			assertTrue(
 				written.isWithin(cacheRoot),
 				"Statistics cache escaped the cache root: $written",
@@ -129,9 +120,9 @@ class StatisticsDatasourceTest : BaseTest() {
 	fun `Delete removes the cache file`() = runTest(mainTestDispatcher) {
 		val datasource = createDatasource()
 		datasource.saveStatistics(stats())
-		assertTrue(datasource.exists())
 
 		datasource.delete()
-		assertFalse(datasource.exists())
+		assertNull(datasource.loadStatistics())
+		assertTrue(ffs.allPaths.none { it.name == StatisticsDatasource.FILENAME })
 	}
 }

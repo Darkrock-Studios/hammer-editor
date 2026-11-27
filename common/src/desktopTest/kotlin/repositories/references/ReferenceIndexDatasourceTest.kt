@@ -7,20 +7,17 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
-import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import getProject1Def
 import getProjectDef
 import inGroup
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
-import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -48,7 +45,6 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 	fun `Load returns null when cache file is missing`() = runTest(mainTestDispatcher) {
 		val datasource = createDatasource()
 		assertNull(datasource.loadIndex())
-		assertFalse(datasource.exists())
 	}
 
 	@Test
@@ -61,10 +57,8 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 		)
 
 		datasource.saveIndex(original)
-		assertTrue(datasource.exists())
 
-		val loaded = datasource.loadIndex()
-		assertEquals(original.copy(projectId = getProject1Def().id.id), loaded)
+		assertEquals(original, datasource.loadIndex())
 	}
 
 	@Test
@@ -95,12 +89,11 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 		}
 
 	@Test
-	fun `Load ignores a cache that names no project`() = runTest(mainTestDispatcher) {
+	fun `Load ignores a cache folder that names no project`() = runTest(mainTestDispatcher) {
 		val datasource = createDatasource()
-		datasource.saveIndex(ReferenceIndex())
-
-		val cachePath = ffs.allPaths.first { it.name == ReferenceIndexDatasource.FILENAME }
-		ffs.write(cachePath) {
+		val dir = ProjectCachePaths.projectCacheDirectory(ffs, getProject1Def())
+		ffs.createDirectories(dir)
+		ffs.write(dir / ReferenceIndexDatasource.FILENAME) {
 			writeUtf8("schemaVersion = 1\nisDirty = false\n\n[entryToScenes]\n38 = [ 3 ]\n")
 		}
 
@@ -126,8 +119,7 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 
 			datasource.saveIndex(ReferenceIndex())
 
-			val cacheRoot =
-				getCacheDirectory().toPath() / ProjectCachePaths.PROJECTS_DIRECTORY
+			val cacheRoot = ProjectCachePaths.projectsCacheRoot()
 			val written = ffs.allPaths.first { it.name == ReferenceIndexDatasource.FILENAME }
 			assertTrue(
 				written.isWithin(cacheRoot),
@@ -139,9 +131,9 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 	fun `Delete removes the cache file`() = runTest(mainTestDispatcher) {
 		val datasource = createDatasource()
 		datasource.saveIndex(ReferenceIndex())
-		assertTrue(datasource.exists())
 
 		datasource.delete()
-		assertFalse(datasource.exists())
+		assertNull(datasource.loadIndex())
+		assertTrue(ffs.allPaths.none { it.name == ReferenceIndexDatasource.FILENAME })
 	}
 }

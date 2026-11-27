@@ -9,8 +9,6 @@ data class ReferenceIndex(
 	val isDirty: Boolean = false,
 	val lastCalculated: Instant? = null,
 	val entryToScenes: Map<Int, Set<Int>> = emptyMap(),
-	// The project this was calculated from: one replaced at the same path reuses the cache folder.
-	val projectId: String? = null,
 ) {
 	companion object {
 		const val CURRENT_SCHEMA_VERSION = 1

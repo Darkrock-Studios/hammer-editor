@@ -6,7 +6,6 @@ import createProject
 import getProjectDef
 import io.mockk.every
 import kotlinx.coroutines.test.runTest
-import okio.Path.Companion.toPath
 import org.junit.jupiter.api.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -32,8 +31,7 @@ class ProjectsRepositoryCacheCleanupTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Leaves every cache while the projects directory is missing`() = scope.runTest {
-		val missing = "/unmounted/Hammer".toPath()
-		every { settings.projectsDirectory } returns missing.toString()
+		every { settings.projectsDirectory } returns "/unmounted/Hammer"
 		val cache = cacheFolder("Some Project-0000000000000000")
 
 		projectsRepository().removeOrphanedProjectCaches()

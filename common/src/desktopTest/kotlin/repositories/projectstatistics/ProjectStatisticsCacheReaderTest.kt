@@ -1,7 +1,8 @@
 package repositories.projectstatistics
 
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsCachePaths
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import getProject1Def
 import okio.fakefilesystem.FakeFileSystem
@@ -23,8 +24,8 @@ class ProjectStatisticsCacheReaderTest {
 		val toml = createTomlSerializer()
 		val projectDef = getProject1Def()
 
-		val statsFile = StatisticsCachePaths.statsFile(fileSystem, projectDef)
-		fileSystem.createDirectories(statsFile.parent!!)
+		val dir = ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef)
+		val statsFile = ProjectCachePaths.fileToWrite(fileSystem, dir, projectDef, StatisticsDatasource.FILENAME)
 		fileSystem.write(statsFile) {
 			// "Title" is not a valid Int key for wordsByChapter: Map<Int, Int>.
 			writeUtf8(

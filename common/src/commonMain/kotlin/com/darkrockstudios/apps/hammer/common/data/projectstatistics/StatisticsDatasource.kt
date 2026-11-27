@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
@@ -21,45 +20,25 @@ class StatisticsDatasource(
 
 	override val projectScope = ProjectDefScope(projectDef)
 	private val dispatcherIo by injectIoDispatcher()
+	private val cacheDir by lazy { ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef) }
 
 	suspend fun loadStatistics(): ProjectStatistics? = withContext(dispatcherIo) {
 		readProjectStatistics(projectDef, fileSystem, toml)
 	}
 
 	suspend fun saveStatistics(stats: ProjectStatistics) = withContext(dispatcherIo) {
-		ensureCacheDirectoryExists()
-		val file = StatisticsCachePaths.statsFile(fileSystem, projectDef)
-		requireWithinCacheRoot(file)
-		fileSystem.writeToml(file, toml, stats.copy(projectId = projectDef.id.id))
+		val file = ProjectCachePaths.fileToWrite(fileSystem, cacheDir, projectDef, FILENAME)
+		fileSystem.writeToml(file, toml, stats)
 		Napier.d("Statistics saved to cache")
 	}
 
-	fun exists(): Boolean {
-		return fileSystem.exists(StatisticsCachePaths.statsFile(fileSystem, projectDef))
-	}
-
 	suspend fun delete() = withContext(dispatcherIo) {
-		val file = StatisticsCachePaths.statsFile(fileSystem, projectDef)
-		requireWithinCacheRoot(file)
-		if (fileSystem.exists(file)) {
-			fileSystem.delete(file)
-			Napier.d("Statistics cache deleted")
-		}
+		fileSystem.delete(cacheDir / FILENAME)
+		Napier.d("Statistics cache deleted")
 	}
 
-	private fun ensureCacheDirectoryExists() {
-		val cacheDir = ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef)
-		requireWithinCacheRoot(cacheDir)
-		if (!fileSystem.exists(cacheDir)) {
-			fileSystem.createDirectories(cacheDir)
-		}
-	}
-
-	private fun requireWithinCacheRoot(path: okio.Path) {
-		val cacheRoot = ProjectCachePaths.projectsCacheRoot()
-		if (!path.isWithin(cacheRoot)) {
-			error("Refusing to access statistics cache outside the cache root: $path")
-		}
+	companion object {
+		const val FILENAME = "stats.toml"
 	}
 }
 
@@ -73,10 +52,9 @@ fun readProjectStatistics(
 	fileSystem: FileSystem,
 	toml: Toml,
 ): ProjectStatistics? {
-	val file = StatisticsCachePaths.statsFile(fileSystem, projectDef)
-	if (!fileSystem.exists(file)) return null
-	val stats = fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
+	val dir = ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef)
+	val file = ProjectCachePaths.fileToRead(fileSystem, dir, projectDef, StatisticsDatasource.FILENAME) ?: return null
+	return fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
 		Napier.d("Failed to read statistics cache for ${projectDef.name}", e)
 	}
-	return stats?.takeIf { it.projectId == projectDef.id.id }
 }
