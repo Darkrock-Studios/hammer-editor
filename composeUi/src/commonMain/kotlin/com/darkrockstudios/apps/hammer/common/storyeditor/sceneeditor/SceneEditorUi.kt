@@ -53,6 +53,7 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.actions.rememberOverlayContextMenuState
 import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerEditorStyle
 import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerMarkdown
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.insertImageBlock
@@ -253,6 +254,7 @@ fun SceneEditorUi(
 
 					SpellCheckingTextEditor(
 						state = textEditorState,
+						contextMenuState = rememberOverlayContextMenuState(),
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,

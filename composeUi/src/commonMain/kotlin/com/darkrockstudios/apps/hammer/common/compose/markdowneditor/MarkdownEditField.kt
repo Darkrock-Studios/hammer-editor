@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
+import com.darkrockstudios.apps.hammer.common.compose.actions.rememberOverlayContextMenuState
 import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerEditorStyle
 import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerMarkdown
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
@@ -121,6 +122,7 @@ fun MarkdownEditField(
 		}
 		SpellCheckingTextEditor(
 			state = textEditorState,
+			contextMenuState = rememberOverlayContextMenuState(),
 			enabled = enabled,
 			autoFocus = autoFocus,
 			style = rememberHammerEditorStyle(textStyle = LocalEditorTextStyle.current.withParagraphIndent()),

@@ -11,7 +11,7 @@ import kotlin.test.assertNull
 
 class ReservedChordsTest {
 
-	/** composetexteditor 3.5.1 `CtrlKeyBindings` and `MacKeyBindings`; keep in sync on every texteditor upgrade. */
+	/** composetexteditor 3.6.0 `CtrlKeyBindings` and `MacKeyBindings`; keep in sync on every texteditor upgrade. */
 	private val editorChords = listOf(
 		ChordKey.A, ChordKey.C, ChordKey.X, ChordKey.B, ChordKey.I, ChordKey.U,
 		ChordKey.E, ChordKey.V, ChordKey.Y, ChordKey.Z,

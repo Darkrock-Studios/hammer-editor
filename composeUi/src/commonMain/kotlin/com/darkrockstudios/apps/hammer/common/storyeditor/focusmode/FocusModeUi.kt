@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.focusmode
 
+import com.darkrockstudios.apps.hammer.common.compose.actions.rememberOverlayContextMenuState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCloseButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -190,6 +191,7 @@ fun FocusModeUi(component: FocusMode) {
 
 					SpellCheckingTextEditor(
 						state = textEditorState,
+						contextMenuState = rememberOverlayContextMenuState(),
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
