@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Icon
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -64,7 +63,7 @@ fun <T : HdSortOption> HdSortMenu(
 			value = selected.glyphRes.get(),
 			onClick = { expanded = true },
 		)
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
 		) {
@@ -170,7 +169,7 @@ fun <T : HdSortOption> HdQuietSortMenu(
 				trailingIcon = Icons.Filled.ArrowDropDown,
 			)
 		}
-		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+		HdDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 			options.forEach { option ->
 				DropdownMenuItem(
 					text = {

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -43,6 +42,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdClearGlyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortPill
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -170,7 +170,7 @@ internal fun DrawingMenu(
 					.then(if (bandDescription != null) Modifier.semantics { contentDescription = bandDescription } else Modifier),
 			)
 		}
-		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+		HdDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 			MenuSection(Res.string.timeline_drawing_menu_view.get())
 			TimelineView.entries.forEach { view ->
 				MenuChoice(label = viewLabel(view), selected = view == state.view) {

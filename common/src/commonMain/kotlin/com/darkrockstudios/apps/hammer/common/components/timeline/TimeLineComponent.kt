@@ -21,8 +21,15 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.neighbour
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
+import com.darkrockstudios.apps.hammer.common.components.actions.stepAction
+import com.darkrockstudios.apps.hammer.common.components.replaceTop
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -41,8 +48,7 @@ class TimeLineComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val updateShouldClose: () -> Unit,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
 	private val onShowEntry: (EntryDef) -> Unit,
@@ -121,8 +127,7 @@ class TimeLineComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			selection = selection,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			onRequestNewTimeline = ::requestCreateTimeline,
 			onSelectTimeline = ::selectTimeline,
 		)
@@ -137,8 +142,7 @@ class TimeLineComponent(
 			projectDef = config.projectDef,
 			eventId = config.eventId,
 			onCloseEvent = ::showOverview,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			updateShouldClose = updateShouldClose,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 			onShowScene = onShowScene,
@@ -156,8 +160,7 @@ class TimeLineComponent(
 			projectDef = config.projectDef,
 			eventId = config.eventId,
 			onCloseEvent = dialogNavigation::dismiss,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			updateShouldClose = updateShouldClose,
 			onShowGlobalSearchForTag = { tag ->
 				dialogNavigation.dismiss()
@@ -183,7 +186,8 @@ class TimeLineComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			timelineId = config.timelineId,
-			onClose = ::showOverview
+			onClose = ::showOverview,
+			actions = actions,
 		)
 	}
 
@@ -210,6 +214,21 @@ class TimeLineComponent(
 
 	private val overview: TimeLineOverview?
 		get() = stack.value.items.firstNotNullOfOrNull { (it.instance as? TimeLine.Destination.TimeLineOverviewDestination)?.component }
+
+	/**
+	 * Steps the open event by [offset] in the order the overview lists the selected timeline. Not
+	 * live over a dirty edit, whose draft replacing the view would drop.
+	 */
+	private fun eventStep(offset: Int): ActionHandler = stepAction(
+		target = target@{
+			if (eventDialog.value.child != null) return@target null
+			val view = stack.value.active.instance as? TimeLine.Destination.ViewEventDestination ?: return@target null
+			if (view.component.isEditingAndDirty()) return@target null
+			val open = (stack.value.active.configuration as TimeLine.Config.ViewEventConfig).eventId
+			overview?.state?.value?.filtered?.listRows?.neighbour(offset) { it.event.id == open }?.event?.id
+		},
+		go = { eventId -> navigation.replaceTop(TimeLine.Config.ViewEventConfig(projectDef, eventId)) },
+	)
 
 	// The overview may be showing another timeline than the event's.
 	private fun onSelectedTimeline(eventId: Int): Boolean =
@@ -340,6 +359,20 @@ class TimeLineComponent(
 	}
 
 	init {
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(
+				HammerActions.ItemNew.id to ActionHandler(
+					isEnabled = {
+						_selection.value is TimelineSelection.Def &&
+							stack.value.active.configuration !is TimeLine.Config.CreateEventConfig
+					},
+				) { showCreateEvent() },
+				HammerActions.ItemNext.id to eventStep(1),
+				HammerActions.ItemPrev.id to eventStep(-1),
+			),
+		)
 		stateKeeper.register(SELECTION_KEY, TimelineSelection.serializer()) { _selection.value }
 		backHandler.register(dialogBackCallback)
 		stack.subscribe(lifecycle) {

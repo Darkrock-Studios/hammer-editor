@@ -178,9 +178,6 @@
 	<string name="sync_conflict_image_description">%1$s image, %2$s</string>
 	<string name="sync_conflict_image_unreadable">This image could not be displayed</string>
 
-	<string name="sync_menu_group">Sync</string>
-	<string name="sync_menu_item">Start Sync</string>
-
 	<string name="sync_status_in_progress">Syncing…</string>
 	<string name="sync_status_failed">Sync Failed</string>
 	<string name="sync_status_success">Sync Complete</string>

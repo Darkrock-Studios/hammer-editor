@@ -229,3 +229,8 @@ powerAssert {
 			compilation.defaultSourceSet.name == "desktopTest"
 	}
 }
+tasks.named<Test>("desktopTest") {
+	val doc = rootProject.file("docs/KEYBOARD-SHORTCUTS.md")
+	inputs.file(doc)
+	systemProperty("hammer.keyboardShortcutsDoc", doc.absolutePath)
+}

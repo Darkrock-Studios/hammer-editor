@@ -12,7 +12,6 @@
 	<string name="scene_editor_save_button">Salva</string>
 	<string name="scene_editor_metadata_button">Info scena</string>
 	<string name="scene_editor_toast_save_successful">Salvato</string>
-	<string name="scene_editor_menu_group">Scena</string>
 	<string name="scene_editor_menu_item_save_draft">Nuova bozza</string>
 	<string name="scene_editor_menu_item_view_drafts">Visualizza le bozze</string>
 	<string name="scene_editor_menu_item_rename">Rinomina</string>

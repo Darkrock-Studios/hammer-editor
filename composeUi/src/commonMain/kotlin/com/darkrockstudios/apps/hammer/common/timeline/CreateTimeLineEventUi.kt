@@ -92,6 +92,21 @@ fun CreateTimeLineEventUi(
 	val isEvent = state.kind == TimelineKind.EVENT
 	val canCreate = state.canCreate
 
+	val create = rememberCreateAction(scope, isEnabled = { canCreate }) {
+		val error = component.create(dateText, contentText.value, tags.toSet())
+		if (error == TimeLineEventError.NONE) {
+			scope.launch {
+				rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
+			}
+			dateText = ""
+			tags.clear()
+			resetVersion++
+			component.closeCreation()
+		} else {
+			error.toastText(strRes)?.let { scope.launch { rootSnackbar.showSnackbar(it) } }
+		}
+	}
+
 	HdCreateModal(
 		title = Res.string.timeline_create_header.get(),
 		modifier = modifier,
@@ -114,22 +129,7 @@ fun CreateTimeLineEventUi(
 				emphasised = true,
 				enabled = canCreate,
 				modifier = Modifier.testTag(TIME_LINE_CREATE_CONFIRM_TAG),
-				onClick = {
-					scope.launch {
-						val error = component.create(dateText, contentText.value, tags.toSet())
-						if (error == TimeLineEventError.NONE) {
-							launch {
-								rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
-							}
-							dateText = ""
-							tags.clear()
-							resetVersion++
-							component.closeCreation()
-						} else {
-							error.toastText(strRes)?.let { launch { rootSnackbar.showSnackbar(it) } }
-						}
-					}
-				},
+				onClick = create,
 			)
 		},
 	) {
@@ -162,6 +162,7 @@ fun CreateTimeLineEventUi(
 							optional = true,
 							placeholder = Res.string.timeline_title_placeholder.get(),
 							onFocusChanged = { titleFocused = it },
+							autoFocus = true,
 							testTag = TIME_LINE_CREATE_TITLE_TAG,
 						)
 					}

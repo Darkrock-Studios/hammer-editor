@@ -51,7 +51,6 @@
 	<string name="encyclopedia_entry_delete_toast">Verbete Excluído</string>
 	<string name="encyclopedia_entry_name_hint">Nome</string>
 	<string name="encyclopedia_entry_close_button">Fechar Verbete</string>
-	<string name="encyclopedia_entry_menu_group">Verbete</string>
 	<string name="encyclopedia_entry_menu_delete">Excluir Verbete</string>
 	<string name="encyclopedia_entry_menu_remove_image">Remover Imagem</string>
 	<string name="encyclopedia_entry_menu_add_image">Adicionar Imagem</string>

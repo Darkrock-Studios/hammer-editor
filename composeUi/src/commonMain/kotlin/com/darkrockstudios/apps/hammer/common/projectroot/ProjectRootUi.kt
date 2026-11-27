@@ -7,10 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,6 +21,8 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.commandpalette.CheatSheetUi
+import com.darkrockstudios.apps.hammer.common.commandpalette.CommandPaletteUi
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
@@ -30,9 +31,11 @@ import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
-import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
+import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
+import com.darkrockstudios.apps.hammer.common.compose.focus.FocusFirstPaneOnArrival
+import com.darkrockstudios.apps.hammer.common.compose.focus.ProvidePaneFocus
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchUi
@@ -53,8 +56,6 @@ import com.darkrockstudios.apps.hammer.ic_encyclopedia
 import com.darkrockstudios.apps.hammer.ic_home
 import com.darkrockstudios.apps.hammer.ic_notes
 import com.darkrockstudios.apps.hammer.ic_timeline
-import com.darkrockstudios.apps.hammer.save_all_toast
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.vectorResource
 
 private val WIDE_SCREEN_THRESHOLD = 650.dp
@@ -94,43 +95,40 @@ fun ProjectRootUi(
 	rootSnackbar: RootSnackbarHostState,
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
-	shortcutHost: ProjectShortcutHost? = null,
 ) {
-	val scope = rememberCoroutineScope()
-	val strRes = rememberStrRes()
-
-	if (shortcutHost != null) {
-		DisposableEffect(shortcutHost, component, rootSnackbar, scope, strRes) {
-			shortcutHost.bind(
-				startSync = { component.startProjectSync() },
-				saveAll = {
-					scope.launch {
-						component.storeDirtyBuffers()
-						rootSnackbar.showSnackbar(strRes.get(Res.string.save_all_toast))
-					}
-				},
-			)
-			onDispose { shortcutHost.unbind() }
-		}
-	}
+	Toaster(component, rootSnackbar)
 
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
-	ProvideProjectImages(component.projectDef) {
-		PluginActionHost(component.projectDef, disabledPlugins, rootSnackbar, navigate = component::openActionTarget) {
-			SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
-				FeatureContent(
-					modifier.fillMaxSize(),
-					component,
-					rootSnackbar,
-					navWidth,
-				)
-			}
+	ProvideActions(component.actions) {
+		ProvideProjectImages(component.projectDef) {
+			PluginActionHost(component.projectDef, disabledPlugins, rootSnackbar, navigate = component::openActionTarget) {
+				SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
+					ProvidePaneFocus {
+						FocusFirstPane(component)
+						FeatureContent(
+							modifier.fillMaxSize(),
+							component,
+							rootSnackbar,
+							navWidth,
+						)
+					}
+				}
 
-			ModalContent(component) { message ->
-				rootSnackbar.showSnackbar(message)
+				ModalContent(component) { message ->
+					rootSnackbar.showSnackbar(message)
+				}
+
+				// After the modal so it composes over focus mode.
+				CommandOverlayContent(component)
 			}
 		}
 	}
+}
+
+@Composable
+private fun FocusFirstPane(component: ProjectRoot) {
+	val routerState by component.routerState.subscribeAsState()
+	FocusFirstPaneOnArrival(routerState.active.configuration)
 }
 
 @Composable
@@ -201,6 +199,17 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 		is ProjectRoot.ModalDestination.ImageGalleryModal -> {
 			ImageGalleryModalContent(overlay.component)
 		}
+	}
+}
+
+@Composable
+fun CommandOverlayContent(component: ProjectRoot) {
+	val state by component.commandOverlayState.subscribeAsState()
+	// Keyed so a palette reopened during its predecessor's exit starts from fresh dialog state.
+	when (val overlay = state.child?.instance) {
+		null, ProjectRoot.CommandOverlay.None -> {}
+		is ProjectRoot.CommandOverlay.PaletteOverlay -> key(overlay.component) { CommandPaletteUi(overlay.component) }
+		is ProjectRoot.CommandOverlay.CheatSheetOverlay -> key(overlay.component) { CheatSheetUi(overlay.component) }
 	}
 }
 

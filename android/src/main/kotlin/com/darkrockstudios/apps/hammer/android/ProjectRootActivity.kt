@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -27,10 +28,11 @@ import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordRepeats
+import com.darkrockstudios.apps.hammer.common.components.actions.DoubleShiftDetector
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
-import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
-import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
+import com.darkrockstudios.apps.hammer.common.components.projectroot.confirmingProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
@@ -70,7 +72,8 @@ class ProjectRootActivity : AppCompatActivity() {
 	private val viewModel: ProjectRootViewModel by viewModels()
 
 	private var projectRoot: ProjectRoot? = null
-	private val shortcutHost = ProjectShortcutHost()
+	private val doubleShift = DoubleShiftDetector()
+	private val chordRepeats = ChordRepeats()
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -93,14 +96,7 @@ class ProjectRootActivity : AppCompatActivity() {
 
 			val deepLink = resolveDeepLink(intent)
 			val component = retainedComponent { componentContext ->
-				ProjectRootComponent(
-					componentContext = componentContext,
-					projectDef = projectDef,
-					addMenu = { /* Not needed on Android */ },
-					removeMenu = { /* Not needed on Android */ },
-					onCloseProject = { projectRoot?.requestClose() },
-					initialDeepLink = deepLink,
-				)
+				confirmingProjectRootComponent(componentContext, projectDef, deepLink)
 			}
 			projectRoot = component
 
@@ -185,26 +181,18 @@ class ProjectRootActivity : AppCompatActivity() {
 		settingsUpdateJob = null
 	}
 
+	// Ahead of Compose focus, so project chords work with nothing focused.
 	override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-		if (event.action == KeyEvent.ACTION_DOWN) {
-			// hasModifiers matches exactly, so AltGr chords fall through and type their character.
-			val ctrlShift = KeyEvent.META_CTRL_ON or KeyEvent.META_SHIFT_ON
-			if (event.keyCode == KeyEvent.KEYCODE_F && event.hasModifiers(ctrlShift)) {
-				projectRoot?.let {
-					it.showGlobalSearch()
-					return true
-				}
-			}
+		val actions = projectRoot?.actions
+		feedDoubleShift(doubleShift, actions, event.action, event.keyCode, event.eventTime)
+		return dispatchProjectKey(actions, chordRepeats, event.action, event.keyCode, event.metaState, event.repeatCount) ||
+			super.dispatchKeyEvent(event)
+	}
 
-			if (event.keyCode == KeyEvent.KEYCODE_F3 && event.hasNoModifiers()) {
-				if (shortcutHost.startProjectSync()) return true
-			}
-
-			if (event.keyCode == KeyEvent.KEYCODE_S && event.hasModifiers(ctrlShift)) {
-				if (shortcutHost.saveAllBuffers()) return true
-			}
-		}
-		return super.dispatchKeyEvent(event)
+	// A tap or click between two Shift taps (Shift+click) must not open the palette.
+	override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+		if (event.actionMasked == MotionEvent.ACTION_DOWN) doubleShift.reset()
+		return super.dispatchTouchEvent(event)
 	}
 
 	@Composable
@@ -224,7 +212,7 @@ class ProjectRootActivity : AppCompatActivity() {
 			component.requestClose()
 		}
 
-		ProjectRootScaffold(component, onCloseRequest = ::finish, shortcutHost = shortcutHost)
+		ProjectRootScaffold(component, onCloseRequest = ::finish)
 	}
 
 	companion object {

@@ -303,6 +303,8 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override fun loadScenes() {}
 	override suspend fun createScene(parent: SceneItem?, sceneName: String) {}
 	override suspend fun createGroup(parent: SceneItem?, groupName: String) {}
+	override fun beginCreate(kind: SceneList.CreateRequest.Kind, parent: SceneItem?) {}
+	override fun dismissCreate() {}
 	override suspend fun deleteScene(scene: SceneItem) {}
 	override suspend fun renameScene(scene: SceneItem, newName: String): Boolean = false
 	override fun onSceneListUpdate(scenes: SceneSummary) {}

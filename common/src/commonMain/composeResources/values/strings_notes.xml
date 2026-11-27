@@ -25,7 +25,6 @@
 	<string name="notes_delete_cancel">Cancel</string>
 	<string name="notes_delete_toast_success">Note deleted</string>
 
-	<string name="notes_menu_group">Note</string>
 	<string name="notes_menu_delete">Delete</string>
 
 	<string name="notes_view_label_editing">Editing</string>

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.theme
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.ProvideHdIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -132,8 +133,10 @@ fun AppTheme(
 			shapes = HammerShapes,
 			typography = hammerTypography(),
 		) {
-			ProvideRichTextStyles(isDark = useDarkTheme, settings = settings) {
-				content()
+			ProvideHdIndication {
+				ProvideRichTextStyles(isDark = useDarkTheme, settings = settings) {
+					content()
+				}
 			}
 		}
 	}

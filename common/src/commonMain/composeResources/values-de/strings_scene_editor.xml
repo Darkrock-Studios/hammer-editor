@@ -12,7 +12,6 @@
 	<string name="scene_editor_save_button">Speichern</string>
 	<string name="scene_editor_metadata_button">Szeneninfo</string>
 	<string name="scene_editor_toast_save_successful">Gespeichert</string>
-	<string name="scene_editor_menu_group">Szene</string>
 	<string name="scene_editor_menu_item_save_draft">Neuer Entwurf</string>
 	<string name="scene_editor_menu_item_view_drafts">Entwürfe anzeigen</string>
 	<string name="scene_editor_menu_item_rename">Umbenennen</string>

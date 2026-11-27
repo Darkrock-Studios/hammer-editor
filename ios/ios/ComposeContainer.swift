@@ -13,9 +13,8 @@ struct ComposeContainer: UIViewControllerRepresentable {
     let root: IosRoot
 
     func makeUIViewController(context: Context) -> UIViewController {
-        let shortcutHost = ProjectShortcutHost()
-        let compose = MainViewControllerKt.MainViewController(root: root, shortcutHost: shortcutHost)
-        return ShortcutHostController(shortcutHost: shortcutHost, content: compose)
+        let compose = MainViewControllerKt.MainViewController(root: root)
+        return ShortcutHostController(root: root, content: compose)
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
@@ -26,14 +25,11 @@ struct ComposeContainer: UIViewControllerRepresentable {
 /// them. UIKit key commands travel the responder chain instead and always reach this controller.
 final class ShortcutHostController: UIViewController {
 
-    /// UIKit reports function keys as these private-use characters (NSF3FunctionKey).
-    private static let f3Input = String(UnicodeScalar(0xF706)!)
-
-    private let shortcutHost: ProjectShortcutHost
+    private let root: IosRoot
     private let content: UIViewController
 
-    init(shortcutHost: ProjectShortcutHost, content: UIViewController) {
-        self.shortcutHost = shortcutHost
+    init(root: IosRoot, content: UIViewController) {
+        self.root = root
         self.content = content
         super.init(nibName: nil, bundle: nil)
     }
@@ -59,18 +55,37 @@ final class ShortcutHostController: UIViewController {
     override var canBecomeFirstResponder: Bool { true }
 
     override var keyCommands: [UIKeyCommand]? {
-        [
-            UIKeyCommand(input: Self.f3Input, modifierFlags: [], action: #selector(startSync)),
-            UIKeyCommand(input: "s", modifierFlags: [.command, .shift], action: #selector(saveAll)),
-            UIKeyCommand(input: "s", modifierFlags: [.control, .shift], action: #selector(saveAll)),
-        ]
+        guard let actions = root.currentActions() else { return [] }
+        return IosKeyCommandsKt.iosKeyCommands(keymap: actions.keymap).map { spec in
+            var flags: UIKeyModifierFlags = []
+            if spec.command { flags.insert(.command) }
+            if spec.shift { flags.insert(.shift) }
+            return UIKeyCommand(
+                action: #selector(performAction(_:)),
+                input: spec.input,
+                modifierFlags: flags,
+                propertyList: spec.actionId
+            )
+        }
     }
 
-    @objc private func startSync() {
-        _ = shortcutHost.startProjectSync()
+    /// A command whose action is not live right now is refused, so its key falls through to Compose.
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        guard action == #selector(performAction(_:)) else {
+            return super.canPerformAction(action, withSender: sender)
+        }
+        guard let actionId = (sender as? UIKeyCommand)?.propertyList as? String,
+              let actions = root.currentActions() else {
+            return false
+        }
+        return IosActionBridgeKt.isLiveRaw(actions, actionId: actionId)
     }
 
-    @objc private func saveAll() {
-        _ = shortcutHost.saveAllBuffers()
+    @objc private func performAction(_ sender: UIKeyCommand) {
+        guard let actionId = sender.propertyList as? String,
+              let actions = root.currentActions() else {
+            return
+        }
+        _ = IosActionBridgeKt.invokeRaw(actions, actionId: actionId)
     }
 }

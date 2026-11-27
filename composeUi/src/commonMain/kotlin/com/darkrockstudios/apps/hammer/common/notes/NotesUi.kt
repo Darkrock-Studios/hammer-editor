@@ -5,6 +5,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,6 +16,11 @@ import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.s
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.focus.FocusFirstPaneOnArrival
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.escapeToContainer
+import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
+import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -24,6 +30,12 @@ fun NotesUi(
 	modifier: Modifier = Modifier,
 ) {
 	val stack by component.stack.subscribeAsState()
+	val destination = stack.active.configuration
+	val browseCursor = rememberListCursorState()
+	LaunchedEffect(destination) {
+		if (destination is Notes.Config.ViewNoteConfig) browseCursor.placeOn(destination.noteId)
+	}
+	FocusFirstPaneOnArrival(destination, enabled = destination is Notes.Config.BrowseNotesConfig)
 
 	SharedTransitionLayout(modifier = modifier.fillMaxSize()) {
 		Box(modifier = Modifier.fillMaxSize()) {
@@ -44,16 +56,19 @@ fun NotesUi(
 					is Notes.Destination.BrowseNotesDestination -> {
 						BrowseNotesUi(
 							component = dest.component,
-							modifier = Modifier,
+							modifier = Modifier.focusPane(PaneId.List),
 							sharedTransitionScope = this@SharedTransitionLayout,
-							animatedVisibilityScope = this@ChildStack
+							animatedVisibilityScope = this@ChildStack,
+							cursor = browseCursor,
 						)
 					}
 
 					is Notes.Destination.ViewNoteDestination -> {
 						ViewNoteUi(
 							component = dest.component,
-							modifier = Modifier.align(Alignment.TopCenter),
+							modifier = Modifier.align(Alignment.TopCenter)
+								.escapeToContainer(PaneId.Detail)
+								.focusPane(PaneId.Detail),
 							rootSnackbar = rootSnackbar,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@ChildStack
@@ -61,7 +76,11 @@ fun NotesUi(
 					}
 
 					is Notes.Destination.CreateNoteDestination -> {
-						CreateNoteUi(dest.component, Modifier, rootSnackbar)
+						CreateNoteUi(
+							dest.component,
+							Modifier.focusPane(PaneId.Detail),
+							rootSnackbar,
+						)
 					}
 				}
 			}

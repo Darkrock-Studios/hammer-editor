@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -95,7 +94,7 @@ fun HdSplitButton(
 			) {
 				Icon(Icons.Filled.ArrowDropDown, contentDescription = menuContentDescription, tint = content)
 			}
-			DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+			HdDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 				menuItems.forEach { item ->
 					DropdownMenuItem(
 						text = { Text(item.label) },

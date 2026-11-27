@@ -51,7 +51,6 @@
 	<string name="encyclopedia_entry_delete_toast">Запис видалено</string>
 	<string name="encyclopedia_entry_name_hint">Назва</string>
 	<string name="encyclopedia_entry_close_button">Закрити запис</string>
-	<string name="encyclopedia_entry_menu_group">Запис</string>
 	<string name="encyclopedia_entry_menu_delete">Видалити запис</string>
 	<string name="encyclopedia_entry_menu_remove_image">Вилучити зображення</string>
 	<string name="encyclopedia_entry_menu_add_image">Додати зображення</string>

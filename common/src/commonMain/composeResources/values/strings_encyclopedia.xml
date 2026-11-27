@@ -65,7 +65,6 @@
 	<string name="encyclopedia_entry_confirm_cancel">Cancel</string>
 	<string name="encyclopedia_entry_name_hint">Name</string>
 	<string name="encyclopedia_entry_close_button">Close Entry</string>
-	<string name="encyclopedia_entry_menu_group">Entry</string>
 	<string name="encyclopedia_entry_menu_delete">Delete Entry</string>
 	<string name="encyclopedia_entry_menu_remove_image">Remove Image</string>
 	<string name="encyclopedia_entry_menu_add_image">Add Image</string>

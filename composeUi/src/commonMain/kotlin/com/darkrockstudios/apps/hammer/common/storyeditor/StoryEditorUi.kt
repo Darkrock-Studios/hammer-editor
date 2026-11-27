@@ -5,6 +5,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -14,12 +17,16 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.focus.FocusFirstPaneOnArrival
+import com.darkrockstudios.apps.hammer.common.compose.focus.LocalPaneFocus
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.escapeToPane
+import com.darkrockstudios.apps.hammer.common.compose.focus.focusPane
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftCompareUi
@@ -60,11 +67,28 @@ fun StoryEditorUi(
 		}
 
 		//val shouldShowList = (!isMultiPane && !component.isDetailShown()) || isMultiPane
+		val listState by component.listRouterState.subscribeAsState()
+		val listShown = listState.active.instance !is StoryEditor.ChildDestination.List.None
+		val detailShown = detailsState.active.instance !is StoryEditor.ChildDestination.Detail.None
+
+		// Single pane: the list comes back in place of a closed scene, with its cursor on that scene.
+		var lastSceneId by rememberSaveable { mutableStateOf<Int?>(null) }
+		val openSceneId = (detailsState.active.instance as? StoryEditor.ChildDestination.Detail.EditorDestination)
+			?.component?.state?.value?.sceneItem?.id
+		LaunchedEffect(openSceneId) {
+			if (openSceneId != null) lastSceneId = openSceneId
+		}
+		FocusFirstPaneOnArrival(
+			destination = listState.active.configuration.takeUnless { isMultiPane },
+			enabled = !isMultiPane && listShown,
+		)
+
 		ListPane(
-			routerState = component.listRouterState,
+			state = listState,
 			snackbarHostState = snackbarHostState,
-			modifier = listModifier,
+			modifier = listModifier.focusPane(PaneId.List, enabled = listShown),
 			isMultiPane = isMultiPane,
+			cursorOnArrival = lastSceneId.takeUnless { isMultiPane },
 		)
 
 		val detailsModifier = if (isMultiPane) {
@@ -74,12 +98,21 @@ fun StoryEditorUi(
 		} else {
 			Modifier.fillMaxSize()
 		}
+		val paneFocus = LocalPaneFocus.current
 		// Detail
 		DetailsPane(
 			state = detailsState,
 			isMultiPane = isMultiPane,
 			snackbarHostState = snackbarHostState,
-			modifier = detailsModifier,
+			modifier = detailsModifier
+				.escapeToPane {
+					when {
+						paneFocus == null || !detailShown -> false
+						isMultiPane && listShown -> paneFocus.escapeToList()
+						else -> paneFocus.escapeToContainer(PaneId.Detail)
+					}
+				}
+				.focusPane(PaneId.Detail, enabled = detailShown),
 			backHandler = component.backHandler,
 			onBack = component::onBack,
 		)
@@ -123,13 +156,12 @@ private fun SetMultiPane(component: StoryEditor) {
 
 @Composable
 private fun ListPane(
-	routerState: Value<ChildStack<*, StoryEditor.ChildDestination.List>>,
+	state: ChildStack<*, StoryEditor.ChildDestination.List>,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier,
 	isMultiPane: Boolean,
+	cursorOnArrival: Int?,
 ) {
-	val state by routerState.subscribeAsState()
-
 	Children(
 		stack = state,
 		modifier = modifier,
@@ -142,6 +174,7 @@ private fun ListPane(
 					snackbarHostState = snackbarHostState,
 					modifier = Modifier.fillMaxSize(),
 					inSplitPane = isMultiPane,
+					cursorOnArrival = cursorOnArrival,
 				)
 
 			is StoryEditor.ChildDestination.List.None -> Box {}

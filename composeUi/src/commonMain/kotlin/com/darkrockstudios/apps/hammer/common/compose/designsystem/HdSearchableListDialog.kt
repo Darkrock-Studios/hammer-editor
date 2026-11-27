@@ -6,7 +6,15 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -14,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.focus.isBareKeyDown
 
 /**
  * Hairline dialog for picking one item from a long list, narrowed by a search field.
@@ -55,6 +63,12 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  * list that clears the current selection. Selection and clear both dismiss.
  * [isSelected] marks the current item, and [clearSelected] the clear row when nothing is set;
  * the list opens scrolled to the current item.
+ *
+ * [filter] replaces the built-in match (it also sees a blank query). With [keyboardSelection],
+ * Up and Down in the search field move a highlight that starts on the first match, and Enter
+ * picks it. [autoFocusSearch] puts the caret in the search field on open. [itemTrailingContent]
+ * draws a row's trailing end in place of the [itemTrailing] greeble. [onDismissed] runs once the
+ * exit animation after [visible] turns false has played.
  */
 @Composable
 fun <T> HdSearchableListDialog(
@@ -73,6 +87,12 @@ fun <T> HdSearchableListDialog(
 	emptyLabel: String = "",
 	isSelected: (T) -> Boolean = { false },
 	clearSelected: Boolean = false,
+	blocksActions: Boolean = true,
+	filter: ((query: String, items: List<T>) -> List<T>)? = null,
+	keyboardSelection: Boolean = false,
+	autoFocusSearch: Boolean = false,
+	itemTrailingContent: (@Composable (T) -> Unit)? = null,
+	onDismissed: () -> Unit = {},
 ) {
 	var query by rememberSaveable { mutableStateOf("") }
 
@@ -80,7 +100,11 @@ fun <T> HdSearchableListDialog(
 		visible = visible,
 		onCloseRequest = onDismiss,
 		dismissOnTapOutside = true,
-		onDismissed = { query = "" },
+		onDismissed = {
+			query = ""
+			onDismissed()
+		},
+		blocksActions = blocksActions,
 	) {
 		HdSearchableListDialogContent(
 			title = title,
@@ -99,6 +123,10 @@ fun <T> HdSearchableListDialog(
 			emptyLabel = emptyLabel,
 			isSelected = isSelected,
 			clearSelected = clearSelected,
+			filter = filter,
+			keyboardSelection = keyboardSelection,
+			autoFocusSearch = autoFocusSearch,
+			itemTrailingContent = itemTrailingContent,
 		)
 	}
 }
@@ -122,13 +150,30 @@ internal fun <T> HdSearchableListDialogContent(
 	emptyLabel: String = "",
 	isSelected: (T) -> Boolean = { false },
 	clearSelected: Boolean = false,
+	filter: ((query: String, items: List<T>) -> List<T>)? = null,
+	keyboardSelection: Boolean = false,
+	autoFocusSearch: Boolean = false,
+	itemTrailingContent: (@Composable (T) -> Unit)? = null,
 ) {
 	val filtered = remember(items, query) {
-		if (query.isBlank()) items
-		else items.filter {
-			itemLabel(it).contains(query, ignoreCase = true) ||
-				itemTrailing?.invoke(it)?.contains(query, ignoreCase = true) == true
+		when {
+			filter != null -> filter(query, items)
+			query.isBlank() -> items
+			else -> items.filter {
+				itemLabel(it).contains(query, ignoreCase = true) ||
+					itemTrailing?.invoke(it)?.contains(query, ignoreCase = true) == true
+			}
 		}
+	}
+	var highlighted by remember(filtered) { mutableStateOf(0) }
+	val pick = { item: T ->
+		onSelect(item)
+		onDismissRequest()
+	}
+	val pickHighlighted = { filtered.getOrNull(highlighted)?.let(pick) }
+	val focusRequester = remember { FocusRequester() }
+	if (autoFocusSearch) {
+		LaunchedEffect(Unit) { focusRequester.requestFocus() }
 	}
 
 	HdHairlineDialogShell(
@@ -140,8 +185,38 @@ internal fun <T> HdSearchableListDialogContent(
 			value = query,
 			onValueChange = onQueryChange,
 			placeholder = searchPlaceholder,
+			onSearch = if (keyboardSelection) ({ pickHighlighted() }) else null,
 			onClear = { onQueryChange("") },
-			modifier = Modifier.fillMaxWidth(),
+			focusRequester = focusRequester,
+			modifier = Modifier
+				.fillMaxWidth()
+				.then(
+					if (keyboardSelection) {
+						Modifier.onPreviewKeyEvent { event ->
+							if (!event.isBareKeyDown()) return@onPreviewKeyEvent false
+							when (event.key) {
+								Key.DirectionDown -> {
+									highlighted = (highlighted + 1).coerceAtMost(filtered.lastIndex.coerceAtLeast(0))
+									true
+								}
+
+								Key.DirectionUp -> {
+									highlighted = (highlighted - 1).coerceAtLeast(0)
+									true
+								}
+
+								Key.Enter, Key.NumPadEnter -> {
+									pickHighlighted()
+									true
+								}
+
+								else -> false
+							}
+						}
+					} else {
+						Modifier
+					}
+				),
 		)
 
 		SpacerL()
@@ -188,17 +263,19 @@ internal fun <T> HdSearchableListDialogContent(
 				val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
 				// The keyed list would otherwise stay anchored on the selected item while filtering.
 				LaunchedEffect(query) { if (query.isNotBlank()) listState.scrollToItem(0) }
+				if (keyboardSelection) {
+					LaunchedEffect(highlighted) { listState.reveal(highlighted) }
+				}
 				LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
-					items(filtered, key = itemKey) { item ->
+					itemsIndexed(filtered, key = itemKey?.let { key -> { _, item -> key(item) } }) { index, item ->
 						PickerRow(
 							label = itemLabel(item),
 							trailing = itemTrailing?.invoke(item),
+							trailingContent = itemTrailingContent?.let { content -> { content(item) } },
 							muted = false,
 							selected = isSelected(item),
-							onClick = {
-								onSelect(item)
-								onDismissRequest()
-							},
+							highlighted = keyboardSelection && index == highlighted,
+							onClick = { pick(item) },
 						)
 						HorizontalDivider(
 							thickness = Dp.Hairline,
@@ -211,6 +288,22 @@ internal fun <T> HdSearchableListDialogContent(
 	}
 }
 
+/**
+ * Scrolls the least that shows all of row [index]. Unlike the lists' `revealItem`, a row off
+ * screen below lands at the bottom, so stepping down past the edge scrolls one row, not a page.
+ */
+private suspend fun LazyListState.reveal(index: Int) {
+	val info = layoutInfo
+	val row = info.visibleItemsInfo.firstOrNull { it.index == index }
+	when {
+		row == null && index < firstVisibleItemIndex -> scrollToItem(index)
+		row == null -> scrollToItem((index - info.visibleItemsInfo.size + 1).coerceAtLeast(0))
+		row.offset < info.viewportStartOffset -> scrollBy((row.offset - info.viewportStartOffset).toFloat())
+		row.offset + row.size > info.viewportEndOffset ->
+			scrollBy((row.offset + row.size - info.viewportEndOffset).toFloat())
+	}
+}
+
 @Composable
 private fun PickerRow(
 	label: String,
@@ -218,10 +311,13 @@ private fun PickerRow(
 	muted: Boolean,
 	selected: Boolean,
 	onClick: () -> Unit,
+	highlighted: Boolean = false,
+	trailingContent: (@Composable () -> Unit)? = null,
 ) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
+			.then(if (highlighted) Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh) else Modifier)
 			.clickable(onClick = onClick)
 			.padding(horizontal = Ui.Padding.M, vertical = Ui.Padding.L),
 		verticalAlignment = Alignment.CenterVertically,
@@ -245,7 +341,9 @@ private fun PickerRow(
 				modifier = Modifier.size(18.dp),
 			)
 		}
-		if (trailing != null) {
+		if (trailingContent != null) {
+			trailingContent()
+		} else if (trailing != null) {
 			HdMonoLabel(
 				text = trailing,
 				color = MaterialTheme.colorScheme.onSurfaceVariant,

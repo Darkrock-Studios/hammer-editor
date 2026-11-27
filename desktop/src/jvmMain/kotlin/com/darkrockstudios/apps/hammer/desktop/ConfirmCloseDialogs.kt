@@ -67,7 +67,6 @@ private fun UnsavedEntityConfirm(
 		discardLabel = discardButtonText(closeType),
 		onDiscard = { dismissDialog(ConfirmCloseResult.Discard, closeType) },
 		onKeep = { dismissDialog(ConfirmCloseResult.Cancel, closeType) },
-		onDismiss = {},
 	)
 }
 

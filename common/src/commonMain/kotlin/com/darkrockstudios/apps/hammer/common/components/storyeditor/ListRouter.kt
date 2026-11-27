@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.storyeditor
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneListComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -17,6 +18,7 @@ internal class ListRouter(
 	private val openSceneEditor: (sceneDef: SceneItem) -> Unit,
 	private val showOutlineOverview: () -> Unit,
 	private val showReaderMode: () -> Unit,
+	private val actions: ActionRegistrar,
 ) {
 	private val navigation = StackNavigation<Config>()
 
@@ -45,6 +47,7 @@ internal class ListRouter(
 			openSceneEditor = openSceneEditor,
 			showOutlineOverviewDialog = showOutlineOverview,
 			showReader = showReaderMode,
+			actions = actions,
 		)
 
 	fun moveToBackStack() {

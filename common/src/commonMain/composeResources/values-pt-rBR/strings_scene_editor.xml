@@ -12,7 +12,6 @@
 	<string name="scene_editor_save_button">Salvar</string>
 	<string name="scene_editor_metadata_button">Informações da Cena</string>
 	<string name="scene_editor_toast_save_successful">Salvo</string>
-	<string name="scene_editor_menu_group">Cena</string>
 	<string name="scene_editor_menu_item_save_draft">Novo Rascunho</string>
 	<string name="scene_editor_menu_item_view_drafts">Ver Rascunhos</string>
 	<string name="scene_editor_menu_item_rename">Renomear</string>

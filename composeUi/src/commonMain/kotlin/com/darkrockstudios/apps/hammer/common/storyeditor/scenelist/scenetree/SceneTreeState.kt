@@ -3,9 +3,11 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -15,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.layout.LayoutCoordinates
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
@@ -22,6 +25,8 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorStep
+import com.darkrockstudios.apps.hammer.common.compose.focus.revealItem
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -48,6 +53,7 @@ fun rememberReorderableLazyListState(
 	val coroutineScope = rememberCoroutineScope()
 	val listState = rememberLazyListState()
 	val collapsedNodes = rememberSaveable(saver = collapsedNotesSaver) { mutableStateMapOf() }
+	val cursor = rememberSaveable { mutableIntStateOf(SceneTreeState.NO_SELECTION) }
 
 	return remember {
 		SceneTreeState(
@@ -55,7 +61,8 @@ fun rememberReorderableLazyListState(
 			moveItem = moveItem,
 			coroutineScope = coroutineScope,
 			listState = listState,
-			collapsedNodes = collapsedNodes
+			collapsedNodes = collapsedNodes,
+			cursor = cursor,
 		)
 	}
 }
@@ -67,10 +74,14 @@ class SceneTreeState(
 	val coroutineScope: CoroutineScope,
 	val listState: LazyListState,
 	val collapsedNodes: SnapshotStateMap<Int, Boolean>,
+	cursor: MutableIntState = mutableIntStateOf(NO_SELECTION),
 ) {
 	internal var summary by mutableStateOf(sceneSummary)
 	var selectedId by mutableStateOf(NO_SELECTION)
 	var selectedNode by mutableStateOf<TreeValue<SceneItem>?>(null)
+
+	/** The keyboard cursor's row id, [NO_SELECTION] until the first move. */
+	var cursorId by cursor
 
 	/** The rows the tree renders, in display order — also the drag handler's id → node lookup. */
 	val visibleNodes: List<TreeValue<SceneItem>> by derivedStateOf {
@@ -285,6 +296,109 @@ class SceneTreeState(
 	fun toggleExpanded(nodeId: Int) {
 		val collapse = !(collapsedNodes[nodeId] ?: false)
 		collapsedNodes[nodeId] = collapse
+	}
+
+	/** The cursor's row; a cursor hidden in a collapsed group stands on the group that hides it. */
+	private fun cursorIndex(): Int {
+		val nodes = visibleNodes
+		val shown = nodes.indexOfFirst { it.value.id == cursorId }
+		if (shown >= 0 || cursorId == NO_SELECTION) return shown
+		val tree = summary.sceneTree
+		val node = tree.findBy { it.id == cursorId } ?: return -1
+		val ids = tree.getBranch(node.index, true).map { it.value.id }
+		return ids.asReversed().firstNotNullOfOrNull { id ->
+			nodes.indexOfFirst { it.value.id == id }.takeIf { it >= 0 }
+		} ?: -1
+	}
+
+	internal fun cursorNode(): TreeValue<SceneItem>? = visibleNodes.getOrNull(cursorIndex())
+
+	/** The row the cursor stands on, which is the hiding group's when its own row is collapsed away. */
+	val cursorRowId: Int by derivedStateOf { cursorNode()?.value?.id ?: NO_SELECTION }
+
+	private fun setCursorIndex(index: Int) {
+		val node = visibleNodes.getOrNull(index) ?: return
+		cursorId = node.value.id
+		coroutineScope.launch { listState.revealItem(index, key = node.value.id) }
+	}
+
+	/** Up, Down, Home or End over the visible rows, as [listCursorStep] moves a list's cursor. */
+	fun stepCursor(key: Key) {
+		listCursorStep(cursorIndex(), visibleNodes.size, key)?.let(::setCursorIndex)
+	}
+
+	fun cursorToStart() = setCursorIndex(0)
+
+	/** A collapsed group expands; an expanded group steps into its first child; a scene stays. */
+	fun cursorRight() {
+		val node = cursorNode() ?: return cursorToStart()
+		if (!node.value.type.isCollection) return
+		if (collapsedNodes[node.value.id] == true) {
+			collapsedNodes[node.value.id] = false
+		} else {
+			node.children.firstOrNull()?.let { child ->
+				setCursorIndex(visibleNodes.indexOfFirst { it.value.id == child.value.id })
+			}
+		}
+	}
+
+	/** An expanded group collapses; anything else steps out to its parent, never to the root. */
+	fun cursorLeft() {
+		val node = cursorNode() ?: return cursorToStart()
+		if (node.value.type.isCollection && collapsedNodes[node.value.id] != true) {
+			collapsedNodes[node.value.id] = true
+			cursorId = node.value.id
+			return
+		}
+		val parent = summary.sceneTree[node.parent]
+		if (parent.value.isRootScene) return
+		setCursorIndex(visibleNodes.indexOfFirst { it.value.id == parent.value.id })
+	}
+
+	/** Expands the groups around [id], puts the cursor on it and scrolls it into view. */
+	fun revealCursor(id: Int) {
+		val tree = summary.sceneTree
+		val node = tree.findBy { it.id == id } ?: return
+		tree.getBranch(node.index, excludeLeaf = true).forEach { collapsedNodes.remove(it.value.id) }
+		setCursorIndex(visibleNodes.indexOfFirst { it.value.id == id })
+	}
+
+	private var openSceneId: Int? = null
+	private var openSceneChanged = false
+
+	internal fun setOpenScene(id: Int?) {
+		if (id == openSceneId) return
+		openSceneId = id
+		openSceneChanged = true
+	}
+
+	/**
+	 * Gives the focused tree a cursor: the open scene when the cursor has none yet, or when a
+	 * scene was opened some other way (a next-scene chord) since; with no open scene and no
+	 * cursor, the first row. Collapsed groups stay as they are.
+	 */
+	internal fun followOpenScene() {
+		val open = openSceneId
+		val followOpen = open != null && (cursorId == NO_SELECTION || openSceneChanged)
+		openSceneChanged = false
+		if (followOpen) {
+			cursorId = open
+		} else if (cursorIndex() >= 0) {
+			return
+		}
+		val index = cursorIndex()
+		if (index < 0) return cursorToStart()
+		val node = visibleNodes[index]
+		coroutineScope.launch { listState.revealItem(index, key = node.value.id) }
+	}
+
+	/**
+	 * A click on row [id] puts the cursor there. A scene opened elsewhere before the click must
+	 * not pull the cursor off the clicked row when the tree takes focus, so that is forgotten.
+	 */
+	internal fun cursorFromPointer(id: Int) {
+		cursorId = id
+		openSceneChanged = false
 	}
 
 	companion object {

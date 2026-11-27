@@ -383,7 +383,7 @@ Each feature is a `ChildStack` with Browse, View and Create configs. Copy `notes
 `Notes.kt` (interface, `Destination`, `@Serializable Config`), `NotesComponent.kt` (`createChild`,
 `isAtRoot`, `shouldConfirmClose`, `isUnsaved`, `discardUnsaved`, child factories,
 `childStack(key = "XRouter")`), `BrowseNotesComponent`, `ViewNoteComponent` (stateKeeper draft,
-`BackCallback` while editing, `addMenu`/`removeMenu`, `isEditingAndDirty`) and
+`BackCallback` while editing, `state.menuItems` set on start and cleared on stop, `isEditingAndDirty`) and
 `CreateNoteComponent`. Browse and View/Create components extend `TagSuggesting` if tagged.
 
 `isUnsaved` in the copied router has an `else -> false`: list your own View and Create
@@ -465,7 +465,8 @@ keys in the shared files:
   the "all four" captions if the type is tagged.
 - `strings_sync.xml`: `sync_conflict_x_title`, `sync_conflict_entity_label_x`,
   `sync_conflict_title_x_field_*`, `sync_x_deleted`.
-- [KEYBOARD-SHORTCUTS.md](KEYBOARD-SHORTCUTS.md): add the view screen to the Editors table.
+- [KEYBOARD-SHORTCUTS.md](KEYBOARD-SHORTCUTS.md): give the view screen `escapeToContainer` and
+  `focusPane(PaneId.Detail)` as the other modules do (the Panes and Esc sections).
 
 ## 7. Operations and plugins
 
@@ -589,7 +590,7 @@ Update the coverage map in `integrationTests/README.md`.
   content directories `healUnmarkedProjectDirectories` looks for.
 - [DESIGN-PATTERNS.md](DESIGN-PATTERNS.md): the deep-link and search enumeration.
 - [CLIENT-PLUGINS.md](CLIENT-PLUGINS.md): see section 7.
-- [KEYBOARD-SHORTCUTS.md](KEYBOARD-SHORTCUTS.md): Editors table.
+- [KEYBOARD-SHORTCUTS.md](KEYBOARD-SHORTCUTS.md): the Panes and Esc sections.
 - `integrationTests/README.md`: coverage map.
 
 ## 11. The silent list

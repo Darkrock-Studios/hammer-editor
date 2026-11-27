@@ -34,6 +34,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,11 +96,20 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.ListCursorState
+import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardListNavigation
+import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorItem
+import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
+import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
+import com.darkrockstudios.apps.hammer.common.compose.focus.revealItem
+import com.darkrockstudios.apps.hammer.common.compose.focus.laneRowStep
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.help.HelpButton
 import com.darkrockstudios.apps.hammer.common.help.HelpScreen
 
 const val NOTES_CREATE_FAB_TAG = "notes-create-fab"
+const val NOTES_GRID_TAG = "notes-grid"
 fun noteCardTag(id: Int) = "note-card-$id"
 
 private enum class NotesSortMode(
@@ -140,6 +150,7 @@ fun BrowseNotesUi(
 	modifier: Modifier = Modifier,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	cursor: ListCursorState = rememberListCursorState(),
 ) {
 	val state by component.state.subscribeAsState()
 	val tagIndex by component.rankedTags.subscribeAsState()
@@ -174,6 +185,8 @@ fun BrowseNotesUi(
 		}
 		applySort(byTags, sortMode)
 	}
+	val noteKeys = remember(visibleNotes) { visibleNotes.map { it.id } }
+	LaunchedEffect(visibleNotes) { component.onVisibleOrderChanged(noteKeys) }
 
 	val toggleTag: (String) -> Unit = { tag ->
 		activeTags = if (tag in activeTags) activeTags - tag else activeTags + tag
@@ -325,7 +338,17 @@ fun BrowseNotesUi(
 			LazyVerticalStaggeredGrid(
 				state = gridState,
 				columns = StaggeredGridCells.Adaptive(400.dp),
-				modifier = Modifier.fillMaxSize(),
+				modifier = Modifier
+					.fillMaxSize()
+					.testTag(NOTES_GRID_TAG)
+					.paneEntry(PaneId.List)
+					.keyboardListNavigation(
+						state = cursor,
+						keys = noteKeys,
+						onActivate = { component.viewNote(visibleNotes[it].id) },
+						scrollToItem = gridState::revealItem,
+						rowStep = gridState.laneRowStep(),
+					),
 				contentPadding = PaddingValues(
 					horizontal = Ui.Padding.XL,
 					vertical = Ui.Padding.L,
@@ -342,7 +365,8 @@ fun BrowseNotesUi(
 						onTagClick = toggleTag,
 						sharedTransitionScope = sharedTransitionScope,
 						animatedVisibilityScope = animatedVisibilityScope,
-						modifier = Modifier.padding(bottom = Ui.Padding.L),
+						modifier = Modifier.padding(bottom = Ui.Padding.L)
+							.listCursorItem(cursor, note.id),
 						onClick = { component.viewNote(note.id) },
 					)
 				}

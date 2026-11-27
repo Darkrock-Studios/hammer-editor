@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
 import androidx.compose.foundation.ScrollState
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionId
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.ChordLabel
+import com.darkrockstudios.apps.hammer.common.compose.actions.ChordTooltipText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -28,7 +32,6 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TableChart
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -58,6 +61,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.mouseScrollsSideways
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.boldShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.icons.EditorIcons
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconBold
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconItalic
@@ -138,6 +142,7 @@ import com.darkrockstudios.texteditor.state.tableCellAt
 import com.darkrockstudios.texteditor.state.toggleSpanStyle
 
 const val MARKDOWN_FORMAT_BAR_INSERT_IMAGE_TAG = "markdown-format-bar-insert-image"
+const val MARKDOWN_FORMAT_BAR_TABLE_TAG = "markdown-format-bar-table"
 
 /**
  * The editor's format bar. [extended] adds highlight, task lists and tables, which the
@@ -287,7 +292,7 @@ private fun RowScope.FormatButtons(
 	alignmentRefused: Boolean,
 	onAlign: (TextAlign?) -> Unit,
 ) {
-	EditorTooltip("${Res.string.markdown_format_bar_bold.get()} (${shortcutHint("B")})") {
+	EditorTooltip(Res.string.markdown_format_bar_bold.get(), HammerActions.EditBold.id) {
 		EditorAction(
 			icon = EditorIcons.IconBold,
 			active = isBoldActive,
@@ -295,7 +300,7 @@ private fun RowScope.FormatButtons(
 			state.toggleSpanStyle(state.richTextStyles.boldStyle)
 		}
 	}
-	EditorTooltip("${Res.string.markdown_format_bar_italic.get()} (${shortcutHint("I")})") {
+	EditorTooltip(Res.string.markdown_format_bar_italic.get(), HammerActions.EditItalic.id) {
 		EditorAction(
 			icon = EditorIcons.IconItalic,
 			active = isItalicActive,
@@ -303,14 +308,7 @@ private fun RowScope.FormatButtons(
 			state.toggleSpanStyle(state.richTextStyles.italicStyle)
 		}
 	}
-	EditorTooltip(
-		"${Res.string.markdown_format_bar_strikethrough.get()} (${
-			shortcutHint(
-				"X",
-				shift = true
-			)
-		})"
-	) {
+	EditorTooltip(Res.string.markdown_format_bar_strikethrough.get(), HammerActions.EditStrikethrough.id) {
 		EditorAction(
 			icon = EditorIcons.IconStrikethrough,
 			active = isStrikethroughActive,
@@ -386,7 +384,7 @@ private fun RowScope.FormatButtons(
 		}
 	}
 	if (onInsertImage != null) {
-		EditorTooltip("${Res.string.markdown_format_bar_image.get()} (${shortcutHint("I", shift = true)})") {
+		EditorTooltip(Res.string.markdown_format_bar_image.get(), HammerActions.EditInsertImage.id) {
 			Box(modifier = Modifier.testTag(MARKDOWN_FORMAT_BAR_INSERT_IMAGE_TAG)) {
 				// An image is a block of its own, refused where a rule is.
 				EditorAction(
@@ -411,15 +409,17 @@ private fun TableMenu(state: TextEditorState, tableLine: Int?) {
 	var open by remember { mutableStateOf(false) }
 	Box {
 		EditorTooltip(Res.string.markdown_format_bar_table.get()) {
-			EditorAction(
-				icon = Icons.Default.TableChart,
-				active = tableLine != null,
-			) {
-				open = true
+			Box(modifier = Modifier.testTag(MARKDOWN_FORMAT_BAR_TABLE_TAG)) {
+				EditorAction(
+					icon = Icons.Default.TableChart,
+					active = tableLine != null,
+				) {
+					open = true
+				}
 			}
 		}
 		// Not focusable, so the editor keeps focus and typing goes on in the table.
-		DropdownMenu(expanded = open, onDismissRequest = { open = false }, properties = PopupProperties(focusable = false)) {
+		HdDropdownMenu(expanded = open, onDismissRequest = { open = false }, properties = PopupProperties(focusable = false)) {
 			@Composable
 			fun item(label: String, action: () -> Unit) = DropdownMenuItem(text = { Text(label) }, onClick = {
 				open = false
@@ -486,7 +486,7 @@ private fun AlignmentMenu(
 				expanded = true
 			}
 		}
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
 		) {
@@ -529,11 +529,16 @@ internal fun alignParagraphs(state: TextEditorState, align: TextAlign?) {
 @Composable
 private fun EditorTooltip(
 	text: String,
+	action: ActionId? = null,
 	content: @Composable () -> Unit,
 ) {
 	TooltipBox(
 		positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
-		tooltip = { PlainTooltip { Text(text) } },
+		tooltip = {
+			PlainTooltip {
+				if (action != null) ChordTooltipText(text, action) else Text(text)
+			}
+		},
 		state = rememberTooltipState(),
 	) {
 		content()
@@ -580,7 +585,7 @@ private fun HistoryAndOverflow(
 				menuExpanded = true
 			}
 		}
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = menuExpanded,
 			onDismissRequest = { menuExpanded = false },
 		) {
@@ -593,6 +598,7 @@ private fun HistoryAndOverflow(
 							contentDescription = null,
 						)
 					},
+					trailingIcon = { ChordLabel(HammerActions.EditFind.id) },
 					onClick = {
 						onFindReplace()
 						menuExpanded = false

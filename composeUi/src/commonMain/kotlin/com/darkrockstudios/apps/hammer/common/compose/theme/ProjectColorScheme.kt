@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.theme
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.ProvideHdIndication
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -73,8 +74,9 @@ fun ProjectThemeOverride(
 			colorScheme = derived,
 			typography = MaterialTheme.typography,
 			shapes = MaterialTheme.shapes,
-			content = content,
-		)
+		) {
+			ProvideHdIndication(content)
+		}
 	}
 }
 

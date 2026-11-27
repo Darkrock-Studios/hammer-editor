@@ -10,7 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -20,9 +19,17 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.account_window_title
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
+import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.WindowChords
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -52,7 +59,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 	raiseRequests: Int = 0,
 	onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
-	val backDispatcher = BackDispatcher()
+	val backDispatcher = remember { BackDispatcher() }
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle = lifecycle, backHandler = backDispatcher) }
 	val windowState = rememberPersistedWindowState(
@@ -73,6 +80,10 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		)
 	}
 	LifecycleController(lifecycle, windowState)
+	// Its one action is Quit; otherwise the registry holds the overlays its dialogs and menus register.
+	val actions = remember { ActionRegistry() }
+	val escapes = remember { EscapeRouter(actions, backDispatcher::back) }
+	val chords = remember { WindowChords(actions) }
 
 	val title = Res.string.account_window_title.get()
 	MaterialDecoratedWindow(
@@ -80,29 +91,24 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 		icon = painterResource(Res.drawable.hammer_icon),
-		onKeyEvent = { event ->
-			when (event.toProjectSelectionShortcut()) {
-				WindowShortcut.Back -> {
-					backDispatcher.back()
-					true
-				}
-
-				WindowShortcut.Quit -> {
-					exitApplication()
-					true
-				}
-
-				else -> false
-			}
-		}
+		onPreviewKeyEvent = { event ->
+			escapes.onPreviewKeyEvent(event) || chords.onPreviewKeyEvent(event)
+		},
+		onKeyEvent = escapes::onKeyEvent,
 	) {
 		RaiseOnRequest(raiseRequests)
 		TitledWindowContent(title) {
 			// Tao windows are their own ComposeScene: locals provided outside the
 			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
-				IntroGate(component) {
-					Content(component)
+				ProvideActions(actions) {
+					RegisterActions(
+						ActionLayer.Root,
+						mapOf(HammerActions.AppQuit.id to ActionHandler { exitApplication() }),
+					)
+					IntroGate(component) {
+						Content(component)
+					}
 				}
 			}
 		}

@@ -1365,7 +1365,7 @@ private fun ProjectHomeMenu(
 			)
 		}
 
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
 		) {

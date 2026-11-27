@@ -77,11 +77,20 @@ import com.darkrockstudios.apps.hammer.encyclopedia_search_hint
 import com.darkrockstudios.apps.hammer.notes_search_button
 import com.darkrockstudios.apps.hammer.notes_search_close
 import kotlinx.coroutines.CoroutineScope
+import com.darkrockstudios.apps.hammer.common.compose.focus.PaneId
+import com.darkrockstudios.apps.hammer.common.compose.focus.ListCursorState
+import com.darkrockstudios.apps.hammer.common.compose.focus.keyboardListNavigation
+import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorItem
+import com.darkrockstudios.apps.hammer.common.compose.focus.paneEntry
+import com.darkrockstudios.apps.hammer.common.compose.focus.rememberListCursorState
+import com.darkrockstudios.apps.hammer.common.compose.focus.revealItem
+import com.darkrockstudios.apps.hammer.common.compose.focus.gridRowStep
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPageEmpty
 import com.darkrockstudios.apps.hammer.common.help.HelpButton
 import com.darkrockstudios.apps.hammer.common.help.HelpScreen
 
 const val ENCYCLOPEDIA_CREATE_FAB_TAG = "encyclopedia-create-fab"
+const val ENTRIES_GRID_TAG = "entries-grid"
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -91,6 +100,7 @@ fun BrowseEntriesUi(
 	viewEntry: (EntryDef) -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	cursor: ListCursorState = rememberListCursorState(),
 ) {
 	val state by component.state.subscribeAsState()
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
@@ -222,11 +232,22 @@ fun BrowseEntriesUi(
 		// 3-4 columns and on narrow screens cards stack into a single
 		// column.
 		val gridState = rememberLazyGridState()
+		val entryKeys = remember(filteredEntries) { filteredEntries.map { it.id } }
 		Box(modifier = Modifier.weight(1f)) {
 			LazyVerticalGrid(
 				state = gridState,
 				columns = GridCells.Adaptive(minSize = 320.dp),
-				modifier = Modifier.fillMaxSize(),
+				modifier = Modifier
+					.fillMaxSize()
+					.testTag(ENTRIES_GRID_TAG)
+					.paneEntry(PaneId.List)
+					.keyboardListNavigation(
+						state = cursor,
+						keys = entryKeys,
+						onActivate = { viewEntry(filteredEntries[it]) },
+						scrollToItem = gridState::revealItem,
+						rowStep = gridState.gridRowStep(),
+					),
 				contentPadding = PaddingValues(Ui.Padding.XL),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
@@ -234,6 +255,7 @@ fun BrowseEntriesUi(
 				items(filteredEntries, key = { it.id }) { entryDef ->
 					EncyclopediaEntryItem(
 						entryDef = entryDef,
+						modifier = Modifier.listCursorItem(cursor, entryDef.id),
 						component = component,
 						viewEntry = viewEntry,
 						scope = scope,

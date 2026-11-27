@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
@@ -58,22 +57,8 @@ class ApplicationState(
 		return link
 	}
 
-	private val _menu = MutableValue<Set<MenuDescriptor>>(emptySet())
-	val menu: Value<Set<MenuDescriptor>> = _menu
-
 	private val _closeRequest = MutableValue(CloseType.None)
 	val closeRequest: Value<CloseType> = _closeRequest
-
-	fun addMenu(menuDescriptor: MenuDescriptor) {
-		_menu.value = mutableSetOf<MenuDescriptor>().apply {
-			addAll(_menu.value)
-			add(menuDescriptor)
-		}
-	}
-
-	fun removeMenu(menuId: String) {
-		_menu.value = _menu.value.filter { it.id != menuId }.toSet()
-	}
 
 	fun raise() {
 		_raiseRequests.value++

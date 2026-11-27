@@ -1,5 +1,6 @@
 ﻿package com.darkrockstudios.apps.hammer.common.projectselection.storyideas
 
+import com.darkrockstudios.apps.hammer.common.components.menu.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.ideas_discard_dialog_confirm
 import com.darkrockstudios.apps.hammer.ideas_discard_dialog_keep
 import com.darkrockstudios.apps.hammer.ideas_delete_dialog_confirm
@@ -111,7 +112,6 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
-import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea

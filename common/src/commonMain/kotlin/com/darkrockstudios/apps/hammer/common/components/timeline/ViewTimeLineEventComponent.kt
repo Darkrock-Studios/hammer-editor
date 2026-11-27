@@ -12,11 +12,15 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.images.pickImage
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.components.menu.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -37,7 +41,6 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSe
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.timeline_view_menu_delete
-import com.darkrockstudios.apps.hammer.timeline_view_menu_group
 import com.darkrockstudios.apps.hammer.timeline_view_menu_move
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.combine
@@ -51,8 +54,7 @@ class ViewTimeLineEventComponent(
 	projectDef: ProjectDef,
 	override val eventId: Int,
 	private val onCloseEvent: () -> Unit,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val updateShouldClose: () -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
@@ -118,6 +120,11 @@ class ViewTimeLineEventComponent(
 				end = current.end,
 			)
 		}
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Item,
+			mapOf(HammerActions.ItemClose.id to ActionHandler { confirmClose() }),
+		)
 	}
 
 	override fun onCreate() {
@@ -259,10 +266,6 @@ class ViewTimeLineEventComponent(
 				version = imagesService.cacheVersion(def),
 			)
 		}
-	}
-
-	private fun getMenuId(): String {
-		return "view-timeline-event"
 	}
 
 	override fun onEventTextChanged(text: String) {
@@ -470,12 +473,6 @@ class ViewTimeLineEventComponent(
 		}
 
 		val menuItems = setOf(moveEntry, deleteEntry)
-		val menu = MenuDescriptor(
-			getMenuId(),
-			Res.string.timeline_view_menu_group,
-			menuItems.toList()
-		)
-		addMenu(menu)
 		_state.getAndUpdate { it.copy(menuItems = menuItems) }
 	}
 
@@ -498,7 +495,6 @@ class ViewTimeLineEventComponent(
 	}
 
 	private fun removeEntryMenu() {
-		removeMenu(getMenuId())
 		_state.getAndUpdate { it.copy(menuItems = emptySet()) }
 	}
 

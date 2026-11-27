@@ -4,6 +4,8 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.arkivanov.decompose.value.MutableValue
@@ -12,7 +14,6 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelect
 import com.darkrockstudios.apps.hammer.common.components.timeline.isDrawn
 import com.darkrockstudios.apps.hammer.common.components.timeline.toLayoutInput
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
@@ -39,16 +40,14 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
 
 	private val selection = MutableValue<TimelineSelection>(TimelineSelection.Main)
-	private val addedMenus = mutableListOf<MenuDescriptor>()
-	private val removedMenus = mutableListOf<String>()
+	private val registry = ActionRegistry()
 	private var newTimelineRequests = 0
 
 	private fun newComponent() = TimeLineOverviewComponent(
 		componentContext = context,
 		projectDef = projectDef,
 		selection = selection,
-		addMenu = { addedMenus += it },
-		removeMenu = { removedMenus += it },
+		actions = registry,
 		onRequestNewTimeline = { newTimelineRequests++ },
 		onSelectTimeline = { selection.value = it },
 	)
@@ -346,7 +345,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.toggleLane("Alice")
 
 		val recreated = context.saveAndRecreate()
-		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, {}, {}, {}, { selection.value = it })
+		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, registry, {}, { selection.value = it })
 		recreated.resume()
 		advanceUntilIdle()
 
@@ -369,7 +368,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
 		val recreated = context.saveAndRecreate()
 		timelineService.updateEvent(fall.copy(tags = setOf("act-one")))
-		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, {}, {}, {}, { selection.value = it })
+		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, registry, {}, { selection.value = it })
 		recreated.resume()
 		advanceUntilIdle()
 
@@ -566,7 +565,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.setFrame(TimelineFrame.Band(storm.id))
 		assertEquals(TimelineFrame.Band(storm.id), component.state.value.frame)
 
-		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, selection, {}, {}, {}, { selection.value = it })
+		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, selection, registry, {}, { selection.value = it })
 		assertEquals(TimelineFrame.Band(storm.id), restored.state.value.frame)
 
 		assertTrue(context.back())
@@ -953,20 +952,19 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		assertEquals(listOf("Kept"), timeLineRepository.currentEvents().map { it.title })
 	}
 
+
 	@Test
-	fun `the desktop menu offers a new timeline while the overview is shown`() = runTest(mainTestDispatcher) {
+	fun `the new timeline action asks for a timeline while the overview is shown`() = runTest(mainTestDispatcher) {
 		givenProject()
 		newComponent()
 		context.resume()
 		advanceUntilIdle()
 
-		val menu = addedMenus.single()
-		val item = menu.items.single()
-		item.action(item.id)
+		assertTrue(registry.invoke(HammerActions.TimelineNew.id))
 		assertEquals(1, newTimelineRequests)
 
 		context.stop()
-		assertEquals(listOf(menu.id), removedMenus)
+		assertFalse(registry.isLive(HammerActions.TimelineNew.id))
 	}
 
 	// endregion

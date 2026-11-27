@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.storyeditor
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompareComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
@@ -11,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderModeComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditorComponent
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
@@ -23,13 +23,12 @@ internal class DetailsRouter(
 	componentContext: ComponentContext,
 	private val projectDef: ProjectDef,
 	private val selectedSceneItem: MutableSharedFlow<SceneItem?>,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val closeDetails: () -> Unit,
 	private val openFocusMode: (SceneItem) -> Unit,
 	private val openEntry: (EntryDef) -> Unit,
 	private val openGlobalSearchForTag: (String) -> Unit,
 	private val openTimelineEvent: (eventId: Int) -> Unit,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
 ) {
 
 	private val navigation = StackNavigation<Config>()
@@ -76,8 +75,7 @@ internal class DetailsRouter(
 		SceneEditorComponent(
 			componentContext = componentContext,
 			originalSceneItem = sceneDef,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			closeSceneEditor = closeDetails,
 			showDraftsList = ::showDraftsList,
 			showFocusMode = openFocusMode,

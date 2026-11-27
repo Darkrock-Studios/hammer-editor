@@ -6,14 +6,16 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
-import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
@@ -30,8 +32,6 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView as DrawingView
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.timeline_menu_group
-import com.darkrockstudios.apps.hammer.timeline_switcher_new
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,8 +52,7 @@ class TimeLineOverviewComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val selection: Value<TimelineSelection>,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val onRequestNewTimeline: () -> Unit,
 	private val onSelectTimeline: (TimelineSelection) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLineOverview {
@@ -94,6 +93,11 @@ class TimeLineOverviewComponent(
 			frameBackCallback.isEnabled = it.frame != TimelineFrame.Everything
 		}
 		selection.subscribe(lifecycle) { onSelected(it) }
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(HammerActions.TimelineNew.id to ActionHandler { onRequestNewTimeline() }),
+		)
 	}
 
 	private fun onSelected(selected: TimelineSelection) {
@@ -122,19 +126,6 @@ class TimeLineOverviewComponent(
 
 		watchTimeLine()
 		watchTimelines()
-	}
-
-	override fun onStart() {
-		super.onStart()
-		val newTimeline = MenuItemDescriptor(NEW_TIMELINE_ITEM_ID, Res.string.timeline_switcher_new, "") {
-			onRequestNewTimeline()
-		}
-		addMenu(MenuDescriptor(MENU_ID, Res.string.timeline_menu_group, listOf(newTimeline)))
-	}
-
-	override fun onStop() {
-		super.onStop()
-		removeMenu(MENU_ID)
 	}
 
 	/** What [selection] shows: its def, or for the deleted-timeline bucket a manual one without a calendar. */
@@ -371,9 +362,6 @@ class TimeLineOverviewComponent(
 	)
 
 	private companion object {
-		const val MENU_ID = "timeline-overview"
-		const val NEW_TIMELINE_ITEM_ID = "timeline-overview-new-timeline"
-
 		// Stragglers have no live def; they read as a manual timeline without a calendar.
 		val ORPHANS_DEF = TimelineDef(id = "", name = "")
 

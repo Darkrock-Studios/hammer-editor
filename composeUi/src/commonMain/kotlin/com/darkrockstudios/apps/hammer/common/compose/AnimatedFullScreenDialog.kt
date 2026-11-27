@@ -22,6 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.resetsDoubleShift
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -68,6 +71,8 @@ class AnimatedDialogScope internal constructor(
  *   false.
  * @param onClosed fires once the exit animation has finished. Use this to actually unmount the
  *   dialog (e.g. clear the rendering state, dismiss the navigation slot).
+ * @param blocksActions while mounted, the dialog is an overlay barrier: only global actions reach
+ *   the screens behind it, and the window's Esc calls [onDismissRequest] while [isOpen].
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -76,6 +81,7 @@ internal fun AnimatedDialogContainer(
 	onDismissRequest: () -> Unit,
 	onClosed: () -> Unit,
 	properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+	blocksActions: Boolean = true,
 	content: @Composable AnimatedDialogScope.() -> Unit,
 ) {
 	val transitionState = remember { MutableTransitionState(false) }
@@ -97,6 +103,15 @@ internal fun AnimatedDialogContainer(
 		onDismissRequest = onDismissRequest,
 		properties = properties,
 	) {
+		// Held through the exit animation too; an Esc then is taken but closes nothing more.
+		RegisterActions(
+			ActionLayer.Overlay,
+			emptyMap(),
+			blocksBelow = true,
+			enabled = blocksActions,
+			onDismiss = { if (isOpen) onDismissRequest() },
+		)
+
 		PredictiveBackHandler(enabled = transitionState.targetState) { events ->
 			try {
 				events.collect { event -> backProgress.snapTo(event.progress) }
@@ -107,7 +122,7 @@ internal fun AnimatedDialogContainer(
 		}
 
 		Box(
-			modifier = Modifier.fillMaxSize().belowWindowChrome(),
+			modifier = Modifier.fillMaxSize().belowWindowChrome().resetsDoubleShift(),
 			contentAlignment = Alignment.Center,
 		) {
 			AnimatedVisibility(
@@ -139,6 +154,7 @@ internal fun AnimatedDialogContainer(
  *   the back gesture.
  * @param onDismissed fires after the exit animation completes — use this if you need to
  *   clean up after the dialog has fully unmounted.
+ * @param blocksActions see [AnimatedDialogContainer].
  * @param content rendered inside the dialog. Call `requestDismiss()` on the receiver
  *   scope to trigger the animated dismiss flow from inside (e.g. a close button).
  */
@@ -150,6 +166,7 @@ fun AnimatedDialog(
 	contentAlignment: Alignment = Alignment.Center,
 	dismissOnTapOutside: Boolean = false,
 	onDismissed: () -> Unit = {},
+	blocksActions: Boolean = true,
 	content: @Composable AnimatedDialogScope.() -> Unit,
 ) {
 	var renderInternal by remember { mutableStateOf(visible) }
@@ -164,6 +181,7 @@ fun AnimatedDialog(
 			renderInternal = false
 			onDismissed()
 		},
+		blocksActions = blocksActions,
 	) {
 		if (dismissOnTapOutside) {
 			DismissOnTapOutside(modifier.predictiveBackTransform(), contentAlignment) { content() }

@@ -5,6 +5,7 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.EncyclopediaComponent
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.notes.NotesComponent
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
@@ -13,7 +14,6 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditorComponent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineComponent
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -28,8 +28,7 @@ import kotlin.coroutines.CoroutineContext
 internal class ProjectRootRouter(
 	componentContext: ComponentContext,
 	private val projectDef: ProjectDef,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val updateShouldClose: () -> Unit,
 	private val requestProjectSync: () -> Unit,
 	private val showGlobalSearch: () -> Unit,
@@ -95,8 +94,7 @@ internal class ProjectRootRouter(
 		val editor = StoryEditorComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			showFocusMode = showFocusMode,
 			showEntry = showEntry,
 			showGlobalSearchForTag = onShowGlobalSearchForTag,
@@ -120,8 +118,7 @@ internal class ProjectRootRouter(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			updateShouldClose = updateShouldClose,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 	}
@@ -131,8 +128,7 @@ internal class ProjectRootRouter(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			updateShouldClose = updateShouldClose,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			showScene = showScene,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 			showTimelineEvent = showTimelineEvent,
@@ -144,8 +140,7 @@ internal class ProjectRootRouter(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			updateShouldClose = updateShouldClose,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 			onShowScene = showScene,
 			onShowEntry = showEntry,

@@ -5,16 +5,22 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.neighbour
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
+import com.darkrockstudios.apps.hammer.common.components.actions.stepAction
+import com.darkrockstudios.apps.hammer.common.components.replaceTop
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
 class NotesComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val updateShouldClose: () -> Unit,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Notes {
 
@@ -102,8 +108,7 @@ class NotesComponent(
 			noteId = config.noteId,
 			dismissView = ::showBrowse,
 			updateShouldClose = updateShouldClose,
-			addMenu = addMenu,
-			removeMenu = removeMenu,
+			actions = actions,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 	}
@@ -117,10 +122,41 @@ class NotesComponent(
 			projectDef = config.projectDef,
 			dismissCreate = ::showBrowse,
 			updateShouldClose = updateShouldClose,
+			actions = actions,
 		)
 	}
 
+	private val browse: BrowseNotes?
+		get() = stack.value.items.firstNotNullOfOrNull {
+			(it.instance as? Notes.Destination.BrowseNotesDestination)?.component
+		}
+
+	/**
+	 * Steps the open note by [offset] in the list's order. Not live over a dirty edit: replacing
+	 * the view would drop its draft.
+	 */
+	private fun noteStep(offset: Int): ActionHandler = stepAction(
+		target = target@{
+			val view = stack.value.active.instance as? Notes.Destination.ViewNoteDestination ?: return@target null
+			if (view.component.isEditingAndDirty()) return@target null
+			val open = (stack.value.active.configuration as Notes.Config.ViewNoteConfig).noteId
+			browse?.visibleOrder?.neighbour(offset) { it == open }
+		},
+		go = { id -> navigation.replaceTop(Notes.Config.ViewNoteConfig(id)) },
+	)
+
 	init {
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(
+				HammerActions.ItemNew.id to ActionHandler(
+					isEnabled = { stack.value.active.configuration !is Notes.Config.CreateNoteConfig },
+				) { showCreateNote() },
+				HammerActions.ItemNext.id to noteStep(1),
+				HammerActions.ItemPrev.id to noteStep(-1),
+			),
+		)
 		stack = componentContext.childStack(
 			source = navigation,
 			initialConfiguration = Notes.Config.BrowseNotesConfig(projectDef = projectDef),

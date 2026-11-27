@@ -2,9 +2,7 @@
 <resources>
 	<string name="account_window_title">Hammer - Project Selection</string>
 	<string name="project_window_title">Hammer - %1$s</string>
-	<string name="project_window_menu_file">File</string>
 	<string name="project_window_menu_item_close">Close Project</string>
-	<string name="project_window_menu_item_exit">Exit</string>
 	<string name="jump_list_recent_projects">Recent Projects</string>
 	<!-- Sandbox first-run projects-directory flow (Mac App Store builds) -->
 	<string name="sandbox_intro_title">Welcome to Hammer</string>

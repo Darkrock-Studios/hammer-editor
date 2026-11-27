@@ -51,7 +51,6 @@
 	<string name="encyclopedia_entry_delete_toast">Voce eliminata</string>
 	<string name="encyclopedia_entry_name_hint">Nome</string>
 	<string name="encyclopedia_entry_close_button">Chiudi la voce</string>
-	<string name="encyclopedia_entry_menu_group">Voce</string>
 	<string name="encyclopedia_entry_menu_delete">Elimina voce</string>
 	<string name="encyclopedia_entry_menu_remove_image">Rimuovi immagine</string>
 	<string name="encyclopedia_entry_menu_add_image">Aggiungi immagine</string>

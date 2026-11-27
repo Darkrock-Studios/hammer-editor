@@ -10,12 +10,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.FrameWindowScope
-import androidx.compose.ui.window.MenuBar
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
@@ -24,11 +22,20 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
-import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.actions.EscapeRouter
+import com.darkrockstudios.apps.hammer.common.compose.actions.ProvideActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
+import com.darkrockstudios.apps.hammer.common.compose.actions.DoubleShiftPalette
+import com.darkrockstudios.apps.hammer.common.compose.actions.LocalDoubleShiftPalette
+import com.darkrockstudios.apps.hammer.common.compose.actions.resetsDoubleShift
+import com.darkrockstudios.apps.hammer.common.compose.actions.WindowChords
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -56,7 +63,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	settings: GlobalSettings,
 	darkMode: Boolean,
 ) {
-	val backDispatcher = BackDispatcher()
+	val backDispatcher = remember { BackDispatcher() }
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle = lifecycle, backHandler = backDispatcher) }
 	val windowState = rememberPersistedWindowState(
@@ -69,14 +76,15 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		ProjectRootComponent(
 			componentContext = compContext,
 			projectDef = projectDef,
-			addMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
-			removeMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
 			onCloseProject = { app.showConfirmProjectClose(ApplicationState.CloseType.Project) },
 			initialDeepLink = app.consumePendingDeepLink(),
 		)
 	}
 
 	val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
+	val escapes = remember(component) { EscapeRouter(component.actions, backDispatcher::back) }
+	val doubleShift = remember(component) { DoubleShiftPalette(component.actions) }
+	val chords = remember(component) { WindowChords(component.actions) }
 
 	LifecycleController(lifecycle, windowState)
 
@@ -86,7 +94,6 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	}
 
 	val windowTitle = Res.string.project_window_title.get(projectDef.name)
-	val shortcutHost = remember { ProjectShortcutHost() }
 
 	MaterialDecoratedWindow(
 		title = windowTitle,
@@ -94,45 +101,34 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		icon = painterResource(Res.drawable.hammer_icon),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
 		onPreviewKeyEvent = { event ->
-			when (event.toProjectShortcut()) {
-				ProjectShortcut.SyncProject -> shortcutHost.startProjectSync()
-				ProjectShortcut.SaveAll -> shortcutHost.saveAllBuffers()
-				null -> false
-			}
+			doubleShift.onPreviewKeyEvent(event) || escapes.onPreviewKeyEvent(event) || chords.onPreviewKeyEvent(event)
 		},
-		onKeyEvent = { event ->
-			when (event.toProjectEditorShortcut()) {
-				WindowShortcut.Back -> backDispatcher.back()
-
-				WindowShortcut.GlobalSearch -> {
-					component.showGlobalSearch()
-					true
-				}
-
-				WindowShortcut.CloseProject -> {
-					onRequestClose(component, app, ApplicationState.CloseType.Project)
-					true
-				}
-
-				WindowShortcut.Quit -> {
-					onRequestClose(component, app, ApplicationState.CloseType.Application)
-					true
-				}
-
-				null -> false
-			}
-		}
+		onKeyEvent = escapes::onKeyEvent,
 	) {
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
 		RaiseOnRequest(app.raiseRequests.value)
 		LaunchedEffect(component) { app.deepLinks.collect { component.navigateToDeepLink(it) } }
+		ProvideActions(component.actions) {
+			RegisterActions(
+				ActionLayer.Root,
+				mapOf(
+					HammerActions.AppQuit.id to ActionHandler {
+						onRequestClose(component, app, ApplicationState.CloseType.Application)
+					},
+				),
+			)
+		}
 
 		TitledWindowContent(windowTitle) {
 			// Tao windows are their own ComposeScene: locals provided outside the
 			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
-				AppContent(component, shortcutHost)
+				CompositionLocalProvider(LocalDoubleShiftPalette provides doubleShift) {
+					Box(Modifier.fillMaxSize().resetsDoubleShift(), propagateMinConstraints = true) {
+						AppContent(component)
+					}
+				}
 
 				LaunchedEffect(closeRequest) {
 					if (closeRequest != ApplicationState.CloseType.None) {
@@ -140,79 +136,82 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 					}
 				}
 
-				if (shouldConfirmClose.isNotEmpty()) {
-					val item = shouldConfirmClose.first()
-					when (item) {
-						CloseConfirm.Scenes -> {
-							confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
-								scope.launch {
+				// The confirms sit outside ProjectRootUi, so their shells need the registry here.
+				ProvideActions(component.actions) {
+					if (shouldConfirmClose.isNotEmpty()) {
+						val item = shouldConfirmClose.first()
+						when (item) {
+							CloseConfirm.Scenes -> {
+								confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
+									scope.launch {
+										when (result) {
+											ConfirmCloseResult.SaveAll -> component.storeDirtyBuffers()
+											ConfirmCloseResult.Discard -> component.discardUnsaved(CloseConfirm.Scenes)
+											ConfirmCloseResult.Cancel -> Unit
+										}
+
+										withContext(mainDispatcher) {
+											if (result != ConfirmCloseResult.Cancel) {
+												component.closeRequestDealtWith(CloseConfirm.Scenes)
+											} else {
+												cancelClose()
+											}
+										}
+									}
+								}
+							}
+
+							CloseConfirm.Notes -> {
+								confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
 									when (result) {
-										ConfirmCloseResult.SaveAll -> component.storeDirtyBuffers()
-										ConfirmCloseResult.Discard -> component.discardUnsaved(CloseConfirm.Scenes)
-										ConfirmCloseResult.Cancel -> Unit
-									}
-
-									withContext(mainDispatcher) {
-										if (result != ConfirmCloseResult.Cancel) {
-											component.closeRequestDealtWith(CloseConfirm.Scenes)
-										} else {
-											cancelClose()
+										ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+										ConfirmCloseResult.Discard -> scope.launch {
+											component.discardUnsaved(CloseConfirm.Notes)
+											withContext(mainDispatcher) {
+												component.closeRequestDealtWith(CloseConfirm.Notes)
+											}
 										}
+										ConfirmCloseResult.Cancel -> cancelClose()
 									}
 								}
 							}
-						}
 
-						CloseConfirm.Notes -> {
-							confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
-								when (result) {
-									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-									ConfirmCloseResult.Discard -> scope.launch {
-										component.discardUnsaved(CloseConfirm.Notes)
-										withContext(mainDispatcher) {
-											component.closeRequestDealtWith(CloseConfirm.Notes)
+							CloseConfirm.Encyclopedia -> {
+								confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
+									when (result) {
+										ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+										ConfirmCloseResult.Discard -> scope.launch {
+											component.discardUnsaved(CloseConfirm.Encyclopedia)
+											withContext(mainDispatcher) {
+												component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+											}
 										}
+										ConfirmCloseResult.Cancel -> cancelClose()
 									}
-									ConfirmCloseResult.Cancel -> cancelClose()
 								}
 							}
-						}
 
-						CloseConfirm.Encyclopedia -> {
-							confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
-								when (result) {
-									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-									ConfirmCloseResult.Discard -> scope.launch {
-										component.discardUnsaved(CloseConfirm.Encyclopedia)
-										withContext(mainDispatcher) {
-											component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+							CloseConfirm.Timeline -> {
+								confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
+									when (result) {
+										ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+										ConfirmCloseResult.Discard -> scope.launch {
+											component.discardUnsaved(CloseConfirm.Timeline)
+											withContext(mainDispatcher) {
+												component.closeRequestDealtWith(CloseConfirm.Timeline)
+											}
 										}
+										ConfirmCloseResult.Cancel -> cancelClose()
 									}
-									ConfirmCloseResult.Cancel -> cancelClose()
 								}
 							}
-						}
 
-						CloseConfirm.Timeline -> {
-							confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
-								when (result) {
-									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-									ConfirmCloseResult.Discard -> scope.launch {
-										component.discardUnsaved(CloseConfirm.Timeline)
-										withContext(mainDispatcher) {
-											component.closeRequestDealtWith(CloseConfirm.Timeline)
-										}
-									}
-									ConfirmCloseResult.Cancel -> cancelClose()
-								}
+							CloseConfirm.Sync -> {
+								component.showProjectSync()
 							}
-						}
 
-						CloseConfirm.Sync -> {
-							component.showProjectSync()
+							CloseConfirm.Complete -> performClose(app, closeRequest)
 						}
-
-						CloseConfirm.Complete -> performClose(app, closeRequest)
 					}
 				}
 			}
@@ -221,44 +220,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 }
 
 @Composable
-private fun FrameWindowScope.EditorMenuBar(
-	component: ProjectRoot,
-	app: ApplicationState,
-	onRequestClose: (AppCloseManager, ApplicationState, ApplicationState.CloseType) -> Unit
-) {
-	val menu by app.menu.subscribeAsState()
-
-	MenuBar {
-		Menu(Res.string.project_window_menu_file.get()) {
-			Item(Res.string.project_window_menu_item_close.get(), onClick = {
-				onRequestClose(component, app, ApplicationState.CloseType.Project)
-			})
-			Item(Res.string.project_window_menu_item_exit.get(), onClick = {
-				onRequestClose(component, app, ApplicationState.CloseType.Application)
-			})
-		}
-
-		menu.forEach { menuDescriptor ->
-			Menu(menuDescriptor.label.get()) {
-				menuDescriptor.items.forEach { itemDescriptor ->
-					Item(
-						itemDescriptor.label.get(),
-						onClick = { itemDescriptor.action(itemDescriptor.id) },
-						shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
-					)
-				}
-			}
-		}
-
-		LaunchedEffect(menu) {
-			window.jMenuBar.invalidate()
-			window.jMenuBar.repaint()
-		}
-	}
-}
-
-@Composable
-private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost) {
+private fun AppContent(component: ProjectRoot) {
 	val router by component.routerState.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
@@ -284,7 +246,7 @@ private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost
 						},
 					)
 
-					ProjectRootUi(component, rootSnackbar, shortcutHost = shortcutHost)
+					ProjectRootUi(component, rootSnackbar)
 				}
 
 				SnackbarHost(

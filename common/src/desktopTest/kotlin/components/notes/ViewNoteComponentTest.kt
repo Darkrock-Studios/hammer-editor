@@ -1,7 +1,10 @@
 package components.notes
 
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNoteComponent
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -41,8 +44,7 @@ class ViewNoteComponentTest : ComponentTest() {
 
 	private var dismissViewCount = 0
 	private var searchedTag: String? = null
-	private val addedMenus = mutableListOf<MenuDescriptor>()
-	private val removedMenuIds = mutableListOf<String>()
+	private val registry = ActionRegistry()
 
 	@BeforeEach
 	override fun setup() {
@@ -57,8 +59,6 @@ class ViewNoteComponentTest : ComponentTest() {
 
 		dismissViewCount = 0
 		searchedTag = null
-		addedMenus.clear()
-		removedMenuIds.clear()
 	}
 
 	private fun note(id: Int = 1, content: String = "original body", tags: Set<String> = setOf("alpha")) =
@@ -71,8 +71,7 @@ class ViewNoteComponentTest : ComponentTest() {
 			noteId = noteId,
 			dismissView = { dismissViewCount++ },
 			updateShouldClose = {},
-			addMenu = { addedMenus.add(it) },
-			removeMenu = { removedMenuIds.add(it) },
+			actions = registry,
 			onShowGlobalSearchForTag = { searchedTag = it },
 		)
 
@@ -218,8 +217,7 @@ class ViewNoteComponentTest : ComponentTest() {
 				// The coroutine debug agent appends " @coroutine#N" to thread names
 				dismissView = { dismissThread = Thread.currentThread().name.substringBefore(" @") },
 				updateShouldClose = {},
-				addMenu = {},
-				removeMenu = {},
+				actions = registry,
 				onShowGlobalSearchForTag = {},
 			)
 			context.resume()
@@ -431,14 +429,12 @@ class ViewNoteComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `the entry menu is added on start and removed on stop`() = runTest(mainTestDispatcher) {
+	fun `menu items appear on start and clear on stop`() = runTest(mainTestDispatcher) {
 		val comp = startWith(note())
-		assertEquals(1, addedMenus.size)
 		assertTrue(comp.state.value.menuItems.isNotEmpty())
 
 		context.stop()
 
-		assertTrue(removedMenuIds.isNotEmpty())
 		assertTrue(comp.state.value.menuItems.isEmpty())
 	}
 
@@ -474,5 +470,35 @@ class ViewNoteComponentTest : ComponentTest() {
 
 		assertFalse(restored.state.value.isEditing)
 		assertEquals("orig", restored.noteText.value)
+	}
+
+	@Test
+	fun `Mod+W closes a clean note`() = runTest(mainTestDispatcher) {
+		startWith(note())
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+
+		assertEquals(1, dismissViewCount)
+	}
+
+	@Test
+	fun `Mod+W on a dirty edit asks before closing`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note(content = "orig"))
+		comp.beginEdit()
+		comp.onContentChanged("dirty")
+
+		assertTrue(registry.dispatch(KeyChord.mod(ChordKey.W)))
+
+		assertTrue(comp.state.value.confirmClose)
+		assertEquals(0, dismissViewCount)
+	}
+
+	@Test
+	fun `Mod+W is not live once the note stops`() = runTest(mainTestDispatcher) {
+		startWith(note())
+
+		context.stop()
+
+		assertFalse(registry.isLive(HammerActions.ItemClose.id))
 	}
 }

@@ -59,8 +59,6 @@ class ViewEntryTimelinesTest : TimelineComponentTestBase() {
 		val component = ViewEntryComponent(
 			componentContext = context,
 			entryDef = entryDef,
-			addMenu = {},
-			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},

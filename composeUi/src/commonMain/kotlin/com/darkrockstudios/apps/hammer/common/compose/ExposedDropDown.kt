@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
+import com.darkrockstudios.apps.hammer.common.compose.actions.MenuOverlay
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -89,6 +90,7 @@ fun <T> ExposedDropDown(
 			)
 		}
 
+		MenuOverlay(isExpanded && enabled) { isExpanded = false }
 		ExposedDropdownMenu(
 			expanded = isExpanded && enabled,
 			onDismissRequest = { isExpanded = false },

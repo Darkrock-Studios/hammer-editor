@@ -28,7 +28,6 @@
 	<string name="timeline_create_date_placeholder">напр. Весна 3-го року</string>
 	<string name="timeline_view_discard_title">Відхилити зміни?</string>
 	<string name="timeline_view_discard_message">Ви втратите всі внесені зміни.</string>
-	<string name="timeline_view_menu_group">Подія</string>
 	<string name="timeline_view_menu_delete">Видалити</string>
 	<string name="timeline_view_confirm_delete_title">Видалити подію хронології?</string>
 	<string name="timeline_view_confirm_delete_message">Цю дію неможливо скасувати!</string>

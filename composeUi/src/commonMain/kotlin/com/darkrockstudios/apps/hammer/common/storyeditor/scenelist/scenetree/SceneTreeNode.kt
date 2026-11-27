@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import com.darkrockstudios.apps.hammer.common.compose.focus.listCursorFrame
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 
@@ -15,17 +16,18 @@ fun SceneTreeNode(
 	node: TreeValue<SceneItem>,
 	nodeCollapsesChildren: Boolean,
 	selectedId: Int,
+	cursor: Boolean,
 	itemUi: ItemUi,
 	toggleExpanded: (nodeId: Int) -> Unit,
 	modifier: Modifier
 ) {
-	Box(modifier) {
+	Box(modifier.listCursorFrame(cursor)) {
 		val itemModifier = Modifier.alpha(if (node.value.id == selectedId) 0.5f else 1f)
 		itemUi(
 			node,
 			toggleExpanded,
 			nodeCollapsesChildren,
-			itemModifier
+			itemModifier,
 		)
 	}
 }

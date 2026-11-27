@@ -11,9 +11,17 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistrar
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerOverlayWhile
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
+import com.darkrockstudios.apps.hammer.common.components.actions.stepAction
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import io.github.aakira.napier.Napier
@@ -23,8 +31,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 class StoryEditorComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	addMenu: (menu: MenuDescriptor) -> Unit,
-	removeMenu: (id: String) -> Unit,
+	private val actions: ActionRegistrar,
 	showFocusMode: (SceneItem) -> Unit,
 	showEntry: (EntryDef) -> Unit,
 	showGlobalSearchForTag: (String) -> Unit,
@@ -49,9 +56,8 @@ class StoryEditorComponent(
 			componentContext = this,
 			projectDef = projectDef,
 			selectedSceneItem = selectedSceneItemFlow,
-			addMenu = addMenu,
+			actions = actions,
 			closeDetails = ::closeDetails,
-			removeMenu = removeMenu,
 			openFocusMode = showFocusMode,
 			openEntry = showEntry,
 			openGlobalSearchForTag = showGlobalSearchForTag,
@@ -67,6 +73,7 @@ class StoryEditorComponent(
 			openSceneEditor = ::showScene,
 			showOutlineOverview = ::showOutlineOverview,
 			showReaderMode = { showReader(null) },
+			actions = actions,
 		)
 
 	private val dialogNavigation = SlotNavigation<StoryEditor.DialogConfig>()
@@ -105,6 +112,57 @@ class StoryEditorComponent(
 
 	private val _state = MutableValue(StoryEditor.State(projectDef))
 	override val state: Value<StoryEditor.State> = _state
+
+	init {
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Module,
+			mapOf(
+				HammerActions.ItemNext.id to sceneStep { sceneAfter(it) },
+				HammerActions.ItemPrev.id to sceneStep { sceneBefore(it) },
+				HammerActions.StoryNextGroup.id to sceneStep { firstSceneOfNextGroup(it) },
+				HammerActions.StoryPrevGroup.id to sceneStep { firstSceneOfPreviousGroup(it) },
+				HammerActions.StoryToggleOutline.id to ActionHandler { toggleOutlineOverview() },
+				HammerActions.StoryReadingMode.id to ActionHandler { toggleReadingMode() },
+			),
+		)
+		actions.registerOverlayWhile(
+			lifecycle,
+			dialogRouter,
+			mapOf(HammerActions.StoryToggleOutline.id to ActionHandler { toggleOutlineOverview() }),
+		) { slot ->
+			slot.child?.instance.let { it != null && it !is StoryEditor.ChildDestination.DialogDestination.None }
+		}
+	}
+
+	/** Moves from the open scene editor to the scene [target] picks; not live without one to move to. */
+	private fun sceneStep(target: ImmutableTree<SceneItem>.(sceneId: Int) -> SceneItem?): ActionHandler = stepAction(
+		target = next@{
+			val open = detailsRouter.state.value.active.configuration as? DetailsRouter.Config.SceneEditor
+				?: return@next null
+			sceneEditor.getSceneTree().target(open.sceneDef.id)
+		},
+		go = ::showScene,
+	)
+
+	private fun toggleOutlineOverview() {
+		if (dialogState.value.child?.instance is StoryEditor.ChildDestination.DialogDestination.OutlineDestination) {
+			dismissDialog()
+		} else {
+			showOutlineOverview()
+		}
+	}
+
+	/** Leaves an open reader for the scene it is showing, or closes it when there is none to edit. */
+	private fun toggleReadingMode() {
+		val reader = detailsRouter.activeReader()
+		if (reader == null) {
+			showReader(null)
+			return
+		}
+		reader.editScene()
+		if (detailsRouter.activeReader() === reader) reader.close()
+	}
 
 	override fun closeDetails(): Boolean {
 		return if (isMultiPaneMode() && detailsRouter.isShown()) {

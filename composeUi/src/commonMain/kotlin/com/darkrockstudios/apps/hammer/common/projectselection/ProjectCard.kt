@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.stampDate
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -21,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -360,7 +360,7 @@ fun ProjectOptionsMenu(
 			)
 		}
 
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false }
 		) {

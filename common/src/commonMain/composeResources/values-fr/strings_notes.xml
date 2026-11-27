@@ -19,7 +19,6 @@
 	<string name="notes_delete_title">Supprimer la note ?</string>
 	<string name="notes_delete_message">Cette action est irréversible !</string>
 	<string name="notes_delete_toast_success">Note Supprimée</string>
-	<string name="notes_menu_group">Note</string>
 	<string name="notes_menu_delete">Supprimer</string>
 	<string name="notes_view_label_editing">Modification</string>
 	<string name="notes_view_close_button">Fermer la note</string>

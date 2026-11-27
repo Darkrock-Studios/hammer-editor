@@ -9,7 +9,15 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.instancekeeper.retainedInstance
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
+import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.registerOverlayWhile
+import com.darkrockstudios.apps.hammer.common.components.actions.registerWhileStarted
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchFilter
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchSavedState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
@@ -29,11 +37,7 @@ import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMism
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import com.darkrockstudios.apps.hammer.images_menu_group
-import com.darkrockstudios.apps.hammer.images_menu_item
-import com.darkrockstudios.apps.hammer.sync_menu_group
-import com.darkrockstudios.apps.hammer.sync_menu_item
-import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.darkrockstudios.apps.hammer.save_all_toast
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
@@ -45,11 +49,9 @@ private const val GLOBAL_SEARCH_STATE_KEY = "global_search_state"
 class ProjectRootComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit,
-	onCloseProject: (() -> Unit),
+	private val onCloseProject: (() -> Unit),
 	initialDeepLink: ProjectDeepLink? = null,
-) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
+) : ProjectComponentBase(projectDef, componentContext), ProjectRoot, ComponentToaster by ComponentToasterImpl() {
 
 	private val syncJournal: SyncJournal = projectGet()
 	private val sceneEditor: SceneEditorService by projectInject()
@@ -70,7 +72,8 @@ class ProjectRootComponent(
 		get() = syncJournal.isServerSynchronized() && projectSyncEnabled
 	// Set by the first syncEnabledUpdates emission, which is read off the main thread.
 	private var projectSyncEnabled = false
-	private var syncMenuAdded = false
+
+	override val actions = ActionRegistry()
 
 	// Retained on this long-lived parent so search state survives the modal being dismissed/reopened
 	// and config changes; stateKeeper carries the query/filter slice across process death.
@@ -119,8 +122,7 @@ class ProjectRootComponent(
 	private val router = ProjectRootRouter(
 		componentContext,
 		projectDef,
-		addMenu,
-		removeMenu,
+		actions,
 		::updateCloseConfirmRequirement,
 		::startProjectSync,
 		::showGlobalSearch,
@@ -151,6 +153,53 @@ class ProjectRootComponent(
 	override val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ProjectRoot.ModalDestination>>
 		get() = modalRouter.state
 
+	private val commandOverlayRouter = CommandOverlayRouter(componentContext, actions)
+
+	override val commandOverlayState: Value<ChildSlot<CommandOverlayRouter.Config, ProjectRoot.CommandOverlay>>
+		get() = commandOverlayRouter.state
+
+	init {
+		actions.registerWhileStarted(
+			lifecycle,
+			ActionLayer.Root,
+			mapOf(
+				HammerActions.NavHome.id to ActionHandler { showHome() },
+				HammerActions.NavStory.id to ActionHandler { showEditor() },
+				HammerActions.NavNotes.id to ActionHandler { showNotes() },
+				HammerActions.NavEncyclopedia.id to ActionHandler { showEncyclopedia() },
+				HammerActions.NavTimeline.id to ActionHandler { showTimeLine() },
+				HammerActions.SearchGlobal.id to ActionHandler { showGlobalSearch() },
+				HammerActions.ProjectSync.id to ActionHandler(isEnabled = { canSync }) { startProjectSync() },
+				HammerActions.ProjectSaveAll.id to ActionHandler { saveAllBuffers() },
+				HammerActions.ProjectGallery.id to ActionHandler { showImageGallery() },
+				HammerActions.ProjectClose.id to ActionHandler { onCloseProject() },
+				HammerActions.PaletteOpen.id to ActionHandler { toggleCommandOverlay(CommandOverlayRouter.Config.Palette) },
+				HammerActions.HelpCheatSheet.id to ActionHandler {
+					toggleCommandOverlay(CommandOverlayRouter.Config.CheatSheet)
+				},
+			),
+		)
+		actions.registerOverlayWhile(
+			lifecycle,
+			modalRouter.state,
+			mapOf(
+				HammerActions.StoryFocusMode.id to ActionHandler(
+					isEnabled = { modalRouter.state.value.child?.instance is ProjectRoot.ModalDestination.FocusModeModal },
+				) { dismissFocusMode() },
+			),
+		) { slot ->
+			slot.child?.instance.let { it != null && it !is ProjectRoot.ModalDestination.None }
+		}
+		actions.registerOverlayWhile(lifecycle, closeRequestHandlers) { it.isNotEmpty() }
+	}
+
+	private fun saveAllBuffers() {
+		scope.launch {
+			storeDirtyBuffers()
+			showToast(Res.string.save_all_toast)
+		}
+	}
+
 	override fun onCreate() {
 		super.onCreate()
 
@@ -164,10 +213,7 @@ class ProjectRootComponent(
 
 		scope.launch {
 			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
-				withContext(dispatcherMain) {
-					projectSyncEnabled = enabled
-					if (lifecycle.state >= Lifecycle.State.STARTED) updateSyncMenu()
-				}
+				withContext(dispatcherMain) { projectSyncEnabled = enabled }
 			}
 		}
 
@@ -332,6 +378,21 @@ class ProjectRootComponent(
 
 	override fun showImageGallery() = modalRouter.showImageGallery(ImageGalleryMode.Browse)
 
+	override fun showCommandPalette() = commandOverlayRouter.showPalette()
+
+	override fun showCheatSheet() = commandOverlayRouter.showCheatSheet()
+
+	override fun dismissCommandOverlay() = commandOverlayRouter.dismiss()
+
+	/** Its own chord closes an overlay; the other's switches to it. */
+	private fun toggleCommandOverlay(config: CommandOverlayRouter.Config) {
+		when {
+			commandOverlayRouter.isShowing(config) -> dismissCommandOverlay()
+			config == CommandOverlayRouter.Config.Palette -> showCommandPalette()
+			else -> showCheatSheet()
+		}
+	}
+
 	private fun reopenSceneAfterFocusMode(sceneItem: SceneItem) {
 		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
 			?.component?.showScene(sceneItem)
@@ -457,71 +518,24 @@ class ProjectRootComponent(
 			CloseConfirm.Complete -> Unit
 		}
 	}
+}
 
-	override fun onStart() {
-		super.onStart()
-		addMenuItems()
-	}
-
-	override fun onStop() {
-		super.onStop()
-		removeMenuItems()
-	}
-
-	private fun addMenuItems() {
-		addMenu(
-			MenuDescriptor(
-				id = IMAGES_MENU_ID,
-				label = Res.string.images_menu_group,
-				items = listOf(
-					MenuItemDescriptor(
-						id = "project-root-images-gallery",
-						label = Res.string.images_menu_item,
-						icon = "",
-						action = { showImageGallery() }
-					)
-				)
-			)
-		)
-
-		updateSyncMenu()
-	}
-
-	private fun updateSyncMenu() {
-		if (canSync == syncMenuAdded) return
-		if (syncMenuAdded) {
-			removeMenu(SYNC_MENU_ID)
-			syncMenuAdded = false
-		} else {
-			addMenu(
-				MenuDescriptor(
-					id = SYNC_MENU_ID,
-					label = Res.string.sync_menu_group,
-					items = listOf(
-						MenuItemDescriptor(
-							id = "project-root-sync-start",
-							label = Res.string.sync_menu_item,
-							icon = "",
-							shortcut = KeyShortcut(keyCode = 0x72),
-							action = { startProjectSync() }
-						)
-					)
-				)
-			)
-			syncMenuAdded = true
-		}
-	}
-
-	private fun removeMenuItems() {
-		removeMenu(IMAGES_MENU_ID)
-		if (syncMenuAdded) {
-			removeMenu(SYNC_MENU_ID)
-			syncMenuAdded = false
-		}
-	}
-
-	companion object {
-		const val SYNC_MENU_ID = "project-root-sync"
-		const val IMAGES_MENU_ID = "project-root-images"
-	}
+/**
+ * A project root for hosts whose close requests (`project.close`, Home's close button) raise the
+ * unsaved-changes confirm through [ProjectRoot.requestClose]. The host closes the project when
+ * [ProjectRoot.closeRequestHandlers] reaches [CloseConfirm.Complete].
+ */
+fun confirmingProjectRootComponent(
+	componentContext: ComponentContext,
+	projectDef: ProjectDef,
+	initialDeepLink: ProjectDeepLink? = null,
+): ProjectRootComponent {
+	lateinit var root: ProjectRootComponent
+	root = ProjectRootComponent(
+		componentContext = componentContext,
+		projectDef = projectDef,
+		onCloseProject = { root.requestClose() },
+		initialDeepLink = initialDeepLink,
+	)
+	return root
 }

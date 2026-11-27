@@ -23,10 +23,14 @@ import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionHandler
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionLayer
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.actions.RegisterActions
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModal
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModalDefaults
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
@@ -35,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineIma
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTypePicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberCreateAction
 import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
 import com.darkrockstudios.apps.hammer.common.compose.images.imageAddResultMessage
 import com.darkrockstudios.apps.hammer.common.compose.images.pickImageFile
@@ -105,6 +110,13 @@ internal fun CreateEntryUi(
 
 	var imagePath by remember { mutableStateOf<String?>(null) }
 
+	// The draft lives here rather than in the component, so the close chord is registered here too.
+	val requestClose: () -> Unit = {
+		val isDirty = name.isNotBlank() || description.isNotBlank() || tags.isNotEmpty() || imagePath != null
+		if (isDirty) component.confirmClose() else close()
+	}
+	RegisterActions(ActionLayer.Item, mapOf(HammerActions.ItemClose.id to ActionHandler { requestClose() }))
+
 	suspend fun reportImage(result: ImageAddResult) {
 		imageAddResultMessage(result, strRes)?.let { rootSnackbar.showSnackbar(it) }
 	}
@@ -116,51 +128,50 @@ internal fun CreateEntryUi(
 		}
 	}
 
-	val create: () -> Unit = {
-		scope.launch {
-			val result = component.createEntry(
-				name = name,
-				type = selectedType,
-				text = description,
-				tags = tags.toSet(),
-				imagePath = imagePath,
-				excludeFromDictionary = excludeFromDictionary,
+	val create = rememberCreateAction(scope) {
+		val result = component.createEntry(
+			name = name,
+			type = selectedType,
+			text = description,
+			tags = tags.toSet(),
+			imagePath = imagePath,
+			excludeFromDictionary = excludeFromDictionary,
+		)
+		val message = when (result.error) {
+			EntryError.NAME_TOO_LONG -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_too_long,
+				EncyclopediaRepository.MAX_NAME_SIZE,
 			)
-			val message = when (result.error) {
-				EntryError.NAME_TOO_LONG -> strRes.get(
-					Res.string.encyclopedia_create_entry_toast_too_long,
-					EncyclopediaRepository.MAX_NAME_SIZE,
-				)
 
-				EntryError.NAME_INVALID_CHARACTERS -> strRes.get(
-					Res.string.encyclopedia_create_entry_toast_invalid_name
-				)
+			EntryError.NAME_INVALID_CHARACTERS -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_invalid_name
+			)
 
-				EntryError.TAG_TOO_LONG -> strRes.get(
-					Res.string.encyclopedia_create_entry_toast_tag_too_long,
-					EncyclopediaRepository.MAX_TAG_SIZE,
-				)
+			EntryError.TAG_TOO_LONG -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_tag_too_long,
+				EncyclopediaRepository.MAX_TAG_SIZE,
+			)
 
-				EntryError.NAME_TOO_SHORT -> strRes.get(
-					Res.string.encyclopedia_create_entry_toast_name_too_short
-				)
+			EntryError.NAME_TOO_SHORT -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_name_too_short
+			)
 
-				EntryError.ALIAS_TOO_LONG -> strRes.get(
-					Res.string.encyclopedia_create_entry_toast_alias_too_long,
-					EncyclopediaRepository.MAX_NAME_SIZE,
-				)
+			EntryError.ALIAS_TOO_LONG -> strRes.get(
+				Res.string.encyclopedia_create_entry_toast_alias_too_long,
+				EncyclopediaRepository.MAX_NAME_SIZE,
+			)
 
-				EntryError.NONE -> {
-					name = ""
-					description = ""
-					tags.clear()
-					imagePath = null
-					close()
-					strRes.get(Res.string.encyclopedia_create_entry_toast_success)
-				}
+			EntryError.NONE -> {
+				name = ""
+				description = ""
+				tags.clear()
+				imagePath = null
+				close()
+				strRes.get(Res.string.encyclopedia_create_entry_toast_success)
 			}
-			rootSnackbar.showSnackbar(message)
 		}
+		// Outside the create, so the next one need not wait for the snackbar.
+		scope.launch { rootSnackbar.showSnackbar(message) }
 	}
 
 	HdCreateModal(
@@ -193,6 +204,7 @@ internal fun CreateEntryUi(
 				onValueChange = { name = it.take(EncyclopediaRepository.MAX_NAME_SIZE) },
 				placeholder = Res.string.encyclopedia_create_entry_name_placeholder.get(),
 				counter = "${name.length}/${EncyclopediaRepository.MAX_NAME_SIZE}",
+				autoFocus = true,
 				testTag = ENCYCLOPEDIA_CREATE_NAME_TAG,
 			)
 

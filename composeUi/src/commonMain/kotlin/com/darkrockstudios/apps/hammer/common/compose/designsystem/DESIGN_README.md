@@ -245,7 +245,7 @@ These set up the page. Use them before reaching for raw `Column` /
   section numbers. `titleMenu = true` makes the title a menu anchor:
   one line, ellipsized before it crowds out the rule, then a `▾`
   chevron, the whole title calling `onTitleClick`. The caller places
-  its `DropdownMenu` beside the header. The timeline masthead's
+  its `HdDropdownMenu` beside the header. The timeline masthead's
   switcher (`§ IV  Before the evening ▾  ───  13 ENTRIES`) uses it.
 - **[`HdHairlineSection`](HdHairlineSection.kt)** —
   `HdSectionHeader` + content with a left-side marginalia rule running
@@ -377,6 +377,12 @@ The handwriting of the system. Reach for these instead of styling
   point at, one per visit.
 
 ### Buttons & inputs
+
+**Keyboard focus is an ink frame.** `AppTheme` provides `HdIndication`
+as `LocalIndication`: the ripple, plus a 1dp ink frame just inside the
+control's hairline while it holds focus in keyboard input mode. Any
+`clickable` that takes the default indication gets it, so a new control
+needs nothing extra; passing your own `indication` opts out.
 
 Buttons come in three tiers. **In a masthead only the primary action
 is framed**; everything else there is quiet, so the row reads as one
@@ -529,12 +535,18 @@ a sort icon). Control labels are sentence case in the body face.
   segmented row would crowd. Past ten options the open menu starts
   with an `HdSearchField` that narrows them as you type, with Up, Down
   and Enter to pick.
+- **[`HdDropdownMenu`](HdDropdownMenu.kt)**: every menu, in place of
+  Material's `DropdownMenu`. It makes the open menu the topmost
+  overlay, so Esc closes only the menu, not the dialog or screen under it.
 - **[`HdSearchableListDialog`](HdSearchableListDialog.kt)** — hairline
   dialog with an `HdSearchField` over a lazy row list, each row a label
   plus optional mono greeble (`English (United States)     EN-US`).
   Use where even a searchable dropdown would be unwieldy: hundreds of
   options, or rows that need a greeble, e.g. every platform locale. Optional muted clear row above
-  the list resets the selection.
+  the list resets the selection. The command palette drives it from
+  the keyboard: `keyboardSelection` (Up/Down move a tonal highlight,
+  Enter picks), `autoFocusSearch`, its own `filter`, and
+  `itemTrailingContent` for a chord in `HdMetaText`.
 - **[`HdTabPill`](HdTabPill.kt)**: one tab of an evenly weighted row
   in a dialog, a label over a 2dp rule that takes the accent when
   active. Used where a dialog's list splits into a few kinds, such as

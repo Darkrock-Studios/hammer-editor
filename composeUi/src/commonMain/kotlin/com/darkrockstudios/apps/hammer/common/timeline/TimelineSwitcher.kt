@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitch
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDialogActions
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
@@ -158,7 +158,7 @@ internal fun TimelineSwitcherHeader(
 			modifier = Modifier.testTag(TIME_LINE_SWITCHER_TAG),
 			trailing = trailing,
 		)
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
 			modifier = Modifier.widthIn(min = 240.dp, max = 360.dp),
@@ -302,7 +302,7 @@ internal fun DeletedTimelineNotice(
 		)
 		// Anchors the target menu under the actions, at the strip's end.
 		Box(modifier = Modifier.align(Alignment.BottomEnd)) {
-			DropdownMenu(expanded = picking, onDismissRequest = { picking = false }) {
+			HdDropdownMenu(expanded = picking, onDismissRequest = { picking = false }) {
 				MenuSection(Res.string.timeline_switcher_section.get())
 				state.timelines.forEach { summary ->
 					SwitcherRow(
@@ -433,6 +433,7 @@ private fun CreateFields(
 		value = name,
 		onValueChange = { name = it },
 		error = errorText(error),
+		autoFocus = true,
 		testTag = TIME_LINE_NEW_NAME_TAG,
 	)
 	HdHairlineSegmentedPicker(
@@ -475,6 +476,7 @@ private fun RenameFields(
 		value = name,
 		onValueChange = { name = it },
 		error = errorText(error),
+		autoFocus = true,
 		testTag = TIME_LINE_RENAME_NAME_TAG,
 	)
 	DialogButtons(

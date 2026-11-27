@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCreateModal
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberCreateAction
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -48,37 +49,35 @@ fun CreateNoteUi(
 
 	val canCreate by remember { derivedStateOf { noteText.value.isNotBlank() } }
 
-	val create: () -> Unit = {
-		scope.launch {
-			val result = component.createNote(noteText.value, tags.toSet())
-			newNoteError = !result.isSuccess
-			when (result) {
-				NoteError.TOO_LONG -> scope.launch {
-					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
-				}
+	val create = rememberCreateAction(scope, isEnabled = { canCreate }) {
+		val result = component.createNote(noteText.value, tags.toSet())
+		newNoteError = !result.isSuccess
+		when (result) {
+			NoteError.TOO_LONG -> scope.launch {
+				rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
+			}
 
-				NoteError.EMPTY -> scope.launch {
-					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
-				}
+			NoteError.EMPTY -> scope.launch {
+				rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
+			}
 
-				NoteError.TAG_TOO_LONG -> scope.launch {
-					rootSnackbar.showSnackbar(
-						strRes.get(
-							Res.string.notes_create_toast_tag_too_long,
-							NotesRepository.MAX_TAG_SIZE,
-						)
+			NoteError.TAG_TOO_LONG -> scope.launch {
+				rootSnackbar.showSnackbar(
+					strRes.get(
+						Res.string.notes_create_toast_tag_too_long,
+						NotesRepository.MAX_TAG_SIZE,
 					)
-				}
+				)
+			}
 
-				NoteError.NONE -> {
-					withContext(mainDispatcher) {
-						component.clearText()
-						tags.clear()
-						resetVersion++
-					}
-					scope.launch {
-						rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
-					}
+			NoteError.NONE -> {
+				withContext(mainDispatcher) {
+					component.clearText()
+					tags.clear()
+					resetVersion++
+				}
+				scope.launch {
+					rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
 				}
 			}
 		}

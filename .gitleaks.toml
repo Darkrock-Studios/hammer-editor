@@ -1,11 +1,13 @@
 # Gitleaks configuration. Extends the built-in ruleset (so all default secret rules run) and
-# allowlists known test fixtures that are not real credentials.
+# allowlists known false positives that are not real credentials.
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Fake credentials used only as test fixtures, not real secrets."
+description = "Known false positives: fake test credentials and code that only looks like a key."
 regexes = [
   # Shared fake password in the server account tests (a keyboard-walk, not a real key).
   '''qweasdZXC123''',
+  # ChordKey enum constants: the generic-api-key rule reads "Key" in the name as a keyword.
+  '''^ChordKey\.\w+$''',
 ]

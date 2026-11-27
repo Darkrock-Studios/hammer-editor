@@ -1,5 +1,11 @@
 package components.projectroot
 
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.components.ToastMessage
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.HammerActions
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
+import com.darkrockstudios.apps.hammer.save_all_toast
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.nux.NuxRepository
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
@@ -8,12 +14,13 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickResult
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootModalRouter
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.components.projectroot.confirmingProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -62,6 +69,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.components.commandpalette.CheatSheet
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -84,9 +93,11 @@ import org.junit.jupiter.api.Test
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
+import utils.KeyStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -112,16 +123,12 @@ class ProjectRootComponentTest : ComponentTest() {
 	private lateinit var timeLineRepository: TimeLineRepository
 	private lateinit var timelineService: TimelineService
 
-	private val addedMenus = mutableListOf<MenuDescriptor>()
-	private val removedMenuIds = mutableListOf<String>()
 	private var projectClosed = false
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
-		addedMenus.clear()
-		removedMenuIds.clear()
 		projectClosed = false
 
 		settingsUpdates = MutableSharedFlow()
@@ -190,6 +197,7 @@ class ProjectRootComponentTest : ComponentTest() {
 			single { spellCheckRepository }
 			single<FocusModeService> { mockk(relaxed = true) }
 			single<UrlLauncher> { mockk(relaxed = true) }
+			single<StrRes> { KeyStrRes() }
 			single<VersionCheckRepository> { mockk(relaxed = true) }
 			single { TimelineSelectionSetting(PropertiesSettings(Properties())) }
 			single<AccountTagService> { mockk(relaxed = true) }
@@ -231,8 +239,6 @@ class ProjectRootComponentTest : ComponentTest() {
 	) = ProjectRootComponent(
 		componentContext = context,
 		projectDef = projectDef,
-		addMenu = { addedMenus.add(it) },
-		removeMenu = { removedMenuIds.add(it) },
 		onCloseProject = { projectClosed = true },
 		initialDeepLink = initialDeepLink,
 	)
@@ -690,51 +696,7 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `Sync menu is added on start for server synchronized projects`() = runTest(mainTestDispatcher) {
-		every { syncJournal.isServerSynchronized() } returns true
-
-		newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		assertTrue(addedMenus.any { it.id == ProjectRootComponent.SYNC_MENU_ID })
-
-		context.stop()
-		advanceUntilIdle()
-		assertTrue(ProjectRootComponent.SYNC_MENU_ID in removedMenuIds)
-	}
-
-	@Test
-	fun `No sync menu for local-only projects`() = runTest(mainTestDispatcher) {
-		every { syncJournal.isServerSynchronized() } returns false
-
-		newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		assertTrue(addedMenus.none { it.id == ProjectRootComponent.SYNC_MENU_ID })
-	}
-
-	@Test
-	fun `Turning project sync off and on removes and restores the sync menu`() = runTest(mainTestDispatcher) {
-		every { syncJournal.isServerSynchronized() } returns true
-
-		newComponent()
-		context.resume()
-		advanceUntilIdle()
-		assertEquals(1, addedMenus.count { it.id == ProjectRootComponent.SYNC_MENU_ID })
-
-		projectSyncEnabled.value = false
-		advanceUntilIdle()
-		assertTrue(ProjectRootComponent.SYNC_MENU_ID in removedMenuIds)
-
-		projectSyncEnabled.value = true
-		advanceUntilIdle()
-		assertEquals(2, addedMenus.count { it.id == ProjectRootComponent.SYNC_MENU_ID })
-	}
-
-	@Test
-	fun `No sync menu, sync request or close sync when project sync is off`() = runTest(mainTestDispatcher) {
+	fun `No sync action, sync request or close sync when project sync is off`() = runTest(mainTestDispatcher) {
 		every { syncJournal.isServerSynchronized() } returns true
 		every { sceneEditor.hasDirtyBuffers() } returns false
 		coEvery { syncJournal.shouldAutoSync() } returns true
@@ -743,7 +705,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
-		assertTrue(addedMenus.none { it.id == ProjectRootComponent.SYNC_MENU_ID })
+		assertFalse(comp.actions.isLive(HammerActions.ProjectSync.id))
 
 		comp.startProjectSync()
 		advanceUntilIdle()
@@ -755,24 +717,625 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `The images menu opens the gallery to browse`() = runTest(mainTestDispatcher) {
+	fun `The sync action follows the project sync setting`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertTrue(comp.actions.isLive(HammerActions.ProjectSync.id))
+
+		projectSyncEnabled.value = false
+		advanceUntilIdle()
+		assertFalse(comp.actions.isLive(HammerActions.ProjectSync.id))
+
+		projectSyncEnabled.value = true
+		advanceUntilIdle()
+		assertTrue(comp.actions.isLive(HammerActions.ProjectSync.id))
+	}
+
+	@Test
+	fun `The image gallery action opens the gallery to browse`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
 
-		val menu = addedMenus.single { it.id == ProjectRootComponent.IMAGES_MENU_ID }
-		menu.items.single().let { it.action(it.id) }
+		val handled = comp.actions.invoke(HammerActions.ProjectGallery.id)
 		advanceUntilIdle()
 
+		assertTrue(handled)
 		assertEquals(
 			ProjectRootModalRouter.Config.ImageGallery(ImageGalleryMode.Browse),
 			comp.modalRouterState.value.child?.configuration,
 		)
 		assertIs<ProjectRoot.ModalDestination.ImageGalleryModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `Mod+3 shows the Notes destination`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+1 through Mod+5 reach every destination in nav rail order`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		val digits = listOf(ChordKey.Digit1, ChordKey.Digit2, ChordKey.Digit3, ChordKey.Digit4, ChordKey.Digit5)
+
+		val reached = (digits.drop(1) + digits.first()).associateWith { digit ->
+			comp.actions.dispatch(KeyChord.mod(digit))
+			advanceUntilIdle()
+			comp.routerState.value.active.instance.getLocationType()
+		}
+
+		assertEquals(ProjectRoot.DestinationTypes.entries.toList(), digits.map { reached[it] })
+	}
+
+	@Test
+	fun `Mod+Shift+F opens global search`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.F, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertIs<ProjectRoot.ModalDestination.GlobalSearchModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `F3 starts a sync for a server synchronized project`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+		every { sceneEditor.hasDirtyBuffers() } returns false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.bare(ChordKey.F3))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertEquals(setOf(CloseConfirm.Sync), comp.closeRequestHandlers.value)
+	}
+
+	@Test
+	fun `F3 is not handled for a local-only project`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertFalse(comp.actions.dispatch(KeyChord.bare(ChordKey.F3)))
+		assertTrue(comp.closeRequestHandlers.value.isEmpty())
+	}
+
+	@Test
+	fun `Mod+Shift+S saves every buffer and says so`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		val toasts = mutableListOf<ToastMessage>()
+		backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { comp.toast.collect { toasts += it } }
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.S, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		coVerify { sceneEditor.storeAllBuffers() }
+		assertEquals(listOf<ToastMessage>(ToastMessage.Resource(Res.string.save_all_toast)), toasts)
+	}
+
+	@Test
+	fun `Mod+Shift+W asks to close the project`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.W, shift = true))
+
+		assertTrue(handled)
+		assertTrue(projectClosed)
+	}
+
+	@Test
+	fun `Mod+Shift+W with a dirty buffer raises the unsaved confirm on a confirming root`() =
+		runTest(mainTestDispatcher) {
+			every { sceneEditor.hasDirtyBuffers() } returns true
+			coEvery { syncJournal.shouldAutoSync() } returns false
+			val comp = confirmingProjectRootComponent(context, projectDef)
+			context.resume()
+			advanceUntilIdle()
+
+			val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.W, shift = true))
+			advanceUntilIdle()
+
+			assertTrue(handled)
+			assertEquals(listOf(CloseConfirm.Scenes, CloseConfirm.Complete), comp.closeRequestHandlers.value.toList())
+		}
+
+	@Test
+	fun `Closing from Home on a confirming root raises the unsaved confirm`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+		val comp = confirmingProjectRootComponent(context, projectDef)
+		context.resume()
+		advanceUntilIdle()
+		val home = assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+
+		home.component.closeProject()
+		advanceUntilIdle()
+
+		assertEquals(listOf(CloseConfirm.Scenes, CloseConfirm.Complete), comp.closeRequestHandlers.value.toList())
+	}
+
+	@Test
+	fun `Root actions stop answering once the project is stopped`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
 
 		context.stop()
 		advanceUntilIdle()
-		assertTrue(ProjectRootComponent.IMAGES_MENU_ID in removedMenuIds)
+
+		assertFalse(comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3)))
+		assertFalse(comp.actions.dispatch(KeyChord.mod(ChordKey.W, shift = true)))
+		assertTrue(comp.actions.live().isEmpty())
+		assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+		assertFalse(projectClosed)
+	}
+
+	@Test
+	fun `Mod+N with focus mode open does nothing`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.Notes)
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.N))
+		advanceUntilIdle()
+
+		assertFalse(handled)
+		val notes = assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+		assertIs<Notes.Destination.BrowseNotesDestination>(notes.component.stack.value.active.instance)
+	}
+
+	@Test
+	fun `global actions still run over focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.S, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		coVerify { sceneEditor.storeAllBuffers() }
+	}
+
+	@Test
+	fun `closing the modal restores module actions`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.Notes)
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		comp.dismissFocusMode()
+		advanceUntilIdle()
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.N))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		val notes = assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+		assertIs<Notes.Destination.CreateNoteDestination>(notes.component.stack.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+3 with a close confirm showing does not navigate`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.requestClose()
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3))
+		advanceUntilIdle()
+
+		assertFalse(handled)
+		assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+		assertTrue(comp.actions.hasOverlay())
+	}
+
+	@Test
+	fun `a close confirm still blocks Mod+3 after the window stops and starts`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.requestClose()
+		advanceUntilIdle()
+
+		context.stop()
+		context.resume()
+		advanceUntilIdle()
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3))
+		advanceUntilIdle()
+
+		assertFalse(handled)
+		assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+Shift+Enter leaves focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Enter, shift = true))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		val modal = comp.modalRouterState.value.child?.instance
+		assertTrue(modal == null || modal is ProjectRoot.ModalDestination.None)
+		assertFalse(comp.actions.hasOverlay())
+	}
+
+	private fun ProjectRoot.palette() =
+		assertIs<ProjectRoot.CommandOverlay.PaletteOverlay>(commandOverlayState.value.child?.instance).component
+
+	private fun ProjectRoot.commandOverlayClosed(): Boolean =
+		commandOverlayState.value.child?.instance.let { it == null || it is ProjectRoot.CommandOverlay.None }
+
+	private fun ProjectRoot.cheatSheet() =
+		assertIs<ProjectRoot.CommandOverlay.CheatSheetOverlay>(commandOverlayState.value.child?.instance).component
+
+	/** What the overlay's UI does once its exit animation has played. */
+	private fun ProjectRoot.finishCommandOverlayExit() {
+		when (val overlay = commandOverlayState.value.child?.instance) {
+			is ProjectRoot.CommandOverlay.PaletteOverlay -> overlay.component.onDismissed()
+			is ProjectRoot.CommandOverlay.CheatSheetOverlay -> overlay.component.onDismissed()
+			else -> {}
+		}
+	}
+
+	@Test
+	fun `a dismissed palette stays up for its exit, then the slot clears`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		val palette = comp.palette()
+
+		comp.dismissCommandOverlay()
+		val shownDuringExit = comp.commandOverlayState.value.child?.instance
+		comp.finishCommandOverlayExit()
+
+		assertFalse(palette.state.value.open)
+		assertIs<ProjectRoot.CommandOverlay.PaletteOverlay>(shownDuringExit)
+		assertTrue(comp.commandOverlayClosed())
+		assertFalse(comp.actions.hasOverlay())
+	}
+
+	@Test
+	fun `Esc during the palette exit over focus mode keeps focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		comp.actions.dismissTopOverlay()
+		val secondEsc = comp.actions.dismissTopOverlay()
+		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
+
+		assertTrue(secondEsc)
+		assertTrue(comp.commandOverlayClosed())
+		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `showing the palette while it is open keeps the one that is up`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showCommandPalette()
+		advanceUntilIdle()
+		val first = comp.palette()
+
+		comp.showCommandPalette()
+		advanceUntilIdle()
+
+		assertSame(first, comp.palette())
+		assertTrue(first.state.value.open)
+	}
+
+	@Test
+	fun `showing the cheat sheet while it is open keeps the one that is up`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showCheatSheet()
+		advanceUntilIdle()
+		val first = comp.cheatSheet()
+
+		comp.showCheatSheet()
+		advanceUntilIdle()
+
+		assertSame(first, comp.cheatSheet())
+		assertTrue(first.state.value.open)
+	}
+
+	@Test
+	fun `dismissing with no overlay up changes nothing`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.dismissCommandOverlay()
+		val closedAfterDismiss = comp.commandOverlayClosed()
+		val opened = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		assertTrue(closedAfterDismiss)
+		assertTrue(opened)
+		assertTrue(comp.palette().state.value.open)
+	}
+
+	@Test
+	fun `Mod+K while the palette plays its exit opens a fresh one`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		val first = comp.palette()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		val second = comp.palette()
+		assertTrue(first !== second)
+		assertTrue(second.state.value.open)
+		assertTrue(HammerActions.NavNotes.id in second.state.value.entries.map { it.id })
+	}
+
+	@Test
+	fun `F1 while the palette plays its exit opens a sheet of what is live below it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		comp.dismissCommandOverlay()
+
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		val navNotes = comp.cheatSheet().state.value.sections.flatMap { it.rows }.single { it.id == HammerActions.NavNotes.id }
+		assertEquals(CheatSheet.Reach.Live, navNotes.reach)
+	}
+
+	@Test
+	fun `the cheat sheet remembers Show all between openings`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+		comp.cheatSheet().setShowAll(false)
+		comp.dismissCommandOverlay()
+		comp.finishCommandOverlayExit()
+
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		assertFalse(comp.cheatSheet().state.value.showAll)
+	}
+
+	@Test
+	fun `Mod+K opens the palette and F1 the cheat sheet`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val paletteOpened = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		val paletteShown = comp.commandOverlayState.value.child?.instance
+		comp.dismissCommandOverlay()
+		val sheetOpened = comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		assertTrue(paletteOpened)
+		assertIs<ProjectRoot.CommandOverlay.PaletteOverlay>(paletteShown)
+		assertTrue(sheetOpened)
+		assertIs<ProjectRoot.CommandOverlay.CheatSheetOverlay>(comp.commandOverlayState.value.child?.instance)
+	}
+
+	@Test
+	fun `Mod+K over focus mode opens the palette and keeps focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.Notes)
+		advanceUntilIdle()
+		val itemNewLiveBefore = comp.actions.isLive(HammerActions.ItemNew.id)
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		assertTrue(itemNewLiveBefore)
+		assertTrue(handled)
+		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+		val ids = comp.palette().state.value.entries.map { it.id }
+		assertFalse(HammerActions.ItemNew.id in ids)
+		assertTrue(HammerActions.ProjectSaveAll.id in ids)
+	}
+
+	@Test
+	fun `Esc closes the palette over focus mode and keeps focus mode`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		val closed = comp.actions.dismissTopOverlay()
+		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
+
+		assertTrue(closed)
+		assertTrue(comp.commandOverlayClosed())
+		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `a global action run from the palette over focus mode works`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showFocusMode(sceneItem())
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		comp.palette().run(HammerActions.ProjectSaveAll.id)
+		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
+
+		coVerify { sceneEditor.storeAllBuffers() }
+		assertTrue(comp.commandOverlayClosed())
+		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `a module action run from the palette runs once the palette is gone`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.Notes)
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		comp.palette().run(HammerActions.ItemNew.id)
+		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
+
+		assertTrue(comp.commandOverlayClosed())
+		val notes = assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+		assertIs<Notes.Destination.CreateNoteDestination>(notes.component.stack.value.active.instance)
+	}
+
+	@Test
+	fun `Mod+K with the palette open closes it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
+
+		assertTrue(handled)
+		assertTrue(comp.commandOverlayClosed())
+		assertFalse(comp.actions.hasOverlay())
+	}
+
+	@Test
+	fun `F1 with the cheat sheet open closes it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		val handled = comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+		comp.finishCommandOverlayExit()
+
+		assertTrue(handled)
+		assertTrue(comp.commandOverlayClosed())
+		assertFalse(comp.actions.hasOverlay())
+	}
+
+	@Test
+	fun `F1 with the palette open switches to the cheat sheet`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		val navNotes = comp.cheatSheet().state.value.sections.flatMap { it.rows }.single { it.id == HammerActions.NavNotes.id }
+		assertEquals(CheatSheet.Reach.Live, navNotes.reach)
+	}
+
+	@Test
+	fun `Mod+K over the cheat sheet switches to a palette of what is live below it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.actions.dispatch(KeyChord.bare(ChordKey.F1))
+		advanceUntilIdle()
+
+		comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		val ids = comp.palette().state.value.entries.map { it.id }
+		assertTrue(HammerActions.NavNotes.id in ids)
+	}
+
+	@Test
+	fun `cancelling the close confirm restores navigation`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.requestClose()
+		advanceUntilIdle()
+
+		comp.cancelCloseRequest()
+		val handled = comp.actions.dispatch(KeyChord.mod(ChordKey.Digit3))
+		advanceUntilIdle()
+
+		assertTrue(handled)
+		assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
 	}
 
 	@Test

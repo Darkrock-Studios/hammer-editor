@@ -12,8 +12,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.TopEnd
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.components.menu.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.compose.actions.ChordLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.more_menu_button
 
 @Composable
@@ -36,7 +38,7 @@ fun TopAppBarDropdownMenu(
 			)
 		}
 
-		DropdownMenu(
+		HdDropdownMenu(
 			modifier = Modifier.align(TopEnd),
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
@@ -44,6 +46,7 @@ fun TopAppBarDropdownMenu(
 			menuItems.forEach { item ->
 				DropdownMenuItem(
 					text = { Text(item.label.get()) },
+					trailingIcon = item.actionId?.let { id -> { ChordLabel(id) } },
 					onClick = {
 						expanded = false
 						item.action(item.id)

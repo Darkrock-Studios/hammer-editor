@@ -1,5 +1,9 @@
 package components.storyeditor.scenelist
 
+import com.darkrockstudios.apps.hammer.common.components.actions.ActionRegistry
+import com.darkrockstudios.apps.hammer.common.components.actions.ChordKey
+import com.darkrockstudios.apps.hammer.common.components.actions.KeyChord
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneListComponent
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
@@ -51,6 +55,7 @@ import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -118,6 +123,8 @@ class SceneListComponentTest : ComponentTest() {
 
 	private fun storedNuxState() = NuxFilesystemDatasource(nuxFileSystem, createTomlSerializer()).load()
 
+	private val registry = ActionRegistry()
+
 	private fun newComponent(componentContext: TestComponentContext = context) = SceneListComponent(
 		componentContext = componentContext,
 		projectDef = projectDef,
@@ -126,6 +133,7 @@ class SceneListComponentTest : ComponentTest() {
 		openSceneEditor = { openedScenes.add(it) },
 		showOutlineOverviewDialog = { outlineShown = true },
 		showReader = { readerShown = true },
+		actions = registry,
 	)
 
 	private fun sceneItem(id: Int = 1, type: SceneItem.Type = SceneItem.Type.Scene) = SceneItem(
@@ -737,5 +745,126 @@ class SceneListComponentTest : ComponentTest() {
 
 		assertEquals(bothTips, unseen())
 		assertEquals(bothTips, comp.state.value.offeredHints)
+	}
+
+	private val group = sceneItem(1, SceneItem.Type.Group)
+	private val groupScene = sceneItem(2)
+
+	private fun TestScope.startedWithPopulatedSummary(): SceneListComponent {
+		every { sceneEditor.getSceneSummaries() } returns populatedSummary()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		return comp
+	}
+
+	@Test
+	fun `Mod+N asks for a scene in the selected scene's group`() = runTest(mainTestDispatcher) {
+		val comp = startedWithPopulatedSummary()
+		selectedSceneFlow.emit(groupScene)
+		advanceUntilIdle()
+
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.N))
+
+		assertTrue(handled)
+		assertEquals(SceneList.CreateRequest(SceneList.CreateRequest.Kind.Scene, group), comp.state.value.createRequest)
+	}
+
+	@Test
+	fun `Mod+N with nothing selected asks at the root`() = runTest(mainTestDispatcher) {
+		val comp = startedWithPopulatedSummary()
+
+		registry.dispatch(KeyChord.mod(ChordKey.N))
+
+		val request = comp.state.value.createRequest
+		assertEquals(SceneList.CreateRequest.Kind.Scene, request?.kind)
+		assertTrue(request?.parent?.isRootScene == true)
+	}
+
+	@Test
+	fun `Mod+Shift+N asks for a group`() = runTest(mainTestDispatcher) {
+		val comp = startedWithPopulatedSummary()
+
+		val handled = registry.dispatch(KeyChord.mod(ChordKey.N, shift = true))
+
+		assertTrue(handled)
+		assertEquals(SceneList.CreateRequest.Kind.Group, comp.state.value.createRequest?.kind)
+	}
+
+	@Test
+	fun `a selected group is the parent itself`() = runTest(mainTestDispatcher) {
+		val comp = startedWithPopulatedSummary()
+		comp.onSceneSelected(group)
+
+		registry.dispatch(KeyChord.mod(ChordKey.N))
+
+		assertEquals(group, comp.state.value.createRequest?.parent)
+	}
+
+	@Test
+	fun `creating clears the request`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.createScene(any(), any()) } returns sceneItem(9)
+		val comp = startedWithPopulatedSummary()
+		comp.beginCreate(SceneList.CreateRequest.Kind.Scene, null)
+
+		comp.createScene(comp.state.value.createRequest?.parent, "New Scene")
+		advanceUntilIdle()
+
+		assertNull(comp.state.value.createRequest)
+	}
+
+	@Test
+	fun `a scene create that throws still clears the request`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.createScene(any(), any()) } throws IllegalStateException("write failed")
+		val comp = startedWithPopulatedSummary()
+		comp.beginCreate(SceneList.CreateRequest.Kind.Scene, group)
+
+		assertFailsWith<IllegalStateException> { comp.createScene(group, "New Scene") }
+		advanceUntilIdle()
+
+		assertNull(comp.state.value.createRequest)
+	}
+
+	@Test
+	fun `a group create that throws still clears the request`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.createGroup(any(), any()) } throws IllegalStateException("write failed")
+		val comp = startedWithPopulatedSummary()
+		comp.beginCreate(SceneList.CreateRequest.Kind.Group, group)
+
+		assertFailsWith<IllegalStateException> { comp.createGroup(group, "Part Two") }
+		advanceUntilIdle()
+
+		assertNull(comp.state.value.createRequest)
+	}
+
+	@Test
+	fun `dismissing clears the request`() = runTest(mainTestDispatcher) {
+		val comp = startedWithPopulatedSummary()
+		comp.beginCreate(SceneList.CreateRequest.Kind.Group, group)
+
+		comp.dismissCreate()
+
+		assertNull(comp.state.value.createRequest)
+	}
+
+	@Test
+	fun `a create request survives process death`() = runTest(mainTestDispatcher) {
+		val comp = startedWithPopulatedSummary()
+		comp.beginCreate(SceneList.CreateRequest.Kind.Group, group)
+
+		val recreated = context.saveAndRecreate()
+		val restored = newComponent(recreated)
+
+		assertEquals(SceneList.CreateRequest(SceneList.CreateRequest.Kind.Group, group), restored.state.value.createRequest)
+	}
+
+	@Test
+	fun `the list stops answering Mod+N once stopped`() = runTest(mainTestDispatcher) {
+		startedWithPopulatedSummary()
+
+		context.stop()
+
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.N)))
+		assertFalse(registry.dispatch(KeyChord.mod(ChordKey.N, shift = true)))
 	}
 }

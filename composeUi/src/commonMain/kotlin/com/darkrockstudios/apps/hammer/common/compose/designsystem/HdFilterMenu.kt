@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -64,7 +63,7 @@ fun HdFilterMenu(
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
-		DropdownMenu(
+		HdDropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
 		) {
