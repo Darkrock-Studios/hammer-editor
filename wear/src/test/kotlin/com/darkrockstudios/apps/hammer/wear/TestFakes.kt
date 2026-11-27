@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.wear
 
+import android.content.Context
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -10,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.setInternalDirectories
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.wear.data.CaptureWriter
 import com.darkrockstudios.apps.hammer.wear.data.LocalNetworkAccess
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import okio.IOException
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
+import java.io.File
 
 class FakeWearPrefsDatasource : WearPrefsDatasource {
 	private val ids = MutableStateFlow<Set<String>>(emptySet())
@@ -185,6 +188,13 @@ class TestProjects {
 	val repository: ProjectsRepository
 
 	init {
+		// Removing a project's content clears its caches, which live under the platform cache directory.
+		setInternalDirectories(
+			mockk<Context> {
+				every { filesDir } returns File("/files")
+				every { cacheDir } returns File("/cache")
+			}
+		)
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
