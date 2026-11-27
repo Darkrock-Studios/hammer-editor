@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.entitycatalog
 
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.tagindex.normalizeTagNeedle
+import com.darkrockstudios.apps.hammer.common.util.containsFolded
 
 /** The kinds of item a picker offers, by the ids plugins name them with. */
 enum class CatalogKind(val id: String) {
@@ -59,14 +60,14 @@ interface EntityCatalog {
 }
 
 /**
- * The [items] [filter] accepts whose name or an alias holds [query], ignoring case, in the order
+ * The [items] [filter] accepts whose name or an alias holds [query], ignoring case and accents, in the order
  * given. A blank query matches every one.
  */
 fun filterCatalog(items: List<CatalogItem>, query: String, filter: CatalogFilter): List<CatalogItem> {
 	val needle = query.trim()
 	return items.filter { item ->
 		filter.accepts(item) &&
-			(needle.isEmpty() || item.name.contains(needle, ignoreCase = true) || item.aliases.any { it.contains(needle, ignoreCase = true) })
+			(needle.isEmpty() || item.name.containsFolded(needle) || item.aliases.any { it.containsFolded(needle) })
 	}
 }
 

@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
+import com.darkrockstudios.apps.hammer.common.util.containsFolded
 import io.github.aakira.napier.Napier
 import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.launch
@@ -127,7 +128,7 @@ class BrowseEntriesComponent(
 		return state.value.entryDefs.filter { entry ->
 			val typeOk = type == null || entry.type == type
 			val textOk = searchTerm.isEmpty() ||
-				entry.name.filterNot { it.isWhitespace() }.contains(searchTerm, ignoreCase = true)
+				entry.name.filterNot { it.isWhitespace() }.containsFolded(searchTerm)
 			val tagOk = idsMatchingAllTags == null || entry.id in idsMatchingAllTags
 
 			typeOk && textOk && tagOk

@@ -39,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.focus.isBareKeyDown
+import com.darkrockstudios.apps.hammer.common.util.containsFolded
 
 /**
  * Hairline dialog for picking one item from a long list, narrowed by a search field.
@@ -160,8 +161,8 @@ internal fun <T> HdSearchableListDialogContent(
 			filter != null -> filter(query, items)
 			query.isBlank() -> items
 			else -> items.filter {
-				itemLabel(it).contains(query, ignoreCase = true) ||
-					itemTrailing?.invoke(it)?.contains(query, ignoreCase = true) == true
+				itemLabel(it).containsFolded(query) ||
+					itemTrailing?.invoke(it)?.containsFolded(query) == true
 			}
 		}
 	}

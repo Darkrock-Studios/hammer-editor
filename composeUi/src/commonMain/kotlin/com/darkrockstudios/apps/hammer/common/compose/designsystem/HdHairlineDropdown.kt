@@ -40,6 +40,7 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowHeightSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.util.foldedForSearch
 import com.darkrockstudios.apps.hammer.hd_dropdown_no_match
 import com.darkrockstudios.apps.hammer.hd_dropdown_search
 
@@ -132,8 +133,8 @@ private fun <T> SearchableOptions(
 ) {
 	var query by remember { mutableStateOf("") }
 	val labels = options.map { label(it) }
-	val folded = remember(labels) { labels.map { it.folded() } }
-	val needle = remember(query) { query.trim().folded() }
+	val folded = remember(labels) { labels.map { it.foldedForSearch() } }
+	val needle = remember(query) { query.trim().foldedForSearch() }
 	// Indices into options.
 	val shown = remember(folded, needle) { options.indices.filter { needle in folded[it] } }
 	// The row Enter takes: the first match while typing; none before that, until an arrow key.
@@ -239,17 +240,6 @@ private fun DropdownOption(
 		onClick = onClick,
 	)
 }
-
-/** Lower case, with the accents of Latin letters dropped, so "sao" finds "São". */
-private fun String.folded(): String = buildString(length) {
-	for (c in this@folded.lowercase()) {
-		val at = ACCENTED.indexOf(c)
-		append(if (at < 0) c else UNACCENTED[at])
-	}
-}
-
-private const val ACCENTED = "àáâãäåçèéêëìíîïñòóôõöùúûüýÿāăąćĉċčďēĕėęěĝğġģĥĩīĭįĵķĺļľńņňōŏőŕŗřśŝşšţťũūŭůűųŵŷźżžơưǎǐǒǔǖǘǚǜǟǡǧǩǫǭǰǵǹǻȁȃȅȇȉȋȍȏȑȓȕȗșțȟȧȩȫȭȯȱȳøłđıß"
-private const val UNACCENTED = "aaaaaaceeeeiiiinooooouuuuyyaaaccccdeeeeegggghiiiijklllnnnooorrrssssttuuuuuuwyzzzouaiouuuuuaagkoojgnaaaeeiioorruusthaeooooyoldis"
 
 /** A dropdown with more options than this can be searched. */
 private const val SEARCHABLE_ABOVE = 10
