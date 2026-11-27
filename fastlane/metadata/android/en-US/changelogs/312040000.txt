@@ -1,0 +1,4 @@
+- Fix WearOS GooglePlay release
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.12.3+google-play
