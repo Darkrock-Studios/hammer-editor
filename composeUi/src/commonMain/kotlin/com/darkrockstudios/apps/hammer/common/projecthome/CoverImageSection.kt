@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +26,6 @@ import com.darkrockstudios.apps.hammer.common.compose.images.CoverThumbnail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
-import com.darkrockstudios.apps.hammer.project_info_cover_caption
 import com.darkrockstudios.apps.hammer.project_info_cover_clear
 import com.darkrockstudios.apps.hammer.project_info_cover_missing
 import com.darkrockstudios.apps.hammer.project_info_cover_none
@@ -79,11 +76,6 @@ internal fun CoverImageSection(
 			}
 
 			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-				Text(
-					text = Res.string.project_info_cover_caption.get(),
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
 				HdHairlineButton(
 					label = Res.string.project_settings_pick_ellipsis.get(),
 					onClick = onPick,
