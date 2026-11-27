@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.wear.SignedInSettings
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairRequest
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairResponse
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairingProtocol
@@ -33,13 +34,7 @@ import org.junit.jupiter.api.Test
 
 class WearRootComponentTest : WearTestBase() {
 
-	private val signedIn = ServerSettings(
-		url = "hammer.ink",
-		email = "writer@example.com",
-		userId = 7,
-		bearerToken = "auth",
-		refreshToken = "refresh",
-	)
+	private val signedIn = SignedInSettings
 
 	private val sentRequests = mutableListOf<PairRequest>()
 	private lateinit var settingsUpdates: MutableSharedFlow<ServerSettings?>

@@ -90,6 +90,7 @@
 	<string name="tile_note">Note</string>
 	<string name="tile_idea">Story idea</string>
 	<string name="tile_no_project">No project on watch</string>
+	<string name="tile_sign_in_prompt">Sign in to capture notes and story ideas</string>
 	<string name="tile_pending">%1$d to sync</string>
 	<string name="complication_label">New note</string>
 	<string name="complication_description">Capture a note in Hammer</string>

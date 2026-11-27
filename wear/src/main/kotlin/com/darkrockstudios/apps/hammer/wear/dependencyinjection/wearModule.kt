@@ -77,7 +77,9 @@ val wearModule: Module = module {
 		)
 	}
 	factory { CaptureTargetsUseCase(listProjects = get(), subscriptions = get()) }
-	factory { CaptureTileStateUseCase(captureTargets = get(), unsyncedContent = get()) }
+	factory {
+		CaptureTileStateUseCase(captureTargets = get(), unsyncedContent = get(), globalSettingsStore = get())
+	}
 
 	single<AccountSync> {
 		val syncAccountUseCase: SyncAccountUseCase = get()
@@ -97,6 +99,7 @@ val wearModule: Module = module {
 		SyncScheduler(
 			workManager = WorkManager.getInstance(androidContext()),
 			globalSettingsStore = get(),
+			surfaces = get(),
 			appScope = get(named(APP_SCOPE)),
 		)
 	}
