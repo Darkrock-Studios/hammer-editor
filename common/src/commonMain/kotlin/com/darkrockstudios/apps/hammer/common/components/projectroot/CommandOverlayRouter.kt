@@ -37,14 +37,6 @@ class CommandOverlayRouter(
 	private val current: Config
 		get() = state.value.child?.configuration ?: Config.None
 
-	/** False once the overlay in the slot has started to close, while its exit plays. */
-	private val currentIsOpen: Boolean
-		get() = when (val overlay = state.value.child?.instance) {
-			is ProjectRoot.CommandOverlay.PaletteOverlay -> overlay.component.state.value.open
-			is ProjectRoot.CommandOverlay.CheatSheetOverlay -> overlay.component.state.value.open
-			ProjectRoot.CommandOverlay.None, null -> false
-		}
-
 	private fun createChild(config: Config, componentContext: ComponentContext): ProjectRoot.CommandOverlay =
 		when (config) {
 			Config.None -> ProjectRoot.CommandOverlay.None
@@ -76,8 +68,16 @@ class CommandOverlayRouter(
 		}
 	}
 
-	/** Whether [config] is up and not yet closing. */
-	fun isShowing(config: Config): Boolean = current == config && currentIsOpen
+	/** Whether [config] is up and not yet closing: false while its exit plays. */
+	fun isShowing(config: Config): Boolean = when (val overlay = state.value.child?.instance) {
+		is ProjectRoot.CommandOverlay.PaletteOverlay ->
+			config == Config.Palette && overlay.component.state.value.open
+
+		is ProjectRoot.CommandOverlay.CheatSheetOverlay ->
+			config == Config.CheatSheet && overlay.component.state.value.open
+
+		ProjectRoot.CommandOverlay.None, null -> false
+	}
 
 	private fun show(config: Config) {
 		if (isShowing(config)) return

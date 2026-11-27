@@ -97,6 +97,7 @@ import utils.KeyStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -1056,6 +1057,54 @@ class ProjectRootComponentTest : ComponentTest() {
 		assertTrue(secondEsc)
 		assertTrue(comp.commandOverlayClosed())
 		assertIs<ProjectRoot.ModalDestination.FocusModeModal>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `showing the palette while it is open keeps the one that is up`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showCommandPalette()
+		advanceUntilIdle()
+		val first = comp.palette()
+
+		comp.showCommandPalette()
+		advanceUntilIdle()
+
+		assertSame(first, comp.palette())
+		assertTrue(first.state.value.open)
+	}
+
+	@Test
+	fun `showing the cheat sheet while it is open keeps the one that is up`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showCheatSheet()
+		advanceUntilIdle()
+		val first = comp.cheatSheet()
+
+		comp.showCheatSheet()
+		advanceUntilIdle()
+
+		assertSame(first, comp.cheatSheet())
+		assertTrue(first.state.value.open)
+	}
+
+	@Test
+	fun `dismissing with no overlay up changes nothing`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.dismissCommandOverlay()
+		val closedAfterDismiss = comp.commandOverlayClosed()
+		val opened = comp.actions.dispatch(KeyChord.mod(ChordKey.K))
+		advanceUntilIdle()
+
+		assertTrue(closedAfterDismiss)
+		assertTrue(opened)
+		assertTrue(comp.palette().state.value.open)
 	}
 
 	@Test
