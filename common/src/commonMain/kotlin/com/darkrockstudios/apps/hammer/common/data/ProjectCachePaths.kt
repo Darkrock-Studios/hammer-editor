@@ -1,10 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.data
 
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock
 import okio.ByteString.Companion.encodeUtf8
 import okio.FileSystem
 import okio.IOException
@@ -26,10 +29,27 @@ object ProjectCachePaths {
 	// on a file name, which a project's own name can come close to.
 	private const val MAX_NAME_CHARS = 48
 
+	// Two caches claiming one folder at once would each clear the other's file.
+	private val claimLock = reentrantLock()
+
 	fun projectsCacheRoot(): Path = getCacheDirectory().toPath() / PROJECTS_DIRECTORY
 
 	fun projectCacheDirectory(fileSystem: FileSystem, projectDef: ProjectDef): Path =
-		projectsCacheRoot() / cacheId(fileSystem, projectDef)
+		projectCacheDirectory(fileSystem, projectDef.name, projectDef.path)
+
+	private fun projectCacheDirectory(fileSystem: FileSystem, name: String, path: HPath): Path =
+		projectsCacheRoot() / cacheId(fileSystem, name, path)
+
+	/** Deletes every cache of the project named [name] at [path], as when its content is replaced. */
+	fun clear(fileSystem: FileSystem, name: String, path: HPath) {
+		val dir = projectCacheDirectory(fileSystem, name, path)
+		requireWithinRoot(dir)
+		try {
+			fileSystem.deleteRecursively(dir)
+		} catch (e: IOException) {
+			Napier.w("Failed to clear project cache $dir", e)
+		}
+	}
 
 	/** [name] in [dir], or null when it is missing or [dir] holds another project's caches. */
 	fun fileToRead(fileSystem: FileSystem, dir: Path, projectDef: ProjectDef, name: String): Path? {
@@ -40,13 +60,28 @@ object ProjectCachePaths {
 
 	/** [name] in [dir], made ready to write: another project's caches there are cleared first. */
 	fun fileToWrite(fileSystem: FileSystem, dir: Path, projectDef: ProjectDef, name: String): Path {
-		require(dir.isWithin(projectsCacheRoot())) { "Refusing to write a cache outside the cache root: $dir" }
-		fileSystem.createDirectories(dir)
-		if (owner(fileSystem, dir) != projectDef.id.id) {
-			fileSystem.list(dir).forEach { fileSystem.deleteRecursively(it) }
-			fileSystem.write(dir / OWNER_FILENAME) { writeUtf8(projectDef.id.id) }
+		requireWithinRoot(dir)
+		claimLock.withLock {
+			fileSystem.createDirectories(dir)
+			if (owner(fileSystem, dir) != projectDef.id.id) {
+				fileSystem.list(dir).forEach { fileSystem.deleteRecursively(it) }
+				fileSystem.write(dir / OWNER_FILENAME) { writeUtf8(projectDef.id.id) }
+			}
 		}
 		return dir / name
+	}
+
+	/** Deletes [name] in [dir]. Returns whether there was one to delete. */
+	fun deleteFile(fileSystem: FileSystem, dir: Path, name: String): Boolean {
+		requireWithinRoot(dir)
+		val file = dir / name
+		if (!fileSystem.exists(file)) return false
+		fileSystem.delete(file)
+		return true
+	}
+
+	private fun requireWithinRoot(dir: Path) {
+		require(dir.isWithin(projectsCacheRoot())) { "Refusing a cache folder outside the cache root: $dir" }
 	}
 
 	private fun owner(fileSystem: FileSystem, dir: Path): String? = try {
@@ -55,14 +90,17 @@ object ProjectCachePaths {
 		null
 	}
 
-	internal fun cacheId(fileSystem: FileSystem, projectDef: ProjectDef): String {
-		val pathHash = canonicalPath(fileSystem, projectDef).encodeUtf8().sha256().hex().take(PATH_HASH_LENGTH)
-		return "${shortName(projectDef.name)}-$pathHash"
+	internal fun cacheId(fileSystem: FileSystem, projectDef: ProjectDef): String =
+		cacheId(fileSystem, projectDef.name, projectDef.path)
+
+	private fun cacheId(fileSystem: FileSystem, name: String, path: HPath): String {
+		val pathHash = canonicalPath(fileSystem, path).encodeUtf8().sha256().hex().take(PATH_HASH_LENGTH)
+		return "${shortName(name)}-$pathHash"
 	}
 
-	/** The project's path as the file system resolves it, so two spellings of one folder hash alike. */
-	private fun canonicalPath(fileSystem: FileSystem, projectDef: ProjectDef): String {
-		val path = projectDef.path.toOkioPath().normalized()
+	/** [projectPath] as the file system resolves it, so two spellings of one folder hash alike. */
+	private fun canonicalPath(fileSystem: FileSystem, projectPath: HPath): String {
+		val path = projectPath.toOkioPath().normalized()
 		val canonical = try {
 			fileSystem.canonicalize(path)
 		} catch (_: IOException) {

@@ -11,6 +11,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.Path
 
 class StatisticsDatasource(
 	private val fileSystem: FileSystem,
@@ -23,7 +24,7 @@ class StatisticsDatasource(
 	private val cacheDir by lazy { ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef) }
 
 	suspend fun loadStatistics(): ProjectStatistics? = withContext(dispatcherIo) {
-		readProjectStatistics(projectDef, fileSystem, toml)
+		readProjectStatistics(projectDef, fileSystem, toml, cacheDir)
 	}
 
 	suspend fun saveStatistics(stats: ProjectStatistics) = withContext(dispatcherIo) {
@@ -33,8 +34,7 @@ class StatisticsDatasource(
 	}
 
 	suspend fun delete() = withContext(dispatcherIo) {
-		fileSystem.delete(cacheDir / FILENAME)
-		Napier.d("Statistics cache deleted")
+		if (ProjectCachePaths.deleteFile(fileSystem, cacheDir, FILENAME)) Napier.d("Statistics cache deleted")
 	}
 
 	companion object {
@@ -51,8 +51,8 @@ fun readProjectStatistics(
 	projectDef: ProjectDef,
 	fileSystem: FileSystem,
 	toml: Toml,
+	dir: Path = ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef),
 ): ProjectStatistics? {
-	val dir = ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef)
 	val file = ProjectCachePaths.fileToRead(fileSystem, dir, projectDef, StatisticsDatasource.FILENAME) ?: return null
 	return fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
 		Napier.d("Failed to read statistics cache for ${projectDef.name}", e)

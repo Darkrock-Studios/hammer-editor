@@ -2,6 +2,7 @@ package repositories.projectsrepository
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ProjectsRepositoryDeleteAllLocalDataTest : BaseTest() {
@@ -78,6 +80,18 @@ class ProjectsRepositoryDeleteAllLocalDataTest : BaseTest() {
 		// the content it just deleted is still present.
 		assertEquals(listOf(projectDir / ProjectMetadata.FILENAME), ffs.list(projectDir))
 		assertEquals(listOf(projectDef), projectsRepository.getProjects())
+	}
+
+	@Test
+	fun `removing a project's content clears its caches`() {
+		projectsRepository.createProject("Alpha", seedDefaultLanguage = false)
+		val projectDef = projectsRepository.getProjects().single()
+		val cacheDir = ProjectCachePaths.projectCacheDirectory(ffs, projectDef)
+		ffs.write(ProjectCachePaths.fileToWrite(ffs, cacheDir, projectDef, "references.toml")) { writeUtf8("") }
+
+		projectsRepository.deleteProjectContent(projectDef)
+
+		assertFalse(ffs.exists(cacheDir))
 	}
 
 	@Test

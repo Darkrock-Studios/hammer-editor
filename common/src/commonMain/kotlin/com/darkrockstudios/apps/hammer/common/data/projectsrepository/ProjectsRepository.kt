@@ -991,6 +991,8 @@ class ProjectsRepository(
 	fun deleteProjectContent(projectDef: ProjectDef) {
 		val projectDir = projectDef.path.toOkioPath()
 		if (!fileSystem.exists(projectDir)) return
+		// The same project id comes back with other content, which its caches would not describe.
+		ProjectCachePaths.clear(fileSystem, projectDef.name, projectDef.path)
 		fileSystem.list(projectDir)
 			.filter { it.name != ProjectMetadata.FILENAME }
 			.forEach { entry ->

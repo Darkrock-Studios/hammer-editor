@@ -10,6 +10,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertNotEquals
@@ -85,6 +86,40 @@ class ProjectCachePathsTest {
 		assertFalse(fileSystem.exists(dir / "a.toml"))
 		assertFalse(fileSystem.exists(dir / "b.toml"))
 		assertNull(ProjectCachePaths.fileToRead(fileSystem, dir, project, "b.toml"))
+	}
+
+	@Test
+	fun `A cache folder outside the cache root is refused`() {
+		val project = getProject1Def()
+		val outside = project.path.toOkioPath()
+
+		assertFailsWith<IllegalArgumentException> {
+			ProjectCachePaths.fileToWrite(fileSystem, outside, project, "a.toml")
+		}
+		assertFailsWith<IllegalArgumentException> {
+			ProjectCachePaths.deleteFile(fileSystem, outside, "a.toml")
+		}
+	}
+
+	@Test
+	fun `deleteFile says whether there was a file`() {
+		val project = getProject1Def()
+		val dir = ProjectCachePaths.projectCacheDirectory(fileSystem, project)
+		fileSystem.write(ProjectCachePaths.fileToWrite(fileSystem, dir, project, "a.toml")) { writeUtf8("a") }
+
+		assertTrue(ProjectCachePaths.deleteFile(fileSystem, dir, "a.toml"))
+		assertFalse(ProjectCachePaths.deleteFile(fileSystem, dir, "a.toml"))
+	}
+
+	@Test
+	fun `clear deletes the project's whole cache folder`() {
+		val project = getProject1Def()
+		val dir = ProjectCachePaths.projectCacheDirectory(fileSystem, project)
+		fileSystem.write(ProjectCachePaths.fileToWrite(fileSystem, dir, project, "a.toml")) { writeUtf8("a") }
+
+		ProjectCachePaths.clear(fileSystem, project.name, project.path)
+
+		assertFalse(fileSystem.exists(dir))
 	}
 
 	@Test

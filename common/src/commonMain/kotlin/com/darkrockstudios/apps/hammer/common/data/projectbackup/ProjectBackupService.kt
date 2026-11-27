@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
@@ -229,6 +230,8 @@ open class ProjectBackupService(
 				)
 
 				swapIntoPlace(archiveRoot(extracted), targetOkioPath, displaced)
+				// The restored project can keep the replaced one's id, so its caches would pass as current.
+				ProjectCachePaths.clear(fileSystem, backupDef.projectName, targetDir)
 				adoptIdentity(backupDef.projectName, targetDir, liveId, liveSynced)
 				BackupRestoreResult.Restored
 			} catch (e: Exception) {

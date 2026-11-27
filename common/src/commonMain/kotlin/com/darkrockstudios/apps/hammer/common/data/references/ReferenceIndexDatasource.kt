@@ -38,8 +38,7 @@ class ReferenceIndexDatasource(
 	}
 
 	suspend fun delete() = withContext(dispatcherIo) {
-		fileSystem.delete(cacheDir / FILENAME)
-		Napier.d("Reference index cache deleted")
+		if (ProjectCachePaths.deleteFile(fileSystem, cacheDir, FILENAME)) Napier.d("Reference index cache deleted")
 	}
 
 	companion object {

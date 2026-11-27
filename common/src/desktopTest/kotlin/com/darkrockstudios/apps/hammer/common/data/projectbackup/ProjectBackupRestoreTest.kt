@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -70,6 +71,21 @@ class ProjectBackupRestoreTest : ProjectsRepositoryBaseTest() {
 
 		assertFalse(ffs.exists(laterWork))
 		assertEquals(projectId, repo.listedProjectId(projectDef))
+	}
+
+	@Test
+	fun `Restoring over a project clears its caches`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		val repo = projectsRepository()
+		val backups = backupService(repo)
+		val backup = assertNotNull(backups.createBackup(projectDef))
+		val listed = repo.getProjects().single()
+		val cacheDir = ProjectCachePaths.projectCacheDirectory(ffs, listed)
+		ffs.write(ProjectCachePaths.fileToWrite(ffs, cacheDir, listed, "stats.toml")) { writeUtf8("") }
+
+		assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup))
+
+		assertFalse(ffs.exists(cacheDir))
 	}
 
 	@Test
