@@ -1,8 +1,10 @@
 package repositories.statistics
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatistics
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsCachePaths
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -82,6 +84,19 @@ class StatisticsDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Load ignores statistics that name no project`() = runTest(mainTestDispatcher) {
+		val datasource = createDatasource()
+		datasource.saveStatistics(stats())
+
+		val cachePath = ffs.allPaths.first { it.name == StatisticsCachePaths.FILENAME }
+		val legacy = ffs.read(cachePath) { readUtf8() }.lines().filterNot { it.startsWith("projectId") }
+		ffs.write(cachePath) { writeUtf8(legacy.joinToString("\n")) }
+
+		assertNull(datasource.loadStatistics())
+		assertNull(ProjectStatisticsCacheReader(ffs, toml).loadStatistics(getProject1Def()))
+	}
+
+	@Test
 	fun `Projects with the same name in different groups keep separate statistics`() =
 		runTest(mainTestDispatcher) {
 			val topLevel = getProject1Def()
@@ -102,7 +117,7 @@ class StatisticsDatasourceTest : BaseTest() {
 			datasource.saveStatistics(stats())
 
 			val cacheRoot =
-				getCacheDirectory().toPath() / StatisticsCachePaths.PROJECTS_DIRECTORY
+				getCacheDirectory().toPath() / ProjectCachePaths.PROJECTS_DIRECTORY
 			val written = ffs.allPaths.first { it.name == StatisticsCachePaths.FILENAME }
 			assertTrue(
 				written.isWithin(cacheRoot),

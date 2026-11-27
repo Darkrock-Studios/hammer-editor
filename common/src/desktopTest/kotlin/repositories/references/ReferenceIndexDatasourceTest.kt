@@ -1,6 +1,7 @@
 package repositories.references
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.ProjectCachePaths
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
@@ -126,7 +127,7 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 			datasource.saveIndex(ReferenceIndex())
 
 			val cacheRoot =
-				getCacheDirectory().toPath() / ReferenceIndexDatasource.PROJECTS_DIRECTORY
+				getCacheDirectory().toPath() / ProjectCachePaths.PROJECTS_DIRECTORY
 			val written = ffs.allPaths.first { it.name == ReferenceIndexDatasource.FILENAME }
 			assertTrue(
 				written.isWithin(cacheRoot),

@@ -9,7 +9,7 @@ data class ReferenceIndex(
 	val isDirty: Boolean = false,
 	val lastCalculated: Instant? = null,
 	val entryToScenes: Map<Int, Set<Int>> = emptyMap(),
-	/** The project this was calculated from. The cache file is found by project name, which another project can come to hold. */
+	// The project this was calculated from: one replaced at the same path reuses the cache folder.
 	val projectId: String? = null,
 ) {
 	companion object {

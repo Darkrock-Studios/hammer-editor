@@ -252,9 +252,16 @@ class ProjectsRepository(
 		}
 	}
 
-	/** Deletes the caches no current project owns; see [ProjectCachePaths.removeOrphans]. */
+	/**
+	 * Deletes the caches no current project owns; see [ProjectCachePaths.removeOrphans]. Does nothing
+	 * while the projects directory is missing or holds no project, as when it is on a drive that isn't
+	 * mounted, so those projects keep their caches.
+	 */
 	fun removeOrphanedProjectCaches() {
-		val removed = ProjectCachePaths.removeOrphans(fileSystem, getProjects())
+		if (!fileSystem.exists(globalSettings.projectsDirectory.toPath())) return
+		val projects = getProjects()
+		if (projects.isEmpty()) return
+		val removed = ProjectCachePaths.removeOrphans(fileSystem, projects)
 		if (removed > 0) Napier.i("Deleted $removed orphaned project cache folder(s)")
 	}
 

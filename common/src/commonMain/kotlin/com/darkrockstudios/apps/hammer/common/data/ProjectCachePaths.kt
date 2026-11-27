@@ -18,15 +18,36 @@ object ProjectCachePaths {
 	const val PROJECTS_DIRECTORY = "projects"
 	private const val PATH_HASH_LENGTH = 16
 
+	// At 4 UTF-8 bytes a character, with the hash, this stays well under the common 255-byte limit
+	// on a file name, which a project's own name can come close to.
+	private const val MAX_NAME_CHARS = 48
+
 	fun projectsCacheRoot(): Path = getCacheDirectory().toPath() / PROJECTS_DIRECTORY
 
-	fun projectCacheDirectory(projectDef: ProjectDef): Path =
-		projectsCacheRoot() / cacheId(projectDef)
+	fun projectCacheDirectory(fileSystem: FileSystem, projectDef: ProjectDef): Path =
+		projectsCacheRoot() / cacheId(fileSystem, projectDef)
 
-	fun cacheId(projectDef: ProjectDef): String {
-		val path = projectDef.path.path.toPath(normalize = true).toString()
-		val pathHash = path.encodeUtf8().sha256().hex().take(PATH_HASH_LENGTH)
-		return "${ProjectsRepository.encodeForFilename(projectDef.name)}-$pathHash"
+	fun cacheId(fileSystem: FileSystem, projectDef: ProjectDef): String {
+		val pathHash = canonicalPath(fileSystem, projectDef).encodeUtf8().sha256().hex().take(PATH_HASH_LENGTH)
+		return "${shortName(projectDef.name)}-$pathHash"
+	}
+
+	/** The project's path as the file system resolves it, so two spellings of one folder hash alike. */
+	private fun canonicalPath(fileSystem: FileSystem, projectDef: ProjectDef): String {
+		val path = projectDef.path.path.toPath(normalize = true)
+		val canonical = try {
+			fileSystem.canonicalize(path)
+		} catch (_: IOException) {
+			path
+		}
+		return canonical.toString()
+	}
+
+	private fun shortName(name: String): String {
+		val encoded = ProjectsRepository.encodeForFilename(name)
+		if (encoded.length <= MAX_NAME_CHARS) return encoded
+		val cut = encoded.take(MAX_NAME_CHARS)
+		return if (cut.last().isHighSurrogate()) cut.dropLast(1) else cut
 	}
 
 	/**
@@ -34,7 +55,7 @@ object ProjectCachePaths {
 	 * or deleted. Returns how many it deleted.
 	 */
 	fun removeOrphans(fileSystem: FileSystem, projects: List<ProjectDef>): Int {
-		val owned = projects.map(::cacheId).toSet()
+		val owned = projects.map { cacheId(fileSystem, it) }.toSet()
 		val orphans = fileSystem.listOrNull(projectsCacheRoot()).orEmpty().filter { dir ->
 			dir.name !in owned && fileSystem.metadataOrNull(dir)?.isDirectory == true
 		}

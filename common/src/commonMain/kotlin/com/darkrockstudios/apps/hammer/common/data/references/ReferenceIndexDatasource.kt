@@ -59,7 +59,7 @@ class ReferenceIndexDatasource(
 
 	private fun getProjectsCacheRoot(): Path = ProjectCachePaths.projectsCacheRoot()
 
-	private fun getProjectCacheDirectory(): Path = ProjectCachePaths.projectCacheDirectory(projectDef)
+	private fun getProjectCacheDirectory(): Path = ProjectCachePaths.projectCacheDirectory(fileSystem, projectDef)
 
 	private fun getIndexPath(): Path = getProjectCacheDirectory() / FILENAME
 
@@ -78,7 +78,6 @@ class ReferenceIndexDatasource(
 	}
 
 	companion object {
-		const val PROJECTS_DIRECTORY = ProjectCachePaths.PROJECTS_DIRECTORY
 		const val FILENAME = "references.toml"
 	}
 }

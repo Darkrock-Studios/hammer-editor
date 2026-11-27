@@ -23,7 +23,7 @@ class ProjectStatisticsCacheReaderTest {
 		val toml = createTomlSerializer()
 		val projectDef = getProject1Def()
 
-		val statsFile = StatisticsCachePaths.statsFile(projectDef)
+		val statsFile = StatisticsCachePaths.statsFile(fileSystem, projectDef)
 		fileSystem.createDirectories(statsFile.parent!!)
 		fileSystem.write(statsFile) {
 			// "Title" is not a valid Int key for wordsByChapter: Map<Int, Int>.
