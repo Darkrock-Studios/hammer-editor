@@ -4,6 +4,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
+import com.darkrockstudios.apps.hammer.common.util.containsFolded
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -44,7 +45,7 @@ interface ImageGallery {
 				val query = searchQuery.trim()
 				val shown = images.filter { image ->
 					(!filterUnused || image.inUse != true) &&
-						(query.isEmpty() || image.def.name.contains(query, ignoreCase = true))
+						(query.isEmpty() || image.def.name.containsFolded(query))
 				}
 				return if (newestFirst) shown.sortedByDescending { it.def.id } else shown.sortedBy { it.def.id }
 			}

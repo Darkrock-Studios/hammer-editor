@@ -39,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.compose.leftBorder
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
+import com.darkrockstudios.apps.hammer.common.util.containsFolded
 import com.darkrockstudios.apps.hammer.move_to_group_cancel_button
 import com.darkrockstudios.apps.hammer.move_to_group_destination_label
 import com.darkrockstudios.apps.hammer.move_to_group_move_button
@@ -125,7 +126,7 @@ fun MoveToGroupContent(
 		if (query.isBlank()) {
 			destinations
 		} else {
-			destinations.filter { (it.group?.name ?: topLevelLabel).contains(query.trim(), ignoreCase = true) }
+			destinations.filter { (it.group?.name ?: topLevelLabel).containsFolded(query.trim()) }
 		}
 	}
 	val canMove = selected != currentParent

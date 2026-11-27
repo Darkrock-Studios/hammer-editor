@@ -40,6 +40,7 @@ import com.darkrockstudios.apps.hammer.common.data.movePositionCount
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.data.validMoveDestinations
+import com.darkrockstudios.apps.hammer.common.util.containsFolded
 import com.darkrockstudios.apps.hammer.scene_move_dialog_destination_label
 import com.darkrockstudios.apps.hammer.scene_move_dialog_dismiss_button
 import com.darkrockstudios.apps.hammer.scene_move_dialog_invalid_position
@@ -113,7 +114,7 @@ internal class MoveSceneDialogState(
 		if (query.isBlank()) return destinations
 		return destinations.filter { node ->
 			val name = if (node.value.isRootScene) topLevelLabel else node.value.name
-			name.contains(query, ignoreCase = true)
+			name.containsFolded(query)
 		}
 	}
 

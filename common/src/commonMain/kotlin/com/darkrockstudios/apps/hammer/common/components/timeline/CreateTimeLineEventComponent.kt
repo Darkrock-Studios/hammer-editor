@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
+import com.darkrockstudios.apps.hammer.common.util.foldedForSearch
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -330,11 +331,12 @@ class CreateTimeLineEventComponent(
 
 private const val MAX_LANE_SUGGESTIONS = 8
 
-/** [lanes] that start with [prefix], then those that contain it, ignoring case; never an exact match. */
+/** [lanes] that start with [prefix], then those that contain it, ignoring case and accents; never an exact match. */
 internal fun suggestLanes(lanes: List<String>, prefix: String): List<String> {
 	val needle = prefix.trim()
 	val candidates = lanes.filterNot { it.equals(needle, ignoreCase = true) }
 	if (needle.isEmpty()) return candidates.take(MAX_LANE_SUGGESTIONS)
-	val (starts, rest) = candidates.partition { it.startsWith(needle, ignoreCase = true) }
-	return (starts + rest.filter { it.contains(needle, ignoreCase = true) }).take(MAX_LANE_SUGGESTIONS)
+	val folded = needle.foldedForSearch()
+	val (starts, rest) = candidates.partition { it.foldedForSearch().startsWith(folded) }
+	return (starts + rest.filter { folded in it.foldedForSearch() }).take(MAX_LANE_SUGGESTIONS)
 }
