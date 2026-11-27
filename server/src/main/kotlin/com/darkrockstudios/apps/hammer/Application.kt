@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.utilities.applyServerTimeZone
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.utilities.configureDiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
+import com.darkrockstudios.apps.hammer.utilities.keyMintingSecureRandom
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
 import com.darkrockstudios.apps.hammer.utilities.resolveServerTimeZone
 import com.github.ajalt.clikt.core.CliktCommand
@@ -60,7 +61,6 @@ import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
 import java.io.File
 import java.security.KeyStore
-import java.security.SecureRandom
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) = HammerServerCommand()
@@ -444,5 +444,5 @@ fun Application.appMain(
 }
 
 fun cliKeyringCodec(): KeyringCodec =
-	KeyringCodec(SecureRandom.getInstanceStrong(), createTokenBase64())
+	KeyringCodec(keyMintingSecureRandom(), createTokenBase64())
 
