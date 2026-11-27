@@ -40,15 +40,14 @@ object ProjectCachePaths {
 	private fun projectCacheDirectory(fileSystem: FileSystem, name: String, path: HPath): Path =
 		projectsCacheRoot() / cacheId(fileSystem, name, path)
 
-	/** Deletes every cache of the project named [name] at [path], as when its content is replaced. */
+	/**
+	 * Deletes every cache of the project named [name] at [path], as when its content is replaced.
+	 * Throws when they could not all be deleted, since what is left would pass as current.
+	 */
 	fun clear(fileSystem: FileSystem, name: String, path: HPath) {
 		val dir = projectCacheDirectory(fileSystem, name, path)
 		requireWithinRoot(dir)
-		try {
-			fileSystem.deleteRecursively(dir)
-		} catch (e: IOException) {
-			Napier.w("Failed to clear project cache $dir", e)
-		}
+		fileSystem.deleteRecursively(dir)
 	}
 
 	/** [name] in [dir], or null when it is missing or [dir] holds another project's caches. */

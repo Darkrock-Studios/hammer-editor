@@ -39,12 +39,12 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected fun projectsRepository(fs: FileSystem = ffs) =
 		ProjectsRepository(fs, settingsRepo, projectsMetaDatasource, GroupMetadataDatasource(fs, toml), toml, json, deviceLocaleResolver)
 
-	protected fun backupService(repo: ProjectsRepository): ProjectBackupService {
+	protected fun backupService(repo: ProjectsRepository, fs: FileSystem = ffs): ProjectBackupService {
 		every { settings.maxBackups } returns 5
 		val clock = object : Clock {
 			override fun now(): Instant = Instant.parse("2025-12-28T16:29:00Z")
 		}
-		return ProjectBackupService(ffs, repo, settingsRepo, clock, mockk(relaxed = true), projectsMetaDatasource)
+		return ProjectBackupService(fs, repo, settingsRepo, clock, mockk(relaxed = true), projectsMetaDatasource)
 	}
 
 	@BeforeEach
