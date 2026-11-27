@@ -23,7 +23,7 @@ private val BarShape = RoundedCornerShape(2.dp)
 /**
  * One row of the "Characters by Appearances" chart:
  * `Alice ▓▓▓▓▓▓▓░░ 15`. Bar fills [fraction] of the track width.
- * [valueWidth] keeps the value column the same width across rows; null wraps it.
+ * [valueWidth] keeps the value column the same width across rows; null sizes it to its content.
  */
 @Composable
 fun HdAttributionBar(
@@ -76,26 +76,35 @@ fun HdAttributionBar(
 	}
 }
 
+/** Width of the widest of [values] in the value column's style, for lining up separate charts. */
+@Composable
+fun rememberHdBarValueWidth(values: List<String>): Dp {
+	val style = MaterialTheme.typography.titleSmall
+	val textMeasurer = rememberTextMeasurer()
+	val density = LocalDensity.current
+	return remember(values, style, density) {
+		val widest = values.maxOfOrNull { textMeasurer.measure(it, style, softWrap = false).size.width } ?: 0
+		with(density) { widest.toDp() }
+	}
+}
+
 /**
  * Vertical stack of [HdAttributionBar] rows scaled relative to the
- * largest value unless [maxValue] is provided.
+ * largest value unless [maxValue] is provided. Charts stacked to be compared
+ * should share [maxValue] and a [valueWidth] from [rememberHdBarValueWidth],
+ * or their bar tracks differ in length.
  */
 @Composable
 fun HdMiniBarChart(
 	items: List<HdAttributionItem>,
 	modifier: Modifier = Modifier,
 	maxValue: Int? = null,
+	valueWidth: Dp? = null,
 ) {
 	if (items.isEmpty()) return
 	val effectiveMax = (maxValue ?: items.maxOf { it.value }).coerceAtLeast(1)
 	val values = remember(items) { items.map { it.value.formatDecimalSeparator() } }
-	val valueStyle = MaterialTheme.typography.titleSmall
-	val textMeasurer = rememberTextMeasurer()
-	val density = LocalDensity.current
-	val valueWidth = remember(values, valueStyle, density) {
-		val widest = values.maxOf { textMeasurer.measure(it, valueStyle, softWrap = false).size.width }
-		with(density) { widest.toDp() }
-	}
+	val columnWidth = valueWidth ?: rememberHdBarValueWidth(values)
 	Column(
 		modifier = modifier,
 		verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -112,7 +121,7 @@ fun HdMiniBarChart(
 				color = item.color,
 				modifier = rowModifier,
 				labelIndent = item.labelIndent,
-				valueWidth = valueWidth,
+				valueWidth = columnWidth,
 			)
 		}
 	}
