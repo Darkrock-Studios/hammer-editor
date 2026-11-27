@@ -27,12 +27,16 @@ class ReferenceIndexDatasource(
 
 	suspend fun loadIndex(): ReferenceIndex? = withContext(dispatcherIo) {
 		val file = getIndexPath()
-		return@withContext if (fileSystem.exists(file)) {
-			fileSystem.readTomlOrNull<ReferenceIndex>(file, toml) { e ->
-				Napier.e("Failed to load reference index cache", e)
-			}
-		} else {
+		if (!fileSystem.exists(file)) return@withContext null
+
+		val index = fileSystem.readTomlOrNull<ReferenceIndex>(file, toml) { e ->
+			Napier.e("Failed to load reference index cache", e)
+		}
+		return@withContext if (index != null && index.projectId != projectDef.id.id) {
+			Napier.i("Reference index cache belongs to another project, ignoring it")
 			null
+		} else {
+			index
 		}
 	}
 
@@ -40,7 +44,7 @@ class ReferenceIndexDatasource(
 		ensureCacheDirectoryExists()
 		val file = getIndexPath()
 		requireWithinCacheRoot(file)
-		fileSystem.writeToml(file, toml, index)
+		fileSystem.writeToml(file, toml, index.copy(projectId = projectDef.id.id))
 		Napier.d("Reference index saved to cache")
 	}
 

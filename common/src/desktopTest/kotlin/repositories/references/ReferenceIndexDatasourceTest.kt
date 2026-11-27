@@ -1,5 +1,6 @@
 package repositories.references
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
@@ -61,7 +62,34 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 		assertTrue(datasource.exists())
 
 		val loaded = datasource.loadIndex()
-		assertEquals(original, loaded)
+		assertEquals(original.copy(projectId = getProject1Def().id.id), loaded)
+	}
+
+	@Test
+	fun `Load ignores a cache left by another project of the same name`() = runTest(mainTestDispatcher) {
+		val replaced = getProject1Def()
+		createDatasource(replaced).saveIndex(ReferenceIndex(entryToScenes = mapOf(1 to setOf(10))))
+
+		val replacement = replaced.copy(id = ProjectId.randomUUID())
+		val datasource = createDatasource(replacement)
+		assertNull(datasource.loadIndex())
+
+		datasource.saveIndex(ReferenceIndex(entryToScenes = mapOf(2 to setOf(20))))
+		assertEquals(mapOf(2 to setOf(20)), datasource.loadIndex()?.entryToScenes)
+		assertNull(createDatasource(replaced).loadIndex())
+	}
+
+	@Test
+	fun `Load ignores a cache that names no project`() = runTest(mainTestDispatcher) {
+		val datasource = createDatasource()
+		datasource.saveIndex(ReferenceIndex())
+
+		val cachePath = ffs.allPaths.first { it.name == ReferenceIndexDatasource.FILENAME }
+		ffs.write(cachePath) {
+			writeUtf8("schemaVersion = 1\nisDirty = false\n\n[entryToScenes]\n38 = [ 3 ]\n")
+		}
+
+		assertNull(datasource.loadIndex())
 	}
 
 	@Test
