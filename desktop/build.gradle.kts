@@ -216,6 +216,11 @@ compose.desktop {
 			// Lets Nucleus' System.loadLibrary find our pre-bundled signed dylibs
 			// instead of falling back to extraction (Gatekeeper blocks that).
 			jvmArgs("-Djava.library.path=\$APPDIR/resources")
+		} else if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
+			// Nucleus tries System.loadLibrary before extracting its own ANGLE, and the default
+			// path includes System32 and PATH, where another app's libEGL/libGLESv2 can win and
+			// fail Skia's DirectContext at startup. Nothing is bundled here, so it extracts its own.
+			jvmArgs("-Djava.library.path=\$APPDIR/resources")
 		}
 
 		buildTypes.release.proguard {
