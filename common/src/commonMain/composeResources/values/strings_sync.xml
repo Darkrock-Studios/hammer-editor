@@ -42,7 +42,6 @@
 	<string name="project_info_word_goal_cadence_day">Day</string>
 	<string name="project_info_word_goal_cadence_week">Week</string>
 	<string name="project_info_cover_section_title">Book cover</string>
-	<string name="project_info_cover_caption">Shown on the project home, in the project list and on the web reader, and opens every export. Pick any image from the gallery.</string>
 	<string name="project_info_cover_clear">Clear</string>
 	<string name="project_info_cover_none">No cover</string>
 	<string name="project_info_cover_missing">Not on this device yet</string>
