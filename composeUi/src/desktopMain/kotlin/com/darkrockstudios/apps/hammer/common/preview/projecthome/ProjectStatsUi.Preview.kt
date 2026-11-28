@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.projecthome
 
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.AuthorWords
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -148,6 +149,11 @@ private val component = object : ProjectHome {
 			sceneWordsStdDev = 540,
 			numberOfNotes = 12,
 			numberOfTimelineEvents = 9,
+			wordsPerDevice = mapOf("Desktop" to 36_400, "Pixel 9" to 4_800),
+			wordsPerAuthor = listOf(
+				AuthorWords(authorId = 1, authorName = "Mara Quill", words = 38_900, devices = mapOf("Desktop" to 34_600, "Pixel 9" to 4_300)),
+				AuthorWords(authorId = 2, authorName = "Tobias Fenn", words = 2_300, devices = mapOf("Desktop" to 1_800, "Pixel 9" to 500)),
+			),
 		)
 	)
 	override val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =

@@ -1197,6 +1197,12 @@ private fun AuthorsSection(state: ProjectHome.State) {
 		val palette = remember(authors.size) { hdHuePalette(authors.size) }
 		val maxValue = authors.first().words.coerceAtLeast(1)
 		val unknownAuthor = Res.string.project_home_stat_unknown_author.get()
+		// One width for every author's chart, so their shared maxValue draws bars at the same scale.
+		val valueWidth = rememberHdBarValueWidth(
+			remember(authors) {
+				authors.flatMap { listOf(it.words) + it.devices.values }.map { it.formatDecimalSeparator() }
+			}
+		)
 		Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 			authors.forEachIndexed { index, author ->
 				val color = palette[index]
@@ -1206,7 +1212,12 @@ private fun AuthorsSection(state: ProjectHome.State) {
 					}
 					listOf(HdAttributionItem(author.authorName ?: unknownAuthor, author.words, color)) + devices
 				}
-				HdMiniBarChart(items = items, modifier = Modifier.fillMaxWidth(), maxValue = maxValue)
+				HdMiniBarChart(
+					items = items,
+					modifier = Modifier.fillMaxWidth(),
+					maxValue = maxValue,
+					valueWidth = valueWidth,
+				)
 			}
 		}
 	}
